@@ -4,8 +4,8 @@ import { Check, Zap, Shield, Crown } from 'lucide-react';
 
 export default function SubscriptionsPage() {
     const plans = [
-        { name: 'Basic', price: '$49', icon: Zap, color: 'text-blue-500', features: ['Up to 5 Buses', 'Real-time Tracking', 'Daily Reports', 'Standard Support'] },
-        { name: 'Premium', price: '$99', icon: Crown, color: 'text-amber-500', current: true, features: ['Unlimited Buses', 'Advanced Analytics', 'Parent PWA Access', 'Priority 24/7 Support', 'Custom Branding'] },
+        { name: 'Basic', price: '₹4,999', icon: Zap, color: 'text-blue-500', features: ['Up to 5 Buses', 'Real-time Tracking', 'Daily Reports', 'Standard Support'] },
+        { name: 'Premium', price: '₹9,999', icon: Crown, color: 'text-amber-500', current: true, features: ['Unlimited Buses', 'Advanced Analytics', 'Parent PWA Access', 'Priority 24/7 Support', 'Custom Branding'] },
         { name: 'Enterprise', price: 'Custom', icon: Shield, color: 'text-purple-500', features: ['Multi-Institutional', 'API Access', 'Dedicated Manager', 'On-premise Options'] },
     ];
 

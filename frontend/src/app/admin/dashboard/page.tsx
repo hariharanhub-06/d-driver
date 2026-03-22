@@ -1,6 +1,6 @@
 'use client';
 
-import { Users, Bus, Map as MapIcon, DollarSign } from 'lucide-react';
+import { Users, Bus, Map as MapIcon, IndianRupee } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const data = [
@@ -49,14 +49,12 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <div className="card flex items-center">
-                    <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center mr-4 shrink-0">
-                        <DollarSign className="w-6 h-6 text-purple-600 dark:text-purple-300" />
+                <div className="card flex-col items-start p-6">
+                    <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-4">
+                        <IndianRupee className="w-6 h-6 text-purple-600 dark:text-purple-300" />
                     </div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Fee Collection</p>
-                        <h3 className="text-2xl font-bold">$124,500</h3>
-                    </div>
+                    <p className="text-slate-500 text-sm font-medium">Revenue (MTD)</p>
+                    <h3 className="text-2xl font-bold">₹1,24,500</h3>
                 </div>
             </div>
 

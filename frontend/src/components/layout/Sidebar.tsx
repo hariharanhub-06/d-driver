@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Bus, Users, Map, DollarSign, Bell, Settings, Building, UserCheck, X } from 'lucide-react';
+import { Home, Bus, Users, Map, IndianRupee, Bell, Settings, Building, UserCheck, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 
@@ -20,7 +20,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose:
         { icon: UserCheck, label: 'Staff Admins', href: '/admin/staff' },
         { icon: Map, label: 'Routes & Stops', href: '/admin/routes' },
         { icon: Map, label: 'Live Tracking', href: '/admin/tracking' },
-        { icon: DollarSign, label: 'Fees', href: '/admin/fees' },
+        { icon: IndianRupee, label: 'Fees', href: '/admin/fees' },
         { icon: Bell, label: 'Notifications', href: '/admin/notifications' },
         { icon: Settings, label: 'Settings', href: '/admin/settings' },
     ];
