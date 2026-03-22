@@ -22,7 +22,7 @@ export default function StaffPage() {
         try {
             const { data } = await api.get('/api/users?role=admin');
             setStaff(data);
-        } catch (_err) {
+        } catch {
             console.error('Failed to fetch staff');
         } finally {
             setLoading(false);
@@ -41,7 +41,7 @@ export default function StaffPage() {
             setIsModalOpen(false);
             setFormData({ name: '', email: '', password: 'admin123', role: 'admin', school_id: '' });
             fetchStaff();
-        } catch (_err) {
+        } catch {
             alert('Failed to create staff account.');
         } finally {
             setIsSubmitting(false);

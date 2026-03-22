@@ -18,7 +18,7 @@ export default function ActiveRide() {
                 });
                 alert('SOS Alert Sent to Administration!');
             }
-        } catch (_err: unknown) {
+        } catch {
             alert('Failed to send SOS. Please call emergency services.');
         }
     };

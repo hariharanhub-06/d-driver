@@ -16,7 +16,7 @@ export default function StudentsPage() {
         try {
             const { data } = await api.get('/students');
             setStudents(data);
-        } catch (_err) {
+        } catch {
             console.error('Failed to fetch students');
         } finally {
             setLoading(false);

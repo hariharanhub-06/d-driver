@@ -20,8 +20,8 @@ export default function LoginPage() {
         try {
             const response = await api.post('/auth/login', { email, password });
             login(response.data.token, response.data.user);
-        } catch (err: any) {
-            const errorMessage = (err as any).response?.data?.message || 'Login failed. Please check your credentials.';
+        } catch (err: unknown) {
+            const errorMessage = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Login failed. Please check your credentials.';
             setError(errorMessage);
         } finally {
             setIsLoading(false);

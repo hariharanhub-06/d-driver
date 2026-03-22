@@ -22,7 +22,7 @@ export default function ParentsPage() {
         try {
             const { data } = await api.get('/api/users?role=parent');
             setParents(data);
-        } catch (_err) {
+        } catch {
             console.error('Failed to fetch parents');
         } finally {
             setLoading(false);
@@ -41,7 +41,7 @@ export default function ParentsPage() {
             setIsModalOpen(false);
             setFormData({ name: '', email: '', password: 'parent123', role: 'parent', school_id: '' });
             fetchParents();
-        } catch (_err) {
+        } catch {
             alert('Failed to register parent.');
         } finally {
             setIsSubmitting(false);
