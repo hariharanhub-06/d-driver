@@ -9,6 +9,7 @@ datasource db {
 model School {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   name              String
+  address           String?
   subscription_plan String   @default("Basic")
   status            String   @default("Active")
   created_at        DateTime @default(now())
@@ -23,6 +24,7 @@ model School {
   payments      Payment[]
   locations     Location[]
   notifications Notification[]
+  stops         Stop[]
 }
 
 model User {
@@ -53,6 +55,7 @@ model Bus {
 model Driver {
   id              String  @id @default(auto()) @map("_id") @db.ObjectId
   user_id         String  @unique @db.ObjectId
+  license_no      String?
   assigned_bus_id String? @db.ObjectId
   school_id       String  @db.ObjectId
 
@@ -77,7 +80,9 @@ model Stop {
   latitude  Float
   longitude Float
   route_id  String @db.ObjectId
+  school_id String @db.ObjectId
 
+  school   School    @relation(fields: [school_id], references: [id])
   route    Route     @relation(fields: [route_id], references: [id])
   students Student[]
 }
@@ -85,6 +90,9 @@ model Stop {
 model Student {
   id        String  @id @default(auto()) @map("_id") @db.ObjectId
   name      String
+  grade     String?
+  section   String?
+  gr_no     String?
   parent_id String? @db.ObjectId
   route_id  String? @db.ObjectId
   stop_id   String? @db.ObjectId
