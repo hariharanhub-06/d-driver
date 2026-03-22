@@ -12,6 +12,8 @@ export default function Home() {
     if (!loading) {
       if (!user) {
         router.push('/login');
+      } else if (user.role === 'super_admin') {
+        router.push('/super-admin/dashboard');
       } else if (user.role === 'driver') {
         router.push('/driver/dashboard');
       } else if (user.role === 'parent') {

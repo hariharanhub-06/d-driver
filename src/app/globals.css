@@ -3,17 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card-bg: #ffffff;
+  --background: #ffffff;
+  --foreground: #000000;
+  --card-bg: #f3f3f3;
   --border: #e2e8f0;
 }
 
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --card-bg: #1e293b;
-  --border: #334155;
+  --background: #000000;
+  --foreground: #ffffff;
+  --card-bg: #121212;
+  --border: #262626;
 }
 
 @layer base {

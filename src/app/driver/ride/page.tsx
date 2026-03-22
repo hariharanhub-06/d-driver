@@ -1,22 +1,74 @@
 'use client';
 
 import { MapPin, Navigation, CheckCircle, AlertTriangle, Phone } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { socket, connectSocket } from '@/lib/socket';
 import api from '@/lib/api';
+import dynamic from 'next/dynamic';
+
+const FreeMap = dynamic(() => import('@/components/ui/FreeMap'), { ssr: false });
 
 export default function ActiveRide() {
     const [isStarted, setIsStarted] = useState(false);
+    const [currentPos, setCurrentPos] = useState<[number, number]>([-33.8688, 151.2093]);
     const { user } = useAuth();
+    const busId = '12'; // Mock Bus ID for tracking
+
+    useEffect(() => {
+        // Connect to the specific bus room
+        connectSocket(busId);
+
+        let watchId: number;
+        if (isStarted) {
+            // Watch device GPS and emit to the socket room
+            if ('geolocation' in navigator) {
+                watchId = navigator.geolocation.watchPosition((position) => {
+                    const { latitude, longitude } = position.coords;
+                    setCurrentPos([latitude, longitude]);
+
+                    // Broadcast location to Parents via Socket.io
+                    socket.emit('update-location', {
+                        busId: busId,
+                        lat: latitude,
+                        lng: longitude
+                    });
+                }, (error) => console.log('GPS Error:', error), { enableHighAccuracy: true });
+            } else {
+                // Fallback simulation for testing without GPS
+                watchId = window.setInterval(() => {
+                    setCurrentPos(prev => {
+                        const newPos: [number, number] = [prev[0] + 0.0001, prev[1] + 0.0001];
+                        socket.emit('update-location', { busId: busId, lat: newPos[0], lng: newPos[1] });
+                        return newPos;
+                    });
+                }, 5000);
+            }
+        }
+
+        return () => {
+            if (watchId) {
+                if ('geolocation' in navigator) navigator.geolocation.clearWatch(watchId);
+                else clearInterval(watchId);
+            }
+        };
+    }, [isStarted]);
 
     const handleSOS = async () => {
         try {
             if (confirm('Are you sure you want to trigger a silent SOS alert?')) {
+                // Trigger global socket alert
+                socket.emit('trigger-alert', {
+                    message: `SOS EMERGENCY: Bus ${busId} is in distress!`,
+                    type: 'error'
+                });
+
+                // Keep the database log
                 await api.post('/notifications', {
                     message: `SOS EMERGENCY: Bus ${user?.name || 'Driver'} is in distress!`,
                     type: 'alert'
                 });
-                alert('SOS Alert Sent to Administration!');
+                alert('SOS Alert Broadcasted to Administration!');
             }
         } catch {
             alert('Failed to send SOS. Please call emergency services.');
@@ -32,17 +84,21 @@ export default function ActiveRide() {
                 <p className="text-primary-100 text-sm">42 Students • 8 Stops</p>
             </div>
 
-            {/* Map Placeholder */}
-            <div className="flex-1 bg-slate-200 dark:bg-slate-800 relative">
-                <div className="absolute inset-0 flex items-center justify-center flex-col text-slate-400 dark:text-slate-500">
-                    <MapPin className="w-12 h-12 mb-2 opacity-50" />
-                    <p className="text-sm font-medium">Google Maps Navigation UI</p>
-                </div>
+            {/* Map Placeholder -> Live FreeMap */}
+            <div className="flex-1 bg-[#0a0a0a] relative z-0">
+                <FreeMap
+                    center={currentPos}
+                    zoom={15}
+                    markers={[
+                        { position: currentPos, title: 'You (Bus 12)' },
+                        { position: [-33.8750, 151.2150], title: 'Next Stop: Central Library' }
+                    ]}
+                />
 
                 {/* Floating SOS */}
                 <button
                     onClick={handleSOS}
-                    className="absolute top-4 right-4 w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 z-20"
+                    className="absolute top-4 right-4 w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 z-[400]" // Leaflet z-index is 400
                 >
                     <AlertTriangle className="w-6 h-6" />
                 </button>

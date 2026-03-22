@@ -3,6 +3,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 
 import { AuthProvider } from "@/context/AuthContext";
+import dynamic from 'next/dynamic';
+
+const NotificationToast = dynamic(() => import('@/components/ui/NotificationToast'), { ssr: false });
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,7 +22,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <NotificationToast />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

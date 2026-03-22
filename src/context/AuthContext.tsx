@@ -45,7 +45,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
 
-        if (userData.role === 'driver') {
+        if (userData.role === 'super_admin') {
+            router.push('/super-admin/dashboard');
+        } else if (userData.role === 'driver') {
             router.push('/driver/dashboard');
         } else if (userData.role === 'parent') {
             router.push('/parent/dashboard');

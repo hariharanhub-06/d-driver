@@ -11,6 +11,10 @@ model School {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   name              String
   address           String?
+  logo_url          String?
+  primary_color     String?  @default("#276EF1")
+  phone             String?
+  email_contact     String?
   subscription_plan String   @default("Basic")
   status            String   @default("Active")
   created_at        DateTime @default(now())
@@ -33,6 +37,7 @@ model User {
   name       String
   email      String   @unique
   password   String
+  phone      String?  @unique
   role       String   // "super_admin", "admin", "driver", "parent"
   school_id  String?  @db.ObjectId
   created_at DateTime @default(now())
