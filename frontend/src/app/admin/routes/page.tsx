@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function RoutesPage() {
     const { user } = useAuth();
-    const [routes, setRoutes] = useState<{ id: string, name: string, school?: { name: string }, stops?: any[] }[]>([]);
+    const [routes, setRoutes] = useState<{ id: string, name: string, school?: { name: string }, stops?: { id: string, name: string }[] }[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,7 +42,7 @@ export default function RoutesPage() {
             setIsModalOpen(false);
             setFormData({ name: '', school_id: '' });
             fetchRoutes();
-        } catch (error) {
+        } catch {
             alert('Failed to create route.');
         } finally {
             setIsSubmitting(false);

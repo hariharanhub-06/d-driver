@@ -22,7 +22,7 @@ export default function BusesPage() {
         try {
             const { data } = await api.get('/buses');
             setBuses(data);
-        } catch (error) {
+        } catch {
             console.error('Failed to fetch buses');
         } finally {
             setLoading(false);
@@ -103,7 +103,7 @@ export default function BusesPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                buses.map((bus: any) => (
+                                buses.map((bus: { id: string, plate_number: string, model?: string, capacity: number, current_status: string }) => (
                                     <tr key={bus.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
