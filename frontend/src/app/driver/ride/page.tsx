@@ -1,21 +1,9 @@
-'use client';
-
-import { MapPin, Navigation, CheckCircle, AlertTriangle, Phone } from 'lucide-react';
-import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import api from '@/lib/api';
 
 export default function ActiveRide() {
     const [isStarted, setIsStarted] = useState(false);
-
-    // Assuming 'api' and 'user' are defined elsewhere or need to be imported/mocked for this component to work.
-    // For the purpose of this edit, I will define a placeholder 'api' and 'user' to make the code syntactically correct.
-    // In a real application, you would import 'api' (e.g., from an axios instance) and 'user' (e.g., from an auth context).
-    const api = {
-        post: async (url, data) => {
-            console.log(`API POST to ${url} with data:`, data);
-            return new Promise(resolve => setTimeout(() => resolve({ status: 200 }), 500)); // Simulate API call
-        }
-    };
-    const user = { name: 'Driver' }; // Placeholder user
+    const { user } = useAuth();
 
     const handleSOS = async () => {
         try {
