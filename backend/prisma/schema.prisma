@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+}
+
+model School {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  name              String
+  subscription_plan String   @default("Basic")
+  status            String   @default("Active")
+  created_at        DateTime @default(now())
+
+  users         User[]
+  buses         Bus[]
+  drivers       Driver[]
+  routes        Route[]
+  students      Student[]
+  attendance    Attendance[]
+  fees          Fee[]
+  payments      Payment[]
+  locations     Location[]
+  notifications Notification[]
+}
+
+model User {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  email      String   @unique
+  password   String
+  role       String   // "super_admin", "admin", "driver", "parent"
+  school_id  String?  @db.ObjectId
+  created_at DateTime @default(now())
+
+  school   School?   @relation(fields: [school_id], references: [id])
+  driver   Driver?
+  children Student[] @relation("ParentStudents")
+}
+
+model Bus {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  bus_number String
+  capacity   Int
+  school_id  String @db.ObjectId
+
+  school    School     @relation(fields: [school_id], references: [id])
+  drivers   Driver[]
+  locations Location[]
+}
+
+model Driver {
+  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+  user_id         String  @unique @db.ObjectId
+  assigned_bus_id String? @db.ObjectId
+  school_id       String  @db.ObjectId
+
+  user   User   @relation(fields: [user_id], references: [id])
+  bus    Bus?   @relation(fields: [assigned_bus_id], references: [id])
+  school School @relation(fields: [school_id], references: [id])
+}
+
+model Route {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  school_id String @db.ObjectId
+
+  school   School    @relation(fields: [school_id], references: [id])
+  stops    Stop[]
+  students Student[]
+}
+
+model Stop {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  latitude  Float
+  longitude Float
+  route_id  String @db.ObjectId
+
+  route    Route     @relation(fields: [route_id], references: [id])
+  students Student[]
+}
+
+model Student {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  parent_id String? @db.ObjectId
+  route_id  String? @db.ObjectId
+  stop_id   String? @db.ObjectId
+  school_id String  @db.ObjectId
+
+  school     School       @relation(fields: [school_id], references: [id])
+  route      Route?       @relation(fields: [route_id], references: [id])
+  stop       Stop?        @relation(fields: [stop_id], references: [id])
+  parent     User?        @relation("ParentStudents", fields: [parent_id], references: [id])
+  attendance Attendance[]
+  fees       Fee[]
+}
+
+model Attendance {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  student_id String   @db.ObjectId
+  date       DateTime @default(now())
+  status     String   // "present", "absent", "missed"
+  school_id  String   @db.ObjectId
+
+  student Student @relation(fields: [student_id], references: [id])
+  school  School  @relation(fields: [school_id], references: [id])
+}
+
+model Fee {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  student_id   String   @db.ObjectId
+  total_amount Float
+  due_amount   Float
+  due_date     DateTime
+  school_id    String   @db.ObjectId
+
+  student  Student   @relation(fields: [student_id], references: [id])
+  school   School    @relation(fields: [school_id], references: [id])
+  payments Payment[]
+}
+
+model Payment {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  fee_id       String   @db.ObjectId
+  amount       Float
+  status       String   // "paid", "pending", "overdue"
+  payment_date DateTime @default(now())
+  school_id    String   @db.ObjectId
+
+  fee    Fee    @relation(fields: [fee_id], references: [id])
+  school School @relation(fields: [school_id], references: [id])
+}
+
+model Location {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  bus_id    String   @db.ObjectId
+  latitude  Float
+  longitude Float
+  timestamp DateTime @default(now())
+  school_id String   @db.ObjectId
+
+  bus    Bus    @relation(fields: [bus_id], references: [id])
+  school School @relation(fields: [school_id], references: [id])
+}
+
+model Notification {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id    String   @db.ObjectId
+  message    String
+  type       String
+  created_at DateTime @default(now())
+  school_id  String   @db.ObjectId
+
+  school School @relation(fields: [school_id], references: [id])
+}

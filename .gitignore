@@ -1,0 +1,16 @@
+node_modules/
+.next/
+dist/
+.env
+.DS_Store
+*.log
+backend/node_modules/
+frontend/node_modules/
+backend/.env
+frontend/.env.local
+frontend/.next/
+frontend/out/
+backend/dist/
+prisma/dev.db
+query-engine-*
+migration_lock.toml
