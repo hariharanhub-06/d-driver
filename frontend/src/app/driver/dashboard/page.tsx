@@ -31,7 +31,7 @@ export default function DriverDashboard() {
                 </p>
             </div>
 
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Today's Schedule</h3>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Today&apos;s Schedule</h3>
 
             <div className="space-y-4 flex-1">
                 <Link href="/ride" className="block bg-white dark:bg-slate-800 rounded-xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 hover:border-primary-500 transition-all active:scale-95">

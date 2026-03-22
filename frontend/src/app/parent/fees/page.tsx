@@ -19,7 +19,7 @@ export default function ParentFees() {
         <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-950 min-h-full">
             <div className="mb-6 mt-2 text-center sm:text-left">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">Fee Management</h2>
-                <p className="text-slate-500 text-sm">Track and pay your children's transport fees.</p>
+                <p className="text-slate-500 text-sm">Track and pay your children&apos;s transport fees.</p>
             </div>
 
             <div className="flex p-1 bg-slate-200/50 dark:bg-slate-800 rounded-xl mb-6">

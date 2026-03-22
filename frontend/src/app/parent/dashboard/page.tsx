@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Bus, User as UserIcon, AlertTriangle, AlertCircle, Clock } from 'lucide-react';
+import { Bus, User as UserIcon, AlertTriangle, AlertCircle, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 

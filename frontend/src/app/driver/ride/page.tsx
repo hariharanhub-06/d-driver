@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, Navigation, CheckCircle, AlertTriangle, Phone, Bus } from 'lucide-react';
+import { MapPin, Navigation, CheckCircle, AlertTriangle, Phone } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
