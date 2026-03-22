@@ -22,7 +22,7 @@ export default function StaffPage() {
         try {
             const { data } = await api.get('/api/users?role=admin');
             setStaff(data);
-        } catch (error) {
+        } catch (_err) {
             console.error('Failed to fetch staff');
         } finally {
             setLoading(false);
@@ -41,7 +41,7 @@ export default function StaffPage() {
             setIsModalOpen(false);
             setFormData({ name: '', email: '', password: 'admin123', role: 'admin', school_id: '' });
             fetchStaff();
-        } catch (error) {
+        } catch (_err) {
             alert('Failed to create staff account.');
         } finally {
             setIsSubmitting(false);
@@ -100,7 +100,7 @@ export default function StaffPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                staff.map((admin: any) => (
+                                staff.map((admin: { id: string, name: string, email: string, role: string }) => (
                                     <tr key={admin.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">

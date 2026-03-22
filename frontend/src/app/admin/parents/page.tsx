@@ -22,7 +22,7 @@ export default function ParentsPage() {
         try {
             const { data } = await api.get('/api/users?role=parent');
             setParents(data);
-        } catch (error) {
+        } catch (_err) {
             console.error('Failed to fetch parents');
         } finally {
             setLoading(false);
@@ -41,7 +41,7 @@ export default function ParentsPage() {
             setIsModalOpen(false);
             setFormData({ name: '', email: '', password: 'parent123', role: 'parent', school_id: '' });
             fetchParents();
-        } catch (error) {
+        } catch (_err) {
             alert('Failed to register parent.');
         } finally {
             setIsSubmitting(false);
@@ -101,7 +101,7 @@ export default function ParentsPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                parents.map((parent: any) => (
+                                parents.map((parent: { id: string, name: string, email: string }) => (
                                     <tr key={parent.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">

@@ -16,7 +16,7 @@ export default function StudentsPage() {
         try {
             const { data } = await api.get('/students');
             setStudents(data);
-        } catch (error) {
+        } catch (_err) {
             console.error('Failed to fetch students');
         } finally {
             setLoading(false);
@@ -64,7 +64,7 @@ export default function StudentsPage() {
                             ) : students.length === 0 ? (
                                 <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">No students found.</td></tr>
                             ) : (
-                                students.map((student: any) => (
+                                students.map((student: { id: string, name: string, gr_no?: string, grade: string, section: string, stop?: { name: string }, parent?: { name: string } }) => (
                                     <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                                         <td className="px-6 py-4">
                                             <p className="font-semibold text-slate-900 dark:text-white">{student.name}</p>
