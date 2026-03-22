@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { DollarSign, AlertCircle, CheckCircle2, Plus, Search, Filter, CreditCard, History, User, Calendar, NotebookIcon as Notebook, ArrowRight, IndianRupee } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';

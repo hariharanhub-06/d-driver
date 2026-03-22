@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash, Bus as BusIcon, Users as UsersIcon } from 'lucide-react';
 import api from '@/lib/api';

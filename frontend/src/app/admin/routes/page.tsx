@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Map as MapIcon, Plus, Route as RouteIcon, Navigation, Trash, Edit, Clock, IndianRupee } from 'lucide-react';
 import api from '@/lib/api';
