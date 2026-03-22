@@ -42,7 +42,7 @@ export default function BusesPage() {
             setIsModalOpen(false);
             setFormData({ bus_number: '', capacity: '', school_id: '' });
             fetchBuses();
-        } catch (error) {
+        } catch {
             alert('Failed to add bus. Please try again.');
         } finally {
             setIsSubmitting(false);
@@ -103,7 +103,7 @@ export default function BusesPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                buses.map((bus: { id: string, plate_number: string, model?: string, capacity: number, current_status: string }) => (
+                                buses.map((bus: { id: string, bus_number: string, capacity: number, current_status: string, drivers?: { user: { name: string } }[] }) => (
                                     <tr key={bus.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
@@ -113,10 +113,12 @@ export default function BusesPage() {
                                                 <span className="font-bold text-slate-800 dark:text-white">{bus.bus_number}</span>
                                             </div>
                                         </td>
-                                        <div className="flex items-center text-slate-600 dark:text-slate-400">
-                                            <UsersIcon className="w-4 h-4 mr-2" />
-                                            {bus.capacity} Seats
-                                        </div>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center text-slate-600 dark:text-slate-400">
+                                                <UsersIcon className="w-4 h-4 mr-2" />
+                                                {bus.capacity} Seats
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4">
                                             {bus.drivers && bus.drivers.length > 0
                                                 ? <span className="font-medium">{bus.drivers[0].user?.name}</span>
@@ -124,7 +126,7 @@ export default function BusesPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                                                Active
+                                                {bus.current_status || 'Active'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">

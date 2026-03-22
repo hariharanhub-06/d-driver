@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, MapPin, Clock, MessageSquare } from 'lucide-react';
+import { Bell, Clock } from 'lucide-react';
 
 export default function NotificationsPage() {
     const notifications = [
@@ -23,7 +23,7 @@ export default function NotificationsPage() {
                 {notifications.map((n) => (
                     <div key={n.id} className="card flex items-start p-5 hover:border-primary-200 transition-colors">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center mr-4 shrink-0 ${n.type === 'alert' ? 'bg-red-50 text-red-600' :
-                                n.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
+                            n.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
                             }`}>
                             <Bell className="w-5 h-5" />
                         </div>
