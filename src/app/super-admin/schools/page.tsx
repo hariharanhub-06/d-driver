@@ -43,12 +43,15 @@ export default function SchoolsManagement() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-4xl font-black text-white tracking-tighter uppercase">School Network</h1>
-                    <p className="text-white/40 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 flex items-center">
+                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">School Network</h1>
+                    <p className="text-slate-500 dark:text-white/40 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 flex items-center">
                         <Building2 className="w-3 h-3 mr-1 text-uber-blue" /> Manage Subscribed Institutions
                     </p>
                 </div>
-                <button className="bg-white hover:bg-white/90 text-black font-black py-4 px-8 rounded-2xl transition-all flex items-center transform active:scale-95 shadow-xl shadow-white/5">
+                <button
+                    onClick={() => alert("Registration Portal coming in next update!")}
+                    className="bg-black text-white dark:bg-white dark:text-black hover:bg-slate-800 dark:hover:bg-white/90 font-black py-4 px-8 rounded-2xl transition-all flex items-center transform active:scale-95 shadow-xl shadow-black/10 dark:shadow-white/5"
+                >
                     <Plus className="w-5 h-5 mr-3" strokeWidth={3} /> Register New School
                 </button>
             </div>

@@ -36,7 +36,10 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
             </div>
 
             <div className="flex items-center space-x-2 md:space-x-4">
-                <button className="p-2 text-slate-500 hover:text-foreground rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center text-sm font-medium">
+                <button
+                    onClick={() => alert('Language selection will be available in the next release.')}
+                    className="p-2 text-slate-500 hover:text-foreground rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center text-sm font-medium"
+                >
                     <Globe className="w-5 h-5 md:mr-2" />
                     <span className="hidden md:inline">EN</span>
                 </button>
@@ -46,11 +49,17 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                 >
                     {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
-                <button className="p-2 text-slate-500 hover:text-foreground rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative">
+                <button
+                    onClick={() => alert('You have no new notifications.')}
+                    className="p-2 text-slate-500 hover:text-foreground rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative"
+                >
                     <Bell className="w-5 h-5" />
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
                 </button>
-                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold ml-2">
+                <div
+                    onClick={() => alert('Profile settings coming soon.')}
+                    className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold ml-2 cursor-pointer hover:bg-primary-200 transition-colors"
+                >
                     H
                 </div>
             </div>

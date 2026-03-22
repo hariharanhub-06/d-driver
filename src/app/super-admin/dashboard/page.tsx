@@ -31,15 +31,15 @@ export default function SuperAdminDashboard() {
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black text-white tracking-tighter">NETWORK CONTROLLER</h1>
-                    <p className="text-white/40 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 flex items-center">
+                    <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">NETWORK CONTROLLER</h1>
+                    <p className="text-slate-500 dark:text-white/40 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 flex items-center">
                         <ShieldCheck className="w-3 h-3 mr-1 text-uber-blue" /> System Wide Monitoring
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="px-5 py-3 bg-white/5 rounded-2xl border border-white/5 flex items-center group cursor-pointer hover:bg-white/10 transition-all">
-                        <Globe className="w-5 h-5 text-white/40 mr-3 group-hover:text-uber-blue transition-colors" />
-                        <span className="text-sm font-bold text-white/70">Global Instance: ap-southeast-2</span>
+                    <div className="px-5 py-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 flex items-center group cursor-pointer hover:bg-slate-200 dark:hover:bg-white/10 transition-all">
+                        <Globe className="w-5 h-5 text-slate-500 dark:text-white/40 mr-3 group-hover:text-uber-blue transition-colors" />
+                        <span className="text-sm font-bold text-slate-700 dark:text-white/70">Global Instance: ap-southeast-2</span>
                     </div>
                 </div>
             </div>
@@ -54,7 +54,7 @@ export default function SuperAdminDashboard() {
                                 <stat.icon className={`w-7 h-7 ${stat.color}`} />
                             </div>
                             <p className="text-white/40 text-xs font-black uppercase tracking-widest">{stat.label}</p>
-                            <h3 className="text-3xl font-black text-white mt-2 tracking-tighter">{stat.value}</h3>
+                            <h3 className="text-xl font-black text-white mt-2 tracking-tighter">{stat.value}</h3>
                             <p className="text-[11px] font-bold text-white/20 mt-3 flex items-center capitalize">
                                 <TrendingUp className="w-3 h-3 mr-1 text-green-500" /> {stat.trend}
                             </p>
@@ -68,7 +68,7 @@ export default function SuperAdminDashboard() {
                 <div className="lg:col-span-2 bg-[#080808] rounded-[40px] border border-white/5 overflow-hidden shadow-2xl">
                     <div className="p-10 border-b border-white/5 flex items-center justify-between bg-[#0c0c0c]">
                         <div>
-                            <h3 className="text-2xl font-black text-white tracking-tight">System Activity Log</h3>
+                            <h3 className="text-lg font-black text-white tracking-tight">System Activity Log</h3>
                             <p className="text-white/30 text-xs font-bold uppercase tracking-widest mt-1">Real-time Service Monitoring</p>
                         </div>
                         <button className="px-6 py-3 bg-white text-black font-black rounded-2xl hover:bg-white/90 transition-all text-xs">
@@ -112,7 +112,7 @@ export default function SuperAdminDashboard() {
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
                         <div className="relative z-10">
                             <CreditCard className="w-10 h-10 text-white mb-6" />
-                            <h3 className="text-2xl font-black text-white tracking-tight leading-tight">Integration <br />Status</h3>
+                            <h3 className="text-lg font-black text-white tracking-tight leading-tight">Integration <br />Status</h3>
                             <div className="mt-8 space-y-4">
                                 <div className="flex items-center justify-between border-b border-white/10 pb-4">
                                     <span className="text-white/60 text-sm font-bold uppercase">AWS S3</span>
@@ -131,7 +131,7 @@ export default function SuperAdminDashboard() {
                     </div>
 
                     <div className="bg-[#121212] p-10 rounded-[40px] border border-white/5 hover:border-white/10 transition-all">
-                        <h3 className="text-xl font-black text-white tracking-tight">System Message</h3>
+                        <h3 className="text-lg font-black text-white tracking-tight">System Message</h3>
                         <p className="text-white/40 text-sm mt-4 font-medium leading-relaxed">
                             Welcome to the D-DRIVER Network Controller. All systems are currently operating at peak performance.
                         </p>
