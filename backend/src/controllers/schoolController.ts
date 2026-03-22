@@ -13,9 +13,9 @@ export const getSchools = async (req: Request, res: Response) => {
 
 export const createSchool = async (req: Request, res: Response) => {
     try {
-        const { name, subscription_plan, status } = req.body;
+        const { name, address, subscription_plan, status } = req.body;
         const school = await prisma.school.create({
-            data: { name, subscription_plan, status }
+            data: { name, address, subscription_plan, status }
         });
         res.status(201).json(school);
     } catch (error) {
@@ -27,10 +27,10 @@ export const createSchool = async (req: Request, res: Response) => {
 export const updateSchool = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { name, subscription_plan, status } = req.body;
+        const { name, address, subscription_plan, status } = req.body;
         const school = await prisma.school.update({
             where: { id: id as string },
-            data: { name, subscription_plan, status }
+            data: { name, address, subscription_plan, status }
         });
         res.json(school);
     } catch (error) {

@@ -3,7 +3,7 @@
 import { Bell, Menu, Moon, Search, Sun, Globe } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
-export default function Header() {
+export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
     const [isDark, setIsDark] = useState(false);
 
     useEffect(() => {
@@ -16,11 +16,13 @@ export default function Header() {
         document.documentElement.classList.toggle('dark');
         setIsDark(!isDark);
     };
-
     return (
         <header className="h-16 bg-[var(--card-bg)] border-b border-[var(--border)] flex items-center justify-between px-6 z-10 sticky top-0 shrink-0">
             <div className="flex items-center">
-                <button className="md:hidden mr-4 text-slate-500 hover:text-foreground">
+                <button
+                    onClick={onMenuClick}
+                    className="md:hidden mr-4 text-slate-500 hover:text-foreground"
+                >
                     <Menu className="w-6 h-6" />
                 </button>
                 <div className="relative hidden md:block">

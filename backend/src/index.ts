@@ -16,6 +16,7 @@ import attendanceRoutes from './routes/attendanceRoutes';
 import locationRoutes from './routes/locationRoutes';
 import financeRoutes from './routes/financeRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import userRoutes from './routes/userRoutes';
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/location', locationRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/users', userRoutes);
 
 // Built-in basic health check route
 app.get('/api/health', (req: Request, res: Response) => {

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDrivers, createDriver, assignBusToDriver } from '../controllers/driverController';
+import { getUsers, createUser } from '../controllers/userController';
 import { authenticateToken, requireRole } from '../middleware/authMiddleware';
 
 const router = Router();
@@ -7,8 +7,7 @@ const router = Router();
 router.use(authenticateToken);
 router.use(requireRole(['super_admin', 'admin']));
 
-router.get('/', getDrivers);
-router.post('/', createDriver);
-router.put('/:id/assign-bus', assignBusToDriver);
+router.get('/', getUsers);
+router.post('/', createUser);
 
 export default router;

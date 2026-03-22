@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import prisma from '../prisma';
+import bcrypt from 'bcryptjs';
 import { AuthRequest } from '../middleware/authMiddleware';
 
 export const getDrivers = async (req: AuthRequest, res: Response) => {
@@ -17,7 +18,40 @@ export const getDrivers = async (req: AuthRequest, res: Response) => {
     }
 };
 
+export const createDriver = async (req: AuthRequest, res: Response) => {
+    try {
+        const { name, email, password, license_no } = req.body;
+        const school_id = req.user.role === 'super_admin' ? req.body.school_id : req.user.school_id;
+
+        if (!school_id) return res.status(400).json({ message: 'school_id is required' });
+
+        const hashedPassword = await bcrypt.hash(password || 'driver123', 10);
+
+        const driver = await prisma.driver.create({
+            data: {
+                license_no,
+                school_id,
+                user: {
+                    create: {
+                        name,
+                        email,
+                        password: hashedPassword,
+                        role: 'driver',
+                        school_id
+                    }
+                }
+            },
+            include: { user: true }
+        });
+
+        res.status(201).json(driver);
+    } catch (error) {
+        res.status(500).json({ message: 'Error creating driver', error });
+    }
+};
+
 export const assignBusToDriver = async (req: AuthRequest, res: Response) => {
+    // ... existing ...
     try {
         const { id } = req.params;
         const { bus_id } = req.body;
@@ -39,3 +73,4 @@ export const assignBusToDriver = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: 'Error assigning bus', error });
     }
 };
+
