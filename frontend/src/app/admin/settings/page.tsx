@@ -1,6 +1,6 @@
 'use client';
 
-import { Settings as SettingsIcon, Bell, Shield, Wallet, Globe, Moon } from 'lucide-react';
+import { Bell, Shield, Wallet, Globe } from 'lucide-react';
 
 export default function SettingsPage() {
     return (
