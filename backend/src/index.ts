@@ -1,6 +1,9 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+dotenv.config();
+console.log('DEBUG: DATABASE_URL exists:', !!process.env.DATABASE_URL);
+
 import prisma from './prisma';
 
 import authRoutes from './routes/authRoutes';
