@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Map as MapIcon, Plus, Route as RouteIcon, Navigation, Trash, Edit, Clock, IndianRupee } from 'lucide-react';
+import { Map as MapIcon, Plus, Route as RouteIcon, Navigation, Edit, IndianRupee } from 'lucide-react';
 import api from '@/lib/api';
 import Modal from '@/components/ui/Modal';
 import { useAuth } from '@/context/AuthContext';
 
 export default function RoutesPage() {
     const { user } = useAuth();
-    const [routes, setRoutes] = useState<{ id: string, name: string, school?: { name: string } }[]>([]);
+    const [routes, setRoutes] = useState<{ id: string, name: string, school?: { name: string }, stops?: any[] }[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);

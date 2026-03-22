@@ -95,7 +95,7 @@ export default function SchoolsPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                schools.map((school: { id: string, name: string, address?: string, subscription_plan?: string }) => (
+                                schools.map((school: { id: string, name: string, address?: string, subscription_plan?: string, status?: string }) => (
                                     <tr key={school.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
