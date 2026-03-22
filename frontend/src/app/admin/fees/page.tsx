@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { IndianRupee, AlertCircle, CheckCircle2, Plus, Search, Filter, CreditCard, History, User, Calendar, NotebookIcon as Notebook, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import { IndianRupee, AlertCircle, CheckCircle2, Plus } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '@/lib/api';
 import Modal from '@/components/ui/Modal';
@@ -31,7 +31,7 @@ export default function FeesPage() {
             setIsPaymentModalOpen(false);
             setPaymentData({ student_id: '', amount: '', fee_id: '' });
             alert('Payment recorded successfully!');
-        } catch (error) {
+        } catch {
             alert('Failed to record payment.');
         } finally {
             setIsSubmitting(false);
@@ -50,7 +50,7 @@ export default function FeesPage() {
             setIsFeeModalOpen(false);
             setFeeDataInput({ student_id: '', total_amount: '', due_date: '' });
             alert('Fee structure assigned successfully!');
-        } catch (error) {
+        } catch {
             alert('Failed to post fee.');
         } finally {
             setIsSubmitting(false);
@@ -127,7 +127,7 @@ export default function FeesPage() {
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                     <XAxis dataKey="month" axisLine={false} tickLine={false} />
                                     <YAxis axisLine={false} tickLine={false} tickFormatter={(val: number) => `₹${val / 1000}k`} />
-                                    <Tooltip cursor={{ fill: 'transparent' }} formatter={(val: any) => `₹${val}`} />
+                                    <Tooltip cursor={{ fill: 'transparent' }} formatter={(val: string | number | readonly (string | number)[] | undefined) => `₹${val}`} />
                                     <Bar dataKey="collected" name="Collected" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                                     <Bar dataKey="pending" name="Pending" fill="#f97316" radius={[4, 4, 0, 0]} />
                                 </BarChart>

@@ -35,7 +35,7 @@ export default function SchoolsPage() {
             setIsModalOpen(false);
             setFormData({ name: '', address: '', subscription_plan: 'Basic', status: 'Active' });
             fetchSchools();
-        } catch (error) {
+        } catch {
             alert('Failed to onboard school. Please try again.');
         } finally {
             setIsSubmitting(false);

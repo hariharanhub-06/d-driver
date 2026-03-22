@@ -22,7 +22,7 @@ export default function DriversPage() {
         try {
             const { data } = await api.get('/drivers');
             setDrivers(data);
-        } catch (error) {
+        } catch {
             console.error('Failed to fetch drivers');
         } finally {
             setLoading(false);
@@ -41,7 +41,7 @@ export default function DriversPage() {
             setIsModalOpen(false);
             setFormData({ name: '', email: '', password: '', license_no: '', school_id: '' });
             fetchDrivers();
-        } catch (error) {
+        } catch {
             alert('Failed to add driver. Ensure email is unique.');
         } finally {
             setIsSubmitting(false);
@@ -102,7 +102,7 @@ export default function DriversPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                drivers.map((driver: any) => (
+                                drivers.map((driver: { id: string, license_no?: string, user?: { name: string, email: string }, bus?: { bus_number: string } }) => (
                                     <tr key={driver.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
