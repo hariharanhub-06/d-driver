@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function RoutesPage() {
     const { user } = useAuth();
-    const [routes, setRoutes] = useState<any[]>([]);
+    const [routes, setRoutes] = useState<{ id: string, name: string, school?: { name: string } }[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,7 +22,7 @@ export default function RoutesPage() {
         try {
             const { data } = await api.get('/routes');
             setRoutes(data);
-        } catch (error) {
+        } catch {
             console.error('Failed to fetch routes');
         } finally {
             setLoading(false);
