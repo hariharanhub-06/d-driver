@@ -4,7 +4,7 @@
   "description": "D-Driver Logistics Management System",
   "main": "index.js",
   "scripts": {
-    "build": "cd frontend && npm run build && mv .next ../ && (mv public ../ 2>/dev/null || true)",
+    "build": "cd frontend && npm run build && cp -R .next ../ && (cp -R public ../ 2>/dev/null || true)",
     "install": "cd frontend && npm install",
     "dev": "cd frontend && npm run dev"
   },
