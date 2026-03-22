@@ -9,6 +9,20 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('Seeding database...');
 
+    const hashedPassword = await bcrypt.hash('password123', 10);
+
+    // 1a. Create Super Admin
+    await prisma.user.upsert({
+        where: { email: 'superadmin@d-driver.com' },
+        update: {},
+        create: {
+            email: 'superadmin@d-driver.com',
+            password: hashedPassword,
+            name: 'System Super Admin',
+            role: 'super_admin',
+        },
+    });
+
     // 1. Create a School
     const school = await prisma.school.upsert({
         where: { id: 'default-school-id' },
