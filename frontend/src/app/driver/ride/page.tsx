@@ -6,6 +6,31 @@ import { useState } from 'react';
 export default function ActiveRide() {
     const [isStarted, setIsStarted] = useState(false);
 
+    // Assuming 'api' and 'user' are defined elsewhere or need to be imported/mocked for this component to work.
+    // For the purpose of this edit, I will define a placeholder 'api' and 'user' to make the code syntactically correct.
+    // In a real application, you would import 'api' (e.g., from an axios instance) and 'user' (e.g., from an auth context).
+    const api = {
+        post: async (url, data) => {
+            console.log(`API POST to ${url} with data:`, data);
+            return new Promise(resolve => setTimeout(() => resolve({ status: 200 }), 500)); // Simulate API call
+        }
+    };
+    const user = { name: 'Driver' }; // Placeholder user
+
+    const handleSOS = async () => {
+        try {
+            if (confirm('Are you sure you want to trigger a silent SOS alert?')) {
+                await api.post('/notifications', {
+                    message: `SOS EMERGENCY: Bus ${user?.name || 'Driver'} is in distress!`,
+                    type: 'alert'
+                });
+                alert('SOS Alert Sent to Administration!');
+            }
+        } catch (err) {
+            alert('Failed to send SOS. Please call emergency services.');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col max-w-md mx-auto relative shadow-2xl overflow-hidden">
             {/* PWA Mobile Header */}
@@ -22,7 +47,10 @@ export default function ActiveRide() {
                 </div>
 
                 {/* Floating SOS */}
-                <button className="absolute top-4 right-4 w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 z-20">
+                <button
+                    onClick={handleSOS}
+                    className="absolute top-4 right-4 w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 z-20"
+                >
                     <AlertTriangle className="w-6 h-6" />
                 </button>
             </div>

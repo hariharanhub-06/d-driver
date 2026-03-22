@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 interface User {
     id: string;
     name: string;
+    email: string;
     role: string;
     school_id: string;
 }
