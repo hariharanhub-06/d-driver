@@ -1,3 +1,7 @@
+'use client';
+
+import { MapPin, Navigation, CheckCircle, AlertTriangle, Phone, Bus } from 'lucide-react';
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 
@@ -14,10 +18,11 @@ export default function ActiveRide() {
                 });
                 alert('SOS Alert Sent to Administration!');
             }
-        } catch (err) {
+        } catch (err: any) {
             alert('Failed to send SOS. Please call emergency services.');
         }
     };
+
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col max-w-md mx-auto relative shadow-2xl overflow-hidden">

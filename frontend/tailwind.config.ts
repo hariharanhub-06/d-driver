@@ -12,6 +12,8 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        'card-bg': "var(--card-bg)",
+        'border-default': "var(--border)",
         primary: {
           50: '#eff6ff',
           100: '#dbeafe',
