@@ -70,11 +70,11 @@ export default function ParentDashboard() {
                     <span className="font-bold text-slate-800 dark:text-white text-sm">Report Absent</span>
                     <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">Notify transport team</span>
                 </button>
-                <button className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-4 shadow-sm flex flex-col justify-center text-left hover:border-primary-500 transition-colors">
+                <Link href="/parent/request" className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-4 shadow-sm flex flex-col justify-center text-left hover:border-primary-500 transition-colors">
                     <AlertTriangle className="w-6 h-6 text-red-500 mb-2" />
                     <span className="font-bold text-slate-800 dark:text-white text-sm">Request Stop Change</span>
                     <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">Temporary or permanent</span>
-                </button>
+                </Link>
             </div>
         </div>
     );

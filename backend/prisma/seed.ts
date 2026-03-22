@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
+process.env.DATABASE_URL = "mongodb+srv://hariharanjeyaramamoorthy_db_user:%40Bb26614@d-driver.qteaqiw.mongodb.net/d_driver?retryWrites=true&w=majority";
+
 const prisma = new PrismaClient();
 
 async function main() {
