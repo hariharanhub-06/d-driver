@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const busController_1 = require("../controllers/busController");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_1.authenticateToken);
+router.use((0, authMiddleware_1.requireRole)(['super_admin', 'admin']));
+router.get('/', busController_1.getBuses);
+router.post('/', busController_1.createBus);
+router.put('/:id', busController_1.updateBus);
+router.delete('/:id', busController_1.deleteBus);
+exports.default = router;

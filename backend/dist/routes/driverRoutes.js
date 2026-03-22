@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const driverController_1 = require("../controllers/driverController");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_1.authenticateToken);
+router.use((0, authMiddleware_1.requireRole)(['super_admin', 'admin']));
+router.get('/', driverController_1.getDrivers);
+router.put('/:id/assign-bus', driverController_1.assignBusToDriver);
+exports.default = router;
