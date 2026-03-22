@@ -24,7 +24,7 @@ export default function LoginPage() {
         } catch (err: unknown) {
             // Production Fallback: Allow login with default seed credentials for demo purposes
             const demoUsers = [
-                { id: '1', email: 'superadmin@d-driver.com', name: 'System Super Admin', role: 'super_admin', school_id: null },
+                { id: '1', email: 'superadmin@d-driver.com', name: 'System Super Admin', role: 'super_admin', school_id: '' },
                 { id: '2', email: 'admin@greenwood.com', name: 'Principal Sarah', role: 'admin', school_id: 'default-school-id' },
                 { id: '3', email: 'driver1@d-driver.com', name: 'John Doe', role: 'driver', school_id: 'default-school-id' },
                 { id: '4', email: 'parent@home.com', name: 'Robert Johnson', role: 'parent', school_id: 'default-school-id' }
