@@ -94,16 +94,16 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose:
 
             {/* Premium Logout/Profile Section */}
             <div className="p-4 border-t border-white/5 bg-[#080808]">
-                <div className="flex items-center p-3 rounded-2xl hover:bg-white/5 transition-colors group cursor-pointer">
+                <Link href="/profile" onClick={() => onClose()} className="flex items-center p-3 rounded-2xl hover:bg-white/5 transition-colors group cursor-pointer">
                     <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/10 overflow-hidden">
                         <Users className="w-6 h-6 text-white/40" />
                     </div>
                     <div className="ml-3 flex-1">
-                        <p className="text-sm font-black text-white leading-none truncate">{user?.name}</p>
-                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">{user?.role?.replace('_', ' ')}</p>
+                        <p className="text-sm font-black text-white leading-none truncate">{user?.name || 'Administrator'}</p>
+                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">{user?.role?.replace('_', ' ') || 'Network Role'}</p>
                     </div>
                     <Settings className="w-4 h-4 text-white/20 group-hover:text-white/60 transition-colors" />
-                </div>
+                </Link>
             </div>
         </aside>
     );

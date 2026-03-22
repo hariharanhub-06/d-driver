@@ -2,9 +2,12 @@
 
 import { Bell, Menu, Moon, Search, Sun, Globe } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
     const [isDark, setIsDark] = useState(false);
+    const { user } = useAuth();
 
     useEffect(() => {
         if (document.documentElement.classList.contains('dark')) {
@@ -56,12 +59,12 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                     <Bell className="w-5 h-5" />
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
                 </button>
-                <div
-                    onClick={() => alert('Profile settings coming soon.')}
-                    className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold ml-2 cursor-pointer hover:bg-primary-200 transition-colors"
+                <Link
+                    href="/profile"
+                    className="w-8 h-8 rounded-full bg-uber-blue/10 flex items-center justify-center text-uber-blue font-black ml-2 cursor-pointer hover:bg-uber-blue/20 transition-colors shadow-inner"
                 >
-                    H
-                </div>
+                    {user?.name ? user.name.charAt(0).toUpperCase() : 'H'}
+                </Link>
             </div>
         </header>
     );
