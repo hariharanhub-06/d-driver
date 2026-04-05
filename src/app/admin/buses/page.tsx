@@ -155,24 +155,24 @@ export default function BusesPage() {
             {/* Add/Edit Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2rem] shadow-2xl p-8">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-black">{editBus ? 'Edit Bus' : 'Add New Vehicle'}</h2>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400"><X className="w-5 h-5" /></button>
+                    <div className="modal-container-compact">
+                        <div className="px-6 pt-6 pb-0 flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-black">{editBus ? 'Edit Bus' : 'Add New Vehicle'}</h2>
+                            <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400"><X size={16} /></button>
                         </div>
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                        <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-3.5">
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Bus Number</label>
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Bus Number</label>
                                 <input required type="text" placeholder="e.g. BUS-001" className="input-field" value={formData.bus_number} onChange={e => setFormData({ ...formData, bus_number: e.target.value })} />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Total Capacity</label>
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Capacity</label>
                                 <input required type="number" placeholder="e.g. 40" className="input-field" value={formData.capacity} onChange={e => setFormData({ ...formData, capacity: e.target.value })} />
                             </div>
                             <div className="pt-4 flex gap-3">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 px-4 border border-border rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
-                                <button type="submit" disabled={isSubmitting} className="btn-primary flex-1">
-                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : editBus ? 'Save Changes' : 'Add Vehicle'}
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 border border-border rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-xs">Cancel</button>
+                                <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 text-xs py-2.5">
+                                    {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : editBus ? 'Save Changes' : 'Add Vehicle'}
                                 </button>
                             </div>
                         </form>

@@ -17,6 +17,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const userRoutes = require('./routes/userRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const stopRoutes = require('./routes/stopRoutes');
 
 const app = express();
 const httpServer = require('http').createServer(app);
@@ -46,6 +47,7 @@ app.use('/api/v1/finance', financeRoutes.default || financeRoutes);
 app.use('/api/v1/notifications', notificationRoutes.default || notificationRoutes);
 app.use('/api/v1/users', userRoutes.default || userRoutes);
 app.use('/api/v1/upload', uploadRoutes.default || uploadRoutes);
+app.use('/api/v1/stops', stopRoutes.default || stopRoutes);
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'D-Driver API is running' });

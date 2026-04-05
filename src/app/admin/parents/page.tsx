@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash, UserCircle, Mail, ShieldCheck } from 'lucide-react';
+import { Plus, Search, Edit, Trash, UserCircle, Mail, ShieldCheck, X, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
-import Modal from '@/components/ui/Modal';
 import { useAuth } from '@/context/AuthContext';
 
 export default function ParentsPage() {
@@ -117,7 +116,7 @@ export default function ParentsPage() {
                                                 <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-3">
                                                     <UserCircle className="w-5 h-5 text-purple-600" />
                                                 </div>
-                                                <p className="font-bold text-slate-800 dark:text-white">{parent.name}</p>
+                                                <p className="font-bold text-slate-800 dark:text-white leading-none">{parent.name}</p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
@@ -132,7 +131,7 @@ export default function ParentsPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end space-x-2">
+                                            <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button className="p-2 text-slate-400 hover:text-primary-600 rounded-lg"><Edit className="w-4 h-4" /></button>
                                                 <button className="p-2 text-slate-400 hover:text-red-600 rounded-lg"><Trash className="w-4 h-4" /></button>
                                             </div>
@@ -145,61 +144,47 @@ export default function ParentsPage() {
                 </div>
             </div>
 
-            <Modal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Register New Parent"
-            >
-                <form onSubmit={handleAddParent} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-bold mb-1.5">Legal Name</label>
-                        <input
-                            type="text"
-                            required
-                            className="input-field"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold mb-1.5">Email Address</label>
-                        <input
-                            type="email"
-                            required
-                            className="input-field"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold mb-1.5 uppercase text-xs tracking-wider text-slate-400">Default Password</label>
-                        <input
-                            type="text"
-                            readOnly
-                            className="input-field bg-slate-50 dark:bg-slate-900"
-                            value={formData.password}
-                        />
-                    </div>
-                    {user?.role === 'super_admin' && (
-                        <div>
-                            <label className="block text-sm font-bold mb-1.5">School ID</label>
-                            <input
-                                type="text"
-                                required
-                                className="input-field"
-                                value={formData.school_id}
-                                onChange={(e) => setFormData({ ...formData, school_id: e.target.value })}
-                            />
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="modal-container-compact">
+                        <div className="px-6 pt-6 pb-0 flex items-center justify-between mb-4 shrink-0">
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900 dark:text-white leading-none">Register New Parent</h2>
+                                <p className="text-[10px] text-slate-400 mt-1">Create a parent profile to link with student data.</p>
+                            </div>
+                            <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400">
+                                <X size={16} />
+                            </button>
                         </div>
-                    )}
-                    <div className="pt-4 flex gap-3">
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 border border-border rounded-xl font-bold">Cancel</button>
-                        <button type="submit" disabled={isSubmitting} className="btn-primary flex-1">
-                            {isSubmitting ? 'Registering...' : 'Confirm Registration'}
-                        </button>
+                        <form onSubmit={handleAddParent} className="flex-1 overflow-y-auto px-6 py-5 space-y-3.5">
+                            <div>
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Legal Name</label>
+                                <input required type="text" className="input-field" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                            </div>
+                            <div>
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Email Address</label>
+                                <input required type="email" className="input-field" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                            </div>
+                            <div>
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Default Password</label>
+                                <input readOnly type="text" className="input-field bg-slate-50 dark:bg-slate-800/50 border-dashed" value={formData.password} />
+                            </div>
+                            {user?.role === 'super_admin' && (
+                                <div>
+                                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">School ID</label>
+                                    <input required type="text" className="input-field" value={formData.school_id} onChange={e => setFormData({ ...formData, school_id: e.target.value })} />
+                                </div>
+                            )}
+                            <div className="pt-4 flex gap-3">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 border border-border rounded-xl font-bold hover:bg-slate-50 transition-colors text-xs">Cancel</button>
+                                <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 text-xs py-2.5 shadow-primary-100">
+                                    {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Confirm Registration'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                </form>
-            </Modal>
+                </div>
+            )}
         </div>
     );
 }

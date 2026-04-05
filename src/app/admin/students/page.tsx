@@ -269,56 +269,56 @@ export default function StudentsPage() {
             {/* Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                    <div className="modal-container-compact">
                         {/* Modal Header */}
-                        <div className="px-8 pt-8 pb-0 flex items-center justify-between shrink-0">
+                        <div className="px-6 pt-6 pb-0 flex items-center justify-between shrink-0">
                             <div>
-                                <h2 className="text-xl font-black text-slate-900 dark:text-white">{editingId ? 'Edit Student' : 'Enroll Student'}</h2>
-                                <p className="text-xs text-slate-400 mt-1">Student details and parent/guardian contact are managed together.</p>
+                                <h2 className="text-lg font-black text-slate-900 dark:text-white leading-none">{editingId ? 'Edit Student' : 'Enroll Student'}</h2>
+                                <p className="text-[10px] text-slate-400 mt-1">Student details and parent/guardian contact are managed together.</p>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400">
-                                <X size={18} />
+                            <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400">
+                                <X size={16} />
                             </button>
                         </div>
 
                         {/* Section Tabs */}
-                        <div className="flex gap-1 mx-8 mt-5 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shrink-0">
+                        <div className="flex gap-1 mx-6 mt-4 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 shrink-0">
                             {sections.map(s => (
                                 <button
                                     key={s.id}
                                     type="button"
                                     onClick={() => setActiveSection(s.id)}
-                                    className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${activeSection === s.id ? 'bg-white dark:bg-slate-700 text-primary-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                    className={`flex-1 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${activeSection === s.id ? 'bg-white dark:bg-slate-700 text-primary-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                                 >
                                     {s.label}
                                 </button>
                             ))}
                         </div>
 
-                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
+                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-3.5">
 
                             {/* Student Info Section */}
                             {activeSection === 'student' && (
                                 <div className="space-y-4 animate-in fade-in duration-200">
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="col-span-2">
-                                            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Full Name *</label>
+                                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Full Name *</label>
                                             <input required type="text" className="input-field" placeholder="e.g. Alex Johnson" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">GR Number</label>
+                                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">GR Number</label>
                                             <input type="text" className="input-field" placeholder="GR-2024-001" value={formData.gr_no} onChange={e => setFormData({ ...formData, gr_no: e.target.value })} />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Grade</label>
+                                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Grade</label>
                                             <input type="text" className="input-field" placeholder="e.g. 5" value={formData.grade} onChange={e => setFormData({ ...formData, grade: e.target.value })} />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Section</label>
+                                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Section</label>
                                             <input type="text" className="input-field" placeholder="A" value={formData.section} onChange={e => setFormData({ ...formData, section: e.target.value })} />
                                         </div>
                                     </div>
-                                    <button type="button" onClick={() => setActiveSection('parent')} className="w-full py-2.5 bg-primary-50 text-primary-600 rounded-xl font-bold text-sm hover:bg-primary-100 transition-all">
+                                    <button type="button" onClick={() => setActiveSection('parent')} className="w-full py-2 bg-primary-50 text-primary-600 rounded-xl font-bold text-xs hover:bg-primary-100 transition-all">
                                         Next: Parent Details →
                                     </button>
                                 </div>
@@ -331,22 +331,22 @@ export default function StudentsPage() {
                                         <p className="text-xs text-blue-700 dark:text-blue-300 font-bold">A parent login account will be auto-created using these details. They can track the bus and manage fees.</p>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Parent / Guardian Name</label>
+                                        <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Parent / Guardian Name</label>
                                         <input type="text" className="input-field" placeholder="e.g. Robert Johnson" value={formData.parent_name} onChange={e => setFormData({ ...formData, parent_name: e.target.value })} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Parent Email (Login ID)</label>
+                                        <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Parent Email (Login ID)</label>
                                         <input type="email" className="input-field" placeholder="parent@email.com" value={formData.parent_email} onChange={e => setFormData({ ...formData, parent_email: e.target.value })} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Mobile Number</label>
+                                        <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Mobile Number</label>
                                         <input type="tel" className="input-field" placeholder="+91 98765 43210" value={formData.parent_phone} onChange={e => setFormData({ ...formData, parent_phone: e.target.value })} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Default Password</label>
+                                        <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Default Password</label>
                                         <input type="text" className="input-field font-mono text-slate-500 bg-slate-50" value={formData.parent_password} onChange={e => setFormData({ ...formData, parent_password: e.target.value })} />
                                     </div>
-                                    <button type="button" onClick={() => setActiveSection('assignment')} className="w-full py-2.5 bg-primary-50 text-primary-600 rounded-xl font-bold text-sm hover:bg-primary-100 transition-all">
+                                    <button type="button" onClick={() => setActiveSection('assignment')} className="w-full py-2 bg-primary-50 text-primary-600 rounded-xl font-bold text-xs hover:bg-primary-100 transition-all">
                                         Next: Bus & Route →
                                     </button>
                                 </div>
@@ -356,19 +356,19 @@ export default function StudentsPage() {
                             {activeSection === 'assignment' && (
                                 <div className="space-y-4 animate-in fade-in duration-200">
                                     <div>
-                                        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Route ID (optional)</label>
+                                        <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Route ID (optional)</label>
                                         <input type="text" className="input-field" placeholder="Paste Route ID" value={formData.route_id} onChange={e => setFormData({ ...formData, route_id: e.target.value })} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5">Stop ID (optional)</label>
+                                        <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Stop ID (optional)</label>
                                         <input type="text" className="input-field" placeholder="Paste Stop ID" value={formData.stop_id} onChange={e => setFormData({ ...formData, stop_id: e.target.value })} />
                                     </div>
                                     <div className="pt-4 flex gap-3">
-                                        <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 border border-border rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm">
+                                        <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 border border-border rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-xs">
                                             Cancel
                                         </button>
-                                        <button type="submit" disabled={isSubmitting} className="btn-primary flex-1">
-                                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : editingId ? 'Save Changes' : 'Enroll Student'}
+                                        <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 text-xs py-2.5">
+                                            {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : editingId ? 'Save Changes' : 'Enroll Student'}
                                         </button>
                                     </div>
                                 </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Plus, Trash2, Edit, Search, Navigation, Clock } from 'lucide-react';
+import { MapPin, Plus, Trash2, Edit, Search, Navigation, Clock, X } from 'lucide-react';
 import api from '@/lib/api';
 import Modal from '@/components/ui/Modal';
 import { useAuth } from '@/context/AuthContext';
@@ -72,16 +72,44 @@ export default function StopsPage() {
                     <h1 className="display-title text-2xl md:text-3xl">Stops & Waypoints</h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Manage all bus stops, pickup times, and student boarding points.</p>
                 </div>
-                <button onClick={() => setIsModalOpen(true)} className="btn-primary w-full sm:w-auto">
-                    <Plus className="w-5 h-5 mr-2" /> Add Stop
-                </button>
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <input
+                        type="file"
+                        id="stops-upload"
+                        className="hidden"
+                        accept=".csv, .xlsx, .xls"
+                        onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('school_id', user?.school_id || '');
+                            try {
+                                setLoading(true);
+                                await api.post('/stops/bulk-import', formData);
+                                alert('Stops imported successfully!');
+                                fetchStops();
+                            } catch (err) {
+                                alert('Import failed. Please check the file format.');
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
+                    />
+                    <button onClick={() => document.getElementById('stops-upload')?.click()} className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-all">
+                        Bulk Import
+                    </button>
+                    <button onClick={() => setIsModalOpen(true)} className="btn-primary flex-1 sm:flex-initial text-xs py-2 px-4">
+                        <Plus className="w-4 h-4 mr-2" /> Add Stop
+                    </button>
+                </div>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                     { label: 'Total Stops', value: stops.length, icon: MapPin, color: 'text-primary-500', bg: 'bg-primary-50 dark:bg-primary-900/20' },
-                    { label: 'Active Routes', value: [...new Set(stops.map(s => s.route?.name).filter(Boolean))].length, icon: Navigation, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                    { label: 'Active Routes', value: Array.from(new Set(stops.map(s => s.route?.name).filter(Boolean))).length, icon: Navigation, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
                     { label: 'Morning Pickups', value: stops.length, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
                     { label: 'Students Boarding', value: stops.reduce((acc, s) => acc + (s.students_count || 0), 0), icon: MapPin, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
                 ].map(stat => (
@@ -154,38 +182,42 @@ export default function StopsPage() {
                 </div>
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Bus Stop">
-                <form onSubmit={handleAddStop} className="space-y-4">
+            <div className="modal-container-compact">
+                <div className="px-6 pt-6 pb-0 flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-black">Add Bus Stop</h2>
+                    <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400"><X size={16} /></button>
+                </div>
+                <form onSubmit={handleAddStop} className="px-6 pb-6 space-y-3.5">
                     <div>
-                        <label className="block text-sm font-bold mb-1">Stop Name</label>
+                        <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Stop Name</label>
                         <input required type="text" className="input-field" placeholder="e.g. Oak Street Junction" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-bold mb-1">Pickup Time</label>
+                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Pickup Time</label>
                             <input type="time" className="input-field" value={formData.pickup_time} onChange={e => setFormData({ ...formData, pickup_time: e.target.value })} />
                         </div>
                         <div>
-                            <label className="block text-sm font-bold mb-1">Drop Time</label>
+                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Drop Time</label>
                             <input type="time" className="input-field" value={formData.drop_time} onChange={e => setFormData({ ...formData, drop_time: e.target.value })} />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-bold mb-1">Latitude (optional)</label>
+                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Latitude (optional)</label>
                             <input type="text" className="input-field" placeholder="12.9716" value={formData.lat} onChange={e => setFormData({ ...formData, lat: e.target.value })} />
                         </div>
                         <div>
-                            <label className="block text-sm font-bold mb-1">Longitude (optional)</label>
+                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Longitude (optional)</label>
                             <input type="text" className="input-field" placeholder="77.5946" value={formData.lng} onChange={e => setFormData({ ...formData, lng: e.target.value })} />
                         </div>
                     </div>
                     <div className="pt-4 flex gap-3">
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 border border-border rounded-xl font-bold">Cancel</button>
-                        <button type="submit" disabled={isSubmitting} className="btn-primary flex-1">{isSubmitting ? 'Saving...' : 'Add Stop'}</button>
+                        <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 border border-border rounded-xl font-bold text-xs">Cancel</button>
+                        <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 text-xs py-2.5">{isSubmitting ? 'Saving...' : 'Add Stop'}</button>
                     </div>
                 </form>
-            </Modal>
+            </div>
         </div>
     );
 }

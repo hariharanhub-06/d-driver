@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash, UserCheck, Shield, Mail, Key } from 'lucide-react';
+import { Plus, Search, Edit, Trash, UserCheck, Shield, Mail, Key, X, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
-import Modal from '@/components/ui/Modal';
 import { useAuth } from '@/context/AuthContext';
 
 export default function StaffPage() {
@@ -100,14 +99,14 @@ export default function StaffPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                staff.map((admin: { id: string, name: string, email: string, role: string }) => (
+                                staff.map((admin: any) => (
                                     <tr key={admin.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
                                                 <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mr-3 text-orange-600">
                                                     <UserCheck className="w-5 h-5" />
                                                 </div>
-                                                <p className="font-bold text-slate-800 dark:text-white capitalize">{admin.name}</p>
+                                                <p className="font-bold text-slate-800 dark:text-white capitalize leading-none">{admin.name}</p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -136,76 +135,52 @@ export default function StaffPage() {
                 </div>
             </div>
 
-            <Modal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Create Administrative Account"
-            >
-                <form onSubmit={handleAddStaff} className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4">
-                        <div>
-                            <label className="block text-sm font-bold mb-1.5">Full Legal Name</label>
-                            <input
-                                type="text"
-                                required
-                                className="input-field"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold mb-1.5">Official Email</label>
-                            <input
-                                type="email"
-                                required
-                                className="input-field"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold mb-1.5 flex items-center">
-                                <Key className="w-4 h-4 mr-2 text-slate-400" /> System Password
-                            </label>
-                            <input
-                                type="text"
-                                readOnly
-                                className="input-field bg-slate-50 dark:bg-slate-900 border-dashed"
-                                value={formData.password}
-                            />
-                        </div>
-                        {user?.role === 'super_admin' && (
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="modal-container-compact">
+                        <div className="px-6 pt-6 pb-0 flex items-center justify-between mb-4 shrink-0">
                             <div>
-                                <label className="block text-sm font-bold mb-1.5">Assigned School ID</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="input-field"
-                                    value={formData.school_id}
-                                    onChange={(e) => setFormData({ ...formData, school_id: e.target.value })}
-                                />
+                                <h2 className="text-lg font-black text-slate-900 dark:text-white leading-none">Provision Account</h2>
+                                <p className="text-[10px] text-slate-400 mt-1">Create a new administrative user with specific school access.</p>
                             </div>
-                        )}
-                        <div>
-                            <label className="block text-sm font-bold mb-1.5">Administrative Role</label>
-                            <select
-                                className="input-field"
-                                value={formData.role}
-                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                            >
-                                <option value="admin">School Administrator</option>
-                                {user?.role === 'super_admin' && <option value="super_admin">Regional Super Admin</option>}
-                            </select>
+                            <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400"><X size={16} /></button>
                         </div>
+                        <form onSubmit={handleAddStaff} className="flex-1 overflow-y-auto px-6 py-5 space-y-3.5">
+                            <div>
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Full Legal Name</label>
+                                <input required type="text" className="input-field" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                            </div>
+                            <div>
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Official Email</label>
+                                <input required type="email" className="input-field" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                            </div>
+                            <div>
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center"><Key size={10} className="mr-1.5" /> System Password</label>
+                                <input readOnly type="text" className="input-field bg-slate-50 dark:bg-slate-800/50 border-dashed" value={formData.password} />
+                            </div>
+                            {user?.role === 'super_admin' && (
+                                <div>
+                                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Assigned School ID</label>
+                                    <input required type="text" className="input-field" value={formData.school_id} onChange={e => setFormData({ ...formData, school_id: e.target.value })} />
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Administrative Role</label>
+                                <select className="input-field" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })}>
+                                    <option value="admin">School Administrator</option>
+                                    {user?.role === 'super_admin' && <option value="super_admin">Regional Super Admin</option>}
+                                </select>
+                            </div>
+                            <div className="pt-4 flex gap-3">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 border border-border rounded-xl font-bold hover:bg-slate-50 transition-colors text-xs">Abort</button>
+                                <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 text-xs py-2.5 shadow-primary-100">
+                                    {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Provision Account'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    <div className="pt-6 flex gap-3">
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 px-4 border border-border rounded-xl font-bold hover:bg-slate-50 transition-colors">Abort</button>
-                        <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 shadow-primary-100">
-                            {isSubmitting ? 'Provisioning...' : 'Provision Account'}
-                        </button>
-                    </div>
-                </form>
-            </Modal>
+                </div>
+            )}
         </div>
     );
 }

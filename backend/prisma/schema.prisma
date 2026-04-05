@@ -73,9 +73,11 @@ model Driver {
 }
 
 model Route {
-  id        String @id @default(uuid())
-  name      String
-  school_id String
+  id          String   @id @default(uuid())
+  name        String
+  start_point String?  // e.g., "School Main Gate"
+  end_point   String?  // e.g., "Sector 12 Circular"
+  school_id   String
 
   school   School    @relation(fields: [school_id], references: [id])
   stops    Stop[]

@@ -29,9 +29,9 @@ const getRouteById = async (req, res) => {
 
 const createRoute = async (req, res) => {
     try {
-        const { name, school_id } = req.body;
+        const { name, school_id, start_point, end_point } = req.body;
         const newRoute = await prisma.route.create({
-            data: { name, school_id }
+            data: { name, school_id, start_point, end_point }
         });
         res.status(201).json(newRoute);
     } catch (error) {
