@@ -1,13 +1,15 @@
-import { Router } from 'express';
-import { getUsers, createUser } from '../controllers/userController';
-import { authenticateToken, requireRole } from '../middleware/authMiddleware';
+const { Router } = require('express');
+const {
+    getAllUsers,
+    updateUser,
+    getCurrentUser
+} = require('../controllers/userController');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = Router();
 
-router.use(authenticateToken);
-router.use(requireRole(['super_admin', 'admin']));
+router.get('/me', authenticateToken, getCurrentUser);
+router.get('/', authenticateToken, getAllUsers);
+router.put('/:id', authenticateToken, updateUser);
 
-router.get('/', getUsers);
-router.post('/', createUser);
-
-export default router;
+module.exports = router;

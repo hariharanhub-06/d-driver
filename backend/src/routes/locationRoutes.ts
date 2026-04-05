@@ -1,13 +1,13 @@
-import { Router } from 'express';
-import { getLatestLocation, updateLocation } from '../controllers/locationController';
-import { authenticateToken, requireRole } from '../middleware/authMiddleware';
+const { Router } = require('express');
+const {
+    updateLocation,
+    getBusLocation
+} = require('../controllers/locationController');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = Router();
 
-router.use(authenticateToken);
+router.post('/update', authenticateToken, updateLocation);
+router.get('/:busId', authenticateToken, getBusLocation);
 
-// Anyone can view location (parent, admin, etc.) but only drivers push updates
-router.get('/:bus_id', getLatestLocation);
-router.post('/', requireRole(['driver']), updateLocation);
-
-export default router;
+module.exports = router;

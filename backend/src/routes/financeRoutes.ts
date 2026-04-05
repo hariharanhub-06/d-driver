@@ -1,13 +1,15 @@
-import { Router } from 'express';
-import { getFees, createFee, recordPayment } from '../controllers/financeController';
-import { authenticateToken, requireRole } from '../middleware/authMiddleware';
+const { Router } = require('express');
+const {
+    getFees,
+    payFee,
+    getRevenue
+} = require('../controllers/financeController');
+const { authenticateToken, requireRole } = require('../middleware/authMiddleware');
 
 const router = Router();
 
-router.use(authenticateToken);
+router.get('/fees/:id', authenticateToken, getFees);
+router.post('/pay', authenticateToken, payFee);
+router.get('/revenue', authenticateToken, requireRole(['super_admin']), getRevenue);
 
-router.get('/', getFees);
-router.post('/', requireRole(['super_admin', 'admin']), createFee);
-router.post('/pay', recordPayment);
-
-export default router;
+module.exports = router;

@@ -1,76 +1,71 @@
-import { Response } from 'express';
-import prisma from '../prisma';
-import bcrypt from 'bcryptjs';
-import { AuthRequest } from '../middleware/authMiddleware';
+const prisma = require('../prisma');
 
-export const getDrivers = async (req: AuthRequest, res: Response) => {
+const getAllDrivers = async (req, res) => {
     try {
-        const school_id = req.user.school_id;
-        const whereClause = req.user.role === 'super_admin' ? {} : { school_id };
-
+        const { schoolId } = req.query;
         const drivers = await prisma.driver.findMany({
-            where: whereClause,
+            where: schoolId ? { school_id: schoolId } : {},
             include: { user: true, bus: true }
         });
         res.json(drivers);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching drivers', error });
+        res.status(500).json({ message: 'Error fetching drivers', error: error.message });
     }
 };
 
-export const createDriver = async (req: AuthRequest, res: Response) => {
-    try {
-        const { name, email, password, license_no } = req.body;
-        const school_id = req.user.role === 'super_admin' ? req.body.school_id : req.user.school_id;
-
-        if (!school_id) return res.status(400).json({ message: 'school_id is required' });
-
-        const hashedPassword = await bcrypt.hash(password || 'driver123', 10);
-
-        const driver = await prisma.driver.create({
-            data: {
-                license_no,
-                school: { connect: { id: school_id } },
-                user: {
-                    create: {
-                        name,
-                        email,
-                        password: hashedPassword,
-                        role: 'driver',
-                        school_id
-                    }
-                }
-            },
-            include: { user: true }
-        });
-
-        res.status(201).json(driver);
-    } catch (error) {
-        res.status(500).json({ message: 'Error creating driver', error });
-    }
-};
-
-export const assignBusToDriver = async (req: AuthRequest, res: Response) => {
-    // ... existing ...
+const getDriverById = async (req, res) => {
     try {
         const { id } = req.params;
-        const { bus_id } = req.body;
-
-        const driver = await prisma.driver.findUnique({ where: { id: id as string } });
-        if (!driver) return res.status(404).json({ message: 'Driver not found' });
-
-        if (req.user.role !== 'super_admin' && driver.school_id !== req.user.school_id) {
-            return res.status(403).json({ message: 'Forbidden' });
-        }
-
-        const updatedDriver = await prisma.driver.update({
-            where: { id: id as string },
-            data: { assigned_bus_id: bus_id }
+        const driver = await prisma.driver.findUnique({
+            where: { id },
+            include: { user: true, bus: true }
         });
-
-        res.json(updatedDriver);
+        if (!driver) return res.status(404).json({ message: 'Driver not found' });
+        res.json(driver);
     } catch (error) {
-        res.status(500).json({ message: 'Error assigning bus', error });
+        res.status(500).json({ message: 'Error fetching driver', error: error.message });
     }
 };
 
+const createDriver = async (req, res) => {
+    try {
+        const { user_id, license_no, assigned_bus_id, school_id } = req.body;
+        const newDriver = await prisma.driver.create({
+            data: { user_id, license_no, assigned_bus_id, school_id }
+        });
+        res.status(201).json(newDriver);
+    } catch (error) {
+        res.status(500).json({ message: 'Error creating driver', error: error.message });
+    }
+};
+
+const updateDriver = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updatedDriver = await prisma.driver.update({
+            where: { id },
+            data: req.body
+        });
+        res.json(updatedDriver);
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating driver', error: error.message });
+    }
+};
+
+const deleteDriver = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.driver.delete({ where: { id } });
+        res.json({ message: 'Driver deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting driver', error: error.message });
+    }
+};
+
+module.exports = {
+    getAllDrivers,
+    createDriver,
+    getDriverById,
+    updateDriver,
+    deleteDriver
+};

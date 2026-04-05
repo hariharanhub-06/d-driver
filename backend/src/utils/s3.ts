@@ -1,29 +1,25 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+const { S3 } = require('@aws-sdk/client-s3');
+const { Upload } = require('@aws-sdk/lib-storage');
 
-const s3Client = new S3Client({
-    region: process.env.AWS_REGION || "ap-southeast-2",
+const s3 = new S3({
+    region: process.env.AWS_REGION,
     credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-    },
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    }
 });
 
-export const getUploadUrl = async (fileName: string, contentType: string) => {
-    const command = new PutObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME,
-        Key: fileName,
-        ContentType: contentType,
+const uploadToS3 = async (file, path) => {
+    const upload = new Upload({
+        client: s3,
+        params: {
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: `${path}-${Date.now()}-${file.originalname}`,
+            Body: file.buffer,
+            ContentType: file.mimetype
+        }
     });
-
-    return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    return await upload.done();
 };
 
-export const getDownloadUrl = async (fileName: string) => {
-    const command = new GetObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME,
-        Key: fileName,
-    });
-
-    return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-};
+module.exports = { uploadToS3 };

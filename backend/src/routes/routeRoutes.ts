@@ -1,13 +1,19 @@
-import { Router } from 'express';
-import { getRoutes, createRoute } from '../controllers/routeController';
-import { authenticateToken, requireRole } from '../middleware/authMiddleware';
+const { Router } = require('express');
+const {
+    getAllRoutes,
+    createRoute,
+    getRouteById,
+    updateRoute,
+    deleteRoute
+} = require('../controllers/routeController');
+const { authenticateToken, requireRole } = require('../middleware/authMiddleware');
 
 const router = Router();
 
-router.use(authenticateToken);
-router.use(requireRole(['super_admin', 'admin']));
+router.get('/', authenticateToken, getAllRoutes);
+router.get('/:id', authenticateToken, getRouteById);
+router.post('/', authenticateToken, requireRole(['admin', 'super_admin']), createRoute);
+router.put('/:id', authenticateToken, requireRole(['admin', 'super_admin']), updateRoute);
+router.delete('/:id', authenticateToken, requireRole(['admin', 'super_admin']), deleteRoute);
 
-router.get('/', getRoutes);
-router.post('/', createRoute);
-
-export default router;
+module.exports = router;

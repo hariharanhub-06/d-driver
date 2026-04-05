@@ -1,31 +1,20 @@
-import { Router } from 'express';
-import { getUploadUrl } from '../utils/s3';
-import { authenticateToken } from '../middleware/authMiddleware';
+const { Router } = require('express');
+const multer = require('multer');
+const { uploadToS3 } = require('../utils/s3');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
-router.get('/presigned-url', authenticateToken, async (req, res) => {
+router.post('/school-logo', authenticateToken, upload.single('logo'), async (req, res) => {
     try {
-        const { fileName, fileType } = req.query;
-        if (!fileName || !fileType) {
-            return res.status(400).json({ error: 'Missing fileName or fileType parameters' });
-        }
-
-        // Ensure unique filename
-        const timestamp = Date.now();
-        const safeFileName = `${timestamp}-${(fileName as string).replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-
-        const url = await getUploadUrl(safeFileName, fileType as string);
-
-        // Return both the upload URL and the final S3 URL for saving to the database
-        res.json({
-            uploadUrl: url,
-            finalUrl: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${safeFileName}`
-        });
+        if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+        const schoolId = req.body.schoolId;
+        const result = await uploadToS3(req.file, `schools/${schoolId}/logo`);
+        res.json({ url: result.Location });
     } catch (error) {
-        console.error('S3 Presigned URL Error:', error);
-        res.status(500).json({ error: 'Failed to generate presigned URL' });
+        res.status(500).json({ message: 'Upload failed', error: error.message });
     }
 });
 
-export default router;
+module.exports = router;

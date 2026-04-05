@@ -1,12 +1,13 @@
-import { Router } from 'express';
-import { getNotifications, createNotification } from '../controllers/notificationController';
-import { authenticateToken, requireRole } from '../middleware/authMiddleware';
+const { Router } = require('express');
+const {
+    getNotifications,
+    markRead
+} = require('../controllers/notificationController');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = Router();
 
-router.use(authenticateToken);
+router.get('/', authenticateToken, getNotifications);
+router.put('/:id/read', authenticateToken, markRead);
 
-router.get('/', getNotifications);
-router.post('/', requireRole(['super_admin', 'admin']), createNotification);
-
-export default router;
+module.exports = router;
