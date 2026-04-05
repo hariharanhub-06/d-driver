@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash, UserCircle, Mail, ShieldCheck, X, Loader2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash, UserCircle, Mail, ShieldCheck, X, Loader2, Share2, ClipboardCheck } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -31,6 +31,22 @@ export default function ParentsPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const copyToClipboard = (parent: { name: string, email: string }) => {
+        const text = `🚌 *Welcome to D-DRIVER 365!*
+
+Your Parent Account is ready!
+-----------------------------------
+👤 *User:* ${parent.name}
+📧 *Email:* ${parent.email}
+🔑 *Temp Pass:* parent123
+-----------------------------------
+Please login at: ${window.location.origin}/login
+Download App: https://d-driver365.com/download`;
+
+        navigator.clipboard.writeText(text);
+        alert(`Login credentials for ${parent.name} copied to clipboard! Ready to share via WhatsApp/Email.`);
     };
 
     const handleAddParent = async (e: React.FormEvent) => {
@@ -128,6 +144,7 @@ export default function ParentsPage() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => copyToClipboard(parent)} title="Share Login Details" className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><Share2 className="w-4 h-4" /></button>
                                                 <button className="p-2 text-slate-400 hover:text-primary-600 rounded-lg"><Edit className="w-4 h-4" /></button>
                                                 <button className="p-2 text-slate-400 hover:text-red-600 rounded-lg"><Trash className="w-4 h-4" /></button>
                                             </div>
