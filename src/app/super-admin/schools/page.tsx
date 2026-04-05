@@ -222,11 +222,11 @@ export default function SchoolsManagement() {
     return (
         <div className="space-y-10 animate-in relative p-4 max-w-7xl mx-auto">
             {/* Stats Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-4 rounded-[1.5rem] border border-gray-100 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-1 bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
                 <div>
-                    <h1 className="text-xl font-black text-slate-900 tracking-tighter">SCHOOL NETWORK</h1>
-                    <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[8px] mt-1 flex items-center">
-                        <Building2 className="w-2.5 h-2.5 mr-1 text-primary-500" /> Administrative Control Center
+                    <h1 className="text-sm font-black text-slate-900 tracking-tight">SCHOOL NETWORK</h1>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[7px] flex items-center">
+                        <Building2 className="w-2 h-2 mr-1 text-primary-500" /> Administrative Control
                     </p>
                 </div>
             </div>
@@ -259,9 +259,9 @@ export default function SchoolsManagement() {
                         setActiveTab('profile');
                         setIsModalOpen(true);
                     }}
-                    className="bg-primary-500 text-white hover:bg-primary-600 font-black py-2 px-6 rounded-xl transition-all flex items-center transform active:scale-95 shadow-md shadow-primary-500/20 text-[10px] uppercase tracking-wider"
+                    className="bg-primary-500 text-white hover:bg-primary-600 font-bold py-1 px-4 rounded-lg transition-all flex items-center transform active:scale-95 shadow-sm text-[8px] uppercase tracking-wider"
                 >
-                    <Plus className="w-3.5 h-3.5 mr-2" strokeWidth={3} /> Register Institution
+                    <Plus className="w-2.5 h-2.5 mr-1.5" strokeWidth={3} /> Register
                 </button>
             </div>
 
@@ -271,8 +271,8 @@ export default function SchoolsManagement() {
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                     <input
                         type="text"
-                        placeholder="Search schools by name or slug..."
-                        className="w-full bg-white border border-gray-100 rounded-3xl py-4 pl-14 pr-6 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-primary-500 outline-none transition-all shadow-sm"
+                        placeholder="Search networks..."
+                        className="w-full bg-white border border-gray-100 rounded-xl py-2 pl-9 pr-4 text-slate-900 placeholder:text-slate-400 focus:ring-1 focus:ring-primary-500 outline-none transition-all shadow-sm text-[10px]"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
