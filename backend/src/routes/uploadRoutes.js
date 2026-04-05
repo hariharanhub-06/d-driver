@@ -1,4 +1,3 @@
-export { };
 const { Router } = require('express');
 const multer = require('multer');
 const { uploadToS3, getPresignedUrl } = require('../utils/s3');
@@ -9,7 +8,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.get('/presigned-url', authenticateToken, async (req, res) => {
     try {
-        const { fileName, fileType } = req.query;
+        const fileName = req.query.fileName || req.query.filename;
+        const fileType = req.query.fileType || req.query.filetype;
         if (!fileName || !fileType) return res.status(400).json({ message: 'fileName and fileType are required' });
         const result = await getPresignedUrl(fileName, fileType);
         res.json(result);

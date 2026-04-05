@@ -1,4 +1,4 @@
-export { };
+
 const { Router } = require('express');
 const {
     getAllUsers,

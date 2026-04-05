@@ -1,4 +1,4 @@
-export { };
+
 const prisma = require('../prisma');
 
 const getAllSchools = async (req, res) => {
