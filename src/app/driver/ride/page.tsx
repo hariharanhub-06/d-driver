@@ -11,7 +11,7 @@ const FreeMap = dynamic(() => import('@/components/ui/FreeMap'), { ssr: false })
 
 export default function ActiveRide() {
     const [isStarted, setIsStarted] = useState(false);
-    const [currentPos, setCurrentPos] = useState<[number, number]>([-33.8688, 151.2093]);
+    const [currentPos, setCurrentPos] = useState<[number, number]>([12.9716, 77.5946]); // Default: Bangalore, India
     const { user } = useAuth();
     const busId = '12'; // Mock Bus ID for tracking
 
@@ -77,7 +77,7 @@ export default function ActiveRide() {
 
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col max-w-md mx-auto relative shadow-2xl overflow-hidden">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col w-full relative overflow-hidden">
             {/* PWA Mobile Header */}
             <div className="bg-primary-600 text-white p-4 pt-8 shrink-0 relative z-10 shadow-md">
                 <h1 className="text-xl font-bold">Morning Route A</h1>

@@ -10,13 +10,15 @@ datasource db {
 model School {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   name              String
+  slug              String   @unique
   address           String?
   logo_url          String?
-  primary_color     String?  @default("#276EF1")
+  primary_color     String?  @default("#2dbc75")
   phone             String?
   email_contact     String?
   subscription_plan String   @default("Basic")
   status            String   @default("Active")
+  permissions       Json?    // Stores feature-level access (e.g., { "attendance_popups": true, "live_tracking": true })
   created_at        DateTime @default(now())
 
   users         User[]

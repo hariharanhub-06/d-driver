@@ -1,104 +1,146 @@
 'use client';
 
-import { Users, Bus, Map as MapIcon, IndianRupee } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState, useEffect } from 'react';
+import { Users, Bus, Map as MapIcon, IndianRupee, GraduationCap, UserCheck, TrendingUp, AlertCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import api from '@/lib/api';
+import Link from 'next/link';
 
-const data = [
-    { name: 'Mon', revenue: 4000 },
-    { name: 'Tue', revenue: 3000 },
-    { name: 'Wed', revenue: 2000 },
-    { name: 'Thu', revenue: 2780 },
-    { name: 'Fri', revenue: 1890 },
-];
+const EMPTY_STATS = { students: 0, buses: 0, drivers: 0, routes: 0, revenue: 0, pending_fees: 0 };
 
 export default function Dashboard() {
+    const [stats, setStats] = useState(EMPTY_STATS);
+    const [loading, setLoading] = useState(true);
+    const [feeData, setFeeData] = useState([
+        { month: 'Nov', collected: 38000, pending: 9000 },
+        { month: 'Dec', collected: 45000, pending: 7500 },
+        { month: 'Jan', collected: 52000, pending: 12000 },
+        { month: 'Feb', collected: 48000, pending: 8000 },
+        { month: 'Mar', collected: 61000, pending: 4200 },
+        { month: 'Apr', collected: 38000, pending: 18000 },
+    ]);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const [studentsRes, busesRes, driversRes, routesRes] = await Promise.all([
+                    api.get('/students'),
+                    api.get('/buses'),
+                    api.get('/drivers'),
+                    api.get('/routes'),
+                ]);
+                setStats({
+                    students: studentsRes.data?.length || 0,
+                    buses: busesRes.data?.length || 0,
+                    drivers: driversRes.data?.length || 0,
+                    routes: routesRes.data?.length || 0,
+                    revenue: 0,
+                    pending_fees: 0,
+                });
+            } catch {
+                setStats(EMPTY_STATS);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchStats();
+    }, []);
+
+    const statCards = [
+        { label: 'Students Enrolled', value: stats.students, icon: GraduationCap, color: 'bg-primary-50 text-primary-600', href: '/admin/students' },
+        { label: 'Active Buses', value: stats.buses, icon: Bus, color: 'bg-blue-50 text-blue-600', href: '/admin/buses' },
+        { label: 'Drivers', value: stats.drivers, icon: UserCheck, color: 'bg-purple-50 text-purple-600', href: '/admin/drivers' },
+        { label: 'Routes', value: stats.routes, icon: MapIcon, color: 'bg-amber-50 text-amber-600', href: '/admin/routes' },
+        { label: 'Revenue (MTD)', value: `₹${(stats.revenue / 1000).toFixed(0)}K`, icon: IndianRupee, color: 'bg-emerald-50 text-emerald-600', href: '/admin/fees' },
+        { label: 'Pending Fees', value: `₹${(stats.pending_fees / 1000).toFixed(0)}K`, icon: AlertCircle, color: 'bg-red-50 text-red-600', href: '/admin/fees' },
+    ];
+
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold tracking-tight">Overview Dashboard</h1>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="card flex items-center">
-                    <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mr-4 shrink-0">
-                        <Users className="w-6 h-6 text-blue-600 dark:text-blue-300" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Students</p>
-                        <h3 className="text-2xl font-bold">1,248</h3>
-                    </div>
+        <div className="space-y-8 animate-in">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Dashboard</h1>
+                    <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                        {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
                 </div>
-
-                <div className="card flex items-center">
-                    <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center mr-4 shrink-0">
-                        <Bus className="w-6 h-6 text-emerald-600 dark:text-emerald-300" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Active Buses</p>
-                        <h3 className="text-2xl font-bold">42</h3>
-                    </div>
-                </div>
-
-                <div className="card flex items-center">
-                    <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center mr-4 shrink-0">
-                        <MapIcon className="w-6 h-6 text-orange-600 dark:text-orange-300" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Trips Today</p>
-                        <h3 className="text-2xl font-bold">84</h3>
-                    </div>
-                </div>
-
-                <div className="card flex-col items-start p-6">
-                    <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-4">
-                        <IndianRupee className="w-6 h-6 text-purple-600 dark:text-purple-300" />
-                    </div>
-                    <p className="text-slate-500 text-sm font-medium">Revenue (MTD)</p>
-                    <h3 className="text-2xl font-bold">₹1,24,500</h3>
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Live Data</span>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-                <div className="card lg:col-span-2">
-                    <h3 className="font-bold text-lg mb-4">Revenue Trend</h3>
-                    <div className="h-72 w-full">
+            {/* Stat Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {statCards.map(card => (
+                    <Link key={card.label} href={card.href} className="group bg-white dark:bg-slate-900 rounded-[1.5rem] border border-gray-100 dark:border-slate-800 p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-sm">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${card.color}`}>
+                            <card.icon className="w-5 h-5" />
+                        </div>
+                        <p className="text-2xl font-black text-gray-900 dark:text-white">
+                            {loading ? '—' : card.value}
+                        </p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">{card.label}</p>
+                    </Link>
+                ))}
+            </div>
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Fee Collection Chart */}
+                <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 p-7 shadow-sm">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h3 className="font-black text-gray-800 dark:text-white">Fee Collection</h3>
+                            <p className="text-xs text-gray-400 mt-1">Monthly collected vs pending (₹)</p>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs font-bold text-gray-500">
+                            <span className="flex items-center gap-1.5"><span className="w-3 h-3 bg-primary-500 rounded-sm inline-block" />Collected</span>
+                            <span className="flex items-center gap-1.5"><span className="w-3 h-3 bg-red-400 rounded-sm inline-block" />Pending</span>
+                        </div>
+                    </div>
+                    <div className="h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={data}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                                <YAxis axisLine={false} tickLine={false} />
-                                <Tooltip cursor={{ fill: 'transparent' }} />
-                                <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                            <BarChart data={feeData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} barGap={4}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f2f2f2" />
+                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={(v) => `₹${v / 1000}K`} />
+                                <Tooltip
+                                    formatter={(v) => [`₹${Number(v || 0).toLocaleString()}`, '']}
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: '12px' }}
+                                />
+                                <Bar dataKey="collected" name="Collected" fill="#22c55e" radius={[6, 6, 0, 0]} barSize={18} />
+                                <Bar dataKey="pending" name="Pending" fill="#f87171" radius={[6, 6, 0, 0]} barSize={18} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                <div className="card">
-                    <h3 className="font-bold text-lg mb-4">Urgent Alerts</h3>
-                    <ul className="space-y-4">
-                        <li className="flex items-start">
-                            <span className="w-2 h-2 rounded-full bg-red-500 mt-2 mr-3 border-2 border-red-200 shrink-0"></span>
-                            <div>
-                                <p className="text-sm font-semibold">Bus 12 Offline</p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">GPS signal lost 5 mins ago</p>
+                {/* Quick Stats / Recent Activity */}
+                <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 p-7 shadow-sm flex flex-col">
+                    <h3 className="font-black text-gray-800 dark:text-white mb-6">Quick Overview</h3>
+                    <div className="space-y-5 flex-1">
+                        {[
+                            { label: 'Attendance Rate', value: '94%', color: 'bg-emerald-500', width: '94%' },
+                            { label: 'Fee Collection Rate', value: '88%', color: 'bg-primary-500', width: '88%' },
+                            { label: 'Bus Utilization', value: '78%', color: 'bg-amber-500', width: '78%' },
+                            { label: 'Route Coverage', value: '100%', color: 'bg-purple-500', width: '100%' },
+                        ].map(item => (
+                            <div key={item.label}>
+                                <div className="flex justify-between text-xs font-bold text-gray-500 dark:text-slate-400 mb-2">
+                                    <span>{item.label}</span>
+                                    <span>{item.value}</span>
+                                </div>
+                                <div className="h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <div className={`h-full ${item.color} rounded-full transition-all duration-1000`} style={{ width: item.width }} />
+                                </div>
                             </div>
-                        </li>
-                        <li className="flex items-start">
-                            <span className="w-2 h-2 rounded-full bg-orange-500 mt-2 mr-3 border-2 border-orange-200 shrink-0"></span>
-                            <div>
-                                <p className="text-sm font-semibold">Driver Delay</p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">Route A is running 15 mins late</p>
-                            </div>
-                        </li>
-                        <li className="flex items-start">
-                            <span className="w-2 h-2 rounded-full bg-blue-500 mt-2 mr-3 border-2 border-blue-200 shrink-0"></span>
-                            <div>
-                                <p className="text-sm font-semibold">Maintenance Due</p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">Bus 4 requires scheduled oil change</p>
-                            </div>
-                        </li>
-                    </ul>
+                        ))}
+                    </div>
+                    <Link href="/admin/reports" className="mt-8 w-full py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-center text-sm hover:bg-slate-100 transition-all">
+                        View Full Report →
+                    </Link>
                 </div>
             </div>
         </div>

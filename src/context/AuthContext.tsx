@@ -10,6 +10,7 @@ interface User {
     phone?: string;
     role: string;
     school_id: string;
+    isMockMode?: boolean;
 }
 
 interface AuthContextType {
@@ -56,6 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             router.push('/admin/dashboard');
         }
     };
+
 
     const logout = () => {
         localStorage.removeItem('token');

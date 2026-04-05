@@ -3,57 +3,85 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #000000;
-  --card-bg: #f3f3f3;
-  --border: #e2e8f0;
+  --background: #f4f6f9;
+  --foreground: #222d32;
+  --card-bg: #ffffff;
+  --border: #dee2e6;
+  --sidebar-bg: #222d32;
+  --sidebar-text: #b8c7ce;
+  --sidebar-hover-bg: #1a2226;
+  --sidebar-active-bg: #1e282c;
+  --primary: #2dbc75;
 }
 
 .dark {
-  --background: #000000;
+  --background: #1a2226;
   --foreground: #ffffff;
-  --card-bg: #121212;
-  --border: #262626;
+  --card-bg: #222d32;
+  --border: #374850;
+  --sidebar-bg: #222d32;
+  --sidebar-text: #b8c7ce;
 }
 
 @layer base {
-  html {
-    font-size: 16px;
-
-    @screen sm {
-      font-size: 17px;
-    }
-
-    @screen md {
-      font-size: 18px;
-    }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
 @layer components {
-  .card {
-    @apply bg-card-bg border border-border-default rounded-2xl shadow-soft p-5 md:p-6 lg:p-8;
-    @apply transition-all duration-300 hover:shadow-lg active:scale-[0.99];
+  .card-premium {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border);
+    @apply rounded-lg shadow-sm p-4 overflow-hidden;
+    @apply transition-all duration-300 hover:shadow-md;
   }
 
-  .input-field {
-    @apply w-full px-4 py-3 border border-border-default rounded-xl bg-background text-foreground;
-    @apply focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200;
+  .admin-sidebar {
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    @apply w-64 h-screen fixed left-0 top-0 overflow-y-auto z-50;
   }
 
-  .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl;
-    @apply shadow-lg shadow-primary-600/20 transition-all duration-300 transform active:scale-95 flex items-center justify-center;
+  .nav-item {
+    @apply flex items-center px-4 py-3 gap-3 transition-colors duration-200 border-l-4 border-transparent;
+
+    &:hover {
+      background-color: var(--sidebar-hover-bg);
+      @apply text-white;
+    }
   }
 
-  .glass-card {
-    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-3xl shadow-2xl;
+  .nav-item-active {
+    background-color: var(--sidebar-active-bg);
+    @apply text-white border-primary-500;
   }
 
-  /* Responsive Text Utilities */
-  .display-title {
-    @apply text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-slate-800 dark:text-white leading-tight;
+  .btn-bus {
+    @apply bg-primary-500 hover:bg-primary-600 text-white font-semibold py-2 px-6 rounded transition-all duration-200;
   }
+
+  .dashboard-stat-card {
+    @apply overflow-hidden rounded-lg shadow-sm border-0 flex flex-col;
+  }
+}
+
+/* Custom Scrollbar for sidebar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Fluid spacing and animation utilities */

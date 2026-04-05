@@ -30,7 +30,7 @@ export const createDriver = async (req: AuthRequest, res: Response) => {
         const driver = await prisma.driver.create({
             data: {
                 license_no,
-                school_id,
+                school: { connect: { id: school_id } },
                 user: {
                     create: {
                         name,

@@ -77,7 +77,7 @@ export default function DriverDashboard() {
 
                 {/* Trip Cards */}
                 <div className="space-y-4">
-                    <Link href="/driver/ride/1" className="block bg-[#121212] rounded-[28px] p-6 border border-white/5 hover:border-white/10 transition-all group active:scale-[0.98]">
+                    <Link href="/driver/ride" className="block bg-[#121212] rounded-[28px] p-6 border border-white/5 hover:border-white/10 transition-all group active:scale-[0.98]">
                         <div className="flex justify-between items-center mb-5">
                             <div className="px-4 py-1.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Ongoing</div>
                             <span className="text-white/30 text-sm font-bold flex items-center">
