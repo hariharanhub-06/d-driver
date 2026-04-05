@@ -3,11 +3,11 @@ import { io } from 'socket.io-client';
 // Construct the backend URL safely
 const getWsUrl = () => {
     if (typeof window !== 'undefined') {
-        const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const url = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
         // Ensure we don't append /api to the base URL for the WebSocket namespace
-        return url.replace('/api', '');
+        return url.replace('/api', '').replace('/v1', '');
     }
-    return 'http://localhost:5000';
+    return '';
 };
 
 // Initialize the socket singleton
