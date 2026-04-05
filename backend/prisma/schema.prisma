@@ -3,12 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model School {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  id                String   @id @default(uuid())
   name              String
   slug              String   @unique
   address           String?
@@ -35,13 +35,13 @@ model School {
 }
 
 model User {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  id         String   @id @default(uuid())
   name       String
   email      String   @unique
   password   String
   phone      String?  @unique
   role       String   // "super_admin", "admin", "driver", "parent"
-  school_id  String?  @db.ObjectId
+  school_id  String?
   created_at DateTime @default(now())
 
   school   School?   @relation(fields: [school_id], references: [id])
@@ -50,10 +50,10 @@ model User {
 }
 
 model Bus {
-  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  id         String @id @default(uuid())
   bus_number String
   capacity   Int
-  school_id  String @db.ObjectId
+  school_id  String
 
   school    School     @relation(fields: [school_id], references: [id])
   drivers   Driver[]
@@ -61,11 +61,11 @@ model Bus {
 }
 
 model Driver {
-  id              String  @id @default(auto()) @map("_id") @db.ObjectId
-  user_id         String  @unique @db.ObjectId
+  id              String  @id @default(uuid())
+  user_id         String  @unique
   license_no      String?
-  assigned_bus_id String? @db.ObjectId
-  school_id       String  @db.ObjectId
+  assigned_bus_id String?
+  school_id       String
 
   user   User   @relation(fields: [user_id], references: [id])
   bus    Bus?   @relation(fields: [assigned_bus_id], references: [id])
@@ -73,9 +73,9 @@ model Driver {
 }
 
 model Route {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  id        String @id @default(uuid())
   name      String
-  school_id String @db.ObjectId
+  school_id String
 
   school   School    @relation(fields: [school_id], references: [id])
   stops    Stop[]
@@ -83,12 +83,12 @@ model Route {
 }
 
 model Stop {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  id        String @id @default(uuid())
   name      String
   latitude  Float
   longitude Float
-  route_id  String @db.ObjectId
-  school_id String @db.ObjectId
+  route_id  String
+  school_id String
 
   school   School    @relation(fields: [school_id], references: [id])
   route    Route     @relation(fields: [route_id], references: [id])
@@ -96,15 +96,15 @@ model Stop {
 }
 
 model Student {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  id        String  @id @default(uuid())
   name      String
   grade     String?
   section   String?
   gr_no     String?
-  parent_id String? @db.ObjectId
-  route_id  String? @db.ObjectId
-  stop_id   String? @db.ObjectId
-  school_id String  @db.ObjectId
+  parent_id String?
+  route_id  String?
+  stop_id   String?
+  school_id String
 
   school     School       @relation(fields: [school_id], references: [id])
   route      Route?       @relation(fields: [route_id], references: [id])
@@ -115,23 +115,23 @@ model Student {
 }
 
 model Attendance {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  student_id String   @db.ObjectId
+  id         String   @id @default(uuid())
+  student_id String
   date       DateTime @default(now())
   status     String   // "present", "absent", "missed"
-  school_id  String   @db.ObjectId
+  school_id  String
 
   student Student @relation(fields: [student_id], references: [id])
   school  School  @relation(fields: [school_id], references: [id])
 }
 
 model Fee {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  student_id   String   @db.ObjectId
+  id           String   @id @default(uuid())
+  student_id   String
   total_amount Float
   due_amount   Float
   due_date     DateTime
-  school_id    String   @db.ObjectId
+  school_id    String
 
   student  Student   @relation(fields: [student_id], references: [id])
   school   School    @relation(fields: [school_id], references: [id])
@@ -139,36 +139,36 @@ model Fee {
 }
 
 model Payment {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  fee_id       String   @db.ObjectId
+  id           String   @id @default(uuid())
+  fee_id       String
   amount       Float
   status       String   // "paid", "pending", "overdue"
   payment_date DateTime @default(now())
-  school_id    String   @db.ObjectId
+  school_id    String
 
   fee    Fee    @relation(fields: [fee_id], references: [id])
   school School @relation(fields: [school_id], references: [id])
 }
 
 model Location {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  bus_id    String   @db.ObjectId
+  id        String   @id @default(uuid())
+  bus_id    String
   latitude  Float
   longitude Float
   timestamp DateTime @default(now())
-  school_id String   @db.ObjectId
+  school_id String
 
   bus    Bus    @relation(fields: [bus_id], references: [id])
   school School @relation(fields: [school_id], references: [id])
 }
 
 model Notification {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  user_id    String   @db.ObjectId
+  id         String   @id @default(uuid())
+  user_id    String
   message    String
   type       String
   created_at DateTime @default(now())
-  school_id  String   @db.ObjectId
+  school_id  String
 
   school School @relation(fields: [school_id], references: [id])
 }
