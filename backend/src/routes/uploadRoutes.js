@@ -14,7 +14,8 @@ router.get('/presigned-url', authenticateToken, async (req, res) => {
         const result = await getPresignedUrl(fileName, fileType);
         res.json(result);
     } catch (error) {
-        res.status(500).json({ message: 'Presigned URL generation failed', error: error.message });
+        console.error('UPLOAD ERROR (getPresignedUrl):', error);
+        res.status(500).json({ message: 'Presigned URL generation failed', error: error.message, stack: error.stack });
     }
 });
 
@@ -25,7 +26,8 @@ router.post('/school-logo', authenticateToken, upload.single('logo'), async (req
         const result = await uploadToS3(req.file, `schools/${schoolId}/logo`);
         res.json({ url: result.Location });
     } catch (error) {
-        res.status(500).json({ message: 'Upload failed', error: error.message });
+        console.error('UPLOAD ERROR (uploadToS3):', error);
+        res.status(500).json({ message: 'Upload failed', error: error.message, stack: error.stack });
     }
 });
 
