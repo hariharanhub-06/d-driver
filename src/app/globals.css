@@ -71,7 +71,20 @@
   }
 
   .modal-container-compact {
-    @apply bg-white dark:bg-slate-900 w-full max-w-lg rounded-[1.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh];
+    @apply bg-white dark:bg-slate-900 w-full max-w-lg rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh];
+    animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
