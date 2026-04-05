@@ -5,13 +5,30 @@ const prisma = require('../prisma');
 
 const getAllUsers = async (req, res) => {
     try {
+        const { role, school_id } = req.query;
+        const where = {};
+        if (role) where.role = role;
+        if (school_id) where.school_id = school_id;
+
         const users = await prisma.user.findMany({
+            where,
             include: { school: true }
         });
         res.json(users);
     } catch (error) {
         console.error('DATABASE ERROR (getAllUsers):', error.message);
-        res.status(500).json({ message: 'Error fetching users', error: error.message, stack: error.stack });
+        res.status(500).json({ message: 'Error fetching users', error: error.message });
+    }
+};
+
+const deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.user.delete({ where: { id } });
+        res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error('DATABASE ERROR (deleteUser):', error.message);
+        res.status(500).json({ message: 'Error deleting user', error: error.message });
     }
 };
 
@@ -54,4 +71,4 @@ const updateUser = async (req, res) => {
     }
 };
 
-module.exports = { getAllUsers, createUser, getCurrentUser, updateUser };
+module.exports = { getAllUsers, createUser, getCurrentUser, updateUser, deleteUser };

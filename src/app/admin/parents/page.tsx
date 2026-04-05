@@ -26,12 +26,8 @@ export default function ParentsPage() {
                 throw new Error('No parents found');
             }
         } catch {
-            console.error('Failed to fetch parents, using mock data');
-            setParents([
-                { id: '1', name: 'John Johnson', email: 'john@example.com' },
-                { id: '2', name: 'Mike Williams', email: 'mike@example.com' },
-                { id: '3', name: 'David Davis', email: 'david@example.com' },
-            ]);
+            console.error('Failed to fetch parents');
+            setParents([]);
         } finally {
             setLoading(false);
         }
@@ -45,7 +41,7 @@ export default function ParentsPage() {
                 ...formData,
                 school_id: user?.role === 'super_admin' ? formData.school_id : user?.school_id
             };
-            await api.post('/api/users', payload);
+            await api.post('/users', payload);
             setIsModalOpen(false);
             setFormData({ name: '', email: '', password: 'parent123', role: 'parent', school_id: '' });
             fetchParents();

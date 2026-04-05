@@ -19,7 +19,7 @@ export default function StaffPage() {
 
     const fetchStaff = async () => {
         try {
-            const { data } = await api.get('/api/users?role=admin');
+            const { data } = await api.get('/users?role=admin');
             setStaff(data);
         } catch {
             console.error('Failed to fetch staff');
@@ -36,7 +36,7 @@ export default function StaffPage() {
                 ...formData,
                 school_id: user?.role === 'super_admin' ? formData.school_id : user?.school_id
             };
-            await api.post('/api/users', payload);
+            await api.post('/users', payload);
             setIsModalOpen(false);
             setFormData({ name: '', email: '', password: 'admin123', role: 'admin', school_id: '' });
             fetchStaff();

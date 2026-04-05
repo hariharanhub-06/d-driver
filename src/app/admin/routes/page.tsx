@@ -49,13 +49,7 @@ export default function RoutesPage() {
             setIsModalOpen(false);
             fetchRoutes();
         } catch {
-            alert('Failed to save route. Using mock update.');
-            if (editRoute) {
-                setRoutes(routes.map(r => r.id === editRoute.id ? { ...r, name: formData.name } : r));
-            } else {
-                setRoutes([...routes, { id: Date.now().toString(), name: formData.name, stops: [] }]);
-            }
-            setIsModalOpen(false);
+            alert('Failed to save route. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -66,10 +60,10 @@ export default function RoutesPage() {
         if (!confirm('Are you sure you want to delete this route?')) return;
         try {
             await api.delete(`/routes/${id}`);
+            setRoutes(prev => prev.filter(r => r.id !== id));
         } catch {
-            // mock fallback
+            alert('Failed to delete route.');
         }
-        setRoutes(prev => prev.filter(r => r.id !== id));
     };
 
     const openCreate = () => {

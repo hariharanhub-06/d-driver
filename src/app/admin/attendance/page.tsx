@@ -37,10 +37,8 @@ export default function AttendancePage() {
                     setAttendance(initial);
                 } else throw new Error('No data');
             } catch {
-                setStudents(MOCK_STUDENTS);
-                const initial: Record<string, AttendanceStatus> = {};
-                MOCK_STUDENTS.forEach(s => { initial[s.id] = null; });
-                setAttendance(initial);
+                setStudents([]);
+                setAttendance({});
             } finally {
                 setLoading(false);
             }

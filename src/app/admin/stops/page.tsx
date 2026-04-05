@@ -28,13 +28,10 @@ export default function StopsPage() {
     const fetchStops = async () => {
         try {
             const { data } = await api.get('/stops');
-            if (data && data.length > 0) {
-                setStops(data);
-            } else {
-                throw new Error('No data');
-            }
+            setStops(data || []);
         } catch {
-            setStops(MOCK_STOPS);
+            console.error('Failed to fetch stops');
+            setStops([]);
         } finally {
             setLoading(false);
         }
@@ -57,9 +54,14 @@ export default function StopsPage() {
         }
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (confirm('Remove this stop?')) {
-            setStops(prev => prev.filter(s => s.id !== id));
+            try {
+                await api.delete(`/stops/${id}`);
+                setStops(prev => prev.filter(s => s.id !== id));
+            } catch {
+                alert('Failed to delete stop.');
+            }
         }
     };
 
@@ -182,42 +184,46 @@ export default function StopsPage() {
                 </div>
             </div>
 
-            <div className="modal-container-compact">
-                <div className="px-6 pt-6 pb-0 flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-black">Add Bus Stop</h2>
-                    <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400"><X size={16} /></button>
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="modal-container-compact">
+                        <div className="px-6 pt-6 pb-0 flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-black">Add Bus Stop</h2>
+                            <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400"><X size={16} /></button>
+                        </div>
+                        <form onSubmit={handleAddStop} className="px-6 pb-6 space-y-3.5">
+                            <div>
+                                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Stop Name</label>
+                                <input required type="text" className="input-field" placeholder="e.g. Oak Street Junction" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Pickup Time</label>
+                                    <input type="time" className="input-field" value={formData.pickup_time} onChange={e => setFormData({ ...formData, pickup_time: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Drop Time</label>
+                                    <input type="time" className="input-field" value={formData.drop_time} onChange={e => setFormData({ ...formData, drop_time: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Latitude (optional)</label>
+                                    <input type="text" className="input-field" placeholder="12.9716" value={formData.lat} onChange={e => setFormData({ ...formData, lat: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Longitude (optional)</label>
+                                    <input type="text" className="input-field" placeholder="77.5946" value={formData.lng} onChange={e => setFormData({ ...formData, lng: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="pt-4 flex gap-3">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 border border-border rounded-xl font-bold text-xs">Cancel</button>
+                                <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 text-xs py-2.5">{isSubmitting ? 'Saving...' : 'Add Stop'}</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-                <form onSubmit={handleAddStop} className="px-6 pb-6 space-y-3.5">
-                    <div>
-                        <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Stop Name</label>
-                        <input required type="text" className="input-field" placeholder="e.g. Oak Street Junction" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Pickup Time</label>
-                            <input type="time" className="input-field" value={formData.pickup_time} onChange={e => setFormData({ ...formData, pickup_time: e.target.value })} />
-                        </div>
-                        <div>
-                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Drop Time</label>
-                            <input type="time" className="input-field" value={formData.drop_time} onChange={e => setFormData({ ...formData, drop_time: e.target.value })} />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Latitude (optional)</label>
-                            <input type="text" className="input-field" placeholder="12.9716" value={formData.lat} onChange={e => setFormData({ ...formData, lat: e.target.value })} />
-                        </div>
-                        <div>
-                            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Longitude (optional)</label>
-                            <input type="text" className="input-field" placeholder="77.5946" value={formData.lng} onChange={e => setFormData({ ...formData, lng: e.target.value })} />
-                        </div>
-                    </div>
-                    <div className="pt-4 flex gap-3">
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 border border-border rounded-xl font-bold text-xs">Cancel</button>
-                        <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 text-xs py-2.5">{isSubmitting ? 'Saving...' : 'Add Stop'}</button>
-                    </div>
-                </form>
-            </div>
+            )}
         </div>
     );
 }
