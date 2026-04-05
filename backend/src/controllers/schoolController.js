@@ -32,9 +32,9 @@ const getSchoolBySlug = async (req, res) => {
 
 const registerSchool = async (req, res) => {
     try {
-        const { name, slug, address, phone, email_contact, subscription_plan, logo_url, primary_color } = req.body;
+        const { name, slug, address, phone, email_contact, subscription_plan, logo_url, primary_color, status, permissions } = req.body;
         const newSchool = await prisma.school.create({
-            data: { name, slug, address, phone, email_contact, subscription_plan, logo_url, primary_color }
+            data: { name, slug, address, phone, email_contact, subscription_plan, logo_url, primary_color, status: status || 'Active', permissions: permissions || {} }
         });
         res.status(201).json(newSchool);
     } catch (error) {
