@@ -32,20 +32,33 @@ const getSchoolBySlug = async (req, res) => {
 
 const registerSchool = async (req, res) => {
     try {
-        const { name, slug, address, phone, email_contact, subscription_plan, logo_url, primary_color, status, permissions } = req.body;
+        const {
+            name, slug, address, phone, email_contact, subscription_plan,
+            logo_url, primary_color, status, permissions,
+            buses, drivers, routes, students
+        } = req.body;
+
         const newSchool = await prisma.school.create({
-            data: { name, slug, address, phone, email_contact, subscription_plan, logo_url, primary_color, status: status || 'Active', permissions: permissions || {} }
+            data: {
+                name, slug, address, phone, email_contact, subscription_plan,
+                logo_url, primary_color, status: status || 'Active',
+                permissions: permissions || {},
+                // Simple nested creation if provided
+                buses: buses && buses.length > 0 ? { create: buses } : undefined,
+                routes: routes && routes.length > 0 ? { create: routes } : undefined
+            }
         });
         res.status(201).json(newSchool);
     } catch (error) {
         console.error('DATABASE ERROR (registerSchool):', error);
-        res.status(500).json({ message: 'Error creating school', error: error.message, stack: error.stack });
+        res.status(500).json({ message: 'Error creating school', error: error.message });
     }
 };
 
 const updateSchool = async (req, res) => {
     try {
         const { id } = req.params;
+        const { buses, routes } = req.body;
 
         // Define allowed scalar fields for update
         const allowedFields = [
@@ -62,12 +75,22 @@ const updateSchool = async (req, res) => {
 
         const updatedSchool = await prisma.school.update({
             where: { id },
-            data: updateData
+            data: {
+                ...updateData,
+                buses: buses && buses.length > 0 ? {
+                    deleteMany: {},
+                    create: buses.map(b => ({ bus_number: b.bus_number, capacity: parseInt(b.capacity) || 0 }))
+                } : undefined,
+                routes: routes && routes.length > 0 ? {
+                    deleteMany: {},
+                    create: routes.map(r => ({ name: r.name }))
+                } : undefined
+            }
         });
         res.json(updatedSchool);
     } catch (error) {
         console.error('DATABASE ERROR (updateSchool):', error);
-        res.status(500).json({ message: 'Error updating school', error: error.message, stack: error.stack });
+        res.status(500).json({ message: 'Error updating school', error: error.message });
     }
 };
 
