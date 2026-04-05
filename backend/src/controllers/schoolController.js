@@ -4,16 +4,7 @@ const getAllSchools = async (req, res) => {
     try {
         const schools = await prisma.school.findMany({
             include: {
-                _count: {
-                    select: {
-                        buses: true,
-                        drivers: true,
-                        routes: true,
-                        students: true
-                    }
-                },
                 buses: true,
-                drivers: { include: { user: true } },
                 routes: true,
                 students: true
             }

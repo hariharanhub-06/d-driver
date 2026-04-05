@@ -222,11 +222,11 @@ export default function SchoolsManagement() {
     return (
         <div className="space-y-10 animate-in relative p-4 max-w-7xl mx-auto">
             {/* Stats Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-4 rounded-[1.5rem] border border-gray-100 shadow-sm">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tighter">SCHOOL NETWORK</h1>
-                    <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 flex items-center">
-                        <Building2 className="w-3 h-3 mr-1 text-primary-500" /> Administrative Control Center
+                    <h1 className="text-xl font-black text-slate-900 tracking-tighter">SCHOOL NETWORK</h1>
+                    <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[8px] mt-1 flex items-center">
+                        <Building2 className="w-2.5 h-2.5 mr-1 text-primary-500" /> Administrative Control Center
                     </p>
                 </div>
             </div>
@@ -259,9 +259,9 @@ export default function SchoolsManagement() {
                         setActiveTab('profile');
                         setIsModalOpen(true);
                     }}
-                    className="bg-primary-500 text-white hover:bg-primary-600 font-black py-4 px-10 rounded-2xl transition-all flex items-center transform active:scale-95 shadow-xl shadow-primary-500/20"
+                    className="bg-primary-500 text-white hover:bg-primary-600 font-black py-2 px-6 rounded-xl transition-all flex items-center transform active:scale-95 shadow-md shadow-primary-500/20 text-[10px] uppercase tracking-wider"
                 >
-                    <Plus className="w-5 h-5 mr-3" strokeWidth={3} /> Register Institution
+                    <Plus className="w-3.5 h-3.5 mr-2" strokeWidth={3} /> Register Institution
                 </button>
             </div>
 
@@ -298,31 +298,31 @@ export default function SchoolsManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {schools.filter(s => s.name?.toLowerCase().includes(searchTerm.toLowerCase()) || s.slug?.includes(searchTerm.toLowerCase())).map((school) => (
                         <div key={school.id} className={cn(
-                            "bg-white rounded-[3rem] border border-gray-100 overflow-hidden group hover:border-primary-200 transition-all shadow-premium hover:shadow-2xl hover:shadow-primary-500/5 flex flex-col h-full relative",
+                            "bg-white rounded-[1.5rem] border border-gray-100 overflow-hidden group hover:border-primary-200 transition-all shadow-md hover:shadow-lg flex flex-col h-full relative",
                             school.status !== 'Active' && "opacity-60 grayscale-[0.5]"
                         )}>
                             <div className="h-2 w-full" style={{ backgroundColor: school.primary_color || '#2dbc75' }}></div>
-                            <div className="p-8 flex flex-col flex-1">
-                                <div className="flex justify-between items-start mb-8">
-                                    <div className="w-20 h-20 bg-gray-50 rounded-[2rem] border border-gray-100 flex items-center justify-center p-4 shadow-inner group-hover:bg-primary-50 transition-colors">
+                            <div className="p-4 flex flex-col flex-1">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="w-12 h-12 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center p-2 shadow-inner group-hover:bg-primary-50 transition-colors">
                                         {school.logo_url ? (
                                             <img src={school.logo_url} alt={school.name} className="w-full h-full object-contain" />
                                         ) : (
-                                            <Building2 className="w-10 h-10 text-slate-200 group-hover:text-primary-200 transition-colors" />
+                                            <Building2 className="w-6 h-6 text-slate-200 group-hover:text-primary-200 transition-colors" />
                                         )}
                                     </div>
-                                    <div className="flex flex-col gap-2 text-right">
-                                        <div className="flex gap-2 justify-end">
-                                            <button onClick={() => handleOpenAdminModal(school)} className="p-3 bg-gray-50 rounded-2xl hover:bg-blue-50 hover:text-blue-500 transition-all text-gray-400" title="Manage Admins"><ShieldCheck className="w-4 h-4" /></button>
-                                            <button onClick={() => { setEditingId(school.id); setFormData({ ...school } as any); setActiveTab('profile'); setIsModalOpen(true); }} className="p-3 bg-gray-50 rounded-2xl hover:bg-primary-50 hover:text-primary-500 transition-all text-gray-400" title="Edit"><Edit className="w-4 h-4" /></button>
-                                            <button onClick={() => handleDelete(school.id)} className="p-3 bg-gray-50 rounded-2xl hover:bg-red-50 hover:text-red-500 transition-all text-gray-400"><Trash2 className="w-4 h-4" /></button>
+                                    <div className="flex flex-col gap-1 text-right">
+                                        <div className="flex gap-1 justify-end">
+                                            <button onClick={() => handleOpenAdminModal(school)} className="p-1.5 bg-gray-50 rounded-lg hover:bg-blue-50 hover:text-blue-500 transition-all text-gray-400" title="Manage Admins"><ShieldCheck className="w-3 h-3" /></button>
+                                            <button onClick={() => { setEditingId(school.id); setFormData({ ...school } as any); setActiveTab('profile'); setIsModalOpen(true); }} className="p-1.5 bg-gray-50 rounded-lg hover:bg-primary-50 hover:text-primary-500 transition-all text-gray-400" title="Edit"><Edit className="w-3 h-3" /></button>
+                                            <button onClick={() => handleDelete(school.id)} className="p-1.5 bg-gray-50 rounded-lg hover:bg-red-50 hover:text-red-500 transition-all text-gray-400"><Trash2 className="w-3 h-3" /></button>
                                         </div>
-                                        <button onClick={() => handleToggleStatus(school)} className={cn("py-2 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border self-end", school.status === 'Active' ? "bg-red-50 border-red-100 text-red-500 hover:bg-red-100" : "bg-green-50 border-green-100 text-green-500 hover:bg-green-100")}>
-                                            {school.status === 'Active' ? 'Deactivate' : 'Activate'}
+                                        <button onClick={() => handleToggleStatus(school)} className={cn("py-1 px-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border self-end", school.status === 'Active' ? "bg-red-50 border-red-100 text-red-500 hover:bg-red-100" : "bg-green-50 border-green-100 text-green-500 hover:bg-green-100")}>
+                                            {school.status === 'Active' ? 'Off' : 'On'}
                                         </button>
                                     </div>
                                 </div>
-                                <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">{school.name}</h3>
+                                <h3 className="text-sm font-black text-slate-900 tracking-tight mb-1">{school.name}</h3>
                                 <div className="space-y-2 mb-6">
                                     <a href={`/school/${school.slug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-slate-700 bg-primary-50 px-3 py-2 rounded-xl border border-primary-100 hover:bg-primary-100 transition-all w-full">
                                         <Globe className="w-3.5 h-3.5 text-primary-500 shrink-0" />
@@ -335,30 +335,28 @@ export default function SchoolsManagement() {
                                         <Copy className="w-3 h-3 text-amber-400" />
                                     </div>
                                 </div>
-                                <div className="mt-auto space-y-4">
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {[
-                                            { id: 'buses', label: 'Buses', count: school.buses?.length || 0, icon: Truck, color: 'text-amber-500', bg: 'bg-amber-50/50' },
-                                            { id: 'drivers', label: 'Drivers', count: school.drivers?.length || 0, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50/50' },
-                                            { id: 'routes', label: 'Routes', count: school.routes?.length || 0, icon: Globe, color: 'text-emerald-500', bg: 'bg-emerald-50/50' },
-                                            { id: 'students', label: 'Students', count: school.students?.length || 0, icon: GraduationCap, color: 'text-purple-500', bg: 'bg-purple-50/50' },
-                                        ].map((stat) => (
-                                            <div key={stat.id} className={cn("p-3 rounded-2xl border border-slate-100 flex flex-col items-center", stat.bg)}>
-                                                <stat.icon className={cn("w-4 h-4 mb-1", stat.color)} />
-                                                <p className="text-lg font-black text-slate-900 leading-none">{stat.count}</p>
-                                                <p className="text-[8px] font-bold text-slate-400 uppercase mt-1 tracking-tighter">{stat.label}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="pt-6 border-t border-gray-50 flex items-center justify-between">
-                                        <span className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest", school.subscription_plan === 'Enterprise' ? "bg-primary-50 text-primary-600" : "bg-blue-50 text-blue-600")}>
-                                            {school.subscription_plan}
-                                        </span>
-                                        <span className="text-[10px] font-black text-green-500 uppercase flex items-center gap-1">
-                                            <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", school.status === 'Active' ? 'bg-green-500' : 'bg-red-500')}></div>
-                                            {school.status}
-                                        </span>
-                                    </div>
+                                <div className="grid grid-cols-4 gap-1.5">
+                                    {[
+                                        { id: 'buses', label: 'Buses', count: school.buses?.length || 0, icon: Truck, color: 'text-amber-500', bg: 'bg-amber-50/50' },
+                                        { id: 'drivers', label: 'Drivers', count: school.drivers?.length || 0, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50/50' },
+                                        { id: 'routes', label: 'Routes', count: school.routes?.length || 0, icon: Globe, color: 'text-emerald-500', bg: 'bg-emerald-50/50' },
+                                        { id: 'students', label: 'Students', count: school.students?.length || 0, icon: GraduationCap, color: 'text-purple-500', bg: 'bg-purple-50/50' },
+                                    ].map((stat) => (
+                                        <div key={stat.id} className={cn("p-1.5 rounded-xl border border-slate-100 flex flex-col items-center", stat.bg)}>
+                                            <stat.icon className={cn("w-3 h-3 mb-0.5", stat.color)} />
+                                            <p className="text-xs font-black text-slate-900 leading-none">{stat.count}</p>
+                                            <p className="text-[7px] font-bold text-slate-400 uppercase mt-0.5 tracking-tighter">{stat.label}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="pt-3 border-t border-gray-50 flex items-center justify-between">
+                                    <span className={cn("px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest", school.subscription_plan === 'Enterprise' ? "bg-primary-50 text-primary-600" : "bg-blue-50 text-blue-600")}>
+                                        {school.subscription_plan}
+                                    </span>
+                                    <span className="text-[8px] font-black text-green-500 uppercase flex items-center gap-1">
+                                        <div className={cn("w-1 h-1 rounded-full animate-pulse", school.status === 'Active' ? 'bg-green-500' : 'bg-red-500')}></div>
+                                        {school.status}
+                                    </span>
                                 </div>
                             </div>
                         </div>
