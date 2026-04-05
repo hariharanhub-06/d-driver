@@ -2,7 +2,22 @@ const prisma = require('../prisma');
 
 const getAllSchools = async (req, res) => {
     try {
-        const schools = await prisma.school.findMany();
+        const schools = await prisma.school.findMany({
+            include: {
+                _count: {
+                    select: {
+                        buses: true,
+                        drivers: true,
+                        routes: true,
+                        students: true
+                    }
+                },
+                buses: true,
+                drivers: { include: { user: true } },
+                routes: true,
+                students: true
+            }
+        });
         res.json(schools);
     } catch (error) {
         console.error('DATABASE ERROR (getAllSchools):', error);
