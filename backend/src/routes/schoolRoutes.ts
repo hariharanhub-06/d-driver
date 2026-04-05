@@ -1,16 +1,19 @@
-import { Router } from 'express';
-import { getSchools, createSchool, updateSchool, deleteSchool } from '../controllers/schoolController';
-import { authenticateToken, requireRole } from '../middleware/authMiddleware';
+const { Router } = require('express');
+const {
+    getAllSchools,
+    registerSchool,
+    getSchoolBySlug,
+    updateSchool,
+    deleteSchool
+} = require('../controllers/schoolController');
+const { authenticateToken, requireRole } = require('../middleware/authMiddleware');
 
 const router = Router();
 
-// Only Super Admin can manage schools
-router.use(authenticateToken);
-router.use(requireRole(['super_admin']));
+router.get('/', getAllSchools);
+router.get('/:slug', getSchoolBySlug);
+router.post('/', authenticateToken, requireRole(['super_admin']), registerSchool);
+router.put('/:id', authenticateToken, requireRole(['super_admin']), updateSchool);
+router.delete('/:id', authenticateToken, requireRole(['super_admin']), deleteSchool);
 
-router.get('/', getSchools);
-router.post('/', createSchool);
-router.put('/:id', updateSchool);
-router.delete('/:id', deleteSchool);
-
-export default router;
+module.exports = router;

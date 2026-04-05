@@ -1,14 +1,19 @@
-import { Router } from 'express';
-import { getDrivers, createDriver, assignBusToDriver } from '../controllers/driverController';
-import { authenticateToken, requireRole } from '../middleware/authMiddleware';
+const { Router } = require('express');
+const {
+    getAllDrivers,
+    createDriver,
+    getDriverById,
+    updateDriver,
+    deleteDriver
+} = require('../controllers/driverController');
+const { authenticateToken, requireRole } = require('../middleware/authMiddleware');
 
 const router = Router();
 
-router.use(authenticateToken);
-router.use(requireRole(['super_admin', 'admin']));
+router.get('/', authenticateToken, getAllDrivers);
+router.get('/:id', authenticateToken, getDriverById);
+router.post('/', authenticateToken, requireRole(['admin', 'super_admin']), createDriver);
+router.put('/:id', authenticateToken, requireRole(['admin', 'super_admin']), updateDriver);
+router.delete('/:id', authenticateToken, requireRole(['admin', 'super_admin']), deleteDriver);
 
-router.get('/', getDrivers);
-router.post('/', createDriver);
-router.put('/:id/assign-bus', assignBusToDriver);
-
-export default router;
+module.exports = router;

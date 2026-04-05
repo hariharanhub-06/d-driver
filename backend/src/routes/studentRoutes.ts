@@ -1,15 +1,19 @@
-import { Router } from 'express';
-import { getStudents, createStudent } from '../controllers/studentController';
-import { authenticateToken, requireRole } from '../middleware/authMiddleware';
+const { Router } = require('express');
+const {
+    getAllStudents,
+    createStudent,
+    getStudentById,
+    updateStudent,
+    deleteStudent
+} = require('../controllers/studentController');
+const { authenticateToken, requireRole } = require('../middleware/authMiddleware');
 
 const router = Router();
 
-router.use(authenticateToken);
-// Parents should be able to get their own students, but for simplicity here we restrict to admins,
-// and create a specific parent endpoint if needed later.
-router.use(requireRole(['super_admin', 'admin']));
+router.get('/', authenticateToken, getAllStudents);
+router.get('/:id', authenticateToken, getStudentById);
+router.post('/', authenticateToken, requireRole(['admin', 'super_admin']), createStudent);
+router.put('/:id', authenticateToken, requireRole(['admin', 'super_admin']), updateStudent);
+router.delete('/:id', authenticateToken, requireRole(['admin', 'super_admin']), deleteStudent);
 
-router.get('/', getStudents);
-router.post('/', createStudent);
-
-export default router;
+module.exports = router;
