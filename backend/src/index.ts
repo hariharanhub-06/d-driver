@@ -41,18 +41,18 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/auth', authRoutes);
-app.use('/api/schools', schoolRoutes);
-app.use('/api/buses', busRoutes);
-app.use('/api/drivers', driverRoutes);
-app.use('/api/routes', routeRoutes);
-app.use('/api/students', studentRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/location', locationRoutes);
-app.use('/api/finance', financeRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/upload', uploadRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/schools', schoolRoutes);
+app.use('/api/v1/buses', busRoutes);
+app.use('/api/v1/drivers', driverRoutes);
+app.use('/api/v1/routes', routeRoutes);
+app.use('/api/v1/students', studentRoutes);
+app.use('/api/v1/attendance', attendanceRoutes);
+app.use('/api/v1/location', locationRoutes);
+app.use('/api/v1/finance', financeRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/upload', uploadRoutes);
 
 // Built-in basic health check route
 app.get('/api/health', (req: Request, res: Response) => {
