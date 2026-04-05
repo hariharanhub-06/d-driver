@@ -15,8 +15,18 @@ try {
 
     module.exports = app;
 } catch (error: any) {
-    console.error('CRITICAL VERCEL BOOT ERROR:', error.message);
+    console.error('CRITICAL VERCEL BOOT ERROR:', error);
     module.exports = (req: any, res: any) => {
-        res.status(500).json({ error: 'Server initialization failed', detail: error.message });
+        res.setHeader('Content-Type', 'application/json');
+        res.status(500).json({
+            error: 'Server initialization failed',
+            message: error.message,
+            stack: error.stack,
+            env_check: {
+                has_db_url: !!process.env.DATABASE_URL,
+                has_jwt_secret: !!process.env.JWT_SECRET,
+                node_env: process.env.NODE_ENV
+            }
+        });
     };
 }
