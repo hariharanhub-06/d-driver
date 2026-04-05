@@ -1,3 +1,4 @@
+export { };
 const prisma = require('../prisma');
 
 const getAllSchools = async (req, res) => {
@@ -5,7 +6,8 @@ const getAllSchools = async (req, res) => {
         const schools = await prisma.school.findMany();
         res.json(schools);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching schools', error: error.message });
+        console.error('DATABASE ERROR (getAllSchools):', error.message);
+        res.status(500).json({ message: 'Error fetching schools', error: error.message, stack: error.stack });
     }
 };
 

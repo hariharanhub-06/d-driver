@@ -1,4 +1,5 @@
 export { };
+export { };
 const bcrypt = require('bcryptjs');
 const prisma = require('../prisma');
 
@@ -9,7 +10,8 @@ const getAllUsers = async (req, res) => {
         });
         res.json(users);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching users', error: error.message });
+        console.error('DATABASE ERROR (getAllUsers):', error.message);
+        res.status(500).json({ message: 'Error fetching users', error: error.message, stack: error.stack });
     }
 };
 
