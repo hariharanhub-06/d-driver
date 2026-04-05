@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: d-driver-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build && npm run seed
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://neondb_owner:npg_rEFeG2BPd5qU@ep-patient-glitter-anohkgwu-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require
+      - key: JWT_SECRET
+        value: superschoolsecretpassword123
+      - key: PORT
+        value: 10000
+      # IMPORTANT: Change this URL to your live Vercel domain once the backend is up!
+      - key: FRONTEND_URL
+        value: https://d-driver.vercel.app
