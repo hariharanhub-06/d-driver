@@ -10,7 +10,7 @@
     "postinstall": "npx prisma generate --schema=backend/prisma/schema.prisma"
   },
   "dependencies": {
-    "@prisma/client": "^7.6.0",
+    "@prisma/client": "^6.19.3",
     "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
@@ -21,6 +21,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.577.0",
     "next": "14.2.35",
+    "prisma": "^6.19.3",
     "react": "^18",
     "react-dom": "^18",
     "react-leaflet": "^5.0.0",
