@@ -1,32 +1,9 @@
 try {
     const backend = require('../backend/src/index');
-    const app = backend.default || backend;
-
-    // Add a last-minute root health check for Vercel
-    if (app && typeof app.get === 'function') {
-        app.get('/api/health', (req: any, res: any) => {
-            res.json({
-                status: 'ok',
-                uptime: process.uptime(),
-                timestamp: new Date().toISOString()
-            });
-        });
-    }
-
-    module.exports = app;
+    module.exports = backend.default || backend;
 } catch (error: any) {
-    console.error('CRITICAL VERCEL BOOT ERROR:', error);
+    console.error('VERCEL BOOT ERROR:', error.message);
     module.exports = (req: any, res: any) => {
-        res.setHeader('Content-Type', 'application/json');
-        res.status(500).json({
-            error: 'Server initialization failed',
-            message: error.message,
-            stack: error.stack,
-            env_check: {
-                has_db_url: !!process.env.DATABASE_URL,
-                has_jwt_secret: !!process.env.JWT_SECRET,
-                node_env: process.env.NODE_ENV
-            }
-        });
+        res.status(500).json({ error: 'Internal Server Error', message: 'Server fell over at boot' });
     };
 }
