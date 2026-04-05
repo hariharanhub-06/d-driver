@@ -3,9 +3,10 @@ const xlsx = require('xlsx');
 
 const getAllStops = async (req, res) => {
     try {
-        const { schoolId } = req.query;
+        const { schoolId, school_id } = req.query;
+        const targetSchoolId = schoolId || school_id;
         const stops = await prisma.stop.findMany({
-            where: schoolId ? { school_id: schoolId } : {},
+            where: targetSchoolId ? { school_id: targetSchoolId } : {},
             include: { route: true }
         });
         res.json(stops);
@@ -14,22 +15,21 @@ const getAllStops = async (req, res) => {
     }
 };
 
-const createStop = async (req, res) => {
-    try {
-        const { name, latitude, longitude, route_id, school_id, pickup_time, drop_time } = req.body;
-        const newStop = await prisma.stop.create({
-            data: {
-                name,
-                latitude: parseFloat(latitude) || 0,
-                longitude: parseFloat(longitude) || 0,
-                route_id,
-                school_id
-            }
-        });
-        res.status(201).json(newStop);
-    } catch (error) {
-        res.status(500).json({ message: 'Error creating stop', error: error.message });
-    }
+try {
+    const { name, latitude, longitude, lat, lng, route_id, school_id } = req.body;
+    const newStop = await prisma.stop.create({
+        data: {
+            name,
+            latitude: parseFloat(latitude || lat || 0),
+            longitude: parseFloat(longitude || lng || 0),
+            route_id,
+            school_id
+        }
+    });
+    res.status(201).json(newStop);
+} catch (error) {
+    res.status(500).json({ message: 'Error creating stop', error: error.message });
+}
 };
 
 const bulkImportStops = async (req, res) => {
@@ -42,13 +42,21 @@ const bulkImportStops = async (req, res) => {
         const sheetName = workbook.SheetNames[0];
         const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-        const stops = data.map(item => ({
-            name: item.name || item.Name || '',
-            latitude: parseFloat(item.latitude || item.Lat || 0),
-            longitude: parseFloat(item.longitude || item.Lng || 0),
-            route_id: item.route_id || item.RouteID || '',
-            school_id: school_id
-        }));
+        const stops = data.map(item => {
+            // Find Keys case-insensitively
+            const findVal = (keys) => {
+                const found = Object.keys(item).find(k => keys.includes(k.trim().toLowerCase()));
+                return found ? item[found] : null;
+            };
+
+            return {
+                name: findVal(['name', 'stop name', 'stopname', 'label']) || '',
+                latitude: parseFloat(findVal(['latitude', 'lat', 'latitude (optional)', 'lat (optional)']) || 0),
+                longitude: parseFloat(findVal(['longitude', 'lng', 'longitude (optional)', 'lng (optional)']) || 0),
+                route_id: findVal(['route_id', 'route id', 'routeid', 'route']) || '',
+                school_id: school_id
+            };
+        });
 
         const createdStops = await prisma.stop.createMany({
             data: stops.filter(s => s.name && s.route_id)

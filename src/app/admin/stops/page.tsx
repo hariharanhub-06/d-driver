@@ -27,7 +27,7 @@ export default function StopsPage() {
 
     const fetchStops = async () => {
         try {
-            const { data } = await api.get('/stops');
+            const { data } = await api.get('/stops', { params: { school_id: user?.school_id } });
             setStops(data || []);
         } catch {
             console.error('Failed to fetch stops');

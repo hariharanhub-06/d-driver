@@ -80,43 +80,43 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose:
 
     return (
         <aside className={cn(
-            "admin-sidebar transition-all duration-300",
+            "admin-sidebar transition-all duration-300 flex flex-col",
             isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}>
             {/* Logo Section */}
-            <div className="h-16 flex items-center px-6 bg-[#1a2226] border-b border-black/10">
+            <div className="h-12 flex items-center px-4 bg-[#1a2226] border-b border-black/10 shrink-0">
                 <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-primary-500 rounded-md">
-                        <Bus className="w-5 h-5 text-white" />
+                    <div className="p-1 bg-primary-500 rounded-md">
+                        <Bus className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-xl font-bold text-white tracking-tight">
-                        D-DRIVER<span className="text-primary-500">365</span>
+                    <span className="text-lg font-black text-white tracking-tight">
+                        D-DRIVER<span className="text-primary-500 text-[10px] ml-0.5 font-bold uppercase tracking-widest">365</span>
                     </span>
                 </div>
             </div>
 
             {/* User Profile Section */}
-            <div className="px-4 py-6 bg-[#1e282c]">
-                <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full border-2 border-primary-500 p-0.5 overflow-hidden">
-                        <div className="w-full h-full rounded-full bg-slate-700 flex items-center justify-center">
-                            <User className="text-slate-400" />
+            <div className="px-4 py-3 bg-[#1e282c] shrink-0 border-b border-black/5">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg border border-primary-500/30 p-0.5 overflow-hidden shrink-0">
+                        <div className="w-full h-full rounded-md bg-slate-700 flex items-center justify-center">
+                            <User size={14} className="text-slate-400" />
                         </div>
                     </div>
-                    <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-white truncate">{user?.name || 'Zahi Ejaz'}</span>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-primary-500"></div>
-                            <span className="text-xs text-sidebar-text uppercase font-medium tracking-wider">Online</span>
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-black text-white truncate uppercase tracking-tight">{user?.name || 'Zahi Ejaz'}</span>
+                        <div className="flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse"></div>
+                            <span className="text-[9px] text-gray-400 uppercase font-bold tracking-widest">Live</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Navigation Section */}
-            <div className="py-2">
-                <div className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                    Main Navigation
+            <div className="flex-1 overflow-y-auto py-2">
+                <div className="px-6 py-2 text-[9px] font-black text-gray-500 uppercase tracking-widest opacity-60">
+                    Control Tower
                 </div>
                 <nav>
                     <ul>
@@ -133,12 +133,12 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose:
                                         )}
                                     >
                                         <item.icon className={cn(
-                                            "w-5 h-5",
+                                            "w-4 h-4",
                                             isActive ? "text-white" : "text-gray-400"
                                         )} />
-                                        <span className="flex-1 text-sm">{item.label}</span>
+                                        <span className="flex-1 text-[11px] font-bold uppercase tracking-tight">{item.label}</span>
                                         {item.children && (
-                                            <ChevronRight className="w-4 h-4 text-gray-500" />
+                                            <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
                                         )}
                                     </Link>
                                 </li>
@@ -149,13 +149,13 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose:
             </div>
 
             {/* Logout Section */}
-            <div className="absolute bottom-0 w-full p-4 border-t border-black/10">
+            <div className="p-3 border-t border-black/10 bg-[#1a2226] shrink-0">
                 <button
                     onClick={() => logout?.()}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-400 hover:text-white transition-colors"
+                    className="flex items-center gap-3 w-full px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-white hover:bg-red-500/10 rounded-xl transition-all group"
                 >
-                    <LogOut className="w-5 h-5" />
-                    <span>Sign Out</span>
+                    <LogOut className="w-4 h-4 group-hover:text-red-500" />
+                    <span>Terminate Session</span>
                 </button>
             </div>
         </aside>

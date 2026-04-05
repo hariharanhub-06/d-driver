@@ -40,11 +40,12 @@
   .admin-sidebar {
     background-color: var(--sidebar-bg);
     color: var(--sidebar-text);
-    @apply w-64 h-screen fixed left-0 top-0 overflow-y-auto z-50;
+    @apply w-56 h-screen fixed left-0 top-0 overflow-y-auto z-50 border-r border-black/10 shadow-2xl;
   }
 
   .nav-item {
-    @apply flex items-center px-4 py-3 gap-3 transition-colors duration-200 border-l-4 border-transparent;
+    @apply flex items-center px-5 py-2 gap-3 transition-colors duration-200 border-l-[3px] border-transparent;
+    @apply text-xs font-semibold;
 
     &:hover {
       background-color: var(--sidebar-hover-bg);
@@ -54,7 +55,7 @@
 
   .nav-item-active {
     background-color: var(--sidebar-active-bg);
-    @apply text-white border-primary-500;
+    @apply text-white border-primary-500 bg-primary-500/10;
   }
 
   .btn-bus {
