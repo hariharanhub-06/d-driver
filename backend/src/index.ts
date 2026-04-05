@@ -16,6 +16,7 @@ const financeRoutes = require('./routes/financeRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const userRoutes = require('./routes/userRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 const app = express();
 const httpServer = require('http').createServer(app);
@@ -33,6 +34,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/v1/auth', authRoutes.default || authRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes.default || dashboardRoutes);
 app.use('/api/v1/schools', schoolRoutes.default || schoolRoutes);
 app.use('/api/v1/buses', busRoutes.default || busRoutes);
 app.use('/api/v1/drivers', driverRoutes.default || driverRoutes);

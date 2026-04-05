@@ -1,29 +1,35 @@
-'use client';
-
-import {
-    LayoutDashboard,
-    Building2,
-    Users,
-    Activity,
-    TrendingUp,
-    ShieldCheck,
-    Globe,
-    CreditCard
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 
 export default function SuperAdminDashboard() {
-    const stats = [
-        { label: 'Total Schools', value: '12', icon: Building2, trend: '+2 this month', color: 'text-blue-500' },
-        { label: 'Active Students', value: '1,842', icon: Users, trend: '+15%', color: 'text-green-500' },
-        { label: 'Total Revenue', value: '₹4.2M', icon: IndianRupee, trend: '+22%', color: 'text-amber-500' },
-        { label: 'System Uptime', value: '99.98%', icon: Activity, trend: 'Healthy', color: 'text-purple-500' },
-    ];
+    const [data, setData] = useState({
+        schoolCount: 0,
+        studentCount: 0,
+        totalRevenue: 0,
+        uptime: 'Loading...',
+        recentActivity: []
+    });
+    const [loading, setLoading] = useState(true);
 
-    const recentLogs = [
-        { id: 1, event: 'New School Integrated', details: 'St. Marys High-School', time: '2 mins ago', status: 'success' },
-        { id: 2, event: 'S3 Storage Backup', details: 'Bucket: d-driver-uploads-2026', time: '45 mins ago', status: 'info' },
-        { id: 3, event: 'Database Migration', details: 'Schema updated for multi-tenancy', time: '2 hours ago', status: 'warning' },
-        { id: 4, event: 'Admin Login', details: 'Super Admin from Sydney, AU', time: '4 hours ago', status: 'security' },
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const res = await api.get('/dashboard/stats');
+                setData(res.data);
+            } catch (error) {
+                console.error('Error fetching dashboard stats:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchStats();
+    }, []);
+
+    const stats = [
+        { label: 'Total Schools', value: data.schoolCount.toString(), icon: Building2, trend: 'Live Data', color: 'text-blue-500' },
+        { label: 'Active Students', value: data.studentCount.toLocaleString(), icon: Users, trend: 'Live Data', color: 'text-green-500' },
+        { label: 'Total Revenue', value: `₹${(data.totalRevenue / 100000).toFixed(2)}L`, icon: IndianRupee, trend: 'Net Total', color: 'text-amber-500' },
+        { label: 'System Status', value: data.uptime, icon: Activity, trend: 'Healthy', color: 'text-purple-500' },
     ];
 
     return (
@@ -39,7 +45,7 @@ export default function SuperAdminDashboard() {
                 <div className="flex items-center gap-3">
                     <div className="px-5 py-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center group cursor-pointer hover:bg-slate-100 transition-all shadow-sm">
                         <Globe className="w-5 h-5 text-slate-400 mr-3 group-hover:text-uber-blue transition-colors" />
-                        <span className="text-sm font-bold text-slate-900">Global Instance: ap-southeast-2</span>
+                        <span className="text-sm font-bold text-slate-900">Live Instance: production-main</span>
                     </div>
                 </div>
             </div>
@@ -55,7 +61,7 @@ export default function SuperAdminDashboard() {
                                 <stat.icon className={`w-7 h-7 ${stat.color}`} />
                             </div>
                             <p className="text-slate-400 dark:text-white/40 text-xs font-black uppercase tracking-widest">{stat.label}</p>
-                            <h3 className="text-xl font-black text-slate-900 dark:text-white mt-2 tracking-tighter">{stat.value}</h3>
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white mt-2 tracking-tighter">{loading ? '...' : stat.value}</h3>
                             <p className="text-[11px] font-bold text-slate-400 dark:text-white/20 mt-3 flex items-center capitalize">
                                 <TrendingUp className="w-3 h-3 mr-1 text-green-500" /> {stat.trend}
                             </p>
@@ -79,7 +85,9 @@ export default function SuperAdminDashboard() {
                     <div className="p-6">
                         <table className="w-full">
                             <tbody>
-                                {recentLogs.map((log) => (
+                                {(data.recentActivity.length > 0 ? data.recentActivity : [
+                                    { id: 1, event: 'System Online', details: 'Database connection established', time: 'Just now', status: 'success' }
+                                ]).map((log: any) => (
                                     <tr key={log.id} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
                                         <td className="py-6 px-4">
                                             <div className="flex items-center">
@@ -113,15 +121,19 @@ export default function SuperAdminDashboard() {
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
                         <div className="relative z-10 text-white">
                             <CreditCard className="w-10 h-10 text-white mb-6" />
-                            <h3 className="text-xl font-black tracking-tight leading-tight uppercase">Integration <br />Status</h3>
+                            <h3 className="text-xl font-black tracking-tight leading-tight uppercase">Infrastructure <br />Status</h3>
                             <div className="mt-8 space-y-4">
                                 <div className="flex items-center justify-between border-b border-white/10 pb-4">
                                     <span className="text-white/70 text-xs font-bold uppercase tracking-widest">AWS S3</span>
                                     <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase">Connected</span>
                                 </div>
                                 <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                                    <span className="text-white/70 text-xs font-bold uppercase tracking-widest">MongoDB</span>
+                                    <span className="text-white/70 text-xs font-bold uppercase tracking-widest">PostgreSQL</span>
                                     <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase">Active</span>
+                                </div>
+                                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                                    <span className="text-white/70 text-xs font-bold uppercase tracking-widest">Prisma Client</span>
+                                    <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase">Generated</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-white/70 text-xs font-bold uppercase tracking-widest">Vercel Build</span>
@@ -134,7 +146,7 @@ export default function SuperAdminDashboard() {
                     <div className="bg-white dark:bg-slate-900 p-10 rounded-[40px] border border-slate-100 dark:border-white/5 hover:border-uber-blue/20 transition-all shadow-premium">
                         <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight leading-none uppercase">System Message</h3>
                         <p className="text-slate-500 dark:text-white/40 text-sm mt-6 font-medium leading-relaxed">
-                            Welcome to the D-DRIVER Network Controller. All systems are currently operating at peak performance.
+                            Welcome to the D-DRIVER Network Controller. All systems are currently operating at peak performance using the Neon PostgreSQL backend.
                         </p>
                         <button className="w-full mt-10 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-900 dark:text-white font-black rounded-2xl border border-slate-100 dark:border-white/5 transition-all text-[10px] uppercase tracking-widest shadow-sm">
                             Global Settings

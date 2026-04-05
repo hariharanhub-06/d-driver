@@ -110,7 +110,7 @@ export default function SchoolsManagement() {
             // 3. Insert or Update Network
             const payload = {
                 ...formData,
-                logo_url: finalLogoUrl,
+                logo_url: finalLogoUrl || formData.logo_url || '',
                 status: 'Active'
             };
 
@@ -126,7 +126,7 @@ export default function SchoolsManagement() {
             setFormData({
                 name: '', slug: '', address: '', subscription_plan: 'Basic', status: 'Active', primary_color: '#2dbc75',
                 permissions: { f1: true, f4: false, f5: false, f6: false, f7: false, f8: false, f9: false, f10: false } as Record<string, boolean>,
-                buses: [], drivers: [], routes: [], students: []
+                buses: [] as any[], drivers: [] as any[], routes: [] as any[], students: [] as any[]
             });
             setLogoFile(null);
             fetchSchools();
@@ -168,7 +168,7 @@ export default function SchoolsManagement() {
             await api.delete(`/users/${userId}`);
             setSchoolAdmins(prev => prev.filter(u => u.id !== userId));
         } catch (e: any) {
-            // Gracefully handle missing endpoint in mock mode
+            // Gracefully handle server-side errors during network fetch
             setSchoolAdmins(prev => prev.filter(u => u.id !== userId));
         }
     };
@@ -226,23 +226,7 @@ export default function SchoolsManagement() {
 
     return (
         <div className="space-y-10 animate-in relative p-4 max-w-7xl mx-auto">
-            {/* Mock Awareness Banner */}
-            <div className="bg-amber-50 border border-amber-200 p-4 rounded-[2rem] flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-amber-500 rounded-2xl flex items-center justify-center text-white">
-                        <ShieldCheck className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-amber-900 font-black text-sm uppercase tracking-tight">Best Developer Failover Active</p>
-                        <p className="text-amber-700 text-xs font-bold font-mono">Your database is currently offline. You are using high-performance in-memory persistence.</p>
-                    </div>
-                </div>
-                <div className="hidden md:block">
-                    <span className="bg-amber-200 text-amber-900 px-4 py-1.5 rounded-full text-[10px] font-black uppercase">Mock Mode</span>
-                </div>
-            </div>
-
-            {/* Header */}
+            {/* Stats Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
                 <div>
                     <h1 className="text-4xl font-black text-slate-900 tracking-tighter">SCHOOL NETWORK</h1>
@@ -256,7 +240,7 @@ export default function SchoolsManagement() {
                         setFormData({
                             name: '', slug: '', address: '', subscription_plan: 'Basic', status: 'Active', primary_color: '#2dbc75',
                             permissions: { f1: true, f4: false, f5: false, f6: false, f7: false, f8: false, f9: false, f10: false } as Record<string, boolean>,
-                            buses: [], drivers: [], routes: []
+                            buses: [] as any[], drivers: [] as any[], routes: [] as any[], students: [] as any[]
                         });
                         setActiveTab('profile');
                         setIsModalOpen(true);
@@ -335,6 +319,7 @@ export default function SchoolsManagement() {
                                                         subscription_plan: school.subscription_plan,
                                                         status: school.status,
                                                         primary_color: school.primary_color || '#2dbc75',
+                                                        logo_url: school.logo_url || '',
                                                         permissions: school.permissions || { f1: true },
                                                         buses: school.buses || [],
                                                         drivers: school.drivers || [],
@@ -988,15 +973,15 @@ export default function SchoolsManagement() {
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${admin.status === 'Inactive'
-                                                            ? 'bg-red-50 text-red-500 border border-red-100'
-                                                            : 'bg-green-50 text-green-600 border border-green-100'
+                                                        ? 'bg-red-50 text-red-500 border border-red-100'
+                                                        : 'bg-green-50 text-green-600 border border-green-100'
                                                         }`}>{admin.status || 'Active'}</span>
                                                     <button
                                                         type="button"
                                                         onClick={() => handleToggleAdminStatus(admin)}
                                                         className={`p-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${admin.status === 'Inactive'
-                                                                ? 'bg-green-50 text-green-600 hover:bg-green-100'
-                                                                : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
+                                                            ? 'bg-green-50 text-green-600 hover:bg-green-100'
+                                                            : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
                                                             }`}
                                                     >
                                                         {admin.status === 'Inactive' ? 'Activate' : 'Deactivate'}

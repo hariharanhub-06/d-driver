@@ -1,3 +1,5 @@
+export { };
+const bcrypt = require('bcryptjs');
 const prisma = require('../prisma');
 
 const getAllUsers = async (req, res) => {
@@ -8,6 +10,19 @@ const getAllUsers = async (req, res) => {
         res.json(users);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching users', error: error.message });
+    }
+};
+
+const createUser = async (req, res) => {
+    try {
+        const { name, email, password, role, school_id, phone } = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await prisma.user.create({
+            data: { name, email, password: hashedPassword, role, school_id, phone }
+        });
+        res.status(201).json(user);
+    } catch (error) {
+        res.status(500).json({ message: 'Error creating user', error: error.message });
     }
 };
 
@@ -37,4 +52,4 @@ const updateUser = async (req, res) => {
     }
 };
 
-module.exports = { getAllUsers, getCurrentUser, updateUser };
+module.exports = { getAllUsers, createUser, getCurrentUser, updateUser };
