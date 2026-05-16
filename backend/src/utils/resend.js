@@ -1,7 +1,15 @@
 const { Resend } = require('resend');
 const prisma = require('../prisma');
 
-const client = new Resend(process.env.RESEND_API_KEY);
+// Lazy init — only fails when actually sending, not at server boot
+let client = null;
+const getClient = () => {
+  if (!client) {
+    if (!process.env.RESEND_API_KEY) return null;
+    client = new Resend(process.env.RESEND_API_KEY);
+  }
+  return client;
+};
 
 /**
  * Send a branded email and log it.
@@ -32,11 +40,17 @@ const sendEmail = async ({ to, subject, html, template, school_id, from }) => {
   }
 
   let status = 'sent';
-  try {
-    await client.emails.send({ from: fromAddress, to, subject, html });
-  } catch (err) {
+  const resendClient = getClient();
+  if (!resendClient) {
+    console.warn('Resend skipped: RESEND_API_KEY not set');
     status = 'failed';
-    console.error('Resend error:', err.message);
+  } else {
+    try {
+      await resendClient.emails.send({ from: fromAddress, to, subject, html });
+    } catch (err) {
+      status = 'failed';
+      console.error('Resend error:', err.message);
+    }
   }
 
   try {
