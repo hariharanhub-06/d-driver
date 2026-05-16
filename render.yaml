@@ -3,15 +3,32 @@ services:
     name: d-driver-backend
     env: node
     rootDir: backend
-    buildCommand: npm install && npx prisma generate && npm run build && npm run seed
+    buildCommand: npm install && npm run build && npm run seed
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
         value: postgresql://neondb_owner:npg_rEFeG2BPd5qU@ep-patient-glitter-anohkgwu-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require
       - key: JWT_SECRET
-        value: superschoolsecretpassword123
+        value: d8c0380a0b2fa9f0b570e4d1a47e2b9125d511d51ddab1c06fb806171fd14cc1
+      - key: JWT_REFRESH_SECRET
+        value: eff24b9fb6acceff85dc83048f8e429524ef73f94070344650edda401ee5ad83
+      - key: ENCRYPTION_KEY
+        value: 2222c8eda27e646a4e7144787dcc994d2887011ebb40947d21ca44993df3155f
       - key: PORT
         value: 10000
-      # IMPORTANT: Change this URL to your live Vercel domain once the backend is up!
+      - key: NODE_ENV
+        value: production
       - key: FRONTEND_URL
         value: https://d-driver.vercel.app
+      - key: SA_EMAIL
+        value: hariharanjeyaramamoorthy@gmail.com
+      - key: SA_PASSWORD
+        value: Prabu@te123
+      - key: IMAGEKIT_PUBLIC_KEY
+        value: public_z27Z1/hVaSHjsLuCBbPABzR/i4M=
+      - key: IMAGEKIT_PRIVATE_KEY
+        value: private_Xh2njUZHMlH5tZ/G/2txOuvPC5Y=
+      - key: IMAGEKIT_URL_ENDPOINT
+        value: https://ik.imagekit.io/zr66xdfcs
+      - key: RESEND_FROM_DEFAULT
+        value: noreply@ddriver.app

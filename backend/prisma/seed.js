@@ -16,18 +16,19 @@ async function main() {
 
   const devSa = await prisma.user.upsert({
     where: { email },
-    update: { is_dev_sa: true, is_active: true },
+    update: { is_dev_sa: true, is_active: true, is_first_login: false },
     create: {
       name: 'Dev Super Admin',
       email,
       password: hashed,
       role: 'super_admin',
       is_dev_sa: true,
-      is_first_login: true,
+      is_active: true,
+      is_first_login: false,
     },
   });
 
-  console.log(`✓ DEV SA: ${devSa.email} (is_dev_sa=true, is_first_login=true)`);
+  console.log(`✓ DEV SA: ${devSa.email} (is_dev_sa=true, role=super_admin, is_first_login=false)`);
 
   // ─── PLATFORM CONFIG SINGLETON ───────────────────────────────────────────────
   await prisma.platformConfig.upsert({
