@@ -7,6 +7,7 @@ import { SchoolBrandingProvider } from "@/context/SchoolBrandingContext";
 import dynamic from 'next/dynamic';
 
 const NotificationToast = dynamic(() => import('@/components/ui/NotificationToast'), { ssr: false });
+const KeepAlive = dynamic(() => import('@/components/KeepAlive'), { ssr: false });
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <SchoolBrandingProvider>
               <NotificationToast />
+              <KeepAlive />
               {children}
             </SchoolBrandingProvider>
           </AuthProvider>
