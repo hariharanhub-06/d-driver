@@ -1,80 +1,252 @@
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { Download, Filter, TrendingUp, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, FileSpreadsheet, TrendingUp, Activity, Loader2 } from 'lucide-react';
+import api from '@/lib/api';
 
-const stats = [
-    { name: 'Jan', trips: 400, attendance: 95 },
-    { name: 'Feb', trips: 350, attendance: 92 },
-    { name: 'Mar', trips: 500, attendance: 98 },
-    { name: 'Apr', trips: 480, attendance: 96 },
-];
+const downloadReport = async (url: string, filename: string) => {
+    const res = await api.get(url, { responseType: 'blob' });
+    const href = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(href);
+};
+
+function formatDate(date: Date) {
+    return date.toISOString().split('T')[0];
+}
 
 export default function ReportsPage() {
+    const today = formatDate(new Date());
+    const thirtyDaysAgo = formatDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+    const currentMonth = today.slice(0, 7); // YYYY-MM
+
+    // Attendance state
+    const [attFrom, setAttFrom] = useState(thirtyDaysAgo);
+    const [attTo, setAttTo] = useState(today);
+    const [attRoute, setAttRoute] = useState('');
+    const [attLoading, setAttLoading] = useState(false);
+    const [attError, setAttError] = useState('');
+
+    // Fee state
+    const [feeMonth, setFeeMonth] = useState(currentMonth);
+    const [feeLoading, setFeeLoading] = useState(false);
+    const [feeError, setFeeError] = useState('');
+
+    // KM Log state
+    const [kmFrom, setKmFrom] = useState(thirtyDaysAgo);
+    const [kmTo, setKmTo] = useState(today);
+    const [kmLoading, setKmLoading] = useState(false);
+    const [kmError, setKmError] = useState('');
+
+    // Routes for filter
+    const [routes, setRoutes] = useState<{ id: string; name: string }[]>([]);
+    useEffect(() => {
+        api.get('/routes').then(r => {
+            setRoutes(Array.isArray(r.data) ? r.data : []);
+        }).catch(() => {});
+    }, []);
+
+    const handleAttendance = async () => {
+        setAttLoading(true);
+        setAttError('');
+        try {
+            const params = new URLSearchParams({ format: 'xlsx', from: attFrom, to: attTo });
+            if (attRoute) params.set('route_id', attRoute);
+            await downloadReport(`/reports/attendance?${params.toString()}`, 'attendance.xlsx');
+        } catch {
+            setAttError('Failed to generate report. Please try again.');
+        } finally {
+            setAttLoading(false);
+        }
+    };
+
+    const handleFees = async () => {
+        setFeeLoading(true);
+        setFeeError('');
+        try {
+            await downloadReport(`/reports/fees?format=xlsx&month=${feeMonth}`, 'fees.xlsx');
+        } catch {
+            setFeeError('Failed to generate report. Please try again.');
+        } finally {
+            setFeeLoading(false);
+        }
+    };
+
+    const handleKmLog = async () => {
+        setKmLoading(true);
+        setKmError('');
+        try {
+            await downloadReport(`/reports/km-log?format=xlsx&from=${kmFrom}&to=${kmTo}`, 'km-log.xlsx');
+        } catch {
+            setKmError('Failed to generate report. Please try again.');
+        } finally {
+            setKmLoading(false);
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
-                <div>
-                    <h1 className="text-2xl font-black tracking-tight leading-none text-slate-900 dark:text-white">Institutional Analytics</h1>
-                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-2 flex items-center gap-2">
-                        <TrendingUp className="w-3.5 h-3.5 text-primary-500" /> System-wide performance and logistics data.
-                    </p>
-                </div>
-                <div className="flex gap-2 w-full sm:w-auto">
-                    <button className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all text-slate-600">
-                        <Filter className="w-3.5 h-3.5 mr-2" /> Filter
-                    </button>
-                    <button className="flex-1 sm:flex-none btn-primary text-[10px] font-black uppercase tracking-widest py-2 px-4 shadow-primary-100">
-                        <Download className="w-3.5 h-3.5 mr-2" /> Export PDF
-                    </button>
-                </div>
+            <div>
+                <h1 className="text-2xl font-black tracking-tight leading-none text-slate-900 dark:text-white">Reports</h1>
+                <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest mt-2 flex items-center gap-2">
+                    <TrendingUp className="w-3.5 h-3.5 text-primary-500" />
+                    Download attendance, fee, and KM reports as Excel files.
+                </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="card p-6 border-none shadow-xl">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-black text-sm uppercase tracking-widest text-slate-900 dark:text-white">Trip Completion Rate</h3>
-                        <span className="text-[10px] font-black text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md">+14% Growth</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* Attendance Report */}
+                <div className="card p-6 border-none shadow-xl flex flex-col gap-5">
+                    <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                            <Activity className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <div>
+                            <h3 className="font-black text-sm uppercase tracking-widest text-slate-900 dark:text-white">Attendance Report</h3>
+                            <p className="text-[11px] text-slate-400 mt-1 font-medium">Student bus attendance by date range and route.</p>
+                        </div>
                     </div>
-                    <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={stats}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis dataKey="name" fontSize={10} fontWeight="bold" axisLine={false} tickLine={false} />
-                                <YAxis fontSize={10} fontWeight="bold" axisLine={false} tickLine={false} />
-                                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                <Bar dataKey="trips" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+
+                    <div className="space-y-3">
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-1.5">From</label>
+                            <input
+                                type="date"
+                                value={attFrom}
+                                onChange={e => setAttFrom(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-primary-500 transition-all"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-1.5">To</label>
+                            <input
+                                type="date"
+                                value={attTo}
+                                onChange={e => setAttTo(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-primary-500 transition-all"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-1.5">Route (optional)</label>
+                            <select
+                                value={attRoute}
+                                onChange={e => setAttRoute(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-primary-500 transition-all"
+                            >
+                                <option value="">All Routes</option>
+                                {routes.map(r => (
+                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
+
+                    {attError && (
+                        <p className="text-red-500 text-xs font-bold bg-red-50 dark:bg-red-500/10 rounded-lg px-3 py-2.5 border border-red-100 dark:border-red-500/20">
+                            {attError}
+                        </p>
+                    )}
+
+                    <button
+                        onClick={handleAttendance}
+                        disabled={attLoading || !attFrom || !attTo}
+                        className="mt-auto flex items-center justify-center gap-2 w-full py-3 btn-primary text-[11px] font-black uppercase tracking-widest disabled:opacity-50 transition-all"
+                    >
+                        {attLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        Download Excel
+                    </button>
                 </div>
 
-                <div className="card p-6 border-none shadow-xl">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-black text-sm uppercase tracking-widest text-slate-900 dark:text-white">Avg. Attendance %</h3>
-                        <span className="text-[10px] font-black text-primary-500 bg-primary-50 px-2 py-0.5 rounded-md">Peak Reliability</span>
+                {/* Fee Report */}
+                <div className="card p-6 border-none shadow-xl flex flex-col gap-5">
+                    <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                            <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
+                        </div>
+                        <div>
+                            <h3 className="font-black text-sm uppercase tracking-widest text-slate-900 dark:text-white">Fee Report</h3>
+                            <p className="text-[11px] text-slate-400 mt-1 font-medium">Monthly fee collection and outstanding dues.</p>
+                        </div>
                     </div>
-                    <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={stats}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis dataKey="name" fontSize={10} fontWeight="bold" axisLine={false} tickLine={false} />
-                                <YAxis domain={[80, 100]} fontSize={10} fontWeight="bold" axisLine={false} tickLine={false} />
-                                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                <Line type="monotone" dataKey="attendance" stroke="#10b981" strokeWidth={4} dot={{ fill: '#10b981', r: 4 }} activeDot={{ r: 6, strokeWidth: 0 }} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            </div>
 
-            <div className="card p-6 border-none shadow-xl bg-slate-900 text-white">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h3 className="font-black text-sm uppercase tracking-widest mb-1">Weekly Summary</h3>
-                        <p className="text-[10px] text-slate-400 font-bold">Operational efficiency is at an all-time high of 94.2%.</p>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-1.5">Month</label>
+                            <input
+                                type="month"
+                                value={feeMonth}
+                                onChange={e => setFeeMonth(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-primary-500 transition-all"
+                            />
+                        </div>
                     </div>
-                    <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">View Archive</button>
+
+                    {feeError && (
+                        <p className="text-red-500 text-xs font-bold bg-red-50 dark:bg-red-500/10 rounded-lg px-3 py-2.5 border border-red-100 dark:border-red-500/20">
+                            {feeError}
+                        </p>
+                    )}
+
+                    <button
+                        onClick={handleFees}
+                        disabled={feeLoading || !feeMonth}
+                        className="mt-auto flex items-center justify-center gap-2 w-full py-3 btn-primary text-[11px] font-black uppercase tracking-widest disabled:opacity-50 transition-all"
+                    >
+                        {feeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        Download Excel
+                    </button>
+                </div>
+
+                {/* KM Log */}
+                <div className="card p-6 border-none shadow-xl flex flex-col gap-5">
+                    <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                            <TrendingUp className="w-5 h-5 text-amber-500" />
+                        </div>
+                        <div>
+                            <h3 className="font-black text-sm uppercase tracking-widest text-slate-900 dark:text-white">KM Log</h3>
+                            <p className="text-[11px] text-slate-400 mt-1 font-medium">Bus mileage and distance covered per trip.</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-1.5">From</label>
+                            <input
+                                type="date"
+                                value={kmFrom}
+                                onChange={e => setKmFrom(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-primary-500 transition-all"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-1.5">To</label>
+                            <input
+                                type="date"
+                                value={kmTo}
+                                onChange={e => setKmTo(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-primary-500 transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    {kmError && (
+                        <p className="text-red-500 text-xs font-bold bg-red-50 dark:bg-red-500/10 rounded-lg px-3 py-2.5 border border-red-100 dark:border-red-500/20">
+                            {kmError}
+                        </p>
+                    )}
+
+                    <button
+                        onClick={handleKmLog}
+                        disabled={kmLoading || !kmFrom || !kmTo}
+                        className="mt-auto flex items-center justify-center gap-2 w-full py-3 btn-primary text-[11px] font-black uppercase tracking-widest disabled:opacity-50 transition-all"
+                    >
+                        {kmLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        Download Excel
+                    </button>
                 </div>
             </div>
         </div>

@@ -1,33 +1,42 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Bus, Eye, EyeOff, Smartphone, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Bus, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 import api from '@/lib/api';
 
 export default function LoginPage() {
-    const [loginMode, setLoginMode] = useState<'password' | 'otp'>('password');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [phone, setPhone] = useState('');
-    const [otp, setOtp] = useState('');
-    const [isOtpSent, setIsOtpSent] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [currentSchool, setCurrentSchool] = useState<{ name: string; logo?: string; color?: string } | null>(null);
     const { login } = useAuth();
+    const router = useRouter();
 
-    // Demo Effect: Simulate fetching school branding if a school ID is present in URL
+    // Fetch school branding from cookie slug (set by middleware)
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const schoolName = params.get('school');
-        if (schoolName === 'greenwood') {
-            setCurrentSchool({
-                name: 'Greenwood International',
-                logo: 'https://img.icons8.com/color/96/school.png',
-                color: '#276EF1'
-            });
+        const slug = document.cookie
+            .split('; ')
+            .find(r => r.startsWith('school-slug='))
+            ?.split('=')[1];
+
+        if (slug) {
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/schools/public/${slug}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data?.name) {
+                        setCurrentSchool({
+                            name: data.name,
+                            logo: data.logo_url || undefined,
+                            color: data.primary_color || undefined,
+                        });
+                    }
+                })
+                .catch(() => {});
         }
     }, []);
 
@@ -36,38 +45,32 @@ export default function LoginPage() {
         setError('');
         setIsLoading(true);
 
-        if (loginMode === 'otp' && !isOtpSent) {
-            setTimeout(() => {
-                setIsOtpSent(true);
-                setIsLoading(false);
-            }, 1000);
-            return;
-        }
-
         try {
-            const endpoint = loginMode === 'password' ? '/auth/login' : '/auth/verify-otp';
-            const payload = loginMode === 'password' ? { email, password } : { phone, otp };
-            const response = await api.post(endpoint, payload);
+            const response = await api.post('/auth/login', { email, password });
 
-            // Pass isMockMode to the user object if returned by backend
-            const userData = {
-                ...response.data.user,
-                isMockMode: response.data.isMockMode
-            };
+            const { access_token, refresh_token, user } = response.data;
 
-            login(response.data.token, userData);
+            // Handle first login — redirect to change-password before dashboard
+            if (user?.is_first_login === true) {
+                localStorage.setItem('access_token', access_token);
+                if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
+                localStorage.setItem('user', JSON.stringify(user));
+                router.push('/change-password');
+                return;
+            }
+
+            login(access_token, user, refresh_token);
         } catch (err: any) {
             let errorMessage = 'Verification failed. Please check your credentials.';
 
             if (err.response?.status === 503) {
-                errorMessage = "Database Connection Timeout. Please check your Atlas IP Whitelist, or use the provided Default Credentials for 'Best Developer' Failover mode.";
+                errorMessage = 'Service temporarily unavailable. Please try again later.';
             } else if (err.response?.data?.message) {
                 errorMessage = err.response.data.message;
             }
 
             setError(errorMessage);
         } finally {
-
             setIsLoading(false);
         }
     };
@@ -98,23 +101,7 @@ export default function LoginPage() {
                         </p>
                     </div>
 
-                    <div className="p-8 pt-0">
-                        {/* Mode Toggle */}
-                        <div className="flex bg-white/5 p-1 rounded-xl mb-6 border border-white/5 relative z-10">
-                            <button
-                                onClick={() => { setLoginMode('password'); setError(''); setIsOtpSent(false); }}
-                                className={`flex-1 flex items-center justify-center py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${loginMode === 'password' ? 'bg-white text-black shadow-xl' : 'text-white/30 hover:text-white'}`}
-                            >
-                                Security Key
-                            </button>
-                            <button
-                                onClick={() => { setLoginMode('otp'); setError(''); setIsOtpSent(false); }}
-                                className={`flex-1 flex items-center justify-center py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${loginMode === 'otp' ? 'bg-white text-black shadow-xl' : 'text-white/30 hover:text-white'}`}
-                            >
-                                Mobile OTP
-                            </button>
-                        </div>
-
+                    <div className="p-8 pt-4">
                         {error && (
                             <div className="bg-red-500/10 text-red-400 border border-red-500/20 p-3 rounded-2xl text-[10px] font-bold mb-4 text-center animate-in flex items-center justify-center gap-2">
                                 <ShieldCheck className="w-3 h-3" /> {error}
@@ -122,76 +109,50 @@ export default function LoginPage() {
                         )}
 
                         <form onSubmit={handleLogin} className="space-y-4 relative z-10">
-                            {loginMode === 'password' ? (
-                                <>
-                                    <div className="space-y-2">
-                                        <label className="block text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">Email Terminal</label>
-                                        <input
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full px-5 py-3.5 rounded-[18px] border border-white/10 bg-white/5 text-white placeholder:text-white/20 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-lg font-bold"
-                                            placeholder="admin@school.com"
-                                            required
-                                        />
-                                    </div>
+                            <div className="space-y-2">
+                                <label className="block text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">
+                                    Email Terminal
+                                </label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full px-5 py-3.5 rounded-[18px] border border-white/10 bg-white/5 text-white placeholder:text-white/20 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-lg font-bold"
+                                    placeholder="admin@school.com"
+                                    required
+                                />
+                            </div>
 
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-center ml-1">
-                                            <label className="block text-[9px] font-black text-white/40 uppercase tracking-widest">Access Key</label>
-                                        </div>
-                                        <div className="relative">
-                                            <input
-                                                type={showPassword ? "text" : "password"}
-                                                value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
-                                                className="w-full px-5 py-3.5 rounded-[18px] border border-white/10 bg-white/5 text-white placeholder:text-white/20 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-lg font-bold"
-                                                placeholder="••••••••"
-                                                required
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
-                                            >
-                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    {!isOtpSent ? (
-                                        <div className="space-y-2 animate-slide-up">
-                                            <label className="block text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">Mobile Number</label>
-                                            <div className="relative">
-                                                <Smartphone className="absolute left-5 top-1/2 -translate-y-1/2 text-white/30 w-5 h-5" />
-                                                <input
-                                                    type="tel"
-                                                    value={phone}
-                                                    onChange={(e) => setPhone(e.target.value)}
-                                                    className="w-full pl-14 pr-5 py-3.5 rounded-[18px] border border-white/10 bg-white/5 text-white placeholder:text-white/20 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-lg font-bold"
-                                                    placeholder="+91 98765 43210"
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2 animate-slide-up">
-                                            <label className="block text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">Enter code</label>
-                                            <input
-                                                type="text"
-                                                value={otp}
-                                                onChange={(e) => setOtp(e.target.value)}
-                                                className="w-full px-5 py-4 rounded-[18px] border border-blue-500 bg-blue-500/5 text-white placeholder:text-white/20 focus:ring-4 focus:ring-blue-500/20 outline-none text-3xl font-black tracking-[0.5em] text-center"
-                                                placeholder="000000"
-                                                maxLength={6}
-                                                required
-                                            />
-                                        </div>
-                                    )}
-                                </>
-                            )}
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center ml-1">
+                                    <label className="block text-[9px] font-black text-white/40 uppercase tracking-widest">
+                                        Access Key
+                                    </label>
+                                    <Link
+                                        href="/forgot-password"
+                                        className="text-[9px] font-black text-blue-400/70 hover:text-blue-400 uppercase tracking-widest transition-colors"
+                                    >
+                                        Forgot password?
+                                    </Link>
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full px-5 py-3.5 rounded-[18px] border border-white/10 bg-white/5 text-white placeholder:text-white/20 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-lg font-bold"
+                                        placeholder="••••••••"
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
 
                             <button
                                 type="submit"
@@ -202,7 +163,7 @@ export default function LoginPage() {
                                     <div className="w-6 h-6 border-4 border-black/10 border-t-black rounded-full animate-spin"></div>
                                 ) : (
                                     <span className="flex items-center">
-                                        {loginMode === 'otp' && !isOtpSent ? "Request OTP" : "Continue"}
+                                        Continue
                                         <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                     </span>
                                 )}
@@ -211,7 +172,7 @@ export default function LoginPage() {
 
                         <div className="mt-8 text-center border-t border-white/5 pt-6 relative z-10">
                             <p className="text-white/20 text-[9px] font-black uppercase tracking-[0.4em]">
-                                &copy; 2024 BUS365 CORE
+                                &copy; 2025 D-Driver Portal
                             </p>
                         </div>
                     </div>

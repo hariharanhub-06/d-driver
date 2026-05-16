@@ -1,83 +1,83 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log('Seeding D-Driver test data...');
-    try {
-        const hashedPassword = await bcrypt.hash('admin123', 10);
-        const driverPassword = await bcrypt.hash('driver123', 10);
-        const parentPassword = await bcrypt.hash('parent123', 10);
+  const email = process.env.SA_EMAIL;
+  const password = process.env.SA_PASSWORD;
 
-        // 1. Create School
-        const school = await prisma.school.create({
-            data: {
-                name: 'Greenwood International School',
-                address: '123 Education Lane, Cityville',
-            }
-        });
-        console.log('✔ Created school:', school.name);
+  if (!email || !password) {
+    throw new Error('SA_EMAIL and SA_PASSWORD must be set in .env before running seed');
+  }
 
-        // 2. Create Super Admin
-        await prisma.user.create({
-            data: {
-                name: 'System Admin',
-                email: 'superadmin@d-driver.com',
-                password: hashedPassword,
-                role: 'super_admin'
-            }
-        });
-        console.log('✔ Created Super Admin: superadmin@d-driver.com / admin123');
+  // ─── DEV SA ACCOUNT ──────────────────────────────────────────────────────────
+  const hashed = await bcrypt.hash(password, 12);
 
-        // 3. Create School Admin
-        await prisma.user.create({
-            data: {
-                name: 'Green Admin',
-                email: 'admin@greenwood.com',
-                password: hashedPassword,
-                role: 'admin',
-                school_id: school.id
-            }
-        });
-        console.log('✔ Created School Admin: admin@greenwood.com / admin123');
+  const devSa = await prisma.user.upsert({
+    where: { email },
+    update: { is_dev_sa: true, is_active: true },
+    create: {
+      name: 'Dev Super Admin',
+      email,
+      password: hashed,
+      role: 'super_admin',
+      is_dev_sa: true,
+      is_first_login: true,
+    },
+  });
 
-        // 4. Create Driver Account
-        const driverUser = await prisma.user.create({
-            data: {
-                name: 'Sam Winston',
-                email: 'driver@greenwood.com',
-                password: driverPassword,
-                role: 'driver',
-                school_id: school.id
-            }
-        });
-        await prisma.driver.create({
-            data: {
-                user_id: driverUser.id,
-                school_id: school.id,
-                license_no: 'DL-2024-5588'
-            }
-        });
-        console.log('✔ Created Driver: driver@greenwood.com / driver123');
+  console.log(`✓ DEV SA: ${devSa.email} (is_dev_sa=true, is_first_login=true)`);
 
-        // 5. Create Parent Account
-        await prisma.user.create({
-            data: {
-                name: 'Mary Jane',
-                email: 'parent@greenwood.com',
-                password: parentPassword,
-                role: 'parent',
-                school_id: school.id
-            }
-        });
-        console.log('✔ Created Parent: parent@greenwood.com / parent123');
+  // ─── PLATFORM CONFIG SINGLETON ───────────────────────────────────────────────
+  await prisma.platformConfig.upsert({
+    where: { id: 'singleton' },
+    update: {},
+    create: {
+      id: 'singleton',
+      razorpay_configured: false,
+      default_from_email: process.env.RESEND_FROM_DEFAULT || 'noreply@ddriver.app',
+    },
+  });
 
-        console.log('\n✨ Database seeding completed successfully!');
-    } catch (err) {
-        console.error('❌ Error during seeding:', err.message);
-    } finally {
-        await prisma.$disconnect();
-    }
+  console.log('✓ PlatformConfig singleton ready');
+
+  // ─── BILLING CONFIG SINGLETON ────────────────────────────────────────────────
+  await prisma.billingConfig.upsert({
+    where: { id: 'singleton' },
+    update: {},
+    create: {
+      id: 'singleton',
+      overdue_grace_days: 7,
+      overdue_rate_type: 'percentage',
+      overdue_rate: 2,
+      billing_cycle_day: 1,
+    },
+  });
+
+  console.log('✓ BillingConfig singleton (7-day grace, 2% penalty, billing on 1st)');
+
+  // ─── DEFAULT PLATFORM SERVICE CONFIGS ────────────────────────────────────────
+  const services = [
+    { service_name: 'resend',   display_name: 'Resend',          free_tier_limit: 3000, free_tier_unit: 'emails', current_plan: 'free' },
+    { service_name: 'imagekit', display_name: 'ImageKit',        free_tier_limit: 20,   free_tier_unit: 'GB',     current_plan: 'free' },
+    { service_name: 'neon',     display_name: 'Neon PostgreSQL', free_tier_limit: 0.5,  free_tier_unit: 'GB',     current_plan: 'free' },
+    { service_name: 'render',   display_name: 'Render',          current_plan: 'free' },
+    { service_name: 'razorpay', display_name: 'Razorpay',        current_plan: 'paid',  paid_cost_per_unit: 0.02, notes: '2% per transaction' },
+  ];
+
+  for (const svc of services) {
+    await prisma.platformServiceConfig.upsert({
+      where: { service_name: svc.service_name },
+      update: {},
+      create: svc,
+    });
+  }
+
+  console.log('✓ Platform service configs seeded (Resend, ImageKit, Neon, Render, Razorpay)');
+  console.log('\nSeed complete. Login with DEV SA credentials and change password on first login.');
 }
 
-main();
+main()
+  .catch((e) => { console.error(e); process.exit(1); })
+  .finally(() => prisma.$disconnect());

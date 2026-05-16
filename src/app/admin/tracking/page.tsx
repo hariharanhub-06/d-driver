@@ -1,88 +1,211 @@
 'use client';
 
-import { Map as MapIcon, Navigation, Bus, Users, Shield, Target, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { Bus, Navigation, Clock, MapPin } from 'lucide-react';
+import api from '@/lib/api';
+
+const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
+
+interface Trip {
+    bus_id: string;
+    route_id: string;
+    driver_id: string;
+    route?: { name: string };
+    bus?: { bus_number: string };
+    driver?: { user?: { name: string } };
+}
+
+interface BusLocation {
+    bus_id: string;
+    latitude: number;
+    longitude: number;
+    speed?: number;
+    timestamp: string;
+}
+
+interface ActiveBus {
+    bus_id: string;
+    bus_number: string;
+    driver_name: string;
+    route_name: string;
+    speed: number;
+    latitude: number;
+    longitude: number;
+    timestamp: string;
+}
+
+function timeAgo(ts: string): string {
+    const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return `${Math.floor(diff / 3600)}h ago`;
+}
 
 export default function TrackingPage() {
+    const [activeBuses, setActiveBuses] = useState<ActiveBus[]>([]);
+    const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const tripsRef = useRef<Trip[]>([]);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const fetchTrips = useCallback(async () => {
+        try {
+            const { data } = await api.get('/trips/active');
+            tripsRef.current = data || [];
+        } catch {
+            tripsRef.current = [];
+        }
+    }, []);
+
+    const fetchLocations = useCallback(async () => {
+        try {
+            const { data } = await api.get('/location/active');
+            const locations: BusLocation[] = data || [];
+            const merged: ActiveBus[] = locations
+                .map((loc) => {
+                    const trip = tripsRef.current.find(t => t.bus_id === loc.bus_id);
+                    return {
+                        bus_id: loc.bus_id,
+                        bus_number: trip?.bus?.bus_number || loc.bus_id,
+                        driver_name: trip?.driver?.user?.name || 'Unknown Driver',
+                        route_name: trip?.route?.name || 'Unknown Route',
+                        speed: loc.speed ?? 0,
+                        latitude: loc.latitude,
+                        longitude: loc.longitude,
+                        timestamp: loc.timestamp,
+                    };
+                });
+            setActiveBuses(merged);
+            setError('');
+        } catch {
+            setError('Unable to fetch live positions. Retrying...');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        const init = async () => {
+            await fetchTrips();
+            await fetchLocations();
+        };
+        init();
+
+        intervalRef.current = setInterval(async () => {
+            await fetchTrips();
+            await fetchLocations();
+        }, 5000);
+
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [fetchTrips, fetchLocations]);
+
+    const mapCenter: [number, number] | undefined =
+        activeBuses.length > 0
+            ? [activeBuses[0].latitude, activeBuses[0].longitude]
+            : undefined;
+
+    const mapBuses = activeBuses.map(b => ({
+        bus_id: b.bus_id,
+        bus_number: b.bus_number,
+        latitude: b.latitude,
+        longitude: b.longitude,
+        timestamp: b.timestamp,
+    }));
+
     return (
-        <div className="space-y-6 flex flex-col h-[calc(100vh-8rem)] animate-in">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
+        <div className="animate-in">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                 <div>
-                    <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none uppercase">LIVESTREAM TELEMETRY</h1>
-                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-2 flex items-center gap-2">
-                        <Target className="w-3.5 h-3.5 text-primary-500 animate-pulse" /> Precision GPS monitoring and active fleet safety.
+                    <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Live Tracking</h1>
+                    <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                        Real-time GPS positions of all active buses
                     </p>
                 </div>
-                <div className="flex gap-2">
-                    <span className="flex items-center px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-100 shadow-sm">
-                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2 animate-pulse" /> System Online
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">
+                        {activeBuses.length} Active
                     </span>
                 </div>
             </div>
 
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-0">
-                {/* Active Fleet Sidebar */}
-                <div className="card lg:col-span-1 p-0 overflow-hidden flex flex-col border-none shadow-xl">
-                    <div className="p-4 border-b border-border bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Active Fleet (4)</h3>
-                        <Loader2 className="w-3 h-3 text-primary-500 animate-spin" />
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 bg-white dark:bg-[#0a0a0a]">
-                        {[12, 18, 5, 22].map(num => (
-                            <div key={num} className="p-3.5 rounded-2xl border border-slate-100 hover:border-primary-300 cursor-pointer transition-all bg-white dark:bg-slate-900 shadow-sm group">
-                                <div className="flex justify-between items-start">
-                                    <span className="font-black text-xs text-slate-900 dark:text-white flex items-center group-hover:text-primary-600">
-                                        <Bus size={14} className="mr-2 text-primary-500" /> Bus {num}
+            {error && (
+                <div className="bg-red-50 text-red-600 border border-red-200 rounded-xl p-3 text-sm mb-4">
+                    {error}
+                </div>
+            )}
+
+            <div className="flex h-[calc(100vh-148px)] gap-4">
+                {/* Bus List */}
+                <div className="w-80 shrink-0 overflow-y-auto space-y-3 pr-1">
+                    {loading ? (
+                        <div className="flex items-center justify-center h-40">
+                            <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                    ) : activeBuses.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-60 text-center">
+                            <Bus className="w-12 h-12 text-gray-300 mb-3" />
+                            <p className="text-sm font-semibold text-gray-500">No Active Buses</p>
+                            <p className="text-xs text-gray-400 mt-1">Positions will appear when trips begin</p>
+                        </div>
+                    ) : (
+                        activeBuses.map(bus => (
+                            <button
+                                key={bus.bus_id}
+                                onClick={() => setSelectedBusId(bus.bus_id === selectedBusId ? null : bus.bus_id)}
+                                className={`w-full text-left bg-white dark:bg-slate-900 rounded-2xl border p-4 shadow-sm hover:shadow-md transition-all ${
+                                    selectedBusId === bus.bus_id
+                                        ? 'border-blue-400 ring-2 ring-blue-100 dark:ring-blue-900'
+                                        : 'border-gray-100 dark:border-slate-800'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                                            <Bus className="w-4 h-4 text-blue-600" />
+                                        </div>
+                                        <span className="font-black text-sm text-gray-900 dark:text-white">
+                                            {bus.bus_number}
+                                        </span>
+                                    </div>
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">
+                                        Live
                                     </span>
-                                    <span className="text-[8px] uppercase font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded tracking-widest">Live</span>
                                 </div>
-                                <p className="text-[10px] text-slate-400 font-bold mt-1.5 flex items-center">
-                                    <Navigation className="w-2.5 h-2.5 mr-1" /> Near Tech Park, Main Rd
-                                </p>
-                                <div className="mt-4 pt-3 border-t border-slate-50 dark:border-white/5 flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                    <span className="flex items-center"><Users size={10} className="mr-1" /> 24 Pupils</span>
-                                    <span className="text-primary-500">ETA: 12m</span>
+
+                                <div className="space-y-1.5 pl-1">
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                        <Navigation className="w-3 h-3 text-blue-400" />
+                                        <span className="truncate">{bus.route_name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                        <MapPin className="w-3 h-3 text-purple-400" />
+                                        <span>{bus.driver_name}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-50 dark:border-slate-800">
+                                        <span className="font-bold text-blue-600">{bus.speed} km/h</span>
+                                        <span className="flex items-center gap-1">
+                                            <Clock className="w-2.5 h-2.5" />
+                                            {timeAgo(bus.timestamp)}
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            </button>
+                        ))
+                    )}
                 </div>
 
-                {/* Map Interface */}
-                <div className="card lg:col-span-3 p-0 overflow-hidden bg-slate-50 dark:bg-slate-800/20 relative shadow-inner border-none group">
-                    {/* Simulated Map Background */}
-                    <div className="absolute inset-0 bg-[url('https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/0,0,1/1x1?access_token=mock')] bg-center bg-cover opacity-10"></div>
-
-                    {/* Map Logic Overlay */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
-                        <div className="relative w-24 h-24 mb-6">
-                            <div className="absolute inset-0 bg-primary-500 opacity-20 rounded-full animate-ping"></div>
-                            <div className="absolute inset-[-20%] bg-primary-500 opacity-10 rounded-full animate-pulse"></div>
-                            <div className="relative bg-primary-600 w-24 h-24 rounded-[32px] flex items-center justify-center text-white shadow-2xl shadow-primary-500/40 border border-primary-500/50">
-                                <MapIcon className="w-10 h-10" />
-                            </div>
-                        </div>
-                        <h2 className="font-black text-xl text-slate-900 dark:text-white tracking-tight uppercase">Map Intelligence Engine</h2>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 max-w-sm text-center px-10 mt-3 leading-relaxed">
-                            Streaming real-time telemetry from all connected driver devices. Select a vehicle to engage dedicated surveillance.
-                        </p>
-                    </div>
-
-                    {/* HUD Controls */}
-                    <div className="absolute top-6 left-6 p-4 bg-white/80 dark:bg-black/40 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
-                        <div className="flex items-center gap-3">
-                            <Shield className="w-4 h-4 text-emerald-500" />
-                            <div>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white leading-none">Security Active</p>
-                                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-tight mt-1">End-to-End Encryption Engaged</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Map Controls */}
-                    <div className="absolute bottom-6 right-6 flex flex-col gap-2.5 z-10">
-                        <button className="w-10 h-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-200 dark:border-white/10 flex items-center justify-center font-black text-lg text-slate-800 dark:text-white hover:bg-white transition-all">+</button>
-                        <button className="w-10 h-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl shadow-2xl border border-slate-200 dark:border-white/10 flex items-center justify-center font-black text-lg text-slate-800 dark:text-white hover:bg-white transition-all">-</button>
-                    </div>
+                {/* Map */}
+                <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 overflow-hidden shadow-sm">
+                    <MapComponent
+                        buses={mapBuses}
+                        center={mapCenter}
+                        selectedBusId={selectedBusId}
+                    />
                 </div>
             </div>
         </div>

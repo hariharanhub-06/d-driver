@@ -1,0 +1,83 @@
+const prisma = require('../prisma');
+
+// POST /api/v1/bus-switch
+const requestSwitch = async (req, res) => {
+  const { original_bus_id, new_bus_id, reason, notes, km_at_switch } = req.body;
+  const driverId = req.user.id;
+  const schoolId = req.user.school_id;
+  const io = req.app.get('io');
+
+  const driver = await prisma.driver.findUnique({ where: { user_id: driverId } });
+  if (!driver) return res.status(404).json({ error: 'Driver profile not found' });
+
+  const activeShift = await prisma.driverShift.findFirst({
+    where: { driver_id: driver.id, status: 'active', school_id: schoolId },
+  });
+  if (!activeShift) return res.status(400).json({ error: 'No active shift — start a shift first' });
+
+  const [switchLog] = await prisma.$transaction([
+    prisma.busSwitchLog.create({
+      data: { shift_id: activeShift.id, driver_id: driver.id, original_bus_id, new_bus_id, reason, notes, km_at_switch, school_id: schoolId },
+    }),
+    prisma.shiftKmEntry.create({
+      data: { shift_id: activeShift.id, bus_id: original_bus_id, km_reading: km_at_switch, entry_type: 'bus_switch', note: `Switched to new bus — reason: ${reason}` },
+    }),
+  ]);
+
+  // Notify all admins in this school
+  io?.to(`admin-${schoolId}`).emit('bus-switch-requested', {
+    driver_name: driver.user?.name,
+    original_bus_id,
+    new_bus_id,
+    reason,
+    switch_log_id: switchLog.id,
+  });
+
+  res.status(201).json({ switch_log: switchLog });
+};
+
+// PUT /api/v1/bus-switch/:id/assign
+const assignNewBus = async (req, res) => {
+  const { new_bus_id } = req.body;
+  const io = req.app.get('io');
+
+  const switchLog = await prisma.busSwitchLog.findUnique({
+    where: { id: req.params.id },
+    include: { driver: { include: { user: true } } },
+  });
+  if (!switchLog) return res.status(404).json({ error: 'Switch log not found' });
+
+  // Update the driver's permanently assigned bus
+  await prisma.driver.update({
+    where: { id: switchLog.driver_id },
+    data: { assigned_bus_id: new_bus_id },
+  });
+
+  const newBus = await prisma.bus.findUnique({ where: { id: new_bus_id } });
+
+  // Notify the driver
+  io?.to(`driver-${switchLog.driver.user_id}`).emit('bus-assigned', {
+    new_bus_id,
+    bus_number: newBus?.bus_number,
+    message: `You have been assigned Bus #${newBus?.bus_number}`,
+  });
+
+  res.json({ message: 'New bus assigned to driver', bus: newBus });
+};
+
+// GET /api/v1/bus-switch
+const listSwitchLogs = async (req, res) => {
+  const logs = await prisma.busSwitchLog.findMany({
+    where: { school_id: req.schoolId },
+    orderBy: { switched_at: 'desc' },
+    take: 100,
+    include: {
+      driver: { include: { user: { select: { name: true } } } },
+      originalBus: { select: { bus_number: true } },
+      newBus: { select: { bus_number: true } },
+    },
+  });
+  res.json({ logs });
+};
+
+module.exports = { requestSwitch, assignNewBus, listSwitchLogs };

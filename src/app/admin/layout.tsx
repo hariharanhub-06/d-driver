@@ -4,6 +4,8 @@ import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { TourProvider } from '@/components/tour/TourProvider';
+import AdminTour from '@/components/tour/AdminTour';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
@@ -23,5 +25,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         );
     }
 
-    return <MainLayout>{children}</MainLayout>;
+    return (
+        <TourProvider>
+            <AdminTour />
+            <MainLayout>{children}</MainLayout>
+        </TourProvider>
+    );
 }

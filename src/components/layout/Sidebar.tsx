@@ -32,6 +32,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose:
         icon: any;
         label: string;
         href: string;
+        tourId?: string;
         children?: { label: string, href: string }[];
     }
 
@@ -62,16 +63,16 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose:
         } else {
             // School Admin
             return [
-                { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard' },
-                { icon: Users, label: 'Students & Parents', href: '/admin/students' },
-                { icon: Truck, label: 'Drivers', href: '/admin/drivers' },
-                { icon: Map, label: 'Routes', href: '/admin/routes' },
-                { icon: Bus, label: 'Buses', href: '/admin/buses' },
-                { icon: MapPin, label: 'Stops', href: '/admin/stops' },
+                { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard', tourId: 'dashboard' },
+                { icon: Users, label: 'Students & Parents', href: '/admin/students', tourId: 'students' },
+                { icon: Truck, label: 'Drivers', href: '/admin/drivers', tourId: 'drivers' },
+                { icon: Map, label: 'Routes', href: '/admin/routes', tourId: 'routes' },
+                { icon: Bus, label: 'Buses', href: '/admin/buses', tourId: 'buses' },
+                { icon: MapPin, label: 'Stops', href: '/admin/stops', tourId: 'stops' },
                 { icon: CheckSquare, label: 'Attendance', href: '/admin/attendance' },
-                { icon: CreditCard, label: 'Fees', href: '/admin/fees' },
+                { icon: CreditCard, label: 'Fees', href: '/admin/fees', tourId: 'fees' },
                 { icon: Bell, label: 'Notifications', href: '/admin/notifications' },
-                { icon: Settings, label: 'Settings', href: '/admin/settings' },
+                { icon: Settings, label: 'Settings', href: '/admin/settings', tourId: 'settings' },
             ];
         }
     };
@@ -127,6 +128,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose:
                                     <Link
                                         href={item.href}
                                         onClick={() => onClose()}
+                                        data-tour={item.tourId}
                                         className={cn(
                                             "nav-item",
                                             isActive && "nav-item-active"

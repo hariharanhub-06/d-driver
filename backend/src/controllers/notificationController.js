@@ -2,28 +2,72 @@ const prisma = require('../prisma');
 
 const getNotifications = async (req, res) => {
     try {
-        const { schoolId } = req.query;
+        const userId = req.user.id;
+        const schoolId = req.user.school_id;
+
         const notifications = await prisma.notification.findMany({
-            where: schoolId ? { school_id: schoolId } : {},
-            orderBy: { created_at: 'desc' }
+            where: {
+                OR: [
+                    { user_id: userId },
+                    ...(schoolId ? [{ user_id: null, school_id: schoolId }] : []),
+                ],
+            },
+            orderBy: { created_at: 'desc' },
+            take: 50,
         });
+
         res.json(notifications);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching notifications', error: error.message });
+        console.error('getNotifications error:', error);
+        res.status(500).json({ error: 'Error fetching notifications' });
     }
 };
 
 const markRead = async (req, res) => {
     try {
         const { id } = req.params;
+
         const updated = await prisma.notification.update({
             where: { id },
-            data: { type: 'read' }
+            data: { is_read: true },
         });
+
         res.json(updated);
     } catch (error) {
-        res.status(500).json({ message: 'Error marking notification', error: error.message });
+        console.error('markRead error:', error);
+        res.status(500).json({ error: 'Error marking notification as read' });
     }
 };
 
-module.exports = { getNotifications, markRead };
+const markAllRead = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const result = await prisma.notification.updateMany({
+            where: { user_id: userId, is_read: false },
+            data: { is_read: true },
+        });
+
+        res.json({ updated: result.count });
+    } catch (error) {
+        console.error('markAllRead error:', error);
+        res.status(500).json({ error: 'Error marking all notifications as read' });
+    }
+};
+
+const getUnreadCount = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const count = await prisma.notification.count({
+            where: { user_id: userId, is_read: false },
+        });
+
+        res.json({ count });
+    } catch (error) {
+        console.error('getUnreadCount error:', error);
+        res.status(500).json({ error: 'Error fetching unread count' });
+    }
+};
+
+module.exports = { getNotifications, markRead, markAllRead, getUnreadCount };

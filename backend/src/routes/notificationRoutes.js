@@ -1,13 +1,13 @@
 const { Router } = require('express');
-const {
-    getNotifications,
-    markRead
-} = require('../controllers/notificationController');
-const { authenticateToken } = require('../middleware/authMiddleware');
+const { getNotifications, markRead, markAllRead, getUnreadCount } = require('../controllers/notificationController');
+const { authenticateToken, requirePasswordChanged } = require('../middleware/authMiddleware');
 
 const router = Router();
+router.use(authenticateToken, requirePasswordChanged);
 
-router.get('/', authenticateToken, getNotifications);
-router.put('/:id/read', authenticateToken, markRead);
+router.get('/', getNotifications);
+router.get('/unread-count', getUnreadCount);
+router.put('/:id/read', markRead);
+router.post('/mark-all-read', markAllRead);
 
 module.exports = router;

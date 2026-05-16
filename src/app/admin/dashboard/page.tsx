@@ -1,42 +1,48 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Bus, Map as MapIcon, IndianRupee, GraduationCap, UserCheck, TrendingUp, AlertCircle } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Bus, Map as MapIcon, IndianRupee, GraduationCap, UserCheck, AlertCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '@/lib/api';
 import Link from 'next/link';
+import OnboardingChecklist from '@/components/admin/OnboardingChecklist';
 
 const EMPTY_STATS = { students: 0, buses: 0, drivers: 0, routes: 0, revenue: 0, pending_fees: 0 };
 
 export default function Dashboard() {
     const [stats, setStats] = useState(EMPTY_STATS);
     const [loading, setLoading] = useState(true);
-    const [feeData, setFeeData] = useState([
+    const [schoolData, setSchoolData] = useState<any>(null);
+    const feeData = [
         { month: 'Nov', collected: 38000, pending: 9000 },
         { month: 'Dec', collected: 45000, pending: 7500 },
         { month: 'Jan', collected: 52000, pending: 12000 },
         { month: 'Feb', collected: 48000, pending: 8000 },
         { month: 'Mar', collected: 61000, pending: 4200 },
         { month: 'Apr', collected: 38000, pending: 18000 },
-    ]);
+    ];
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const [studentsRes, busesRes, driversRes, routesRes] = await Promise.all([
+                const [studentsRes, busesRes, driversRes, routesRes, schoolRes] = await Promise.allSettled([
                     api.get('/students'),
                     api.get('/buses'),
                     api.get('/drivers'),
                     api.get('/routes'),
+                    api.get('/schools/my'),
                 ]);
                 setStats({
-                    students: studentsRes.data?.length || 0,
-                    buses: busesRes.data?.length || 0,
-                    drivers: driversRes.data?.length || 0,
-                    routes: routesRes.data?.length || 0,
+                    students: studentsRes.status === 'fulfilled' ? (studentsRes.value.data?.length || 0) : 0,
+                    buses: busesRes.status === 'fulfilled' ? (busesRes.value.data?.length || 0) : 0,
+                    drivers: driversRes.status === 'fulfilled' ? (driversRes.value.data?.length || 0) : 0,
+                    routes: routesRes.status === 'fulfilled' ? (routesRes.value.data?.length || 0) : 0,
                     revenue: 0,
                     pending_fees: 0,
                 });
+                if (schoolRes.status === 'fulfilled') {
+                    setSchoolData(schoolRes.value.data);
+                }
             } catch {
                 setStats(EMPTY_STATS);
             } finally {
@@ -60,7 +66,7 @@ export default function Dashboard() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Dashboard</h1>
+                    <h1 data-tour="dashboard" className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Dashboard</h1>
                     <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
                         {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
@@ -70,6 +76,11 @@ export default function Dashboard() {
                     <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Live Data</span>
                 </div>
             </div>
+
+            {/* Onboarding checklist — shown until dismissed or all steps complete */}
+            {schoolData && !schoolData.onboarding_dismissed && (
+                <OnboardingChecklist schoolData={schoolData} />
+            )}
 
             {/* Stat Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

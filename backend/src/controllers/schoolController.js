@@ -1,114 +1,236 @@
 const prisma = require('../prisma');
+const { encrypt } = require('../utils/encryption');
+const { logAudit } = require('../utils/auditLog');
+const { sendWelcomeAdmin } = require('../utils/resend');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
+// GET /schools/public/:slug — no auth, for white-label branding
+const getPublicSchool = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const school = await prisma.school.findUnique({
+      where: { slug },
+      select: { name: true, logo_url: true, primary_color: true, slug: true, status: true },
+    });
+    if (!school) return res.status(404).json({ error: 'School not found' });
+    res.json(school);
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching school' });
+  }
+};
+
+// GET /schools — SA gets all schools
 const getAllSchools = async (req, res) => {
-    try {
-        const schools = await prisma.school.findMany();
-        res.json(schools);
-    } catch (error) {
-        console.error('DATABASE ERROR (getAllSchools):', error);
-        res.status(500).json({ message: 'Error fetching schools', error: error.message, stack: error.stack });
-    }
+  try {
+    const schools = await prisma.school.findMany({
+      select: {
+        id: true, name: true, slug: true, status: true, logo_url: true,
+        primary_color: true, address: true, phone: true, email_contact: true,
+        permissions: true, plan_id: true, created_at: true, razorpay_configured: true,
+        _count: { select: { buses: true, students: true, drivers: true } },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+    res.json(schools);
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching schools' });
+  }
 };
 
-const getSchoolBySlug = async (req, res) => {
-    try {
-        const { slug } = req.params;
-        const school = await prisma.school.findUnique({
-            where: { slug },
-            include: {
-                buses: true,
-                drivers: true,
-                routes: true,
-                students: true
-            }
-        });
-        if (!school) return res.status(404).json({ message: 'School not found' });
-        res.json(school);
-    } catch (error) {
-        console.error('DATABASE ERROR (getSchoolBySlug):', error);
-        res.status(500).json({ message: 'Error fetching school', error: error.message, stack: error.stack });
-    }
+// GET /schools/:id — SA drill-in view
+const getSchoolById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    logAudit({
+      actor_id: req.user.id, actor_role: req.user.role,
+      action: 'viewed_school_data', target_type: 'school',
+      target_id: id, school_id: id, ip_address: req.ip,
+    });
+    const school = await prisma.school.findUnique({
+      where: { id },
+      select: {
+        id: true, name: true, slug: true, status: true, logo_url: true,
+        primary_color: true, address: true, phone: true, email_contact: true,
+        permissions: true, plan_id: true, created_at: true, notification_email: true,
+        razorpay_configured: true, onboarding_dismissed: true, tour_completed: true,
+        suspended_at: true, suspension_reason: true,
+        _count: { select: { buses: true, students: true, drivers: true, routes: true } },
+      },
+    });
+    if (!school) return res.status(404).json({ error: 'School not found' });
+    res.json(school);
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching school' });
+  }
 };
 
+// POST /schools — SA creates school + first admin auto-created
 const registerSchool = async (req, res) => {
-    try {
-        const {
-            name, slug, address, phone, email_contact, subscription_plan,
-            logo_url, primary_color, status, permissions,
-            buses, drivers, routes, students
-        } = req.body;
+  try {
+    const {
+      name, slug, address, phone, email_contact, logo_url, primary_color,
+      plan_id, admin_name, admin_email, admin_phone,
+    } = req.body;
 
-        const newSchool = await prisma.school.create({
-            data: {
-                name, slug, address, phone, email_contact, subscription_plan,
-                logo_url, primary_color, status: status || 'Active',
-                permissions: permissions || {},
-                // Simple nested creation if provided
-                buses: buses && buses.length > 0 ? { create: buses } : undefined,
-                routes: routes && routes.length > 0 ? { create: routes } : undefined
-            }
-        });
-        res.status(201).json(newSchool);
-    } catch (error) {
-        console.error('DATABASE ERROR (registerSchool):', error);
-        res.status(500).json({ message: 'Error creating school', error: error.message });
-    }
+    const existing = await prisma.school.findUnique({ where: { slug } });
+    if (existing) return res.status(409).json({ error: 'Slug already in use' });
+
+    const tempPassword = crypto.randomBytes(8).toString('base64url');
+    const hash = await bcrypt.hash(tempPassword, 12);
+
+    const school = await prisma.school.create({
+      data: {
+        name, slug, address, phone, email_contact, logo_url, primary_color,
+        plan_id: plan_id || null,
+        status: 'active',
+        permissions: {
+          gps_tracking: true, fee_management: true, fuel_management: true,
+          shift_tracking: true, attendance: true, parent_portal: true,
+          route_management: true, student_photos: true,
+          stop_change_requests: true, absence_reporting: true,
+          razorpay_payments: false,
+        },
+        users: {
+          create: {
+            name: admin_name, email: admin_email, phone: admin_phone,
+            password: hash, role: 'admin', is_first_login: true, is_active: true,
+          },
+        },
+      },
+      include: { users: { select: { id: true, email: true, role: true } } },
+    });
+
+    await sendWelcomeAdmin({
+      adminEmail: admin_email, adminName: admin_name,
+      schoolName: name, slug, tempPassword,
+    });
+
+    res.status(201).json(school);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error creating school' });
+  }
 };
 
+// PUT /schools/:id — SA updates school details
 const updateSchool = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { buses, routes } = req.body;
-
-        // Define allowed scalar fields for update
-        const allowedFields = [
-            'name', 'slug', 'address', 'logo_url', 'primary_color',
-            'phone', 'email_contact', 'subscription_plan', 'status', 'permissions'
-        ];
-
-        const updateData = {};
-        allowedFields.forEach(field => {
-            if (req.body[field] !== undefined) {
-                updateData[field] = req.body[field];
-            }
-        });
-
-        const updatedSchool = await prisma.school.update({
-            where: { id },
-            data: {
-                ...updateData,
-                buses: buses && buses.length > 0 ? {
-                    deleteMany: {},
-                    create: buses.map(b => ({ bus_number: b.bus_number, capacity: parseInt(b.capacity) || 0 }))
-                } : undefined,
-                routes: routes && routes.length > 0 ? {
-                    deleteMany: {},
-                    create: routes.map(r => ({ name: r.name }))
-                } : undefined
-            }
-        });
-        res.json(updatedSchool);
-    } catch (error) {
-        console.error('DATABASE ERROR (updateSchool):', error);
-        res.status(500).json({ message: 'Error updating school', error: error.message });
-    }
+  try {
+    const { id } = req.params;
+    const allowed = [
+      'name', 'address', 'phone', 'email_contact', 'logo_url',
+      'primary_color', 'plan_id', 'notification_email',
+    ];
+    const data = {};
+    allowed.forEach(f => { if (req.body[f] !== undefined) data[f] = req.body[f]; });
+    const school = await prisma.school.update({ where: { id }, data });
+    res.json(school);
+  } catch (err) {
+    res.status(500).json({ error: 'Error updating school' });
+  }
 };
 
+// PATCH /schools/:id/status — SA toggles active/inactive
+const toggleSchoolStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const school = await prisma.school.findUnique({ where: { id }, select: { status: true } });
+    if (!school) return res.status(404).json({ error: 'School not found' });
+
+    const newStatus = school.status === 'active' ? 'inactive' : 'active';
+    const updated = await prisma.school.update({
+      where: { id },
+      data: {
+        status: newStatus,
+        suspended_at: newStatus === 'inactive' ? new Date() : null,
+        suspension_reason: req.body.reason || null,
+      },
+    });
+    res.json({ status: updated.status });
+  } catch (err) {
+    res.status(500).json({ error: 'Error toggling school status' });
+  }
+};
+
+// PUT /schools/:id/permissions — SA updates feature permissions
+const updatePermissions = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { permissions } = req.body;
+    const school = await prisma.school.update({
+      where: { id },
+      data: { permissions },
+      select: { id: true, name: true, permissions: true },
+    });
+    res.json(school);
+  } catch (err) {
+    res.status(500).json({ error: 'Error updating permissions' });
+  }
+};
+
+// DELETE /schools/:id — SA only
 const deleteSchool = async (req, res) => {
-    try {
-        const { id } = req.params;
-        await prisma.school.delete({ where: { id } });
-        res.json({ message: 'School deleted successfully' });
-    } catch (error) {
-        console.error('DATABASE ERROR (deleteSchool):', error);
-        res.status(500).json({ message: 'Error deleting school', error: error.message, stack: error.stack });
-    }
+  try {
+    await prisma.school.delete({ where: { id: req.params.id } });
+    res.json({ message: 'School deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error deleting school' });
+  }
+};
+
+// PUT /schools/my/razorpay — admin sets own school's Razorpay keys
+const updateSchoolRazorpay = async (req, res) => {
+  try {
+    const { key_id, key_secret } = req.body;
+    const schoolId = req.user.school_id;
+    await prisma.school.update({
+      where: { id: schoolId },
+      data: {
+        razorpay_key_id: encrypt(key_id),
+        razorpay_key_secret: encrypt(key_secret),
+        razorpay_configured: true,
+      },
+    });
+    res.json({ message: 'Razorpay keys saved' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error saving Razorpay keys' });
+  }
+};
+
+// GET /schools/my — admin fetches own school
+const getMySchool = async (req, res) => {
+  try {
+    const school = await prisma.school.findUnique({
+      where: { id: req.user.school_id },
+      select: {
+        id: true, name: true, slug: true, logo_url: true, primary_color: true,
+        address: true, phone: true, email_contact: true, notification_email: true,
+        status: true, permissions: true, razorpay_configured: true,
+        onboarding_dismissed: true, plan_id: true,
+      },
+    });
+    res.json(school);
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching school' });
+  }
+};
+
+// POST /schools/my/dismiss-onboarding — admin dismisses checklist
+const dismissOnboarding = async (req, res) => {
+  try {
+    await prisma.school.update({
+      where: { id: req.user.school_id },
+      data: { onboarding_dismissed: true },
+    });
+    res.json({ message: 'Onboarding dismissed' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error dismissing onboarding' });
+  }
 };
 
 module.exports = {
-    getAllSchools,
-    registerSchool,
-    getSchoolBySlug,
-    updateSchool,
-    deleteSchool
+  getPublicSchool, getAllSchools, getSchoolById,
+  registerSchool, updateSchool, deleteSchool,
+  toggleSchoolStatus, updatePermissions,
+  updateSchoolRazorpay, getMySchool, dismissOnboarding,
 };

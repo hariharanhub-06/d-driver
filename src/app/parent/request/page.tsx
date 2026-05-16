@@ -1,92 +1,358 @@
 'use client';
 
-import { useState } from 'react';
-import { MapPin, Calendar, Clock, ArrowRight, CheckCircle, Navigation } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MapPin, Calendar, Navigation, CheckCircle, AlertTriangle, Loader2, LocateFixed } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+
+interface Student {
+    id: string;
+    name: string;
+    stop?: { id: string; name: string };
+    stop_id?: string;
+    stop_name?: string;
+}
+
+interface Stop {
+    id: string;
+    name: string;
+    latitude?: number;
+    longitude?: number;
+    distance?: number;
+}
+
+type ChangeType = 'temporary' | 'permanent';
 
 export default function StopChangeRequest() {
-    const [step, setStep] = useState(1);
+    const { user } = useAuth();
     const router = useRouter();
 
-    const handleNext = () => setStep(s => s + 1);
+    const [students, setStudents] = useState<Student[]>([]);
+    const [stops, setStops] = useState<Stop[]>([]);
+    const [nearbyStops, setNearbyStops] = useState<Stop[]>([]);
+
+    const [selectedStudentId, setSelectedStudentId] = useState('');
+    const [changeType, setChangeType] = useState<ChangeType>('temporary');
+    const [newStopId, setNewStopId] = useState('');
+    const [effectiveDate, setEffectiveDate] = useState(
+        new Date().toISOString().split('T')[0]
+    );
+    const [reason, setReason] = useState('');
+
+    const [loadingStudents, setLoadingStudents] = useState(true);
+    const [loadingNearby, setLoadingNearby] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        fetchStudents();
+    }, []);
+
+    const fetchStudents = async () => {
+        setLoadingStudents(true);
+        try {
+            // Try dedicated endpoint first, fall back to finance/my-fees hint approach
+            const { data } = await api.get('/students/my');
+            const list: Student[] = Array.isArray(data) ? data : [data];
+            setStudents(list);
+            if (list.length > 0) {
+                setSelectedStudentId(list[0].id);
+                fetchStopsForStudent(list[0]);
+            }
+        } catch {
+            // Fallback: try parent's students via user context
+            setStudents([]);
+        } finally {
+            setLoadingStudents(false);
+        }
+    };
+
+    const fetchStopsForStudent = async (student?: Student) => {
+        try {
+            const params: Record<string, string> = {};
+            if (user?.school_id) params.school_id = user.school_id;
+            const { data } = await api.get('/stops', { params });
+            setStops(data || []);
+        } catch {
+            setStops([]);
+        }
+    };
+
+    const handleStudentChange = (id: string) => {
+        setSelectedStudentId(id);
+        setNewStopId('');
+        const student = students.find(s => s.id === id);
+        if (student) fetchStopsForStudent(student);
+    };
+
+    const handleFindNearby = () => {
+        if (!navigator.geolocation) {
+            setError('Geolocation is not supported by your browser.');
+            return;
+        }
+        setLoadingNearby(true);
+        setError('');
+        navigator.geolocation.getCurrentPosition(
+            async ({ coords }) => {
+                try {
+                    const { data } = await api.get('/stops/nearby', {
+                        params: { lat: coords.latitude, lng: coords.longitude },
+                    });
+                    setNearbyStops(data || []);
+                    if (!data || data.length === 0) {
+                        setError('No stops found nearby. Try selecting from the full list.');
+                    }
+                } catch {
+                    setError('Failed to fetch nearby stops.');
+                } finally {
+                    setLoadingNearby(false);
+                }
+            },
+            () => {
+                setError('Location permission denied. Please allow location access and try again.');
+                setLoadingNearby(false);
+            }
+        );
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedStudentId || !newStopId) {
+            setError('Please select a student and a new stop.');
+            return;
+        }
+        setError('');
+        setSubmitting(true);
+        try {
+            await api.post('/stop-change', {
+                student_id: selectedStudentId,
+                new_stop_id: newStopId,
+                change_type: changeType,
+                effective_date: effectiveDate,
+                reason: reason || undefined,
+            });
+            setSubmitted(true);
+        } catch (err: any) {
+            setError(
+                err?.response?.data?.message || 'Failed to submit request. Please try again.'
+            );
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const selectedStudent = students.find(s => s.id === selectedStudentId);
+    const currentStopName =
+        selectedStudent?.stop?.name || selectedStudent?.stop_name || 'Not assigned';
+
+    const displayStops = nearbyStops.length > 0 ? nearbyStops : stops;
+
+    if (submitted) {
+        return (
+            <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-950 min-h-full flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-6">
+                    <CheckCircle className="w-12 h-12 text-emerald-600" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-800 dark:text-white mb-2">Request Submitted!</h3>
+                <p className="text-gray-500 text-sm max-w-xs mb-8">
+                    Admin will review your stop change request within 24 hours. You'll be notified once it's approved.
+                </p>
+                <button
+                    onClick={() => router.push('/parent/dashboard')}
+                    className="px-6 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl font-semibold text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                    Back to Home
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-950 min-h-full">
-            <div className="mb-8 mt-2">
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">Change Request</h2>
-                <p className="text-slate-500 text-sm">Request a temporary or permanent stop modification.</p>
+            <div className="mb-6 mt-2">
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-1">Stop Change Request</h2>
+                <p className="text-slate-500 text-sm">Request a temporary or permanent stop modification for your child.</p>
             </div>
 
-            {step === 1 && (
-                <div className="space-y-6">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                        <h3 className="font-bold mb-4 flex items-center">
-                            <MapPin className="w-5 h-5 mr-2 text-primary-500" /> Current Stop
-                        </h3>
-                        <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-600">
-                            <p className="font-bold text-slate-700 dark:text-slate-200">Central Library Main Gate</p>
-                            <p className="text-xs text-slate-500 mt-1">Route A - Morning Dispatch</p>
-                        </div>
-                    </div>
+            {/* Warning banner */}
+            <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 mb-6">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-700 dark:text-amber-400">
+                    Changes must be submitted at least <strong>1 hour before pickup time</strong>.
+                </p>
+            </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                        <h3 className="font-bold mb-4 flex items-center">
-                            <Navigation className="w-5 h-5 mr-2 text-emerald-500" /> New Stop Location
-                        </h3>
-                        <select className="w-full p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-primary-500">
-                            <option>City Park North</option>
-                            <option>Main Market Cross</option>
-                            <option>Tech Park Tower A</option>
-                            <option>Old Station Gate</option>
+            {error && (
+                <div className="bg-red-50 text-red-600 border border-red-200 rounded-xl p-3 text-sm mb-4">
+                    {error}
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+                {/* 1. Select Child */}
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                        <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-full flex items-center justify-center text-xs font-black">1</span>
+                        Select Child
+                    </h3>
+                    {loadingStudents ? (
+                        <div className="flex items-center gap-2 text-sm text-gray-400">
+                            <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+                        </div>
+                    ) : students.length === 0 ? (
+                        <p className="text-sm text-gray-400">No students found for your account.</p>
+                    ) : (
+                        <select
+                            value={selectedStudentId}
+                            onChange={e => handleStudentChange(e.target.value)}
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300"
+                        >
+                            {students.map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
                         </select>
-                        <p className="text-[10px] text-slate-400 mt-3 px-1 italic">* Only verified safe stops are listed here.</p>
-                    </div>
-
-                    <button onClick={handleNext} className="w-full bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white font-bold py-4 rounded-2xl flex items-center justify-center group">
-                        Next Step <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </button>
+                    )}
                 </div>
-            )}
 
-            {step === 2 && (
-                <div className="space-y-6">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                        <h3 className="font-bold mb-4 flex items-center">
-                            <Calendar className="w-5 h-5 mr-2 text-orange-500" /> Effective Date
+                {/* 2. Current Stop (read-only) */}
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                        <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-full flex items-center justify-center text-xs font-black">2</span>
+                        Current Stop
+                    </h3>
+                    <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-600">
+                        <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{currentStopName}</span>
+                    </div>
+                </div>
+
+                {/* 3. Change Type */}
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                        <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-full flex items-center justify-center text-xs font-black">3</span>
+                        Change Type
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                        {(['temporary', 'permanent'] as ChangeType[]).map(type => (
+                            <button
+                                key={type}
+                                type="button"
+                                onClick={() => setChangeType(type)}
+                                className={`p-3 rounded-xl border-2 text-sm font-semibold capitalize transition-all ${
+                                    changeType === type
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                                        : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300'
+                                }`}
+                            >
+                                {type}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 4. New Stop */}
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                            <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-full flex items-center justify-center text-xs font-black">4</span>
+                            New Stop
                         </h3>
-                        <input type="date" className="w-full p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none" />
+                        <button
+                            type="button"
+                            onClick={handleFindNearby}
+                            disabled={loadingNearby}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
+                        >
+                            {loadingNearby ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                                <LocateFixed className="w-3 h-3" />
+                            )}
+                            Find Nearby
+                        </button>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                        <h3 className="font-bold mb-4 flex items-center">
-                            <Clock className="w-5 h-5 mr-2 text-purple-500" /> Request Type
-                        </h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button className="p-4 border-2 border-primary-500 bg-primary-50 dark:bg-primary-900/20 rounded-xl text-sm font-bold">Temporary</button>
-                            <button className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-500">Permanent</button>
+                    {nearbyStops.length > 0 && (
+                        <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wide mb-2">
+                            Showing {nearbyStops.length} nearby stops
+                        </p>
+                    )}
+
+                    <select
+                        value={newStopId}
+                        onChange={e => setNewStopId(e.target.value)}
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300"
+                        required
+                    >
+                        <option value="">Select a stop...</option>
+                        {displayStops.map(stop => (
+                            <option key={stop.id} value={stop.id}>
+                                {stop.name}
+                                {stop.distance != null
+                                    ? ` — ${(stop.distance / 1000).toFixed(1)} km`
+                                    : ''}
+                            </option>
+                        ))}
+                    </select>
+
+                    {newStopId && (
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                            <Navigation className="w-3 h-3 text-emerald-500" />
+                            {displayStops.find(s => s.id === newStopId)?.name}
                         </div>
-                    </div>
-
-                    <button onClick={handleNext} className="w-full bg-primary-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary-600/20 active:scale-95 transition-all">
-                        Submit Request
-                    </button>
+                    )}
                 </div>
-            )}
 
-            {step === 3 && (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-full flex items-center justify-center mb-6">
-                        <CheckCircle className="w-12 h-12 animate-in zoom-in" />
+                {/* 5. Effective Date */}
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                        <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-full flex items-center justify-center text-xs font-black">5</span>
+                        Effective Date
+                    </h3>
+                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-3">
+                        <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                        <input
+                            type="date"
+                            value={effectiveDate}
+                            min={new Date().toISOString().split('T')[0]}
+                            onChange={e => setEffectiveDate(e.target.value)}
+                            className="flex-1 bg-transparent text-sm text-slate-700 dark:text-slate-300 focus:outline-none"
+                            required
+                        />
                     </div>
-                    <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Request Sent!</h3>
-                    <p className="text-slate-500 text-sm max-w-[240px] mb-8">
-                        Your stop change request has been forwarded to the transport admin. You will be notified once approved.
-                    </p>
-                    <button onClick={() => router.push('/parent/dashboard')} className="px-8 py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-slate-600 dark:text-slate-300">
-                        Back to Home
-                    </button>
                 </div>
-            )}
+
+                {/* 6. Reason (optional) */}
+                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                        <span className="w-5 h-5 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-full flex items-center justify-center text-xs font-black">6</span>
+                        Reason
+                        <span className="text-xs text-slate-400 font-normal">(optional)</span>
+                    </h3>
+                    <textarea
+                        value={reason}
+                        onChange={e => setReason(e.target.value)}
+                        rows={3}
+                        placeholder="e.g. Moving to a new address temporarily..."
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+                    />
+                </div>
+
+                {/* Submit */}
+                <button
+                    type="submit"
+                    disabled={submitting || !selectedStudentId || !newStopId}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-colors disabled:opacity-60 shadow-lg shadow-blue-600/20"
+                >
+                    {submitting ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+                    ) : (
+                        'Submit Request'
+                    )}
+                </button>
+            </form>
         </div>
     );
 }

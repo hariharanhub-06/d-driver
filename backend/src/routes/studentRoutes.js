@@ -1,19 +1,25 @@
 const { Router } = require('express');
 const {
-    getAllStudents,
-    createStudent,
-    getStudentById,
-    updateStudent,
-    deleteStudent
+  getAllStudents, getStudentById, createStudent, updateStudent,
+  deleteStudent, uploadStudentPhoto, bulkCreateStudents, getMyStudents,
 } = require('../controllers/studentController');
-const { authenticateToken, requireRole } = require('../middleware/authMiddleware');
+const { authenticateToken, requireRole, requireSchoolScope, requirePasswordChanged } = require('../middleware/authMiddleware');
+const { requirePermission } = require('../middleware/permissionMiddleware');
+const { validate, studentSchema } = require('../validators');
+const multer = require('multer');
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
-router.get('/', authenticateToken, getAllStudents);
-router.get('/:id', authenticateToken, getStudentById);
-router.post('/', authenticateToken, requireRole(['admin', 'super_admin']), createStudent);
-router.put('/:id', authenticateToken, requireRole(['admin', 'super_admin']), updateStudent);
-router.delete('/:id', authenticateToken, requireRole(['admin', 'super_admin']), deleteStudent);
+router.use(authenticateToken, requirePasswordChanged);
+
+router.get('/', requireRole('admin', 'super_admin', 'driver'), requireSchoolScope, getAllStudents);
+router.get('/my', requireRole('parent'), getMyStudents);
+router.get('/:id', requireRole('admin', 'super_admin', 'driver'), getStudentById);
+router.post('/upload-photo', requireRole('admin'), requirePermission('student_photos'), upload.single('photo'), uploadStudentPhoto);
+router.post('/bulk', requireRole('admin'), bulkCreateStudents);
+router.post('/', requireRole('admin'), validate(studentSchema), createStudent);
+router.put('/:id', requireRole('admin'), updateStudent);
+router.delete('/:id', requireRole('admin'), deleteStudent);
 
 module.exports = router;

@@ -1,13 +1,12 @@
 const { Router } = require('express');
-const {
-    getAttendance,
-    markAttendance
-} = require('../controllers/attendanceController');
-const { authenticateToken } = require('../middleware/authMiddleware');
+const { markAttendance, getAttendance, getTodayAttendance } = require('../controllers/attendanceController');
+const { authenticateToken, requireRole, requireSchoolScope, requirePasswordChanged } = require('../middleware/authMiddleware');
 
 const router = Router();
+router.use(authenticateToken, requirePasswordChanged);
 
-router.get('/:schoolId', authenticateToken, getAttendance);
-router.post('/mark', authenticateToken, markAttendance);
+router.post('/mark', requireRole('driver', 'admin', 'super_admin'), markAttendance);
+router.get('/today', requireRole('admin', 'super_admin', 'driver'), requireSchoolScope, getTodayAttendance);
+router.get('/', requireRole('admin', 'super_admin', 'driver', 'parent'), requireSchoolScope, getAttendance);
 
 module.exports = router;

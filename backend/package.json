@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon -e ts,js --exec ts-node -r dotenv/config src/index.ts",
+    "dev": "nodemon -e js --exec node -r dotenv/config src/index.js",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node -r dotenv/config src/index.js",
+    "seed": "node -r dotenv/config prisma/seed.js"
   },
   "keywords": [],
   "author": "",
@@ -21,9 +22,16 @@
     "csv-parser": "^3.2.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.1.0",
+    "imagekit": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.2.1",
+    "razorpay": "^2.9.6",
+    "resend": "^6.12.3",
     "socket.io": "^4.8.3",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
@@ -36,6 +44,6 @@
     "typescript": "^5.9.3"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "node -r dotenv/config prisma/seed.js"
   }
 }

@@ -10,13 +10,15 @@ interface User {
     phone?: string;
     role: string;
     school_id: string;
+    is_dev_sa?: boolean;
+    is_first_login?: boolean;
     isMockMode?: boolean;
 }
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (token: string, userData: User) => void;
+    login: (token: string, userData: User, refreshToken?: string) => void;
     logout: () => void;
 }
 
@@ -33,17 +35,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const router = useRouter();
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('access_token');
         const storedUser = localStorage.getItem('user');
 
         if (token && storedUser) {
-            setUser(JSON.parse(storedUser));
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('user');
+            }
         }
         setLoading(false);
     }, []);
 
-    const login = (token: string, userData: User) => {
-        localStorage.setItem('token', token);
+    const login = (token: string, userData: User, refreshToken?: string) => {
+        localStorage.setItem('access_token', token);
+        if (refreshToken) {
+            localStorage.setItem('refresh_token', refreshToken);
+        }
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
 
@@ -58,9 +69,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-
     const logout = () => {
-        localStorage.removeItem('token');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         setUser(null);
         router.push('/login');

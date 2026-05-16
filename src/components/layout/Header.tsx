@@ -1,27 +1,25 @@
 'use client';
 
-import { Menu, Search, Bell, User, Sun, Moon, LogOut, Settings } from 'lucide-react';
+import { Menu, Search, Bell, User, Sun, Moon, LogOut, Settings, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import { useTour } from '@/components/tour/TourProvider';
 
 export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
     const { user, logout } = useAuth();
     const router = useRouter();
-    const [isDark, setIsDark] = useState(false);
+    const { theme, setTheme } = useTheme();
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-    useEffect(() => {
-        if (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) {
-            setIsDark(true);
-        }
-    }, []);
+    // useTour returns a no-op startTour when called outside TourProvider (safe default context)
+    const { startTour } = useTour();
 
     const toggleTheme = () => {
-        document.documentElement.classList.toggle('dark');
-        setIsDark(!isDark);
+        setTheme(theme === 'dark' ? 'light' : 'dark');
     };
 
     const notifications = [
@@ -54,8 +52,18 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                     onClick={toggleTheme}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-gray-500 transition-colors"
                 >
-                    {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                    {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
+
+                {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                    <button
+                        onClick={() => startTour('admin')}
+                        title="Take a guided tour"
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-gray-400 hover:text-primary-500 transition-colors"
+                    >
+                        <HelpCircle size={18} />
+                    </button>
+                )}
 
                 {/* Notifications Dropdown */}
                 <div className="relative">

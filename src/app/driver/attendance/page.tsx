@@ -1,216 +1,331 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, Check, X, MapPin, ChevronRight, Bell, LayoutDashboard, Map, Loader2 } from 'lucide-react';
+import { User, Check, X, Search, MapPin, ChevronRight, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 
+interface Student {
+    id: string;
+    name: string;
+    photo?: string;
+    grade?: string;
+    stop_id?: string;
+}
+
+interface AbsenceRecord {
+    student_id: string;
+    status: string;
+}
+
+interface TripStop {
+    id: string;
+    name: string;
+    sequence: number;
+    students: Student[];
+}
+
 export default function DriverAttendancePage() {
-    const [stops, setStops] = useState<any[]>([]);
+    const [stops, setStops] = useState<TripStop[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const [currentStopIndex, setCurrentStopIndex] = useState(0);
-    const [currentStudentIndex, setCurrentStudentIndex] = useState(-1); // -1 means no student pop-up
-    const [attendance, setAttendance] = useState<Record<string, string>>({});
+    const [attendance, setAttendance] = useState<Record<string, 'present' | 'absent'>>({});
+    const [absences, setAbsences] = useState<AbsenceRecord[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [tripId, setTripId] = useState<string>('');
+    const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
+    const [markingNote, setMarkingNote] = useState('');
 
     useEffect(() => {
-        fetchRouteData();
+        fetchData();
     }, []);
 
-    const fetchRouteData = async () => {
+    const fetchData = async () => {
+        setLoading(true);
         try {
-            const { data } = await api.get('/routes');
-            if (data && data.length > 0) {
-                // Focus on the first available route for now
-                const route = data[0];
-                // Enrich stops with their students
-                const enrichedStops = route.stops.map((stop: any) => ({
+            // Get active trip
+            const tripsRes = await api.get('/trips/active');
+            const trips = Array.isArray(tripsRes.data) ? tripsRes.data : tripsRes.data ? [tripsRes.data] : [];
+            const trip = trips[0];
+
+            if (trip) {
+                setTripId(trip.id);
+                const routeRes = await api.get(`/routes/${trip.route_id}`);
+                const route = routeRes.data;
+                const enrichedStops: TripStop[] = (route.stops || []).map((stop: any) => ({
                     ...stop,
-                    students: route.students.filter((s: any) => s.stop_id === stop.id)
+                    students: (route.students || []).filter((s: any) => s.stop_id === stop.id),
                 }));
                 setStops(enrichedStops);
             } else {
-                throw new Error('No routes found');
+                // Fallback to first route
+                const routesRes = await api.get('/routes');
+                if (routesRes.data?.length > 0) {
+                    const route = routesRes.data[0];
+                    const enrichedStops: TripStop[] = (route.stops || []).map((stop: any) => ({
+                        ...stop,
+                        students: (route.students || []).filter((s: any) => s.stop_id === stop.id),
+                    }));
+                    setStops(enrichedStops);
+                }
             }
-        } catch (error) {
-            console.error('Failed to fetch routes, using mock fallback', error);
-            setStops([
-                {
-                    id: '1', name: 'Main Gate', students: [
-                        { id: 's1', name: 'Alex Johnson', photo: null, grade: '4th Grade' },
-                        { id: 's2', name: 'Sarah Williams', photo: null, grade: '3rd Grade' }
-                    ]
-                },
-                {
-                    id: '2', name: 'Oak Street', students: [
-                        { id: 's3', name: 'Ryan Davis', photo: null, grade: '5th Grade' }
-                    ]
-                },
-                {
-                    id: '3', name: 'Pine Avenue', students: [
-                        { id: 's4', name: 'Emma Wilson', photo: null, grade: '2nd Grade' }
-                    ]
-                },
-            ]);
+
+            // Fetch pre-reported absences
+            try {
+                const absRes = await api.get('/absence');
+                setAbsences(Array.isArray(absRes.data) ? absRes.data : []);
+            } catch {
+                setAbsences([]);
+            }
+        } catch (e: any) {
+            setError('Failed to load route data');
         } finally {
             setLoading(false);
         }
     };
 
-    const currentStop = stops[currentStopIndex];
-    const isLastStop = currentStopIndex === stops.length - 1;
-
-    const handleReachStop = () => {
-        if (currentStop?.students?.length > 0) {
-            setCurrentStudentIndex(0);
-        } else {
-            // No students at this stop, just move on
-            if (!isLastStop) setCurrentStopIndex(currentStopIndex + 1);
-        }
-    };
-
-    const handleMarkAttendance = async (studentId: string, status: 'present' | 'absent') => {
+    const handleMarkAttendance = async (student: Student, status: 'present' | 'absent') => {
         try {
-            await api.post('/attendance', { student_id: studentId, status });
-            setAttendance(prev => ({ ...prev, [studentId]: status }));
-        } catch (error) {
-            console.error('Failed to mark attendance', error);
-            // Local state update for fallback
-            setAttendance(prev => ({ ...prev, [studentId]: status }));
+            await api.post('/attendance/mark', {
+                student_id: student.id,
+                status,
+                trip_id: tripId || undefined,
+                note: markingNote || undefined,
+            });
+        } catch {
+            // continue with local state even if API fails
         }
-
-        if (currentStudentIndex < currentStop.students.length - 1) {
-            setCurrentStudentIndex(currentStudentIndex + 1);
-        } else {
-            setCurrentStudentIndex(-1); // Close pop-up
-        }
+        setAttendance(prev => ({ ...prev, [student.id]: status }));
+        setActiveStudentId(null);
+        setMarkingNote('');
     };
+
+    const isPreAbsent = (studentId: string) =>
+        absences.some(a => a.student_id === studentId && a.status === 'absent');
+
+    const currentStop = stops[currentStopIndex];
+    const allStudents = stops.flatMap(s => s.students);
+    const filteredStudents = searchQuery
+        ? allStudents.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        : currentStop?.students || [];
+
+    const activeStudent = activeStudentId
+        ? allStudents.find(s => s.id === activeStudentId)
+        : null;
 
     if (loading) {
         return (
-            <div className="h-full flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
 
-    if (!currentStop) return <div className="p-8 text-center text-gray-500">No route data available.</div>;
+    if (error) {
+        return (
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-6">
+                <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl p-6 text-center font-bold">{error}</div>
+            </div>
+        );
+    }
 
     return (
-        <div className="max-w-md mx-auto h-full flex flex-col pt-4 pb-20 animate-in overflow-y-auto">
-            {/* Current Stop Header */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 mb-6 mx-2">
-                <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-bold text-primary-500 uppercase tracking-widest">Ongoing Route</span>
-                    <div className="px-2 py-1 bg-green-100 text-green-700 rounded text-[10px] font-bold">LIVE</div>
-                </div>
-                <div className="flex items-start gap-4">
-                    <div className="p-3 bg-primary-50 rounded-2xl">
-                        <MapPin className="w-6 h-6 text-primary-500" />
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900 leading-tight">{currentStop.name}</h2>
-                        <p className="text-sm text-gray-500">Stop {currentStopIndex + 1} of {stops.length}</p>
-                    </div>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
+            {/* Header */}
+            <div className="bg-primary-600 text-white p-5 pt-8 shadow-md">
+                <h1 className="text-xl font-black tracking-tight">Attendance</h1>
+                <p className="text-primary-100 text-sm mt-1">
+                    {currentStop ? `Stop ${currentStopIndex + 1}/${stops.length}: ${currentStop.name}` : 'No route data'}
+                </p>
+            </div>
+
+            {/* Search */}
+            <div className="px-4 pt-4 pb-2">
+                <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Search student by name..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 pl-11 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+                    />
                 </div>
             </div>
 
-            {/* Stop Sequence */}
-            <div className="flex-1 px-4 space-y-4">
-                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 mb-2">Morning Stop Sequence</h3>
-                {stops.map((stop, index) => (
-                    <div
-                        key={stop.id}
-                        className={cn(
-                            "flex items-center gap-4 p-5 rounded-2xl border transition-all duration-300",
-                            index === currentStopIndex ? "bg-primary-50 border-primary-200 shadow-md shadow-primary-500/5 rotate-1" :
-                                index < currentStopIndex ? "bg-white border-gray-100 opacity-60" : "bg-white border-gray-50"
-                        )}
-                    >
-                        <div className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-colors",
-                            index < currentStopIndex ? "bg-green-500 text-white" :
-                                index === currentStopIndex ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-400"
-                        )}>
-                            {index < currentStopIndex ? <Check size={18} /> : index + 1}
-                        </div>
-                        <div className="flex-1">
-                            <p className="font-bold text-gray-800">{stop.name}</p>
-                            <p className="text-xs text-gray-500">{stop.students?.length || 0} Students to pick up</p>
-                        </div>
-                        {index === currentStopIndex && (
-                            <button
-                                onClick={handleReachStop}
-                                className="px-5 py-2.5 bg-primary-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-primary-500/20 active:scale-95 transition-transform"
-                            >
-                                Reached
-                            </button>
-                        )}
-                    </div>
-                ))}
+            {/* Stop tabs (when not searching) */}
+            {!searchQuery && stops.length > 0 && (
+                <div className="px-4 py-2 flex gap-2 overflow-x-auto">
+                    {stops.map((stop, i) => (
+                        <button
+                            key={stop.id}
+                            onClick={() => setCurrentStopIndex(i)}
+                            className={cn(
+                                'shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all',
+                                i === currentStopIndex
+                                    ? 'bg-primary-600 text-white'
+                                    : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+                            )}
+                        >
+                            {stop.name}
+                        </button>
+                    ))}
+                </div>
+            )}
 
-                {!isLastStop && currentStudentIndex === -1 && (
-                    <button
-                        onClick={() => setCurrentStopIndex(currentStopIndex + 1)}
-                        className="w-full py-5 mt-8 bg-gray-900 text-white rounded-[2rem] font-bold flex items-center justify-center gap-2 shadow-xl hover:bg-black transition-all active:scale-95"
-                    >
-                        Next Stop <ChevronRight size={18} />
-                    </button>
+            {/* Current stop info */}
+            {!searchQuery && currentStop && (
+                <div className="mx-4 mt-3 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-3">
+                    <div className="p-2.5 bg-primary-50 dark:bg-primary-900/20 rounded-xl">
+                        <MapPin className="w-5 h-5 text-primary-500" />
+                    </div>
+                    <div>
+                        <h2 className="font-black text-slate-900 dark:text-white">{currentStop.name}</h2>
+                        <p className="text-xs text-slate-400">{currentStop.students.length} students</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Student List */}
+            <div className="px-4 mt-4 space-y-3">
+                {filteredStudents.length === 0 ? (
+                    <div className="text-center py-10 text-slate-400 font-bold text-sm">
+                        {searchQuery ? 'No students match your search' : 'No students at this stop'}
+                    </div>
+                ) : (
+                    filteredStudents.map(student => {
+                        const marked = attendance[student.id];
+                        const preAbsent = isPreAbsent(student.id);
+
+                        return (
+                            <div
+                                key={student.id}
+                                className={cn(
+                                    'bg-white dark:bg-slate-800 rounded-2xl p-4 border shadow-sm flex items-center gap-4 transition-all',
+                                    marked === 'present' ? 'border-emerald-200 dark:border-emerald-700' :
+                                    marked === 'absent' ? 'border-red-200 dark:border-red-800' :
+                                    preAbsent ? 'border-amber-200 dark:border-amber-700 opacity-75' :
+                                    'border-slate-100 dark:border-slate-700'
+                                )}
+                            >
+                                {/* Avatar */}
+                                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                                    {student.photo ? (
+                                        <img src={student.photo} alt={student.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="text-lg font-black text-slate-400">
+                                            {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-black text-slate-900 dark:text-white truncate">{student.name}</p>
+                                    <p className="text-xs text-slate-400 font-medium">{student.grade || 'Student'}</p>
+                                </div>
+
+                                {/* Status / Actions */}
+                                {preAbsent && !marked ? (
+                                    <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                                        Already Absent
+                                    </span>
+                                ) : marked ? (
+                                    <span className={cn(
+                                        'px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1',
+                                        marked === 'present'
+                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                                            : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                                    )}>
+                                        {marked === 'present' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                        {marked}
+                                    </span>
+                                ) : (
+                                    <button
+                                        onClick={() => setActiveStudentId(student.id)}
+                                        className="w-9 h-9 bg-primary-50 dark:bg-primary-900/20 rounded-xl flex items-center justify-center hover:bg-primary-100 transition-all active:scale-95"
+                                    >
+                                        <ChevronRight className="w-4 h-4 text-primary-500" />
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })
                 )}
             </div>
 
-            {/* Student Pop-up Overlay */}
-            {currentStudentIndex !== -1 && (
+            {/* Bottom nav */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border-t border-slate-100 dark:border-slate-700 p-4 flex justify-around items-center">
+                <a href="/driver/dashboard" className="flex flex-col items-center text-slate-400 hover:text-slate-600 transition-colors">
+                    <Bell className="w-5 h-5" />
+                    <span className="text-[10px] font-bold mt-1">Home</span>
+                </a>
+                <div className="flex flex-col items-center text-primary-500">
+                    <User className="w-5 h-5" />
+                    <span className="text-[10px] font-bold mt-1">Attendance</span>
+                </div>
+                <a href="/driver/ride" className="flex flex-col items-center text-slate-400 hover:text-slate-600 transition-colors">
+                    <MapPin className="w-5 h-5" />
+                    <span className="text-[10px] font-bold mt-1">Ride</span>
+                </a>
+            </div>
+
+            {/* Mark attendance overlay */}
+            {activeStudent && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-                    <div className="bg-white w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl">
                         <div className="bg-gradient-to-br from-primary-500 to-emerald-600 p-10 flex flex-col items-center">
-                            <div className="w-28 h-28 rounded-full bg-white/20 border-4 border-white/40 flex items-center justify-center mb-6 shadow-inner">
-                                <User className="text-white w-14 h-14" />
+                            <div className="w-24 h-24 rounded-full bg-white/20 border-4 border-white/40 flex items-center justify-center mb-5 shadow-inner overflow-hidden">
+                                {activeStudent.photo ? (
+                                    <img src={activeStudent.photo} alt={activeStudent.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-4xl font-black text-white">
+                                        {activeStudent.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                    </span>
+                                )}
                             </div>
-                            <h3 className="text-3xl font-bold text-white text-center mb-1">{currentStop.students[currentStudentIndex].name}</h3>
-                            <p className="text-white/80 font-medium tracking-wide uppercase text-xs">{currentStop.students[currentStudentIndex].grade || 'Student'}</p>
+                            <h3 className="text-2xl font-black text-white text-center">{activeStudent.name}</h3>
+                            <p className="text-white/70 text-sm mt-1">{activeStudent.grade || 'Student'}</p>
                         </div>
-                        <div className="p-10 text-center">
-                            <p className="text-gray-500 mb-10 text-lg leading-relaxed">
-                                Please confirm attendance for <span className="text-gray-900 font-bold underline decoration-primary-200 underline-offset-4">{currentStop.students[currentStudentIndex].name}</span> at this stop.
-                            </p>
-                            <div className="grid grid-cols-2 gap-6">
+
+                        <div className="p-8">
+                            <div className="mb-5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Note (optional)</label>
+                                <input
+                                    type="text"
+                                    value={markingNote}
+                                    onChange={e => setMarkingNote(e.target.value)}
+                                    placeholder="Add a note..."
+                                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm dark:text-white"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
                                 <button
-                                    onClick={() => handleMarkAttendance(currentStop.students[currentStudentIndex].id, 'absent')}
-                                    className="py-6 bg-red-50 text-red-600 rounded-[2rem] font-bold flex flex-col items-center gap-3 border border-red-100 hover:bg-red-100 transition-all hover:scale-105 active:scale-95"
+                                    onClick={() => handleMarkAttendance(activeStudent, 'absent')}
+                                    className="py-5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-[1.5rem] font-black flex flex-col items-center gap-2 border border-red-100 dark:border-red-800 hover:bg-red-100 transition-all active:scale-95"
                                 >
-                                    <X size={28} />
+                                    <X size={26} />
                                     Absent
                                 </button>
                                 <button
-                                    onClick={() => handleMarkAttendance(currentStop.students[currentStudentIndex].id, 'present')}
-                                    className="py-6 bg-green-50 text-green-600 rounded-[2rem] font-bold flex flex-col items-center gap-3 border border-green-100 hover:bg-green-100 transition-all hover:scale-105 active:scale-95"
+                                    onClick={() => handleMarkAttendance(activeStudent, 'present')}
+                                    className="py-5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-[1.5rem] font-black flex flex-col items-center gap-2 border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 transition-all active:scale-95"
                                 >
-                                    <Check size={28} />
+                                    <Check size={26} />
                                     Present
                                 </button>
                             </div>
-                        </div>
-                        <div className="px-10 pb-10">
                             <button
-                                onClick={() => setCurrentStudentIndex(-1)}
-                                className="w-full py-4 text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-widest"
+                                onClick={() => { setActiveStudentId(null); setMarkingNote(''); }}
+                                className="w-full mt-4 py-3 text-xs font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest"
                             >
-                                Skip for now
+                                Cancel
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-
-            {/* Bottom Nav Helper */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 p-4 flex justify-around items-center md:hidden">
-                <div className="p-3 text-primary-500 bg-primary-50 rounded-2xl"><LayoutDashboard size={24} /></div>
-                <div className="p-3 text-gray-400 hover:bg-gray-50 rounded-2xl transition-colors"><Map size={24} /></div>
-                <div className="p-3 text-gray-400 hover:bg-gray-50 rounded-2xl transition-colors relative">
-                    <Bell size={24} />
-                    <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-                </div>
-            </div>
         </div>
     );
 }

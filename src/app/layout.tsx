@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeContextProvider } from "@/context/ThemeContext";
+import { SchoolBrandingProvider } from "@/context/SchoolBrandingContext";
 import dynamic from 'next/dynamic';
 
 const NotificationToast = dynamic(() => import('@/components/ui/NotificationToast'), { ssr: false });
@@ -10,22 +11,22 @@ const NotificationToast = dynamic(() => import('@/components/ui/NotificationToas
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "D-Driver | Premium School Transport CRM",
-  description: "Enterprise SaaS Web Application for Multi-tenant School Transport Management",
+  title: "Bus Transport Portal",
+  description: "School Bus Transport Management",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <AuthProvider>
-          <NotificationToast />
-          {children}
-        </AuthProvider>
+        <ThemeContextProvider>
+          <AuthProvider>
+            <SchoolBrandingProvider>
+              <NotificationToast />
+              {children}
+            </SchoolBrandingProvider>
+          </AuthProvider>
+        </ThemeContextProvider>
       </body>
     </html>
   );

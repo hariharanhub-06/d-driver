@@ -314,6 +314,7 @@ export default function SchoolsManagement() {
                                     <div className="flex flex-col gap-1 text-right">
                                         <div className="flex gap-1 justify-end">
                                             <button onClick={() => handleOpenAdminModal(school)} className="p-1.5 bg-gray-50 rounded-lg hover:bg-blue-50 hover:text-blue-500 transition-all text-gray-400" title="Manage Admins"><ShieldCheck className="w-3 h-3" /></button>
+                                            <a href={`/super-admin/schools/${school.id}`} className="p-1.5 bg-gray-50 rounded-lg hover:bg-purple-50 hover:text-purple-500 transition-all text-gray-400" title="View Details"><ExternalLink className="w-3 h-3" /></a>
                                             <button onClick={() => { setEditingId(school.id); setFormData({ ...school } as any); setActiveTab('profile'); setIsModalOpen(true); }} className="p-1.5 bg-gray-50 rounded-lg hover:bg-primary-50 hover:text-primary-500 transition-all text-gray-400" title="Edit"><Edit className="w-3 h-3" /></button>
                                             <button onClick={() => handleDelete(school.id)} className="p-1.5 bg-gray-50 rounded-lg hover:bg-red-50 hover:text-red-500 transition-all text-gray-400"><Trash2 className="w-3 h-3" /></button>
                                         </div>
