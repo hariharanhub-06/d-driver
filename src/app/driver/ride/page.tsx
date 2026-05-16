@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Navigation, ChevronRight, Fuel, DollarSign, X, Bus, Wrench } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { socket, connectSocket } from '@/lib/socket';
+import { connectSocket, getSocket } from '@/lib/socket';
 import api from '@/lib/api';
 import dynamic from 'next/dynamic';
 
@@ -95,7 +95,7 @@ export default function ActiveRide() {
                 (pos) => {
                     const { latitude, longitude } = pos.coords;
                     setCurrentPos([latitude, longitude]);
-                    socket.emit('update-location', { busId, lat: latitude, lng: longitude });
+                    getSocket().emit('update-location', { busId, lat: latitude, lng: longitude });
                 },
                 () => {},
                 { enableHighAccuracy: true }
@@ -120,7 +120,7 @@ export default function ActiveRide() {
     const handleSOS = async () => {
         setSubmitting(true);
         try {
-            socket.emit('trigger-alert', { message: `SOS EMERGENCY: Bus ${busId} is in distress!`, type: 'error' });
+            getSocket().emit('trigger-alert', { message: `SOS EMERGENCY: Bus ${busId} is in distress!`, type: 'error' });
             await api.post('/notifications', {
                 type: 'alert',
                 title: 'SOS Alert',

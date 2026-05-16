@@ -148,7 +148,7 @@ export default function SchoolRevenuePage() {
                                     fontWeight: 700,
                                     color: '#fff',
                                 }}
-                                formatter={(value: number) => [fmt(value), 'Collected']}
+                                formatter={(value) => [fmt(typeof value === 'number' ? value : 0), 'Collected']}
                             />
                             <Bar dataKey="total" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                         </BarChart>

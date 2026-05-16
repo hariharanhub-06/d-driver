@@ -1,12 +1,12 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import type { Step, CallBackProps } from 'react-joyride';
 import { useTour } from './TourProvider';
 
-const Joyride = dynamic(() => import('react-joyride'), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Joyride = dynamic<any>(() => import('react-joyride').then((m: any) => ({ default: m.Joyride || m.default })), { ssr: false });
 
-const steps: Step[] = [
+const steps: any[] = [
   {
     target: '[data-tour="parent-dashboard"]',
     content: "See your child's live bus status right here — boarding, in transit, or arrived at school.",
@@ -33,7 +33,8 @@ const steps: Step[] = [
 export default function ParentTour() {
   const { tourName, startTour } = useTour();
 
-  const handleCallback = (data: CallBackProps) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleCallback = (data: any) => {
     if (['finished', 'skipped'].includes(data.status as string)) {
       startTour('');
     }

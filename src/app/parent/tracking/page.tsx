@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Bus, Clock, Navigation, Bell, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { socket, connectSocket } from '@/lib/socket';
+import { connectSocket, getSocket } from '@/lib/socket';
 import api from '@/lib/api';
 import dynamic from 'next/dynamic';
 
@@ -49,8 +49,8 @@ export default function ParentTracking() {
         const handleLocationUpdate = (data: { lat: number; lng: number }) => {
             setBusPosition([data.lat, data.lng]);
         };
-        socket.on('location-updated', handleLocationUpdate);
-        return () => { socket.off('location-updated', handleLocationUpdate); };
+        getSocket().on('location-updated', handleLocationUpdate);
+        return () => { getSocket().off('location-updated', handleLocationUpdate); };
     }, [busId]);
 
     // Check for recent bus-approaching notifications

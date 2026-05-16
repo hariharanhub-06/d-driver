@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { socket } from '@/lib/socket';
+import { getSocket } from '@/lib/socket';
 import { Bell, AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
 
 export type NotificationType = 'info' | 'error' | 'success';
@@ -17,9 +17,11 @@ export default function NotificationToast() {
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
     useEffect(() => {
+        const s = getSocket();
+
         // Ensure socket is connected to receive global broadcasts
-        if (!socket.connected) {
-            socket.connect();
+        if (!s.connected) {
+            s.connect();
         }
 
         const handleNewNotification = (data: AppNotification) => {
@@ -31,10 +33,10 @@ export default function NotificationToast() {
             }, 5000);
         };
 
-        socket.on('new-notification', handleNewNotification);
+        s.on('new-notification', handleNewNotification);
 
         return () => {
-            socket.off('new-notification', handleNewNotification);
+            s.off('new-notification', handleNewNotification);
         };
     }, []);
 
