@@ -70,6 +70,9 @@ const createStudent = async (req, res) => {
             section,
             gr_no,
             parent_id,
+            parent_name,
+            parent_email,
+            parent_phone,
             route_id,
             stop_id,
             photo_url,
@@ -81,13 +84,39 @@ const createStudent = async (req, res) => {
 
         const schoolId = req.user.role === 'super_admin' ? (req.body.school_id || req.query.school_id) : req.user.school_id;
 
+        // Auto-create or look up parent user when parent_email is provided but no parent_id
+        let resolvedParentId = parent_id || null;
+        let tempPassword = null;
+
+        if (parent_email && !parent_id) {
+            const existingParent = await prisma.user.findUnique({ where: { email: parent_email } });
+            if (existingParent) {
+                resolvedParentId = existingParent.id;
+            } else {
+                tempPassword = crypto.randomBytes(8).toString('base64url');
+                const hashedPassword = await bcrypt.hash(tempPassword, 12);
+                const newParent = await prisma.user.create({
+                    data: {
+                        name: parent_name || 'Parent',
+                        email: parent_email,
+                        password: hashedPassword,
+                        phone: parent_phone || null,
+                        role: 'parent',
+                        school_id: schoolId,
+                        is_first_login: true,
+                    },
+                });
+                resolvedParentId = newParent.id;
+            }
+        }
+
         const student = await prisma.student.create({
             data: {
                 name,
                 grade: grade || null,
                 section: section || null,
                 gr_no: gr_no || null,
-                parent_id: parent_id || null,
+                parent_id: resolvedParentId,
                 route_id: route_id || null,
                 stop_id: stop_id || null,
                 photo_url: photo_url || null,
@@ -109,10 +138,10 @@ const createStudent = async (req, res) => {
             });
         }
 
-        if (parent_id) {
+        if (resolvedParentId) {
             await prisma.notification.create({
                 data: {
-                    user_id: parent_id,
+                    user_id: resolvedParentId,
                     school_id: schoolId,
                     type: 'info',
                     message: `${name} has been registered as your child in the school bus system.`,
@@ -130,7 +159,7 @@ const createStudent = async (req, res) => {
         });
 
         await logAction({ req, action: 'create_student', targetType: 'student', targetId: student.id });
-        res.status(201).json(fullStudent);
+        res.status(201).json({ ...fullStudent, temp_password: tempPassword });
     } catch (error) {
         console.error('createStudent error:', error);
         res.status(500).json({ error: 'Error creating student' });

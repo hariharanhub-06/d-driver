@@ -19,10 +19,11 @@ const phoneNumber = z.string().regex(/^\+?[0-9]{7,15}$/).optional();
 
 const busSchema = z.object({
   bus_number: z.string().min(1),
-  capacity: z.number().int().positive(),
+  capacity: z.number().int().positive().optional(),
   registration_no: z.string().optional(),
   mileage: z.number().positive().optional(),
   initial_fuel_liters: z.number().nonnegative().optional(),
+  school_id: z.string().optional(),
 });
 
 const driverSchema = z.object({
@@ -60,6 +61,8 @@ const studentSchema = z.object({
   stop_id: z.string().uuid().optional(),
   parent_email: z.string().email().optional(),
   parent_phone: phoneNumber,
+  parent_name: z.string().optional(),
+  school_id: z.string().optional(),
   // Fee structure
   fee_amount: z.number().positive().optional(),
   fee_frequency: z.enum(['monthly', 'weekly', 'quarterly', 'half-yearly', 'yearly']).optional(),
