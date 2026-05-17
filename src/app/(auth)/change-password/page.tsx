@@ -15,17 +15,8 @@ export default function ChangePasswordPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const router = useRouter();
-
-  const getDashboardRoute = (role?: string) => {
-    switch (role) {
-      case 'super_admin': return '/super-admin/dashboard';
-      case 'driver': return '/driver/dashboard';
-      case 'parent': return '/parent/dashboard';
-      default: return '/admin/dashboard';
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +38,20 @@ export default function ChangePasswordPage() {
         current_password: currentPassword,
         new_password: newPassword,
       });
-      router.push(getDashboardRoute(user?.role));
+
+      // AuthContext user may be null if this is a first-login redirect (login() was never
+      // called — only localStorage was set). Read directly from localStorage and call login()
+      // so AuthContext state is populated and routing goes to the correct dashboard.
+      const token = localStorage.getItem('access_token') || '';
+      const refreshToken = localStorage.getItem('refresh_token') || undefined;
+      const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+      const resolvedUser = user || storedUser;
+
+      if (resolvedUser && token) {
+        login(token, { ...resolvedUser, is_first_login: false }, refreshToken);
+      } else {
+        router.push('/login');
+      }
     } catch (err: any) {
       const message = err.response?.data?.error || err.response?.data?.message || 'Failed to change password. Please try again.';
       setError(message);
