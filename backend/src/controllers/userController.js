@@ -221,10 +221,25 @@ const createUser = async (req, res) => {
 
         if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
 
-        const existing = await prisma.user.findUnique({ where: { email } });
-        if (existing) return res.status(409).json({ error: 'A user with this email already exists' });
-
         const rawPassword = req.body.password || crypto.randomBytes(8).toString('base64url');
+
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing) {
+            // Orphaned driver user (deleted Driver record but User row remained) — reuse the account
+            if (existing.role === 'driver' && role === 'driver') {
+                const linkedDriver = await prisma.driver.findUnique({ where: { user_id: existing.id } });
+                if (!linkedDriver) {
+                    const hashedPassword = await bcrypt.hash(rawPassword, 12);
+                    const updated = await prisma.user.update({
+                        where: { id: existing.id },
+                        data: { name, phone, school_id: school_id || null, password: hashedPassword, is_first_login: true, is_active: true },
+                        select: { id: true, name: true, email: true, phone: true, role: true, school_id: true, created_at: true },
+                    });
+                    return res.status(201).json(updated);
+                }
+            }
+            return res.status(409).json({ error: 'A user with this email already exists' });
+        }
         const hashedPassword = await bcrypt.hash(rawPassword, 12);
         const user = await prisma.user.create({
             data: { name, email, password: hashedPassword, role, school_id: school_id || null, phone, is_first_login: true, is_active: true },
