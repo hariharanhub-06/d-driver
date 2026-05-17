@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Bus, Eye, EyeOff } from 'lucide-react';
+import { Bus, Eye, EyeOff, CheckCircle2, MapPin, Users, BarChart3 } from 'lucide-react';
 import api from '@/lib/api';
 
 export default function LoginPage() {
@@ -17,7 +17,6 @@ export default function LoginPage() {
     const { login } = useAuth();
     const router = useRouter();
 
-    // Fetch school branding from cookie slug (set by middleware)
     useEffect(() => {
         const slug = document.cookie
             .split('; ')
@@ -40,6 +39,8 @@ export default function LoginPage() {
         }
     }, []);
 
+    const brandColor = currentSchool?.color || 'var(--brand)';
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -47,10 +48,8 @@ export default function LoginPage() {
 
         try {
             const response = await api.post('/auth/login', { email, password });
-
             const { access_token, refresh_token, user } = response.data;
 
-            // Handle first login — redirect to change-password before dashboard
             if (user?.is_first_login === true) {
                 localStorage.setItem('access_token', access_token);
                 if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
@@ -61,132 +60,190 @@ export default function LoginPage() {
 
             login(access_token, user, refresh_token);
         } catch (err: any) {
-            let errorMessage = 'Verification failed. Please check your credentials.';
-
+            const msg = err.response?.data?.error || err.response?.data?.message;
             if (err.response?.status === 503) {
-                errorMessage = 'Service temporarily unavailable. Please try again later.';
-            } else if (err.response?.data?.message) {
-                errorMessage = err.response.data.message;
+                setError('Service temporarily unavailable. Please try again later.');
+            } else {
+                setError(msg || 'Invalid email or password.');
             }
-
-            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
     };
 
+    const features = [
+        { icon: MapPin, text: 'Live GPS tracking for every bus' },
+        { icon: Users, text: 'Manage students, drivers & parents' },
+        { icon: BarChart3, text: 'Attendance, fees & reports in one place' },
+    ];
+
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
-            <div className="flex w-full max-w-3xl gap-6">
-                {/* Left panel — desktop only */}
-                <div
-                    className="hidden lg:flex flex-col justify-center bg-[var(--brand)] text-white rounded-2xl p-10 w-[420px] shrink-0"
-                    style={currentSchool?.color ? { backgroundColor: currentSchool.color } : undefined}
-                >
-                    <div className="mb-6">
-                        {currentSchool?.logo ? (
-                            <img
-                                src={currentSchool.logo}
-                                alt="School Logo"
-                                className="w-16 h-16 object-contain rounded-2xl bg-white/10 p-2"
-                            />
-                        ) : (
-                            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center">
-                                <Bus className="w-8 h-8 text-white" />
-                            </div>
-                        )}
+        <div className="min-h-screen flex">
+            {/* ── Left brand panel ─────────────────────────────── */}
+            <div
+                className="hidden lg:flex lg:w-[52%] flex-col relative overflow-hidden"
+                style={{ backgroundColor: currentSchool?.color || 'var(--brand)' }}
+            >
+                {/* Decorative circles */}
+                <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-white/5" />
+                <div className="absolute top-1/3 -right-16 w-64 h-64 rounded-full bg-white/5" />
+                <div className="absolute -bottom-20 left-1/4 w-80 h-80 rounded-full bg-white/5" />
+
+                <div className="relative z-10 flex flex-col justify-center flex-1 px-14 py-16">
+                    {/* Logo */}
+                    <div className="flex items-center gap-3 mb-16">
+                        <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                            <Bus className="w-7 h-7 text-white" />
+                        </div>
+                        <span className="text-white font-bold text-xl tracking-tight">D-Driver</span>
                     </div>
-                    <h2 className="text-3xl font-bold mb-3 leading-tight">
-                        {currentSchool?.name || 'D-Driver'}
-                    </h2>
-                    <p className="text-white/70 text-base leading-relaxed">
-                        Manage your school bus transport with ease
+
+                    {/* School branding or default */}
+                    {currentSchool?.logo ? (
+                        <img
+                            src={currentSchool.logo}
+                            alt={currentSchool.name}
+                            className="w-20 h-20 object-contain rounded-2xl bg-white/10 p-2 mb-8"
+                        />
+                    ) : null}
+
+                    <h1 className="text-4xl font-bold text-white leading-tight mb-4">
+                        {currentSchool?.name
+                            ? `${currentSchool.name}`
+                            : 'School Bus\nManagement\nSimplified'}
+                    </h1>
+
+                    <p className="text-white/70 text-lg leading-relaxed mb-12 max-w-sm">
+                        {currentSchool?.name
+                            ? 'Manage your school bus transport with ease'
+                            : 'Everything you need to run safe, efficient student transport — in one platform.'}
                     </p>
+
+                    {/* Feature list */}
+                    <div className="space-y-4">
+                        {features.map(({ icon: Icon, text }) => (
+                            <div key={text} className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                                    <Icon className="w-4 h-4 text-white" />
+                                </div>
+                                <span className="text-white/85 text-sm font-medium">{text}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
-                {/* Right panel — login form */}
-                <div className="flex-1 flex items-center justify-center p-8">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-sm p-8">
-                        {/* Brand logo */}
-                        <div className="w-12 h-12 rounded-2xl bg-[var(--brand)] flex items-center justify-center mx-auto mb-6">
-                            <Bus className="w-6 h-6 text-white" />
+                {/* Bottom accent line */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20" />
+            </div>
+
+            {/* ── Right form panel ─────────────────────────────── */}
+            <div className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-slate-900 px-6 py-12">
+                {/* Mobile-only logo */}
+                <div className="flex items-center gap-2 mb-10 lg:hidden">
+                    <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center"
+                        style={{ backgroundColor: currentSchool?.color || 'var(--brand)' }}
+                    >
+                        <Bus className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="font-bold text-slate-900 dark:text-white text-lg">D-Driver</span>
+                </div>
+
+                <div className="w-full max-w-sm">
+                    {/* Heading */}
+                    <div className="mb-8">
+                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                            Welcome back
+                        </h2>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">
+                            Sign in to your account to continue
+                        </p>
+                    </div>
+
+                    {/* Error */}
+                    {error && (
+                        <div className="flex items-start gap-2.5 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 mb-5">
+                            <span className="mt-0.5 shrink-0">⚠</span>
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    {/* Form */}
+                    <form onSubmit={handleLogin} className="space-y-5">
+                        {/* Email */}
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                Email address
+                            </label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all"
+                                style={{ '--tw-ring-color': currentSchool?.color || 'var(--brand)' } as React.CSSProperties}
+                                placeholder="you@school.com"
+                                required
+                                autoComplete="email"
+                            />
                         </div>
 
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-1">
-                            Welcome back
-                        </h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
-                            Sign in to your account
-                        </p>
-
-                        {error && (
-                            <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2.5 mb-4">
-                                {error}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleLogin} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                                    Email
+                        {/* Password */}
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                    Password
                                 </label>
+                                <Link
+                                    href="/forgot-password"
+                                    className="text-xs font-medium hover:underline"
+                                    style={{ color: currentSchool?.color || 'var(--brand)' }}
+                                >
+                                    Forgot password?
+                                </Link>
+                            </div>
+                            <div className="relative">
                                 <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
-                                    placeholder="admin@school.com"
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all pr-11"
+                                    style={{ '--tw-ring-color': currentSchool?.color || 'var(--brand)' } as React.CSSProperties}
+                                    placeholder="••••••••"
                                     required
+                                    autoComplete="current-password"
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
+                                >
+                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
                             </div>
+                        </div>
 
-                            <div>
-                                <div className="flex justify-between items-center mb-1.5">
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        Password
-                                    </label>
-                                    <Link
-                                        href="/forgot-password"
-                                        className="text-sm text-[var(--brand)] hover:underline font-medium"
-                                    >
-                                        Forgot password?
-                                    </Link>
-                                </div>
-                                <div className="relative">
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors pr-10"
-                                        placeholder="••••••••"
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                                    >
-                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
-                            </div>
+                        {/* Submit */}
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full text-white rounded-xl py-3 font-semibold text-sm transition-all active:scale-[0.98] disabled:opacity-60 mt-1 flex items-center justify-center gap-2"
+                            style={{ backgroundColor: currentSchool?.color || 'var(--brand)' }}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Signing in…
+                                </>
+                            ) : (
+                                'Sign in'
+                            )}
+                        </button>
+                    </form>
 
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="w-full bg-[var(--brand)] hover:opacity-90 text-white rounded-xl py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50 mt-2"
-                            >
-                                {isLoading ? (
-                                    <span className="flex items-center justify-center gap-2">
-                                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                                        Signing in…
-                                    </span>
-                                ) : (
-                                    'Sign in'
-                                )}
-                            </button>
-                        </form>
-                    </div>
+                    {/* Footer */}
+                    <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-8">
+                        D-Driver · School Bus Management Platform
+                    </p>
                 </div>
             </div>
         </div>

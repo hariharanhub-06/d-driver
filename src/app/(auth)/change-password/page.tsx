@@ -43,13 +43,13 @@ export default function ChangePasswordPage() {
 
     setIsLoading(true);
     try {
-      await api.put('/auth/change-password', {
+      await api.post('/auth/change-password', {
         current_password: currentPassword,
         new_password: newPassword,
       });
       router.push(getDashboardRoute(user?.role));
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to change password. Please try again.';
+      const message = err.response?.data?.error || err.response?.data?.message || 'Failed to change password. Please try again.';
       setError(message);
     } finally {
       setIsLoading(false);
