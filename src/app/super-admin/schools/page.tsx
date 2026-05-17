@@ -396,12 +396,11 @@ export default function SchoolsManagement() {
                 </div>
             )}
 
-            {/* ── CREATE / EDIT MODAL ────────────────────────────────────────────── */}
+            {/* ── CREATE / EDIT MODAL (full screen) ─────────────────────────────── */}
             {isModalOpen && (
                 <>
-                    <Backdrop onClick={() => !isSubmitting && setIsModalOpen(false)} />
-                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none">
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col pointer-events-auto">
+                    <div className="fixed inset-0 z-[110] flex flex-col bg-white dark:bg-slate-900">
+                        <div className="w-full max-w-2xl mx-auto flex flex-col h-full">
                             {/* Header */}
                             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700 shrink-0">
                                 <div className="flex items-center gap-3">
@@ -575,11 +574,11 @@ export default function SchoolsManagement() {
                                 </div>
 
                                 {/* Footer */}
-                                <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 shrink-0 flex gap-3">
-                                    <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0 flex gap-3">
+                                    <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                         Cancel
                                     </button>
-                                    <button type="submit" disabled={isSubmitting} className="flex-1 py-2.5 rounded-xl bg-[var(--brand)] text-white text-sm font-semibold hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+                                    <button type="submit" disabled={isSubmitting} className="flex-1 py-3 rounded-xl bg-[var(--brand)] text-white text-sm font-semibold hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
                                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editingId ? 'Save Changes' : 'Create School'}
                                     </button>
                                 </div>
@@ -589,12 +588,11 @@ export default function SchoolsManagement() {
                 </>
             )}
 
-            {/* ── ADMIN MANAGEMENT MODAL ─────────────────────────────────────────── */}
+            {/* ── ADMIN MANAGEMENT MODAL (full screen) ───────────────────────────── */}
             {adminSchool && (
                 <>
-                    <Backdrop onClick={() => !adminSubmitting && setAdminSchool(null)} />
-                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none">
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col pointer-events-auto">
+                    <div className="fixed inset-0 z-[110] flex flex-col bg-white dark:bg-slate-900">
+                        <div className="w-full max-w-lg mx-auto flex flex-col h-full">
                             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700 shrink-0">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
