@@ -34,7 +34,7 @@ export default function SAUsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/users/sa-users');
+      const { data } = await api.get('/users/sa');
       setUsers(Array.isArray(data) ? data : []);
     } catch {
       setUsers([]);
@@ -52,7 +52,7 @@ export default function SAUsersPage() {
     }
     setSubmitting(true);
     try {
-      await api.post('/users/sa-users', form);
+      await api.post('/users/sa', form);
       setShowModal(false);
       setForm({ name: '', email: '', phone: '' });
       fetchUsers();
@@ -79,7 +79,7 @@ export default function SAUsersPage() {
     if (!confirmDelete) return;
     setActionLoading(confirmDelete.id + '_delete');
     try {
-      await api.delete(`/users/sa-users/${confirmDelete.id}`);
+      await api.delete(`/users/${confirmDelete.id}`);
       setConfirmDelete(null);
       fetchUsers();
     } catch (err: any) {
