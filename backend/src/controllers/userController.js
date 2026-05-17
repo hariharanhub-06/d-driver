@@ -242,6 +242,33 @@ const updateUser = async (req, res) => {
     }
 };
 
+// PATCH /users/:id/reset-password — SA resets any user's password (no current password needed)
+const resetUserPassword = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { new_password } = req.body;
+        if (!new_password || new_password.length < 8) {
+            return res.status(400).json({ error: 'new_password must be at least 8 characters' });
+        }
+        const target = await prisma.user.findUnique({ where: { id }, select: { is_dev_sa: true } });
+        if (!target) return res.status(404).json({ error: 'User not found' });
+        // Only DEV SA can reset DEV SA password; regular SA cannot touch DEV SA
+        if (target.is_dev_sa && !req.user.is_dev_sa) {
+            return res.status(403).json({ error: 'Cannot reset DEV SA password' });
+        }
+        const hashed = await bcrypt.hash(new_password, 12);
+        await prisma.user.update({
+            where: { id },
+            data: { password: hashed, is_first_login: true },
+        });
+        await logAction({ req, action: 'reset_password', targetType: 'user', targetId: id });
+        res.json({ message: 'Password reset. User must change it on next login.' });
+    } catch (error) {
+        console.error('resetUserPassword error:', error.message);
+        res.status(500).json({ error: 'Error resetting password' });
+    }
+};
+
 module.exports = {
     getMe,
     listSchoolUsers,
@@ -252,4 +279,5 @@ module.exports = {
     listSAUsers,
     createSAUser,
     toggleUserActive,
+    resetUserPassword,
 };
