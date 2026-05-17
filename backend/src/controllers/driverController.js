@@ -80,12 +80,17 @@ const deleteDriver = async (req, res) => {
     try {
         const { id } = req.params;
         const schoolId = req.user.role === 'super_admin' ? undefined : req.user.school_id;
-        if (schoolId) {
-            const existing = await prisma.driver.findUnique({ where: { id }, select: { school_id: true } });
-            if (!existing) return res.status(404).json({ error: 'Driver not found' });
-            if (existing.school_id !== schoolId) return res.status(403).json({ error: 'Access denied' });
-        }
+
+        const existing = await prisma.driver.findUnique({ where: { id }, select: { school_id: true, user_id: true } });
+        if (!existing) return res.status(404).json({ error: 'Driver not found' });
+        if (schoolId && existing.school_id !== schoolId) return res.status(403).json({ error: 'Access denied' });
+
         await prisma.driver.delete({ where: { id } });
+        // Delete the linked user account so the credentials are immediately invalidated
+        if (existing.user_id) {
+            await prisma.user.delete({ where: { id: existing.user_id } }).catch(() => {});
+        }
+
         await logAction({ req, action: 'delete_driver', targetType: 'driver', targetId: id });
         res.json({ message: 'Driver deleted successfully' });
     } catch (error) {
