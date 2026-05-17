@@ -52,6 +52,8 @@ const PERMISSIONS: { key: string; label: string }[] = [
 
 type Tab = 'overview' | 'permissions' | 'billing';
 
+const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
+
 export default function SchoolDetailPage() {
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
@@ -130,23 +132,23 @@ export default function SchoolDetailPage() {
 
     const getInvoiceStatusStyle = (status: string) => {
         switch (status?.toLowerCase()) {
-            case 'paid': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-            case 'overdue': return 'bg-red-500/10 text-red-400 border-red-500/20';
-            default: return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            case 'paid': return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
+            case 'overdue': return 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
+            default: return 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
         }
     };
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <Loader2 className="w-10 h-10 text-primary-500 animate-spin" />
+            <div className="flex justify-center py-16">
+                <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
 
     if (!school) {
         return (
-            <div className="text-center py-20 text-white/30 font-bold">
+            <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
                 School not found.
             </div>
         );
@@ -164,26 +166,28 @@ export default function SchoolDetailPage() {
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => router.push('/super-admin/schools')}
-                    className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl text-white/50 hover:text-white transition-all"
+                    className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-3 py-2 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                 >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-4 h-4" />
                 </button>
                 <div className="flex items-center gap-3">
                     {school.logo_url ? (
-                        <img src={school.logo_url} alt={school.name} className="w-10 h-10 rounded-xl object-contain bg-white p-1" />
+                        <img src={school.logo_url} alt={school.name} className="w-10 h-10 rounded-xl object-contain bg-white dark:bg-slate-700 p-1 border border-slate-100 dark:border-slate-600" />
                     ) : (
-                        <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                            <Building2 className="w-5 h-5 text-white/30" />
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center">
+                            <Building2 className="w-5 h-5 text-slate-400" />
                         </div>
                     )}
                     <div>
-                        <h1 className="text-xl font-black text-white tracking-tight">{school.name}</h1>
-                        <p className="text-white/30 text-xs font-bold">{school.slug}</p>
+                        <h1 className="text-xl font-bold text-slate-900 dark:text-white">{school.name}</h1>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs">{school.slug}</p>
                     </div>
                 </div>
                 <span className={cn(
-                    'ml-auto px-3 py-1 rounded-full text-[10px] font-black uppercase border',
-                    school.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
+                    'ml-auto rounded-full px-2.5 py-0.5 text-xs font-medium',
+                    school.status === 'Active'
+                        ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                        : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                 )}>
                     {school.status}
                 </span>
@@ -197,24 +201,24 @@ export default function SchoolDetailPage() {
                     { label: 'Drivers', value: school.drivers?.length || 0 },
                     { label: 'Routes', value: school.routes?.length || 0 },
                 ].map(s => (
-                    <div key={s.label} className="bg-[#111827] rounded-2xl border border-white/5 p-4 text-center">
-                        <p className="text-2xl font-black text-white">{s.value}</p>
-                        <p className="text-[10px] text-white/30 font-black uppercase tracking-widest mt-1">{s.label}</p>
+                    <div key={s.label} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center">
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{s.value}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">{s.label}</p>
                     </div>
                 ))}
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-white/5 rounded-xl p-1">
+            <div className="flex gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl p-1">
                 {tabs.map(tab => (
                     <button
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key)}
                         className={cn(
-                            'flex-1 py-2.5 text-xs font-black uppercase tracking-wider rounded-lg transition-all',
+                            'flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all',
                             activeTab === tab.key
-                                ? 'bg-primary-600 text-white'
-                                : 'text-white/30 hover:text-white'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                         )}
                     >
                         {tab.label}
@@ -224,8 +228,8 @@ export default function SchoolDetailPage() {
 
             {/* Tab content */}
             {activeTab === 'overview' && (
-                <div className="bg-[#111827] rounded-2xl border border-white/5 p-6 space-y-5">
-                    <h3 className="font-black text-white text-sm">School Information</h3>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 space-y-5">
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">School Information</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {[
                             { label: 'School Name', key: 'name' as const },
@@ -236,33 +240,33 @@ export default function SchoolDetailPage() {
                             { label: 'Logo URL', key: 'logo_url' as const },
                         ].map(field => (
                             <div key={field.key}>
-                                <label className="text-[10px] font-black text-white/30 uppercase tracking-widest block mb-2">{field.label}</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{field.label}</label>
                                 <input
                                     type="text"
                                     value={(editForm[field.key] as string) || ''}
                                     onChange={e => setEditForm({ ...editForm, [field.key]: e.target.value })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500 transition-all"
+                                    className={inputCls}
                                 />
                             </div>
                         ))}
                         <div>
-                            <label className="text-[10px] font-black text-white/30 uppercase tracking-widest block mb-2">Primary Color</label>
-                            <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Primary Color</label>
+                            <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5">
                                 <input
                                     type="color"
                                     value={editForm.primary_color || '#2dbc75'}
                                     onChange={e => setEditForm({ ...editForm, primary_color: e.target.value })}
-                                    className="h-8 w-8 rounded-lg bg-transparent cursor-pointer"
+                                    className="h-7 w-7 rounded-lg bg-transparent cursor-pointer"
                                 />
-                                <span className="text-white font-mono text-sm">{editForm.primary_color}</span>
+                                <span className="text-slate-700 dark:text-slate-300 font-mono text-sm">{editForm.primary_color}</span>
                             </div>
                         </div>
                         <div>
-                            <label className="text-[10px] font-black text-white/30 uppercase tracking-widest block mb-2">Subscription Plan</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Subscription Plan</label>
                             <select
                                 value={selectedPlan}
                                 onChange={e => setSelectedPlan(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500"
+                                className={inputCls}
                             >
                                 <option value="">No plan</option>
                                 {plans.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
@@ -275,7 +279,7 @@ export default function SchoolDetailPage() {
                     <button
                         onClick={handleSaveOverview}
                         disabled={saving}
-                        className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-sm disabled:opacity-50 active:scale-95 transition-all"
+                        className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
                     >
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         Save Changes
@@ -284,20 +288,20 @@ export default function SchoolDetailPage() {
             )}
 
             {activeTab === 'permissions' && (
-                <div className="bg-[#111827] rounded-2xl border border-white/5 p-6 space-y-5">
-                    <h3 className="font-black text-white text-sm">Feature Permissions</h3>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 space-y-5">
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Feature Permissions</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {PERMISSIONS.map(perm => (
                             <label
                                 key={perm.key}
-                                className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 cursor-pointer transition-all"
+                                className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl border border-slate-100 dark:border-slate-600 cursor-pointer transition-colors"
                             >
-                                <span className="text-sm font-bold text-white/70">{perm.label}</span>
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{perm.label}</span>
                                 <div
                                     onClick={() => setPermissions(prev => ({ ...prev, [perm.key]: !prev[perm.key] }))}
                                     className={cn(
                                         'w-11 h-6 rounded-full relative transition-all cursor-pointer shrink-0',
-                                        permissions[perm.key] ? 'bg-primary-600' : 'bg-white/10'
+                                        permissions[perm.key] ? 'bg-[var(--brand)]' : 'bg-slate-200 dark:bg-slate-600'
                                     )}
                                 >
                                     <span className={cn(
@@ -311,7 +315,7 @@ export default function SchoolDetailPage() {
                     <button
                         onClick={handleSavePermissions}
                         disabled={saving}
-                        className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-sm disabled:opacity-50 active:scale-95 transition-all"
+                        className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
                     >
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         Save Permissions
@@ -320,21 +324,21 @@ export default function SchoolDetailPage() {
             )}
 
             {activeTab === 'billing' && (
-                <div className="bg-[#111827] rounded-2xl border border-white/5 overflow-hidden">
-                    <div className="px-6 py-5 border-b border-white/5">
-                        <h3 className="font-black text-white text-sm">Invoices for {school.name}</h3>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                    <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700">
+                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Invoices for {school.name}</h3>
                     </div>
                     {invoices.length === 0 ? (
-                        <div className="p-10 text-center text-white/20 font-bold text-sm">No invoices for this school</div>
+                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No invoices for this school</div>
                     ) : (
-                        <div className="divide-y divide-white/5">
+                        <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
                             {invoices.map(inv => (
-                                <div key={inv.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-all">
+                                <div key={inv.id} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                     <div>
-                                        <p className="text-white font-bold text-sm">{inv.billing_month}</p>
-                                        <p className="text-white/30 text-xs font-bold">₹{(inv.total_amount || 0).toLocaleString('en-IN')}</p>
+                                        <p className="text-slate-900 dark:text-white font-semibold text-sm">{inv.billing_month}</p>
+                                        <p className="text-slate-500 dark:text-slate-400 text-xs">₹{(inv.total_amount || 0).toLocaleString('en-IN')}</p>
                                     </div>
-                                    <span className={cn('px-2 py-0.5 rounded-full text-[9px] font-black uppercase border', getInvoiceStatusStyle(inv.status))}>
+                                    <span className={getInvoiceStatusStyle(inv.status)}>
                                         {inv.status}
                                     </span>
                                 </div>

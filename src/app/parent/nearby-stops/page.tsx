@@ -17,8 +17,8 @@ interface NearbyStop {
 
 // Lazy-load the map so it never SSR-crashes
 const MapView = dynamic(() => import('./MapView'), { ssr: false, loading: () => (
-  <div className="w-full h-48 bg-[#0a0a0a] rounded-2xl flex items-center justify-center border border-white/5">
-    <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
+  <div className="w-full h-48 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center border border-slate-200 dark:border-slate-600">
+    <Loader2 className="w-6 h-6 text-[var(--brand)] animate-spin" />
   </div>
 ) });
 
@@ -74,112 +74,106 @@ export default function NearbyStopsPage() {
   }, []);
 
   return (
-    <div className="min-h-full bg-black text-white font-sans pb-8">
-      <div className="absolute top-0 left-0 w-full h-64 bg-blue-600/5 blur-[120px] pointer-events-none" />
+    <div className="space-y-4 p-4">
+      {/* Header */}
+      <div>
+        <h1 className="text-lg font-bold text-slate-900 dark:text-white">Nearby Stops</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Find stops within 2 km</p>
+      </div>
 
-      <div className="relative z-10 p-6 pt-8 space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">Nearby Stops</h1>
-          <p className="text-white/30 font-bold uppercase tracking-widest text-[10px] mt-1">
-            Find stops within 2 km
-          </p>
+      {/* Find location button */}
+      {!coords && (
+        <button
+          onClick={findLocation}
+          disabled={locating}
+          className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center disabled:opacity-60"
+        >
+          {locating ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Locating...</>
+          ) : (
+            <><Navigation className="w-4 h-4" /> Find My Location</>
+          )}
+        </button>
+      )}
+
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+          <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
         </div>
+      )}
 
-        {/* Find location button */}
-        {!coords && (
+      {/* Map */}
+      {coords && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 space-y-3">
+          <MapView center={coords} stops={stops} />
+
+          {/* Re-locate button */}
           <button
             onClick={findLocation}
             disabled={locating}
-            className="w-full flex items-center justify-center gap-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white py-4 rounded-2xl font-black text-sm transition-all active:scale-95"
+            className="flex items-center gap-2 text-[var(--brand)] text-xs font-semibold disabled:opacity-50"
           >
-            {locating ? (
-              <><Loader2 className="w-5 h-5 animate-spin" /> Locating…</>
-            ) : (
-              <><Navigation className="w-5 h-5" /> Find My Location</>
-            )}
+            <Navigation className="w-3.5 h-3.5" />
+            {locating ? 'Updating location...' : 'Update my location'}
           </button>
-        )}
+        </div>
+      )}
 
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-start gap-3">
-            <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-            <p className="text-red-400 text-sm font-bold">{error}</p>
-          </div>
-        )}
+      {/* Stops list */}
+      {coords && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-3">
+            {loadingStops ? 'Searching...' : `${stops.length} stops found`}
+          </h2>
 
-        {/* Map */}
-        {coords && (
-          <div className="space-y-4">
-            <MapView center={coords} stops={stops} />
-
-            {/* Re-locate button */}
-            <button
-              onClick={findLocation}
-              disabled={locating}
-              className="flex items-center gap-2 text-blue-400 text-xs font-black uppercase tracking-widest disabled:opacity-50"
-            >
-              <Navigation className="w-3.5 h-3.5" />
-              {locating ? 'Updating location…' : 'Update my location'}
-            </button>
-          </div>
-        )}
-
-        {/* Stops list */}
-        {coords && (
-          <div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-white/40 border-l-4 border-blue-600 pl-3 mb-4">
-              {loadingStops ? 'Searching…' : `${stops.length} stops found`}
-            </h3>
-
-            {loadingStops ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
-              </div>
-            ) : stops.length === 0 ? (
-              <div className="bg-[#121212] rounded-2xl p-6 border border-white/5 text-center">
-                <MapPin className="w-8 h-8 text-white/20 mx-auto mb-3" />
-                <p className="text-white/30 text-sm font-bold">No stops within 2 km of your location</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {stops.map((stop, idx) => (
-                  <div
-                    key={stop.id}
-                    className="bg-[#121212] rounded-3xl p-5 border border-white/5 flex items-center gap-4"
-                  >
-                    {/* Index badge */}
-                    <div className="w-10 h-10 shrink-0 rounded-2xl bg-blue-600/10 border border-blue-600/20 flex items-center justify-center font-black text-blue-400 text-sm">
-                      {idx + 1}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="font-black text-white text-sm">{stop.name}</p>
-                      {stop.route && (
-                        <p className="text-white/40 text-xs font-bold flex items-center gap-1.5 mt-0.5">
-                          <Bus className="w-3 h-3 text-blue-400" />
-                          {stop.route.name}
-                        </p>
-                      )}
-                      <p className="text-white/20 text-[10px] font-bold mt-1 flex items-center gap-1 uppercase tracking-widest">
-                        <MapPin className="w-3 h-3" />
-                        {formatDistance(stop.distance)}
-                      </p>
-                    </div>
-
-                    <Link
-                      href={`/parent/request?stop_id=${stop.id}&stop_name=${encodeURIComponent(stop.name)}`}
-                      className="shrink-0 flex items-center gap-1.5 bg-white/5 hover:bg-blue-600/20 border border-white/10 hover:border-blue-600/30 text-white/60 hover:text-blue-400 text-xs font-black uppercase tracking-tight px-3 py-2 rounded-xl transition-all"
-                    >
-                      Request <ArrowRight className="w-3 h-3" />
-                    </Link>
+          {loadingStops ? (
+            <div className="flex justify-center py-12">
+              <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : stops.length === 0 ? (
+            <div className="text-center py-8">
+              <MapPin className="w-8 h-8 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
+              <p className="text-sm text-slate-500 dark:text-slate-400">No stops within 2 km of your location</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {stops.map((stop, idx) => (
+                <div
+                  key={stop.id}
+                  className="flex items-center gap-4 py-3 border-b border-slate-50 dark:border-slate-700/50 last:border-0"
+                >
+                  {/* Index badge */}
+                  <div className="w-9 h-9 shrink-0 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center font-bold text-[var(--brand)] text-sm">
+                    {idx + 1}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-slate-900 dark:text-white text-sm">{stop.name}</p>
+                    {stop.route && (
+                      <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
+                        <Bus className="w-3 h-3 text-[var(--brand)]" />
+                        {stop.route.name}
+                      </p>
+                    )}
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {formatDistance(stop.distance)}
+                    </p>
+                  </div>
+
+                  <Link
+                    href={`/parent/request?stop_id=${stop.id}&stop_name=${encodeURIComponent(stop.name)}`}
+                    className="shrink-0 flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-3 py-1.5 text-xs font-semibold hover:border-[var(--brand)] hover:text-[var(--brand)] transition-all"
+                  >
+                    Request <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

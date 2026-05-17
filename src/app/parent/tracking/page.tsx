@@ -110,14 +110,14 @@ export default function ParentTracking() {
 
     if (loading) {
         return (
-            <div className="h-screen flex items-center justify-center bg-slate-900">
-                <Loader2 className="w-10 h-10 text-primary-500 animate-spin" />
+            <div className="flex justify-center py-12">
+                <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col h-screen relative bg-slate-900 overflow-hidden">
+        <div className="flex flex-col h-screen relative bg-slate-50 dark:bg-slate-900 overflow-hidden">
             {/* Map fills the whole background */}
             <div className="absolute inset-0 z-0">
                 <FreeMap center={busPosition} zoom={15} markers={markers} />
@@ -125,74 +125,72 @@ export default function ParentTracking() {
 
             {/* Bus approaching banner */}
             {approaching && (
-                <div className="absolute top-20 left-4 right-4 z-20 bg-amber-500 text-white rounded-2xl px-5 py-3 flex items-center gap-3 shadow-xl animate-bounce">
+                <div className="absolute top-4 left-4 right-4 z-20 bg-amber-500 text-white rounded-2xl px-5 py-3 flex items-center gap-3 shadow-xl animate-bounce">
                     <Bus className="w-5 h-5 shrink-0" />
-                    <span className="font-black text-sm">Bus is approaching your stop!</span>
+                    <span className="font-semibold text-sm">Bus is approaching your stop!</span>
                     <button onClick={() => setApproaching(false)} className="ml-auto text-white/70 hover:text-white">✕</button>
                 </div>
             )}
 
             {/* Top info card */}
-            <div className="absolute top-4 left-4 right-4 z-10 flex gap-3">
-                <div className="flex-1 bg-white/85 backdrop-blur-md rounded-3xl shadow-2xl p-4 border border-white/40 flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/30 shrink-0">
-                        <Bus size={22} />
+            <div className="absolute top-4 left-4 right-16 z-10">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[var(--brand)] text-white rounded-xl flex items-center justify-center shrink-0">
+                        <Bus size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h4 className="font-extrabold text-gray-900 text-base leading-tight truncate">
+                        <h4 className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate">
                             Bus #{busId || '—'}{childData ? ` · ${childData.name}` : ''}
                         </h4>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] font-black text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full uppercase tracking-widest">Live</span>
-                            <p className="text-xs text-gray-500 font-bold flex items-center gap-1">
-                                <Clock size={11} className="text-gray-400" />
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-2 py-0.5 rounded-full uppercase tracking-widest">Live</span>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                <Clock size={10} />
                                 Tracking active
                             </p>
                         </div>
                     </div>
                 </div>
-                <button className="w-14 h-14 bg-white/85 backdrop-blur-md rounded-3xl shadow-2xl flex items-center justify-center border border-white/40 text-gray-600 hover:text-primary-500 transition-all active:scale-95">
-                    <Bell size={22} />
-                </button>
             </div>
 
-            {/* Bottom panel */}
-            <div className="absolute bottom-24 left-4 right-4 z-10">
-                <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-6 border border-white/40">
-                    <div className="flex justify-between items-start mb-5">
-                        <div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Your Stop</p>
-                            <h5 className="font-extrabold text-gray-900 text-lg">
-                                {childData?.stop?.name || 'Home Stop'}
-                            </h5>
-                            <p className="text-xs text-gray-500 mt-0.5">Bus is en route to your location</p>
-                        </div>
-                        <div className="w-10 h-10 bg-green-50 text-green-600 rounded-full flex items-center justify-center shrink-0">
-                            <Navigation size={18} />
-                        </div>
-                    </div>
+            <button className="absolute top-4 right-4 z-10 w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-[var(--brand)] transition-all active:scale-95">
+                <Bell size={20} />
+            </button>
 
-                    {/* Progress bar */}
-                    <div className="relative h-2 bg-gray-100 rounded-full mb-5 overflow-hidden">
-                        <div className="absolute h-full bg-gradient-to-r from-primary-500 to-emerald-500 rounded-full w-[60%] shadow-[0_0_10px_rgba(45,188,117,0.4)] transition-all duration-1000" />
-                        <div className="absolute -top-1 left-[60%] w-4 h-4 bg-white border-4 border-primary-500 rounded-full shadow-md transition-all duration-1000" />
+            {/* ETA/status bar at bottom as overlay card */}
+            <div className="absolute bottom-4 left-4 right-4 z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-4">
+                <div className="flex justify-between items-start mb-4">
+                    <div>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Your Stop</p>
+                        <h5 className="font-bold text-slate-900 dark:text-white text-base">
+                            {childData?.stop?.name || 'Home Stop'}
+                        </h5>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Bus is en route to your location</p>
                     </div>
+                    <div className="w-9 h-9 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center shrink-0">
+                        <Navigation size={16} />
+                    </div>
+                </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <a
-                            href="/parent/request"
-                            className="bg-gray-900 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 text-sm hover:bg-black transition-all active:scale-95"
-                        >
-                            <Navigation size={16} className="text-primary-400" />
-                            Stop Request
-                        </a>
-                        <a
-                            href="/parent/dashboard"
-                            className="bg-white text-gray-900 border border-gray-200 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 text-sm hover:bg-gray-50 transition-all active:scale-95"
-                        >
-                            Back to Home
-                        </a>
-                    </div>
+                {/* Progress bar */}
+                <div className="relative h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full mb-4 overflow-hidden">
+                    <div className="absolute h-full bg-[var(--brand)] rounded-full w-[60%] transition-all duration-1000" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                    <a
+                        href="/parent/request"
+                        className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 justify-center"
+                    >
+                        <Navigation size={14} />
+                        Stop Request
+                    </a>
+                    <a
+                        href="/parent/dashboard"
+                        className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm justify-center"
+                    >
+                        Back to Home
+                    </a>
                 </div>
             </div>
         </div>

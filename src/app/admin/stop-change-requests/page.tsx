@@ -17,9 +17,9 @@ type StopChangeRequest = {
 };
 
 const statusBadge = (s: string) => {
-    if (s === 'approved') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
-    if (s === 'rejected') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-    return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+    if (s === 'approved') return 'inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
+    if (s === 'rejected') return 'inline-flex items-center bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
+    return 'inline-flex items-center bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
 };
 
 export default function StopChangeRequestsPage() {
@@ -68,67 +68,73 @@ export default function StopChangeRequestsPage() {
     return (
         <div className="space-y-6 animate-in">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Stop Change Requests</h1>
-                <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Review parent requests to change student pickup / drop-off stops.</p>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Stop Change Requests</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Review parent requests to change student pickup / drop-off stops.</p>
+                </div>
             </div>
 
             {/* Table */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-gray-100 dark:border-slate-800">
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Student</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Current Stop</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Requested Stop</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Type</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Effective Date</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Reason</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-right text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Actions</th>
+                        <thead className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Current Stop</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Requested Stop</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Effective Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reason</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                        <tbody>
                             {loading ? (
-                                <tr><td colSpan={8} className="px-6 py-12 text-center"><Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto" /></td></tr>
+                                <tr><td colSpan={8} className="px-4 py-3">
+                                    <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin"></div></div>
+                                </td></tr>
                             ) : requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-16 text-center text-gray-400">
-                                        <MapPin className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                        <p className="font-bold">No stop change requests</p>
+                                    <td colSpan={8} className="px-4 py-3">
+                                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
+                                            <MapPin className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                                            <p>No stop change requests</p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : requests.map(req => (
-                                <tr key={req.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors group">
-                                    <td className="px-6 py-4 font-medium text-gray-800 dark:text-white">{req.student?.name || '—'}</td>
-                                    <td className="px-6 py-4">
-                                        <span className="flex items-center gap-1.5 text-gray-500 dark:text-slate-400">
-                                            <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                                <tr key={req.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-medium">{req.student?.name || '—'}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                        <span className="flex items-center gap-1.5">
+                                            <MapPin className="w-3.5 h-3.5 text-slate-400" />
                                             {req.current_stop?.name || '—'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium">
                                             <MapPin className="w-3.5 h-3.5" />
                                             {req.requested_stop?.name || '—'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 rounded-full text-xs font-bold capitalize">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                        <span className="inline-flex items-center bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize">
                                             {req.change_type || '—'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-xs text-gray-400">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         {req.effective_date ? new Date(req.effective_date).toLocaleDateString('en-IN') : '—'}
                                     </td>
-                                    <td className="px-6 py-4 text-gray-500 dark:text-slate-400 max-w-[160px] truncate">{req.reason || '—'}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold capitalize ${statusBadge(req.status)}`}>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 max-w-[160px] truncate">{req.reason || '—'}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                        <span className={`${statusBadge(req.status)} capitalize`}>
                                             {req.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-4 py-3 text-right">
                                         {req.status === 'pending' && (
                                             <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
@@ -141,7 +147,7 @@ export default function StopChangeRequestsPage() {
                                                 </button>
                                                 <button
                                                     onClick={() => { setRejectModal(req); setAdminNote(''); }}
-                                                    className="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1"
+                                                    className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white rounded-lg px-3 py-1.5 font-semibold text-xs"
                                                 >
                                                     <XCircle className="w-3 h-3" /> Reject
                                                 </button>
@@ -157,35 +163,37 @@ export default function StopChangeRequestsPage() {
 
             {/* Reject Modal */}
             {rejectModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-black text-gray-900 dark:text-white">Reject Request</h2>
-                            <button onClick={() => setRejectModal(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl text-gray-400 transition-all"><X className="w-5 h-5" /></button>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Reject Request</h2>
+                            <button onClick={() => setRejectModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="mb-4 p-3 bg-gray-50 dark:bg-slate-800 rounded-xl text-sm space-y-1">
-                            <p className="text-gray-500 dark:text-slate-400">Student: <span className="font-bold text-gray-800 dark:text-white">{rejectModal.student?.name}</span></p>
-                            <p className="text-gray-500 dark:text-slate-400">Requested: <span className="font-bold text-gray-800 dark:text-white">{rejectModal.requested_stop?.name}</span></p>
-                        </div>
-                        <div className="space-y-3">
-                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Reason for Rejection</label>
-                            <textarea
-                                rows={3}
-                                placeholder="Explain why this request is being rejected..."
-                                className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                                value={adminNote}
-                                onChange={e => setAdminNote(e.target.value)}
-                            />
-                        </div>
-                        <div className="flex gap-3 mt-6">
-                            <button onClick={() => setRejectModal(null)} className="flex-1 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl font-semibold text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-all">Cancel</button>
-                            <button
-                                onClick={handleReject}
-                                disabled={isSubmitting}
-                                className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-60"
-                            >
-                                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Confirm Rejection'}
-                            </button>
+                        <div className="p-6 space-y-4">
+                            <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-sm space-y-1">
+                                <p className="text-slate-500 dark:text-slate-400">Student: <span className="font-bold text-slate-800 dark:text-white">{rejectModal.student?.name}</span></p>
+                                <p className="text-slate-500 dark:text-slate-400">Requested: <span className="font-bold text-slate-800 dark:text-white">{rejectModal.requested_stop?.name}</span></p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Reason for Rejection</label>
+                                <textarea
+                                    rows={3}
+                                    placeholder="Explain why this request is being rejected..."
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none"
+                                    value={adminNote}
+                                    onChange={e => setAdminNote(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button onClick={() => setRejectModal(null)} className="flex-1 flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm justify-center">Cancel</button>
+                                <button
+                                    onClick={handleReject}
+                                    disabled={isSubmitting}
+                                    className="flex-1 flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white rounded-xl px-4 py-2.5 font-semibold text-sm justify-center disabled:opacity-60"
+                                >
+                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Rejection'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

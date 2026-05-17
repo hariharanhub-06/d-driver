@@ -117,7 +117,7 @@ export default function DriverAttendancePage() {
     if (loading) {
         return (
             <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
@@ -125,7 +125,7 @@ export default function DriverAttendancePage() {
     if (error) {
         return (
             <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-6">
-                <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl p-6 text-center font-bold">{error}</div>
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl p-6 text-center font-semibold">{error}</div>
             </div>
         );
     }
@@ -133,9 +133,9 @@ export default function DriverAttendancePage() {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
             {/* Header */}
-            <div className="bg-primary-600 text-white p-5 pt-8 shadow-md">
-                <h1 className="text-xl font-black tracking-tight">Attendance</h1>
-                <p className="text-primary-100 text-sm mt-1">
+            <div className="bg-[var(--brand)] text-white p-5 pt-8 shadow-md">
+                <h1 className="text-xl font-bold">Attendance</h1>
+                <p className="text-white/80 text-sm mt-1">
                     {currentStop ? `Stop ${currentStopIndex + 1}/${stops.length}: ${currentStop.name}` : 'No route data'}
                 </p>
             </div>
@@ -149,7 +149,7 @@ export default function DriverAttendancePage() {
                         placeholder="Search student by name..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 pl-11 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-2.5 pl-11 pr-4 text-sm focus:outline-none focus:border-[var(--brand)] dark:text-white transition-colors"
                     />
                 </div>
             </div>
@@ -162,10 +162,10 @@ export default function DriverAttendancePage() {
                             key={stop.id}
                             onClick={() => setCurrentStopIndex(i)}
                             className={cn(
-                                'shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all',
+                                'shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all',
                                 i === currentStopIndex
-                                    ? 'bg-primary-600 text-white'
-                                    : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+                                    ? 'bg-[var(--brand)] text-white'
+                                    : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
                             )}
                         >
                             {stop.name}
@@ -177,12 +177,12 @@ export default function DriverAttendancePage() {
             {/* Current stop info */}
             {!searchQuery && currentStop && (
                 <div className="mx-4 mt-3 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-3">
-                    <div className="p-2.5 bg-primary-50 dark:bg-primary-900/20 rounded-xl">
-                        <MapPin className="w-5 h-5 text-primary-500" />
+                    <div className="p-2.5 bg-[var(--brand)]/10 rounded-xl">
+                        <MapPin className="w-5 h-5 text-[var(--brand)]" />
                     </div>
                     <div>
-                        <h2 className="font-black text-slate-900 dark:text-white">{currentStop.name}</h2>
-                        <p className="text-xs text-slate-400">{currentStop.students.length} students</p>
+                        <h2 className="font-bold text-slate-900 dark:text-white">{currentStop.name}</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{currentStop.students.length} students</p>
                     </div>
                 </div>
             )}
@@ -190,7 +190,7 @@ export default function DriverAttendancePage() {
             {/* Student List */}
             <div className="px-4 mt-4 space-y-3">
                 {filteredStudents.length === 0 ? (
-                    <div className="text-center py-10 text-slate-400 font-bold text-sm">
+                    <div className="text-center py-10 text-slate-500 dark:text-slate-400 text-sm">
                         {searchQuery ? 'No students match your search' : 'No students at this stop'}
                     </div>
                 ) : (
@@ -214,7 +214,7 @@ export default function DriverAttendancePage() {
                                     {student.photo ? (
                                         <img src={student.photo} alt={student.name} className="w-full h-full object-cover" />
                                     ) : (
-                                        <span className="text-lg font-black text-slate-400">
+                                        <span className="text-lg font-bold text-slate-400 dark:text-slate-500">
                                             {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                                         </span>
                                     )}
@@ -222,21 +222,21 @@ export default function DriverAttendancePage() {
 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-black text-slate-900 dark:text-white truncate">{student.name}</p>
-                                    <p className="text-xs text-slate-400 font-medium">{student.grade || 'Student'}</p>
+                                    <p className="font-bold text-slate-900 dark:text-white truncate">{student.name}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">{student.grade || 'Student'}</p>
                                 </div>
 
                                 {/* Status / Actions */}
                                 {preAbsent && !marked ? (
-                                    <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-widest">
-                                        Already Absent
+                                    <span className="bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                                        Absent
                                     </span>
                                 ) : marked ? (
                                     <span className={cn(
-                                        'px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1',
+                                        'rounded-full px-2.5 py-0.5 text-xs font-medium flex items-center gap-1',
                                         marked === 'present'
-                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                                            : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                                            ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                            : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                                     )}>
                                         {marked === 'present' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                                         {marked}
@@ -244,9 +244,9 @@ export default function DriverAttendancePage() {
                                 ) : (
                                     <button
                                         onClick={() => setActiveStudentId(student.id)}
-                                        className="w-9 h-9 bg-primary-50 dark:bg-primary-900/20 rounded-xl flex items-center justify-center hover:bg-primary-100 transition-all active:scale-95"
+                                        className="w-9 h-9 bg-[var(--brand)]/10 rounded-xl flex items-center justify-center hover:bg-[var(--brand)]/20 transition-all active:scale-95"
                                     >
-                                        <ChevronRight className="w-4 h-4 text-primary-500" />
+                                        <ChevronRight className="w-4 h-4 text-[var(--brand)]" />
                                     </button>
                                 )}
                             </div>
@@ -256,69 +256,69 @@ export default function DriverAttendancePage() {
             </div>
 
             {/* Bottom nav */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border-t border-slate-100 dark:border-slate-700 p-4 flex justify-around items-center">
-                <a href="/driver/dashboard" className="flex flex-col items-center text-slate-400 hover:text-slate-600 transition-colors">
+            <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 p-4 flex justify-around items-center">
+                <a href="/driver/dashboard" className="flex flex-col items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                     <Bell className="w-5 h-5" />
-                    <span className="text-[10px] font-bold mt-1">Home</span>
+                    <span className="text-[10px] font-medium mt-1">Home</span>
                 </a>
-                <div className="flex flex-col items-center text-primary-500">
+                <div className="flex flex-col items-center text-[var(--brand)]">
                     <User className="w-5 h-5" />
-                    <span className="text-[10px] font-bold mt-1">Attendance</span>
+                    <span className="text-[10px] font-medium mt-1">Attendance</span>
                 </div>
-                <a href="/driver/ride" className="flex flex-col items-center text-slate-400 hover:text-slate-600 transition-colors">
+                <a href="/driver/ride" className="flex flex-col items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                     <MapPin className="w-5 h-5" />
-                    <span className="text-[10px] font-bold mt-1">Ride</span>
+                    <span className="text-[10px] font-medium mt-1">Ride</span>
                 </a>
             </div>
 
             {/* Mark attendance overlay */}
             {activeStudent && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl">
-                        <div className="bg-gradient-to-br from-primary-500 to-emerald-600 p-10 flex flex-col items-center">
-                            <div className="w-24 h-24 rounded-full bg-white/20 border-4 border-white/40 flex items-center justify-center mb-5 shadow-inner overflow-hidden">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="bg-[var(--brand)] p-8 flex flex-col items-center">
+                            <div className="w-20 h-20 rounded-full bg-white/20 border-4 border-white/40 flex items-center justify-center mb-4 overflow-hidden">
                                 {activeStudent.photo ? (
                                     <img src={activeStudent.photo} alt={activeStudent.name} className="w-full h-full object-cover" />
                                 ) : (
-                                    <span className="text-4xl font-black text-white">
+                                    <span className="text-3xl font-bold text-white">
                                         {activeStudent.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                                     </span>
                                 )}
                             </div>
-                            <h3 className="text-2xl font-black text-white text-center">{activeStudent.name}</h3>
+                            <h3 className="text-xl font-bold text-white text-center">{activeStudent.name}</h3>
                             <p className="text-white/70 text-sm mt-1">{activeStudent.grade || 'Student'}</p>
                         </div>
 
-                        <div className="p-8">
-                            <div className="mb-5">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Note (optional)</label>
+                        <div className="p-6">
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Note (optional)</label>
                                 <input
                                     type="text"
                                     value={markingNote}
                                     onChange={e => setMarkingNote(e.target.value)}
                                     placeholder="Add a note..."
-                                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm dark:text-white"
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-3">
                                 <button
                                     onClick={() => handleMarkAttendance(activeStudent, 'absent')}
-                                    className="py-5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-[1.5rem] font-black flex flex-col items-center gap-2 border border-red-100 dark:border-red-800 hover:bg-red-100 transition-all active:scale-95"
+                                    className="py-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl font-bold flex flex-col items-center gap-2 border border-red-100 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all active:scale-95"
                                 >
-                                    <X size={26} />
+                                    <X size={24} />
                                     Absent
                                 </button>
                                 <button
                                     onClick={() => handleMarkAttendance(activeStudent, 'present')}
-                                    className="py-5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-[1.5rem] font-black flex flex-col items-center gap-2 border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 transition-all active:scale-95"
+                                    className="py-4 bg-[var(--brand)] text-white rounded-2xl font-bold flex flex-col items-center gap-2 hover:opacity-90 transition-all active:scale-95"
                                 >
-                                    <Check size={26} />
+                                    <Check size={24} />
                                     Present
                                 </button>
                             </div>
                             <button
                                 onClick={() => { setActiveStudentId(null); setMarkingNote(''); }}
-                                className="w-full mt-4 py-3 text-xs font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest"
+                                className="w-full mt-4 py-2.5 text-xs font-medium text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                             >
                                 Cancel
                             </button>

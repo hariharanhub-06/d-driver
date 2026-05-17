@@ -196,15 +196,15 @@ export default function ActiveRide() {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col w-full relative overflow-hidden">
             {/* Map */}
-            <div className="flex-1 bg-[#0a0a0a] relative z-0" style={{ minHeight: '60vh' }}>
+            <div className="flex-1 bg-slate-200 dark:bg-slate-800 relative z-0" style={{ minHeight: '60vh' }}>
                 {!loading && (
                     <FreeMap center={currentPos} zoom={15} markers={mapMarkers} />
                 )}
 
-                {/* SOS Button */}
+                {/* SOS Button — keep red */}
                 <button
                     onClick={() => setShowSosConfirm(true)}
-                    className="absolute top-4 right-4 w-14 h-14 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-red-500/40 transition-transform active:scale-95 z-[400] font-black text-xs"
+                    className="absolute top-4 right-4 w-14 h-14 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-red-500/40 transition-transform active:scale-95 z-[400] font-bold text-xs"
                 >
                     SOS
                 </button>
@@ -212,78 +212,85 @@ export default function ActiveRide() {
                 {/* Switch Bus Button */}
                 <button
                     onClick={() => setShowBusSwitch(true)}
-                    className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm border border-white/10 text-white px-4 py-2 rounded-2xl flex items-center gap-2 z-[400] text-xs font-bold hover:bg-black/80 transition-all active:scale-95"
+                    className="absolute top-4 left-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white px-4 py-2 rounded-xl flex items-center gap-2 z-[400] text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 shadow-sm"
                 >
                     <Wrench className="w-4 h-4" /> Switch Bus
                 </button>
             </div>
 
-            {/* Bottom Sheet */}
-            <div className="bg-white dark:bg-slate-800 rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.15)] shrink-0 relative z-20">
-                <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mt-4 mb-5" />
+            {/* Bottom control sheet */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl border-t border-slate-100 dark:border-slate-700 p-5 z-20">
+                <div className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-4" />
 
-                <div className="px-6 pb-2">
-                    {/* Current stop info */}
-                    <div className="flex items-start justify-between mb-4">
-                        <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Current Stop</p>
-                            <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
-                                <Navigation className="w-5 h-5 text-primary-500 shrink-0" />
-                                {currentStop?.name || 'No stop data'}
-                            </h2>
-                            {currentStop?.student_count !== undefined && (
-                                <p className="text-sm text-slate-500 mt-1">{currentStop.student_count} students at this stop</p>
-                            )}
-                        </div>
-                        {nextStop && (
-                            <div className="text-right">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Next</p>
-                                <p className="text-sm font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                                    {nextStop.name} <ChevronRight className="w-3 h-3" />
-                                </p>
-                            </div>
+                {/* Current stop info */}
+                <div className="flex items-start justify-between mb-4">
+                    <div>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Current Stop</p>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Navigation className="w-5 h-5 text-[var(--brand)] shrink-0" />
+                            {currentStop?.name || 'No stop data'}
+                        </h2>
+                        {currentStop?.student_count !== undefined && (
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{currentStop.student_count} students at this stop</p>
                         )}
                     </div>
+                    {nextStop && (
+                        <div className="text-right">
+                            <p className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Next</p>
+                            <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                                {nextStop.name} <ChevronRight className="w-3 h-3" />
+                            </p>
+                        </div>
+                    )}
+                </div>
 
-                    {/* Arrived button */}
+                {/* Arrived button */}
+                <button
+                    onClick={handleArrivedAtStop}
+                    className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center mb-3"
+                >
+                    Arrived at Stop
+                </button>
+
+                {/* Fuel row */}
+                <div className="grid grid-cols-2 gap-3">
                     <button
-                        onClick={handleArrivedAtStop}
-                        className="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-black text-base shadow-lg shadow-primary-600/30 active:scale-95 transition-all mb-4"
+                        onClick={() => setShowFuelFill(true)}
+                        className="py-2.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm border border-amber-100 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all active:scale-95"
                     >
-                        Arrived at Stop
+                        <Fuel className="w-4 h-4" /> Log Fuel Fill
                     </button>
-
-                    {/* Fuel row */}
-                    <div className="grid grid-cols-2 gap-3 pb-6">
-                        <button
-                            onClick={() => setShowFuelFill(true)}
-                            className="py-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl font-bold flex items-center justify-center gap-2 text-sm border border-amber-100 dark:border-amber-800 hover:bg-amber-100 transition-all active:scale-95"
-                        >
-                            <Fuel className="w-4 h-4" /> Log Fuel Fill
-                        </button>
-                        <button
-                            onClick={() => setShowFuelRequest(true)}
-                            className="py-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-xl font-bold flex items-center justify-center gap-2 text-sm border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 transition-all active:scale-95"
-                        >
-                            <DollarSign className="w-4 h-4" /> Request Funds
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => setShowFuelRequest(true)}
+                        className="py-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all active:scale-95"
+                    >
+                        <DollarSign className="w-4 h-4" /> Request Funds
+                    </button>
                 </div>
             </div>
 
             {/* SOS Confirm Modal */}
             {showSosConfirm && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[500] flex items-center justify-center p-6">
-                    <div className="bg-white dark:bg-slate-800 rounded-[2rem] w-full max-w-sm p-8 shadow-2xl">
-                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                            <AlertTriangle className="w-8 h-8 text-red-500" />
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+                        <div className="w-14 h-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <AlertTriangle className="w-7 h-7 text-red-500" />
                         </div>
-                        <h3 className="text-2xl font-black text-center text-slate-900 dark:text-white mb-2">Send SOS Alert?</h3>
-                        <p className="text-slate-500 text-center text-sm mb-8">This will immediately notify school administration of an emergency.</p>
+                        <h3 className="text-lg font-bold text-center text-slate-900 dark:text-white mb-2">Send SOS Alert?</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">This will immediately notify school administration of an emergency.</p>
                         <div className="flex gap-3">
-                            <button onClick={() => setShowSosConfirm(false)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold">Cancel</button>
-                            <button onClick={handleSOS} disabled={submitting} className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-black disabled:opacity-50">
-                                {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Send SOS'}
+                            <button
+                                onClick={() => setShowSosConfirm(false)}
+                                className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm flex-1 justify-center"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSOS}
+                                disabled={submitting}
+                                className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold disabled:opacity-50 text-sm active:scale-95 transition-all"
+                            >
+                                {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Send SOS'}
                             </button>
                         </div>
                     </div>
@@ -292,19 +299,23 @@ export default function ActiveRide() {
 
             {/* Bus Switch Modal */}
             {showBusSwitch && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[500] flex items-end justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-[2rem] w-full max-w-sm p-8 shadow-2xl">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2"><Bus className="w-5 h-5" /> Switch Bus</h3>
-                            <button onClick={() => setShowBusSwitch(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-all"><X className="w-5 h-5 text-slate-400" /></button>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+                        <div className="flex justify-between items-center mb-5">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Bus className="w-5 h-5 text-[var(--brand)]" /> Switch Bus
+                            </h3>
+                            <button onClick={() => setShowBusSwitch(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all">
+                                <X className="w-5 h-5 text-slate-400" />
+                            </button>
                         </div>
-                        <div className="space-y-4 mb-6">
+                        <div className="space-y-4 mb-5">
                             <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Reason</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Reason</label>
                                 <select
                                     value={switchForm.reason}
                                     onChange={e => setSwitchForm({ ...switchForm, reason: e.target.value })}
-                                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm font-bold dark:text-white"
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
                                 >
                                     <option value="breakdown">Breakdown</option>
                                     <option value="accident">Accident</option>
@@ -313,27 +324,31 @@ export default function ActiveRide() {
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Notes</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Notes</label>
                                 <textarea
                                     value={switchForm.notes}
                                     onChange={e => setSwitchForm({ ...switchForm, notes: e.target.value })}
                                     placeholder="Describe the issue..."
-                                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm font-bold dark:text-white resize-none h-20"
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none h-20"
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Current Odometer (km)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km)</label>
                                 <input
                                     type="number"
                                     value={switchForm.current_km}
                                     onChange={e => setSwitchForm({ ...switchForm, current_km: e.target.value })}
                                     placeholder="e.g. 45230"
-                                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm font-bold dark:text-white"
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                                 />
                             </div>
                         </div>
-                        <button onClick={handleBusSwitch} disabled={submitting} className="w-full py-4 bg-slate-900 text-white rounded-xl font-black disabled:opacity-50 active:scale-95 transition-all">
-                            {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Submit Switch Request'}
+                        <button
+                            onClick={handleBusSwitch}
+                            disabled={submitting}
+                            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center disabled:opacity-50"
+                        >
+                            {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Submit Switch Request'}
                         </button>
                     </div>
                 </div>
@@ -341,36 +356,44 @@ export default function ActiveRide() {
 
             {/* Fuel Fill Modal */}
             {showFuelFill && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[500] flex items-end justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-[2rem] w-full max-w-sm p-8 shadow-2xl">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2"><Fuel className="w-5 h-5 text-amber-500" /> Log Fuel Fill</h3>
-                            <button onClick={() => setShowFuelFill(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-5 h-5 text-slate-400" /></button>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+                        <div className="flex justify-between items-center mb-5">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Fuel className="w-5 h-5 text-amber-500" /> Log Fuel Fill
+                            </h3>
+                            <button onClick={() => setShowFuelFill(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all">
+                                <X className="w-5 h-5 text-slate-400" />
+                            </button>
                         </div>
-                        <div className="space-y-4 mb-6">
+                        <div className="space-y-4 mb-5">
                             <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Litres Filled</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Litres Filled</label>
                                 <input
                                     type="number"
                                     value={fuelFillForm.liters_filled}
                                     onChange={e => setFuelFillForm({ ...fuelFillForm, liters_filled: e.target.value })}
                                     placeholder="e.g. 40"
-                                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm font-bold dark:text-white"
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Current Odometer (km)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km)</label>
                                 <input
                                     type="number"
                                     value={fuelFillForm.current_km}
                                     onChange={e => setFuelFillForm({ ...fuelFillForm, current_km: e.target.value })}
                                     placeholder="e.g. 45230"
-                                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm font-bold dark:text-white"
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                                 />
                             </div>
                         </div>
-                        <button onClick={handleFuelFill} disabled={submitting || !fuelFillForm.liters_filled} className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black disabled:opacity-50 active:scale-95 transition-all">
-                            {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Log Fuel Fill'}
+                        <button
+                            onClick={handleFuelFill}
+                            disabled={submitting || !fuelFillForm.liters_filled}
+                            className="py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold disabled:opacity-50 active:scale-95 transition-all w-full text-sm"
+                        >
+                            {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Log Fuel Fill'}
                         </button>
                     </div>
                 </div>
@@ -378,35 +401,43 @@ export default function ActiveRide() {
 
             {/* Fuel Request Modal */}
             {showFuelRequest && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[500] flex items-end justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-[2rem] w-full max-w-sm p-8 shadow-2xl">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2"><DollarSign className="w-5 h-5 text-emerald-500" /> Request Funds</h3>
-                            <button onClick={() => setShowFuelRequest(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X className="w-5 h-5 text-slate-400" /></button>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+                        <div className="flex justify-between items-center mb-5">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <DollarSign className="w-5 h-5 text-emerald-500" /> Request Funds
+                            </h3>
+                            <button onClick={() => setShowFuelRequest(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all">
+                                <X className="w-5 h-5 text-slate-400" />
+                            </button>
                         </div>
-                        <div className="space-y-4 mb-6">
+                        <div className="space-y-4 mb-5">
                             <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Amount Requested (₹)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount Requested (₹)</label>
                                 <input
                                     type="number"
                                     value={fuelReqForm.amount_requested}
                                     onChange={e => setFuelReqForm({ ...fuelReqForm, amount_requested: e.target.value })}
                                     placeholder="e.g. 2000"
-                                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm font-bold dark:text-white"
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Reason</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Reason</label>
                                 <textarea
                                     value={fuelReqForm.reason}
                                     onChange={e => setFuelReqForm({ ...fuelReqForm, reason: e.target.value })}
                                     placeholder="Reason for fund request..."
-                                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm font-bold dark:text-white resize-none h-20"
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none h-20"
                                 />
                             </div>
                         </div>
-                        <button onClick={handleFuelRequest} disabled={submitting || !fuelReqForm.amount_requested} className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black disabled:opacity-50 active:scale-95 transition-all">
-                            {submitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Submit Request'}
+                        <button
+                            onClick={handleFuelRequest}
+                            disabled={submitting || !fuelReqForm.amount_requested}
+                            className="py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold disabled:opacity-50 active:scale-95 transition-all w-full text-sm"
+                        >
+                            {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Submit Request'}
                         </button>
                     </div>
                 </div>

@@ -17,9 +17,9 @@ type Fee = {
 const TABS = ['All', 'Pending', 'Paid', 'Overdue'] as const;
 
 const statusBadge = (s: string) => {
-    if (s === 'paid') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
-    if (s === 'overdue') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-    return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+    if (s === 'paid') return 'inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
+    if (s === 'overdue') return 'inline-flex items-center bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
+    return 'inline-flex items-center bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
 };
 
 export default function FeesPage() {
@@ -100,17 +100,17 @@ export default function FeesPage() {
     return (
         <div className="space-y-6 animate-in">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Fees & Payments</h1>
-                    <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Track outstanding fees, record payments and generate billing cycles.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Fees & Payments</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Track outstanding fees, record payments and generate billing cycles.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    {generateMsg && <span className="text-xs text-emerald-600 font-bold">{generateMsg}</span>}
+                    {generateMsg && <span className="text-xs text-emerald-600 font-semibold">{generateMsg}</span>}
                     <button
                         onClick={handleGenerate}
                         disabled={isGenerating}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-semibold text-sm transition-all disabled:opacity-60"
+                        className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60"
                     >
                         {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                         Generate Fees
@@ -120,26 +120,26 @@ export default function FeesPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-2xl p-5 shadow-sm">
-                    <p className="text-blue-100 text-[10px] font-black uppercase tracking-widest">Total Outstanding</p>
-                    <h3 className="text-3xl font-black mt-2">₹{totalOutstanding.toLocaleString()}</h3>
-                    <div className="mt-3 text-[10px] text-blue-200 font-bold flex items-center gap-1.5">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Total Outstanding</p>
+                    <h3 className="text-3xl font-bold mt-2 text-slate-900 dark:text-white">₹{totalOutstanding.toLocaleString()}</h3>
+                    <div className="mt-3 text-xs text-slate-400 flex items-center gap-1.5">
                         <AlertCircle className="w-3.5 h-3.5" />
                         Across all pending fees
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-5 shadow-sm">
-                    <p className="text-gray-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest">Collected This Month</p>
-                    <h3 className="text-3xl font-black mt-2 text-emerald-600 dark:text-emerald-400">₹{totalCollectedMonth.toLocaleString()}</h3>
-                    <div className="mt-3 text-[10px] text-gray-400 font-bold flex items-center gap-1.5">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Collected This Month</p>
+                    <h3 className="text-3xl font-bold mt-2 text-emerald-600 dark:text-emerald-400">₹{totalCollectedMonth.toLocaleString()}</h3>
+                    <div className="mt-3 text-xs text-slate-400 flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                         Payments recorded
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-5 shadow-sm">
-                    <p className="text-gray-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest">Overdue Fees</p>
-                    <h3 className="text-3xl font-black mt-2 text-red-600 dark:text-red-400">{overdueCount}</h3>
-                    <div className="mt-3 text-[10px] text-gray-400 font-bold flex items-center gap-1.5">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Overdue Fees</p>
+                    <h3 className="text-3xl font-bold mt-2 text-red-600 dark:text-red-400">{overdueCount}</h3>
+                    <div className="mt-3 text-xs text-slate-400 flex items-center gap-1.5">
                         <AlertCircle className="w-3.5 h-3.5 text-red-500" />
                         Immediate action required
                     </div>
@@ -147,64 +147,70 @@ export default function FeesPage() {
             </div>
 
             {/* Table Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                 {/* Tabs */}
-                <div className="flex gap-1 p-3 border-b border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
+                <div className="flex gap-1 p-3 border-b border-slate-100 dark:border-slate-700 flex-wrap">
                     {TABS.map(t => (
                         <button
                             key={t}
                             onClick={() => setTab(t)}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${tab === t ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-slate-300'}`}
+                            className={tab === t
+                                ? 'px-4 py-2 text-sm font-semibold text-[var(--brand)] border-b-2 border-[var(--brand)]'
+                                : 'px-4 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border-b-2 border-transparent'}
                         >
                             {t}
                         </button>
                     ))}
                     <div className="ml-auto relative">
-                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input type="text" placeholder="Search student..." className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg px-3 py-1.5 pl-8 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-48" value={search} onChange={e => setSearch(e.target.value)} />
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input type="text" placeholder="Search student..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2 pl-8 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
                 </div>
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-gray-100 dark:border-slate-800">
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Student</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Amount</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Due Date</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Method</th>
-                                <th className="px-6 py-3 text-right text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Actions</th>
+                        <thead className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Due Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Method</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                        <tbody>
                             {loading ? (
-                                <tr><td colSpan={6} className="px-6 py-12 text-center"><Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto" /></td></tr>
+                                <tr><td colSpan={6} className="px-4 py-3">
+                                    <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin"></div></div>
+                                </td></tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center text-gray-400">
-                                        <IndianRupee className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                        <p className="font-bold">No fees found</p>
+                                    <td colSpan={6} className="px-4 py-3">
+                                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
+                                            <IndianRupee className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                                            <p>No fees found</p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : filtered.map(fee => (
-                                <tr key={fee.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors group">
-                                    <td className="px-6 py-4 font-medium text-gray-800 dark:text-white">{fee.student?.name || '—'}</td>
-                                    <td className="px-6 py-4 font-bold text-gray-800 dark:text-white">₹{fee.amount?.toLocaleString()}</td>
-                                    <td className="px-6 py-4 text-gray-500 dark:text-slate-400 text-xs">
+                                <tr key={fee.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-medium">{fee.student?.name || '—'}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-bold">₹{fee.amount?.toLocaleString()}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         {fee.due_date ? new Date(fee.due_date).toLocaleDateString('en-IN') : '—'}
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold capitalize ${statusBadge(fee.status)}`}>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                        <span className={`${statusBadge(fee.status)} capitalize`}>
                                             {fee.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-gray-500 dark:text-slate-400 text-xs capitalize">{fee.payment_method || '—'}</td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 capitalize">{fee.payment_method || '—'}</td>
+                                    <td className="px-4 py-3 text-right">
                                         {fee.status !== 'paid' && (
                                             <button
                                                 onClick={() => { setSelectedFee(fee); setPayAmount(String(fee.amount)); setIsPayModalOpen(true); }}
-                                                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-all opacity-0 group-hover:opacity-100"
+                                                className="text-xs bg-[var(--brand)] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-semibold transition-all opacity-0 group-hover:opacity-100"
                                             >
                                                 Record Cash
                                             </button>
@@ -219,31 +225,33 @@ export default function FeesPage() {
 
             {/* Payment Modal */}
             {isPayModalOpen && selectedFee && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-black text-gray-900 dark:text-white">Record Cash Payment</h2>
-                            <button onClick={() => setIsPayModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl text-gray-400 transition-all"><X className="w-5 h-5" /></button>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Record Cash Payment</h2>
+                            <button onClick={() => setIsPayModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="mb-4 p-3 bg-gray-50 dark:bg-slate-800 rounded-xl text-sm">
-                            <p className="text-gray-500 dark:text-slate-400">Student</p>
-                            <p className="font-bold text-gray-800 dark:text-white">{selectedFee.student?.name}</p>
-                        </div>
-                        <form onSubmit={handleRecordPayment} className="space-y-4">
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Amount (₹)</label>
-                                <div className="relative">
-                                    <IndianRupee className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                    <input required type="number" step="0.01" className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-2.5 pl-9 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" value={payAmount} onChange={e => setPayAmount(e.target.value)} />
+                        <div className="p-6 space-y-4">
+                            <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-sm">
+                                <p className="text-slate-500 dark:text-slate-400">Student</p>
+                                <p className="font-bold text-slate-800 dark:text-white">{selectedFee.student?.name}</p>
+                            </div>
+                            <form onSubmit={handleRecordPayment} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount (₹)</label>
+                                    <div className="relative">
+                                        <IndianRupee className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input required type="number" step="0.01" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 pl-9 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" value={payAmount} onChange={e => setPayAmount(e.target.value)} />
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setIsPayModalOpen(false)} className="flex-1 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl font-semibold text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-all">Cancel</button>
-                                <button type="submit" disabled={isSubmitting} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-60">
-                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Confirm Payment'}
-                                </button>
-                            </div>
-                        </form>
+                                <div className="flex gap-3 pt-2">
+                                    <button type="button" onClick={() => setIsPayModalOpen(false)} className="flex-1 flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm justify-center">Cancel</button>
+                                    <button type="submit" disabled={isSubmitting} className="flex-1 flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 justify-center disabled:opacity-60">
+                                        {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Payment'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}

@@ -39,7 +39,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
     if (loading || !user) {
         return (
             <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex justify-center items-center">
-                <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
@@ -47,12 +47,12 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
     return (
         <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900">
             {/* Header */}
-            <header className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-5 py-3 shrink-0 flex justify-between items-center z-10 shadow-sm">
+            <header className="bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 h-14 flex items-center justify-between sticky top-0 z-40">
                 <div className="flex items-center gap-3">
                     {branding.logo_url ? (
                         <img src={branding.logo_url} alt={branding.name} className="h-8 w-8 object-contain rounded-lg" />
                     ) : (
-                        <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-[var(--brand)] flex items-center justify-center">
                             <span className="text-white font-black text-sm">{branding.name.charAt(0)}</span>
                         </div>
                     )}
@@ -60,7 +60,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                 </div>
                 <button
                     onClick={() => router.push('/parent/notifications')}
-                    className="relative w-10 h-10 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-xl hover:bg-slate-100 transition-all"
+                    className="relative w-10 h-10 flex items-center justify-center bg-slate-50 dark:bg-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-600 transition-all"
                 >
                     <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                     {unreadCount > 0 && (
@@ -72,33 +72,35 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
             </header>
 
             {/* Main content */}
-            <main className="flex-1 overflow-y-auto w-full max-w-lg mx-auto bg-white dark:bg-slate-950 sm:border-x border-slate-100 dark:border-slate-800 shadow-xl pb-20">
+            <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 pb-20">
                 {children}
             </main>
 
             {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-around items-center px-2 py-2 z-50 safe-area-pb">
-                {tabs.map(tab => {
-                    const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/');
-                    return (
-                        <Link
-                            key={tab.path}
-                            href={tab.path}
-                            data-tour={(tab as any).tourId}
-                            className={cn(
-                                'flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all min-w-[52px]',
-                                isActive
-                                    ? 'text-primary-600 dark:text-primary-400'
-                                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                            )}
-                        >
-                            <tab.icon className={cn('w-5 h-5', isActive && 'scale-110 transition-transform')} />
-                            <span className={cn('text-[10px] font-bold', isActive ? 'font-black' : '')}>{tab.label}</span>
-                        </Link>
-                    );
-                })}
-                <div className="flex flex-col items-center gap-1 px-3 py-2">
-                    <AccountSwitcher />
+            <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 z-40 safe-area-bottom">
+                <div className="flex justify-around items-center px-2 py-1">
+                    {tabs.map(tab => {
+                        const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/');
+                        return (
+                            <Link
+                                key={tab.path}
+                                href={tab.path}
+                                data-tour={(tab as any).tourId}
+                                className={cn(
+                                    'flex flex-col items-center gap-1 py-2 px-3 text-xs font-medium transition-colors',
+                                    isActive
+                                        ? 'text-[var(--brand)]'
+                                        : 'text-slate-400 dark:text-slate-500'
+                                )}
+                            >
+                                <tab.icon className={cn('w-5 h-5', isActive && 'scale-110 transition-transform')} />
+                                <span className={cn('text-[10px] font-bold', isActive ? 'font-black' : '')}>{tab.label}</span>
+                            </Link>
+                        );
+                    })}
+                    <div className="flex flex-col items-center gap-1 py-2 px-3">
+                        <AccountSwitcher />
+                    </div>
                 </div>
             </nav>
         </div>

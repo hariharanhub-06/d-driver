@@ -30,6 +30,8 @@ type LineItem = { label: string; metric: string; unit_rate: string };
 
 const METRICS = ['per_bus', 'per_student', 'per_driver', 'per_route', 'flat_fee'];
 
+const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
+
 export default function BillingPage() {
     const [plans, setPlans] = useState<Plan[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -139,52 +141,56 @@ export default function BillingPage() {
         return true;
     });
 
-    const getStatusStyle = (status: string) => {
+    const getStatusBadge = (status: string) => {
         switch (status?.toLowerCase()) {
-            case 'paid': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-            case 'overdue': return 'bg-red-500/10 text-red-400 border-red-500/20';
-            default: return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            case 'paid': return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
+            case 'overdue': return 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
+            default: return 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
         }
     };
 
     return (
-        <div className="space-y-8 animate-in">
+        <div className="space-y-6 animate-in">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-black text-white tracking-tighter flex items-center gap-3">
-                    <CreditCard className="w-7 h-7 text-primary-400" />
-                    Billing
-                </h1>
-                <p className="text-white/30 text-xs font-bold uppercase tracking-widest mt-1">Pricing plans and invoice management</p>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                        <CreditCard className="w-7 h-7 text-[var(--brand)]" />
+                        Billing
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Pricing plans and invoice management</p>
+                </div>
             </div>
 
             {/* Pricing Plans */}
-            <div className="bg-[#111827] rounded-2xl border border-white/5 overflow-hidden">
-                <div className="px-6 py-5 border-b border-white/5 flex justify-between items-center">
-                    <h3 className="font-black text-white text-sm">Pricing Plans</h3>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Pricing Plans</h3>
                     <button
                         onClick={() => setShowPlanModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-black transition-all active:scale-95"
+                        className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
                     >
-                        <Plus className="w-3.5 h-3.5" /> Create Plan
+                        <Plus className="w-4 h-4" /> Create Plan
                     </button>
                 </div>
                 {loading ? (
-                    <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" /></div>
+                    <div className="flex justify-center py-16">
+                        <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                    </div>
                 ) : plans.length === 0 ? (
-                    <div className="p-10 text-center text-white/20 font-bold text-sm">No pricing plans yet</div>
+                    <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No pricing plans yet</div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
                         {plans.map(plan => (
-                            <div key={plan.id} className="bg-[#0d1117] rounded-xl border border-white/5 p-5 hover:border-primary-500/20 transition-all">
-                                <h4 className="font-black text-white mb-1">{plan.name}</h4>
-                                {plan.description && <p className="text-white/30 text-xs mb-4">{plan.description}</p>}
+                            <div key={plan.id} className="bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-600 p-5 hover:border-[var(--brand)]/30 transition-colors">
+                                <h4 className="font-semibold text-slate-900 dark:text-white mb-1">{plan.name}</h4>
+                                {plan.description && <p className="text-slate-500 dark:text-slate-400 text-xs mb-4">{plan.description}</p>}
                                 {plan.line_items && plan.line_items.length > 0 && (
                                     <div className="space-y-2">
                                         {plan.line_items.map((li, i) => (
                                             <div key={i} className="flex justify-between text-xs">
-                                                <span className="text-white/40 font-bold">{li.label || li.metric}</span>
-                                                <span className="text-primary-400 font-black">₹{li.unit_rate}</span>
+                                                <span className="text-slate-500 dark:text-slate-400 font-medium">{li.label || li.metric}</span>
+                                                <span className="text-[var(--brand)] font-semibold">₹{li.unit_rate}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -196,21 +202,21 @@ export default function BillingPage() {
             </div>
 
             {/* Invoices */}
-            <div className="bg-[#111827] rounded-2xl border border-white/5 overflow-hidden">
-                <div className="px-6 py-5 border-b border-white/5 flex flex-wrap gap-3 items-center justify-between">
-                    <h3 className="font-black text-white text-sm">Invoices</h3>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex flex-wrap gap-3 items-center justify-between">
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Invoices</h3>
                     <div className="flex flex-wrap gap-2 items-center">
                         <input
                             type="text"
                             placeholder="Filter by school..."
                             value={filterSchool}
                             onChange={e => setFilterSchool(e.target.value)}
-                            className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-white text-xs font-bold placeholder:text-white/20 outline-none focus:border-primary-500 w-36"
+                            className="bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-[var(--brand)] w-40"
                         />
                         <select
                             value={filterStatus}
                             onChange={e => setFilterStatus(e.target.value)}
-                            className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-white text-xs font-bold outline-none focus:border-primary-500"
+                            className="bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-1.5 text-sm text-slate-900 dark:text-white outline-none focus:border-[var(--brand)]"
                         >
                             <option value="">All Status</option>
                             <option value="pending">Pending</option>
@@ -219,57 +225,59 @@ export default function BillingPage() {
                         </select>
                         <button
                             onClick={() => setShowInvoiceModal(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-black transition-all active:scale-95"
+                            className="flex items-center gap-1.5 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-3 py-1.5 text-sm font-semibold transition-all active:scale-95"
                         >
-                            <Plus className="w-3 h-3" /> Generate Invoice
+                            <Plus className="w-3.5 h-3.5" /> Generate Invoice
                         </button>
                         <button
                             onClick={handleGenerateAll}
                             disabled={generatingAll}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-black transition-all active:scale-95 disabled:opacity-50"
+                            className="flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-3 py-1.5 text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
                         >
-                            {generatingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Building2 className="w-3 h-3" />}
+                            {generatingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Building2 className="w-3.5 h-3.5" />}
                             Generate All
                         </button>
                     </div>
                 </div>
 
                 {loading ? (
-                    <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" /></div>
+                    <div className="flex justify-center py-16">
+                        <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                    </div>
                 ) : filteredInvoices.length === 0 ? (
-                    <div className="p-10 text-center text-white/20 font-bold text-sm">No invoices found</div>
+                    <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No invoices found</div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-white/5">
+                                <tr className="border-b border-slate-100 dark:border-slate-700">
                                     {['School', 'Billing Month', 'Amount', 'Status', 'Actions'].map(h => (
-                                        <th key={h} className="px-5 py-3 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">{h}</th>
+                                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">{h}</th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody>
                                 {filteredInvoices.map(inv => (
-                                    <tr key={inv.id} className="hover:bg-white/5 transition-all">
-                                        <td className="px-5 py-4">
-                                            <p className="text-white font-bold text-sm">{inv.school?.name || '—'}</p>
+                                    <tr key={inv.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                        <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">
+                                            {inv.school?.name || '—'}
                                         </td>
-                                        <td className="px-5 py-4">
-                                            <p className="text-white/60 font-bold text-sm">{inv.billing_month}</p>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                            {inv.billing_month}
                                         </td>
-                                        <td className="px-5 py-4">
-                                            <p className="text-white font-black text-sm">₹{(inv.total_amount || 0).toLocaleString('en-IN')}</p>
+                                        <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">
+                                            ₹{(inv.total_amount || 0).toLocaleString('en-IN')}
                                         </td>
-                                        <td className="px-5 py-4">
-                                            <span className={cn('px-2 py-0.5 rounded-full text-[9px] font-black uppercase border', getStatusStyle(inv.status))}>
+                                        <td className="px-4 py-3">
+                                            <span className={getStatusBadge(inv.status)}>
                                                 {inv.status || 'pending'}
                                             </span>
                                         </td>
-                                        <td className="px-5 py-4">
+                                        <td className="px-4 py-3">
                                             {inv.status !== 'paid' && (
                                                 <button
                                                     onClick={() => handleRecordPayment(inv.id)}
-                                                    className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl text-[10px] font-black border border-emerald-500/20 transition-all active:scale-95"
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-200 dark:border-emerald-800 transition-all active:scale-95"
                                                 >
                                                     <Check className="w-3 h-3" /> Record Payment
                                                 </button>
@@ -285,39 +293,39 @@ export default function BillingPage() {
 
             {/* Create Plan Modal */}
             {showPlanModal && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-                    <div className="bg-[#111827] border border-white/10 rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden">
-                        <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center">
-                            <h3 className="text-xl font-black text-white">Create Pricing Plan</h3>
-                            <button onClick={() => setShowPlanModal(false)} className="text-white/40 hover:text-white"><X className="w-5 h-5" /></button>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Create Pricing Plan</h3>
+                            <button onClick={() => setShowPlanModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="px-8 py-6 space-y-5 max-h-[70vh] overflow-y-auto">
+                        <div className="p-6 space-y-5">
                             <div>
-                                <label className="text-[10px] font-black text-white/30 uppercase tracking-widest block mb-2">Plan Name</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Plan Name</label>
                                 <input
                                     type="text"
                                     value={planForm.name}
                                     onChange={e => setPlanForm({ ...planForm, name: e.target.value })}
                                     placeholder="e.g. Enterprise"
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500"
+                                    className={inputCls}
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-black text-white/30 uppercase tracking-widest block mb-2">Description</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Description</label>
                                 <input
                                     type="text"
                                     value={planForm.description}
                                     onChange={e => setPlanForm({ ...planForm, description: e.target.value })}
                                     placeholder="Optional description"
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500"
+                                    className={inputCls}
                                 />
                             </div>
                             <div>
                                 <div className="flex justify-between items-center mb-3">
-                                    <label className="text-[10px] font-black text-white/30 uppercase tracking-widest">Line Items</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Line Items</label>
                                     <button
                                         onClick={() => setLineItems([...lineItems, { label: '', metric: 'per_bus', unit_rate: '' }])}
-                                        className="text-[10px] font-black text-primary-400 hover:text-primary-300 flex items-center gap-1"
+                                        className="text-xs font-semibold text-[var(--brand)] hover:opacity-80 flex items-center gap-1"
                                     >
                                         <Plus className="w-3 h-3" /> Add Row
                                     </button>
@@ -330,12 +338,12 @@ export default function BillingPage() {
                                                 placeholder="Label"
                                                 value={li.label}
                                                 onChange={e => setLineItems(prev => prev.map((l, idx) => idx === i ? { ...l, label: e.target.value } : l))}
-                                                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold outline-none focus:border-primary-500"
+                                                className="flex-1 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-[var(--brand)]"
                                             />
                                             <select
                                                 value={li.metric}
                                                 onChange={e => setLineItems(prev => prev.map((l, idx) => idx === i ? { ...l, metric: e.target.value } : l))}
-                                                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold outline-none"
+                                                className="bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white outline-none"
                                             >
                                                 {METRICS.map(m => <option key={m} value={m}>{m}</option>)}
                                             </select>
@@ -344,10 +352,10 @@ export default function BillingPage() {
                                                 placeholder="₹ rate"
                                                 value={li.unit_rate}
                                                 onChange={e => setLineItems(prev => prev.map((l, idx) => idx === i ? { ...l, unit_rate: e.target.value } : l))}
-                                                className="w-20 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold outline-none focus:border-primary-500"
+                                                className="w-20 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-[var(--brand)]"
                                             />
                                             {lineItems.length > 1 && (
-                                                <button onClick={() => setLineItems(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-300">
+                                                <button onClick={() => setLineItems(prev => prev.filter((_, idx) => idx !== i))} className="text-red-500 hover:text-red-600">
                                                     <X className="w-4 h-4" />
                                                 </button>
                                             )}
@@ -356,13 +364,13 @@ export default function BillingPage() {
                                 </div>
                             </div>
                         </div>
-                        <div className="px-8 py-5 border-t border-white/5">
+                        <div className="p-6 border-t border-slate-100 dark:border-slate-700">
                             <button
                                 onClick={handleCreatePlan}
                                 disabled={submitting || !planForm.name}
-                                className="w-full py-3.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black text-sm disabled:opacity-50 active:scale-95 transition-all"
+                                className="w-full flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
                             >
-                                {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Create Plan'}
+                                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Plan'}
                             </button>
                         </div>
                     </div>
@@ -371,42 +379,42 @@ export default function BillingPage() {
 
             {/* Generate Invoice Modal */}
             {showInvoiceModal && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-                    <div className="bg-[#111827] border border-white/10 rounded-[2rem] w-full max-w-sm shadow-2xl">
-                        <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center">
-                            <h3 className="text-xl font-black text-white">Generate Invoice</h3>
-                            <button onClick={() => setShowInvoiceModal(false)} className="text-white/40 hover:text-white"><X className="w-5 h-5" /></button>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Generate Invoice</h3>
+                            <button onClick={() => setShowInvoiceModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="px-8 py-6 space-y-5">
+                        <div className="p-6 space-y-5">
                             <div>
-                                <label className="text-[10px] font-black text-white/30 uppercase tracking-widest block mb-2">School</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">School</label>
                                 <select
                                     value={invoiceForm.school_id}
                                     onChange={e => setInvoiceForm({ ...invoiceForm, school_id: e.target.value })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500"
+                                    className={inputCls}
                                 >
                                     <option value="">Select school</option>
                                     {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[10px] font-black text-white/30 uppercase tracking-widest block mb-2">Billing Month</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Billing Month</label>
                                 <input
                                     type="month"
                                     value={invoiceForm.billing_month}
                                     onChange={e => setInvoiceForm({ ...invoiceForm, billing_month: e.target.value })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500"
+                                    className={inputCls}
                                 />
                             </div>
                         </div>
-                        <div className="px-8 pb-6 flex gap-3">
-                            <button onClick={() => setShowInvoiceModal(false)} className="flex-1 py-3 bg-white/5 text-white/60 rounded-xl font-bold">Cancel</button>
+                        <div className="px-6 pb-6 flex gap-3">
+                            <button onClick={() => setShowInvoiceModal(false)} className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">Cancel</button>
                             <button
                                 onClick={handleGenerateInvoice}
                                 disabled={submitting || !invoiceForm.school_id}
-                                className="flex-1 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-black disabled:opacity-50 active:scale-95 transition-all"
+                                className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
                             >
-                                {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Generate'}
+                                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Generate'}
                             </button>
                         </div>
                     </div>

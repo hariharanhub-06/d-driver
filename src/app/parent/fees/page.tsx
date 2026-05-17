@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CreditCard, CheckCircle2, AlertCircle, Clock, Loader2, IndianRupee } from 'lucide-react';
+import { CreditCard, CheckCircle2, AlertCircle, Clock, IndianRupee } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 
@@ -104,7 +104,7 @@ export default function ParentFees() {
                     }
                 },
                 prefill: {},
-                theme: { color: '#2dbc75' },
+                theme: { color: 'var(--brand)' },
             };
             new (window as any).Razorpay(options).open();
         } catch (e: any) {
@@ -125,58 +125,59 @@ export default function ParentFees() {
         .reduce((sum, f) => sum + f.amount, 0);
 
     return (
-        <div className="min-h-full bg-slate-50 dark:bg-slate-950 pb-8">
+        <div className="space-y-4 p-4">
             {/* Header */}
-            <div className="bg-white dark:bg-slate-900 px-5 pt-6 pb-5 border-b border-slate-100 dark:border-slate-800">
-                <h2 className="text-2xl font-black text-slate-900 dark:text-white">Fee Management</h2>
-                <p className="text-slate-400 text-sm mt-1">Track and pay your children's transport fees</p>
-
-                {pendingTotal > 0 && (
-                    <div className="mt-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 rounded-2xl p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <AlertCircle className="w-5 h-5 text-orange-500 shrink-0" />
-                            <span className="text-sm font-bold text-orange-700 dark:text-orange-300">Total due</span>
-                        </div>
-                        <span className="text-xl font-black text-orange-600 dark:text-orange-400">₹{pendingTotal.toLocaleString('en-IN')}</span>
-                    </div>
-                )}
+            <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Fee Management</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Track and pay your children's transport fees</p>
             </div>
 
-            {/* Tabs */}
-            <div className="px-4 pt-4">
-                <div className="flex p-1 bg-slate-200/60 dark:bg-slate-800 rounded-2xl">
-                    {(['pending', 'paid', 'all'] as Tab[]).map(tab => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={cn(
-                                'flex-1 py-2.5 text-xs font-bold rounded-xl transition-all capitalize',
-                                activeTab === tab
-                                    ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
-                            )}
-                        >
-                            {tab === 'all' ? 'All' : tab === 'paid' ? 'Paid' : 'Pending'}
-                        </button>
-                    ))}
+            {/* Pending total hero */}
+            {pendingTotal > 0 && (
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Total due</span>
+                        </div>
+                        <span className="text-xl font-bold text-amber-600 dark:text-amber-400">₹{pendingTotal.toLocaleString('en-IN')}</span>
+                    </div>
                 </div>
+            )}
+
+            {/* Tabs */}
+            <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                {(['pending', 'paid', 'all'] as Tab[]).map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={cn(
+                            'flex-1 py-2.5 text-xs font-semibold rounded-xl transition-all capitalize',
+                            activeTab === tab
+                                ? 'bg-white dark:bg-slate-700 text-[var(--brand)] shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                        )}
+                    >
+                        {tab === 'all' ? 'All' : tab === 'paid' ? 'Paid' : 'Pending'}
+                    </button>
+                ))}
             </div>
 
             {/* Content */}
-            <div className="px-4 pt-4 space-y-4">
-                {loading ? (
-                    <div className="flex justify-center py-16">
-                        <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-                    </div>
-                ) : error ? (
-                    <div className="bg-red-50 border border-red-100 text-red-600 rounded-2xl p-5 text-sm font-bold text-center">{error}</div>
-                ) : filtered.length === 0 ? (
-                    <div className="text-center py-16">
-                        <IndianRupee className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
-                        <p className="text-slate-400 font-bold text-sm">No fees in this category</p>
-                    </div>
-                ) : (
-                    filtered.map(fee => {
+            {loading ? (
+                <div className="flex justify-center py-12">
+                    <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                </div>
+            ) : error ? (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl p-5 text-sm font-semibold text-center">{error}</div>
+            ) : filtered.length === 0 ? (
+                <div className="text-center py-16">
+                    <IndianRupee className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
+                    <p className="text-sm text-slate-500 dark:text-slate-400">No fees in this category</p>
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {filtered.map(fee => {
                         const daysOverdue = getDaysOverdue(fee.due_date);
                         const isPaid = fee.status === 'paid';
                         const isOverdue = fee.status === 'overdue' || (fee.status === 'pending' && daysOverdue > 0);
@@ -184,37 +185,34 @@ export default function ParentFees() {
                         return (
                             <div
                                 key={fee.id}
-                                className={cn(
-                                    'bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border',
-                                    isPaid ? 'border-slate-100 dark:border-slate-700' :
-                                    isOverdue ? 'border-red-100 dark:border-red-900/30' :
-                                    'border-primary-100 dark:border-primary-900/20'
-                                )}
+                                className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5"
                             >
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
-                                        <h3 className="font-black text-slate-800 dark:text-white text-base">
+                                        <h3 className="font-bold text-slate-800 dark:text-white text-base">
                                             {fee.description || 'Transport Fee'}
                                         </h3>
                                         {fee.student_name && (
-                                            <p className="text-xs text-slate-400 font-medium mt-0.5">{fee.student_name}</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{fee.student_name}</p>
                                         )}
                                     </div>
-                                    <span className="text-2xl font-black text-slate-900 dark:text-white">
+                                    <span className="text-xl font-bold text-slate-900 dark:text-white">
                                         ₹{fee.amount.toLocaleString('en-IN')}
                                     </span>
                                 </div>
 
                                 {isPaid ? (
-                                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        Paid{fee.paid_date ? ` on ${new Date(fee.paid_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                                    <div className="flex items-center gap-2 text-xs font-medium">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                        <span className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                                            Paid{fee.paid_date ? ` on ${new Date(fee.paid_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                                        </span>
                                     </div>
                                 ) : (
                                     <>
                                         {fee.due_date && (
                                             <div className={cn(
-                                                'flex items-center gap-2 text-xs font-bold mb-4 p-3 rounded-xl',
+                                                'flex items-center gap-2 text-xs font-medium mb-4 p-3 rounded-xl',
                                                 isOverdue
                                                     ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
                                                     : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
@@ -230,10 +228,10 @@ export default function ParentFees() {
                                             <button
                                                 onClick={() => handlePayOnline(fee)}
                                                 disabled={payingId === fee.id}
-                                                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-black py-3.5 rounded-xl shadow-lg shadow-primary-600/20 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60"
+                                                className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center disabled:opacity-60"
                                             >
                                                 {payingId === fee.id ? (
-                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                                 ) : (
                                                     <>
                                                         <CreditCard className="w-4 h-4" />
@@ -246,9 +244,9 @@ export default function ParentFees() {
                                 )}
                             </div>
                         );
-                    })
-                )}
-            </div>
+                    })}
+                </div>
+            )}
         </div>
     );
 }

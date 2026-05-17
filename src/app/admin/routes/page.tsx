@@ -18,9 +18,9 @@ type Route = {
 type Bus = { id: string; bus_number: string };
 
 const routeTypeBadge = (t?: string) => {
-    if (t === 'morning') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-    if (t === 'afternoon') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-    return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+    if (t === 'morning') return 'inline-flex items-center bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
+    if (t === 'afternoon') return 'inline-flex items-center bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
+    return 'inline-flex items-center bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
 };
 
 const EMPTY_FORM = { name: '', route_type: 'both' as Route['route_type'], bus_id: '' };
@@ -105,73 +105,85 @@ export default function RoutesPage() {
         setTogglingId(null);
     };
 
+    const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
+    const labelCls = "block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5";
+
     return (
         <div className="space-y-6 animate-in">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Routes</h1>
-                    <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Manage transport routes, bus assignments and active status.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Routes</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage transport routes, bus assignments and active status.</p>
                 </div>
-                <button onClick={openCreate} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-semibold text-sm transition-all">
+                <button
+                    onClick={openCreate}
+                    className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
+                >
                     <Plus className="w-4 h-4" /> Add Route
                 </button>
             </div>
 
             {/* Table */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-gray-100 dark:border-slate-800">
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Route Name</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Type</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Assigned Bus</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Stops</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Active</th>
-                                <th className="px-6 py-3 text-right text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Actions</th>
+                        <thead className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Route Name</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assigned Bus</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stops</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                        <tbody>
                             {loading ? (
-                                <tr><td colSpan={6} className="px-6 py-12 text-center"><Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto" /></td></tr>
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-3">
+                                        <div className="flex justify-center py-16">
+                                            <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    </td>
+                                </tr>
                             ) : routes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center text-gray-400">
-                                        <MapIcon className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                        <p className="font-bold">No routes defined</p>
+                                    <td colSpan={6} className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
+                                        <MapIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                        <p className="font-medium">No routes defined</p>
                                         <p className="text-xs mt-1">Create your first route to get started</p>
                                     </td>
                                 </tr>
                             ) : routes.map(route => (
-                                <tr key={route.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors group">
-                                    <td className="px-6 py-4">
+                                <tr key={route.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                                                <MapIcon className="w-4 h-4 text-blue-600" />
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--brand)]/10 flex items-center justify-center">
+                                                <MapIcon className="w-4 h-4 text-[var(--brand)]" />
                                             </div>
-                                            <span className="font-bold text-gray-800 dark:text-white">{route.name}</span>
+                                            <span className="font-semibold text-slate-800 dark:text-white">{route.name}</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold capitalize ${routeTypeBadge(route.route_type)}`}>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                        <span className={`${routeTypeBadge(route.route_type)} capitalize`}>
                                             {route.route_type || 'Both'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         {route.bus?.bus_number
-                                            ? <span className="font-medium text-gray-700 dark:text-slate-200">{route.bus.bus_number}</span>
-                                            : <span className="text-gray-400 text-xs italic">Unassigned</span>}
+                                            ? <span className="font-medium">{route.bus.bus_number}</span>
+                                            : <span className="text-slate-400 text-xs italic">Unassigned</span>}
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         <button
                                             onClick={() => router.push(`/admin/stops?route_id=${route.id}`)}
-                                            className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-xs font-bold transition-all"
+                                            className="flex items-center gap-1 text-[var(--brand)] hover:opacity-80 text-xs font-semibold transition-all"
                                         >
                                             {route.stops?.length ?? 0} stops <ExternalLink className="w-3 h-3" />
                                         </button>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         <button
                                             onClick={() => toggleActive(route)}
                                             disabled={togglingId === route.id}
@@ -179,13 +191,13 @@ export default function RoutesPage() {
                                         >
                                             {route.is_active
                                                 ? <ToggleRight className="w-7 h-7 text-emerald-500" />
-                                                : <ToggleLeft className="w-7 h-7 text-gray-400" />}
+                                                : <ToggleLeft className="w-7 h-7 text-slate-400" />}
                                         </button>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 text-right">
                                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => openEdit(route)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"><Edit className="w-4 h-4" /></button>
-                                            <button onClick={() => setDeleteId(route.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
+                                            <button onClick={() => openEdit(route)} className="p-2 text-slate-400 hover:text-[var(--brand)] hover:bg-[var(--brand)]/10 rounded-lg transition-all"><Edit className="w-4 h-4" /></button>
+                                            <button onClick={() => setDeleteId(route.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -197,36 +209,46 @@ export default function RoutesPage() {
 
             {/* Add/Edit Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-black text-gray-900 dark:text-white">{editRoute ? 'Edit Route' : 'Add Route'}</h2>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl text-gray-400 transition-all"><X className="w-5 h-5" /></button>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editRoute ? 'Edit Route' : 'Add Route'}</h2>
+                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
                         </div>
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Route Name *</label>
-                                <input required type="text" placeholder="e.g. North Morning Route" className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                                <label className={labelCls}>Route Name *</label>
+                                <input required type="text" placeholder="e.g. North Morning Route" className={inputCls} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Route Type</label>
-                                <select className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" value={formData.route_type} onChange={e => setFormData({ ...formData, route_type: e.target.value as Route['route_type'] })}>
+                                <label className={labelCls}>Route Type</label>
+                                <select className={inputCls} value={formData.route_type} onChange={e => setFormData({ ...formData, route_type: e.target.value as Route['route_type'] })}>
                                     <option value="morning">Morning</option>
                                     <option value="afternoon">Afternoon</option>
                                     <option value="both">Both</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Assign Bus</label>
-                                <select className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" value={formData.bus_id} onChange={e => setFormData({ ...formData, bus_id: e.target.value })}>
+                                <label className={labelCls}>Assign Bus</label>
+                                <select className={inputCls} value={formData.bus_id} onChange={e => setFormData({ ...formData, bus_id: e.target.value })}>
                                     <option value="">No bus assigned</option>
                                     {buses.map(b => <option key={b.id} value={b.id}>{b.bus_number}</option>)}
                                 </select>
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl font-semibold text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-all">Cancel</button>
-                                <button type="submit" disabled={isSubmitting} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-60">
-                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : editRoute ? 'Save Changes' : 'Create Route'}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60"
+                                >
+                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editRoute ? 'Save Changes' : 'Create Route'}
                                 </button>
                             </div>
                         </form>
@@ -236,14 +258,26 @@ export default function RoutesPage() {
 
             {/* Delete Confirm */}
             {deleteId && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center">
-                        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4"><Trash2 className="w-6 h-6 text-red-500" /></div>
-                        <h3 className="font-black text-gray-900 dark:text-white mb-2">Delete this route?</h3>
-                        <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">This will remove the route and its configuration.</p>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+                        <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                            <Trash2 className="w-6 h-6 text-red-500" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Delete this route?</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">This will remove the route and its configuration.</p>
                         <div className="flex gap-3">
-                            <button onClick={() => setDeleteId(null)} className="flex-1 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl font-semibold text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-all">Cancel</button>
-                            <button onClick={() => handleDelete(deleteId)} className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-semibold text-sm transition-all">Delete</button>
+                            <button
+                                onClick={() => setDeleteId(null)}
+                                className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => handleDelete(deleteId)}
+                                className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
+                            >
+                                Delete
+                            </button>
                         </div>
                     </div>
                 </div>

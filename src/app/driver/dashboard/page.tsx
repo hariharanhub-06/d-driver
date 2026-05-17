@@ -123,170 +123,175 @@ export default function DriverDashboard() {
     const fuelLevel = driverInfo?.bus?.fuel_level ?? 0;
 
     return (
-        <div className="min-h-screen bg-black text-white font-sans relative overflow-hidden pb-8">
-            {/* Ambient glow */}
-            <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[100px] rounded-full pointer-events-none" />
-
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-8">
             {/* Top Navigation */}
-            <div className="flex justify-between items-center p-6 pt-8 z-10 relative">
+            <header className="bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 h-14 flex items-center justify-between sticky top-0 z-40">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-xl">
-                        <Bus className="w-6 h-6 text-black" />
+                    <div className="w-9 h-9 rounded-xl bg-[var(--brand)] flex items-center justify-center shadow-sm">
+                        <Bus className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black tracking-tight leading-none uppercase">D-Driver</h2>
-                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mt-1 block">Driver Console</span>
+                        <h2 className="text-sm font-bold text-slate-900 dark:text-white leading-none">D-Driver</h2>
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Driver Console</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <span className="text-white/30 text-xs font-bold">
+                    <span className="text-slate-400 dark:text-slate-500 text-xs font-medium">
                         {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <button onClick={logout} className="w-11 h-11 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 hover:bg-white/10 transition-colors">
-                        <LogOut className="w-5 h-5 text-white/40" />
+                    <button onClick={logout} className="w-9 h-9 bg-slate-50 dark:bg-slate-700 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors">
+                        <LogOut className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                     </button>
                 </div>
-            </div>
+            </header>
 
-            <div className="px-6 space-y-5 z-10 relative">
+            <div className="space-y-4 p-4">
                 {/* Greeting */}
                 <div>
-                    <h1 className="text-3xl font-black tracking-tight">
+                    <h1 className="text-lg font-bold text-slate-900 dark:text-white">
                         {loading ? 'Loading...' : `Hey, ${(driverInfo?.name || user?.name || 'Driver').split(' ')[0]}`}
                     </h1>
-                    <p className="text-white/40 font-bold uppercase tracking-widest text-xs mt-2">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
                         {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
                     </p>
                 </div>
 
                 {error && (
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-red-400 text-sm font-bold flex items-center gap-2">
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 text-red-600 dark:text-red-400 text-sm font-semibold flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
                     </div>
                 )}
 
                 {/* Absence Alert Banner */}
                 {absenceCount > 0 && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-3">
-                        <Bell className="w-5 h-5 text-amber-400 shrink-0" />
-                        <p className="text-amber-300 text-sm font-bold">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex items-center gap-3">
+                        <Bell className="w-5 h-5 text-amber-500 shrink-0" />
+                        <p className="text-amber-700 dark:text-amber-300 text-sm font-semibold">
                             {absenceCount} student{absenceCount > 1 ? 's' : ''} absent today on your route
                         </p>
                     </div>
                 )}
 
-                {/* Shift Status Card */}
-                <div className="bg-[#121212] rounded-[32px] p-7 border border-white/5 shadow-2xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-blue-600/5 rounded-full blur-3xl -mr-24 -mt-24 group-hover:bg-blue-600/10 transition-all" />
-                    <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-6">
+                {/* Shift Status Card — filled brand color when active, white when inactive */}
+                {activeShift ? (
+                    <div className="bg-[var(--brand)] text-white rounded-2xl p-6 shadow-lg">
+                        <div className="flex justify-between items-start mb-5">
                             <div>
-                                <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.3em] mb-2">Shift Status</p>
-                                {activeShift ? (
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                                        <span className="text-green-400 text-sm font-black uppercase tracking-widest">Shift Active</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-white/20" />
-                                        <span className="text-white/40 text-sm font-black uppercase tracking-widest">No Active Shift</span>
-                                    </div>
-                                )}
+                                <p className="text-white/70 text-xs font-medium uppercase tracking-widest mb-2">Shift Status</p>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                    <span className="text-white text-sm font-bold uppercase tracking-widest">Shift Active</span>
+                                </div>
                             </div>
                             {driverInfo?.bus && (
                                 <div className="text-right">
-                                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Assigned Bus</p>
-                                    <p className="text-2xl font-black text-white mt-1">{driverInfo.bus.bus_number}</p>
+                                    <p className="text-white/70 text-xs font-medium uppercase tracking-widest">Assigned Bus</p>
+                                    <p className="text-2xl font-bold text-white mt-1">{driverInfo.bus.bus_number}</p>
                                 </div>
                             )}
                         </div>
-
                         {driverInfo?.license && (
-                            <p className="text-white/30 text-xs font-bold mb-6">License: {driverInfo.license}</p>
+                            <p className="text-white/70 text-xs font-medium mb-5">License: {driverInfo.license}</p>
                         )}
-
-                        {activeShift ? (
-                            <button
-                                onClick={() => openShiftDialog('end')}
-                                className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-red-500/20 active:scale-95 transition-all"
-                            >
-                                End Shift
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => openShiftDialog('start')}
-                                className="w-full py-4 bg-white text-black hover:bg-blue-500 hover:text-white rounded-2xl font-black text-sm shadow-lg active:scale-95 transition-all"
-                            >
-                                Start Shift
-                            </button>
-                        )}
+                        <button
+                            onClick={() => openShiftDialog('end')}
+                            className="w-full py-2.5 bg-white text-[var(--brand)] hover:bg-white/90 rounded-xl font-bold text-sm active:scale-95 transition-all"
+                        >
+                            End Shift
+                        </button>
                     </div>
-                </div>
+                ) : (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+                        <div className="flex justify-between items-start mb-5">
+                            <div>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest mb-2">Shift Status</p>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                                    <span className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest">No Active Shift</span>
+                                </div>
+                            </div>
+                            {driverInfo?.bus && (
+                                <div className="text-right">
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest">Assigned Bus</p>
+                                    <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{driverInfo.bus.bus_number}</p>
+                                </div>
+                            )}
+                        </div>
+                        {driverInfo?.license && (
+                            <p className="text-sm text-slate-500 dark:text-slate-400 text-xs font-medium mb-5">License: {driverInfo.license}</p>
+                        )}
+                        <button
+                            onClick={() => openShiftDialog('start')}
+                            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center"
+                        >
+                            Start Shift
+                        </button>
+                    </div>
+                )}
 
                 {/* Fuel Status */}
                 {driverInfo?.bus && (
-                    <div className="bg-[#121212] rounded-[28px] p-6 border border-white/5">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
-                                <Fuel className="w-4 h-4 text-amber-400" />
-                                <span className="text-xs font-black text-white/40 uppercase tracking-widest">Fuel Level</span>
+                                <Fuel className="w-4 h-4 text-amber-500" />
+                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fuel Level</span>
                             </div>
-                            <span className="text-sm font-black text-white">{fuelLevel}%</span>
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">{fuelLevel}%</span>
                         </div>
-                        <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div
-                                className={`h-full rounded-full transition-all duration-1000 ${fuelLevel > 50 ? 'bg-green-500' : fuelLevel > 25 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                className={`h-full rounded-full transition-all duration-1000 ${fuelLevel > 50 ? 'bg-emerald-500' : fuelLevel > 25 ? 'bg-amber-500' : 'bg-red-500'}`}
                                 style={{ width: `${fuelLevel}%` }}
                             />
                         </div>
                         {fuelLevel < 25 && (
-                            <p className="text-red-400 text-[10px] font-bold mt-2 uppercase tracking-widest">Low fuel — plan refuel</p>
+                            <p className="text-red-500 dark:text-red-400 text-xs font-medium mt-2">Low fuel — plan refuel</p>
                         )}
                     </div>
                 )}
 
                 {/* Today's Routes */}
-                <div>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-black tracking-tight border-l-4 border-blue-600 pl-4 uppercase">Today's Routes</h3>
-                        <span className="text-white/30 text-xs font-bold uppercase">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Today's Routes</h2>
+                        <span className="text-sm text-slate-500 dark:text-slate-400">
                             {loading ? '...' : `${trips.length} assigned`}
                         </span>
                     </div>
 
                     {loading ? (
-                        <div className="flex justify-center p-8">
-                            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        <div className="flex justify-center py-12">
+                            <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                         </div>
                     ) : trips.length === 0 ? (
-                        <div className="bg-[#121212]/60 rounded-[28px] p-8 border border-white/5 text-center">
-                            <Navigation className="w-8 h-8 text-white/10 mx-auto mb-3" />
-                            <p className="text-white/30 font-bold text-sm">No active trips assigned</p>
+                        <div className="text-center py-8">
+                            <Navigation className="w-8 h-8 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
+                            <p className="text-sm text-slate-500 dark:text-slate-400">No active trips assigned</p>
                         </div>
                     ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {trips.map((trip) => (
-                                <div key={trip.id} className="bg-[#121212] rounded-[28px] p-6 border border-white/5 hover:border-white/10 transition-all">
-                                    <div className="flex justify-between items-start mb-4">
+                                <div key={trip.id} className="border border-slate-100 dark:border-slate-700 rounded-xl p-4">
+                                    <div className="flex justify-between items-start mb-3">
                                         <div>
-                                            <h4 className="text-xl font-black tracking-tight mb-1">
+                                            <h4 className="font-bold text-slate-900 dark:text-white">
                                                 {trip.route?.name || 'Route'}
                                             </h4>
                                             {trip.route?.type && (
-                                                <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ${trip.route.type === 'Morning' ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                                                <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${trip.route.type === 'Morning' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'}`}>
                                                     {trip.route.type}
                                                 </span>
                                             )}
                                         </div>
-                                        <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ${trip.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-white/5 text-white/30'}`}>
+                                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${trip.status === 'active' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
                                             {trip.status}
                                         </span>
                                     </div>
                                     {trip.status !== 'active' && (
                                         <button
                                             onClick={() => handleStartTrip(trip.route_id)}
-                                            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-sm active:scale-95 transition-all"
+                                            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center"
                                         >
                                             Start Trip
                                         </button>
@@ -294,7 +299,7 @@ export default function DriverDashboard() {
                                     {trip.status === 'active' && (
                                         <a
                                             href="/driver/ride"
-                                            className="flex items-center justify-center gap-2 w-full py-3 bg-white text-black hover:bg-blue-500 hover:text-white rounded-2xl font-black text-sm active:scale-95 transition-all"
+                                            className="flex items-center justify-center gap-2 w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm active:scale-95 transition-all"
                                         >
                                             Open Map <Navigation className="w-4 h-4" />
                                         </a>
@@ -306,55 +311,57 @@ export default function DriverDashboard() {
                 </div>
 
                 {/* Quick Links */}
-                <div className="grid grid-cols-2 gap-4">
-                    <a href="/driver/attendance" className="bg-[#121212] rounded-[24px] p-5 border border-white/5 hover:border-white/10 transition-all flex flex-col items-start group active:scale-95">
-                        <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-4 border border-emerald-500/20">
-                            <CheckCircle className="w-5 h-5 text-emerald-400" />
+                <div className="grid grid-cols-2 gap-3">
+                    <a href="/driver/attendance" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 flex flex-col items-start active:scale-95 transition-all">
+                        <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-3">
+                            <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
-                        <span className="text-xs font-black text-white uppercase tracking-tight">Attendance</span>
+                        <span className="text-sm font-semibold text-slate-700 dark:text-white">Attendance</span>
                     </a>
-                    <a href="/driver/ride" className="bg-[#121212] rounded-[24px] p-5 border border-white/5 hover:border-white/10 transition-all flex flex-col items-start group active:scale-95">
-                        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center mb-4 border border-blue-500/20">
-                            <Navigation className="w-5 h-5 text-blue-400" />
+                    <a href="/driver/ride" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 flex flex-col items-start active:scale-95 transition-all">
+                        <div className="w-10 h-10 bg-[var(--brand)]/10 rounded-xl flex items-center justify-center mb-3">
+                            <Navigation className="w-5 h-5 text-[var(--brand)]" />
                         </div>
-                        <span className="text-xs font-black text-white uppercase tracking-tight">Live Ride</span>
+                        <span className="text-sm font-semibold text-slate-700 dark:text-white">Live Ride</span>
                     </a>
                 </div>
             </div>
 
             {/* KM Input Dialog */}
             {showKmDialog && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-end justify-center p-4">
-                    <div className="bg-[#111] border border-white/10 rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl">
-                        <h3 className="text-xl font-black text-white mb-1">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
                             {kmDialogMode === 'start' ? 'Start Shift' : 'End Shift'}
                         </h3>
-                        <p className="text-white/40 text-sm font-bold mb-6">Enter current odometer reading</p>
-                        <label className="block text-[10px] font-black text-white/30 uppercase tracking-widest mb-2">
-                            Current Odometer Reading (km)
-                        </label>
-                        <input
-                            type="number"
-                            value={kmValue}
-                            onChange={(e) => setKmValue(e.target.value)}
-                            placeholder="e.g. 45230"
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-lg font-bold outline-none focus:border-blue-500 transition-all mb-6"
-                            autoFocus
-                        />
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">Enter current odometer reading</p>
+                        <div className="mb-5">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                                Current Odometer Reading (km)
+                            </label>
+                            <input
+                                type="number"
+                                value={kmValue}
+                                onChange={(e) => setKmValue(e.target.value)}
+                                placeholder="e.g. 45230"
+                                className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
+                                autoFocus
+                            />
+                        </div>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setShowKmDialog(false)}
-                                className="flex-1 py-4 bg-white/5 text-white/60 rounded-2xl font-bold hover:bg-white/10 transition-all"
+                                className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm flex-1 justify-center"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleShiftAction}
                                 disabled={!kmValue || kmSubmitting}
-                                className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl font-black transition-all active:scale-95"
+                                className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 flex-1 justify-center disabled:opacity-50"
                             >
                                 {kmSubmitting ? (
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 ) : (
                                     kmDialogMode === 'start' ? 'Start Shift' : 'End Shift'
                                 )}

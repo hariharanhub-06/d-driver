@@ -18,8 +18,8 @@ type BusSwitch = {
 type Bus = { id: string; bus_number: string };
 
 const statusBadge = (s: string) => {
-    if (s === 'resolved') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
-    return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+    if (s === 'resolved') return 'inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
+    return 'inline-flex items-center bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
 };
 
 export default function BusSwitchesPage() {
@@ -70,67 +70,73 @@ export default function BusSwitchesPage() {
     return (
         <div className="space-y-6 animate-in">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Bus Switches</h1>
-                <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Handle driver requests to switch buses during routes.</p>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Bus Switches</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Handle driver requests to switch buses during routes.</p>
+                </div>
             </div>
 
             {/* Table */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-gray-100 dark:border-slate-800">
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Driver</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Original Bus</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">New Bus</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Reason</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">KM at Switch</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Date</th>
-                                <th className="px-6 py-3 text-left text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-right text-xs uppercase text-gray-500 dark:text-slate-400 font-bold tracking-wider">Actions</th>
+                        <thead className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Driver</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Original Bus</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">New Bus</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reason</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">KM at Switch</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                        <tbody>
                             {loading ? (
-                                <tr><td colSpan={8} className="px-6 py-12 text-center"><Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto" /></td></tr>
+                                <tr><td colSpan={8} className="px-4 py-3">
+                                    <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin"></div></div>
+                                </td></tr>
                             ) : switches.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-16 text-center text-gray-400">
-                                        <ArrowRightLeft className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                        <p className="font-bold">No bus switch requests</p>
+                                    <td colSpan={8} className="px-4 py-3">
+                                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
+                                            <ArrowRightLeft className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                                            <p>No bus switch requests</p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : switches.map(sw => (
-                                <tr key={sw.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors group">
-                                    <td className="px-6 py-4 font-medium text-gray-800 dark:text-white">{sw.driver?.user?.name || '—'}</td>
-                                    <td className="px-6 py-4">
-                                        <span className="flex items-center gap-1.5 text-gray-600 dark:text-slate-300">
-                                            <BusIcon className="w-4 h-4 text-gray-400" />
+                                <tr key={sw.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-medium">{sw.driver?.user?.name || '—'}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                        <span className="flex items-center gap-1.5">
+                                            <BusIcon className="w-4 h-4 text-slate-400" />
                                             {sw.original_bus?.bus_number || '—'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         {sw.new_bus?.bus_number
                                             ? <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
                                                 <BusIcon className="w-4 h-4" />
                                                 {sw.new_bus.bus_number}
                                               </span>
-                                            : <span className="text-gray-400 text-xs italic">Not assigned</span>}
+                                            : <span className="text-slate-400 text-xs italic">Not assigned</span>}
                                     </td>
-                                    <td className="px-6 py-4 text-gray-500 dark:text-slate-400 max-w-[180px] truncate">{sw.reason || '—'}</td>
-                                    <td className="px-6 py-4 text-gray-500 dark:text-slate-400">{sw.km_at_switch ? `${sw.km_at_switch} km` : '—'}</td>
-                                    <td className="px-6 py-4 text-xs text-gray-400">{sw.created_at ? new Date(sw.created_at).toLocaleDateString('en-IN') : '—'}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold capitalize ${statusBadge(sw.status)}`}>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 max-w-[180px] truncate">{sw.reason || '—'}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{sw.km_at_switch ? `${sw.km_at_switch} km` : '—'}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{sw.created_at ? new Date(sw.created_at).toLocaleDateString('en-IN') : '—'}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                        <span className={`${statusBadge(sw.status)} capitalize`}>
                                             {sw.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-4 py-3 text-right">
                                         {sw.status === 'pending' && (
                                             <button
                                                 onClick={() => { setAssignModal(sw); setSelectedBusId(''); }}
-                                                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-all opacity-0 group-hover:opacity-100"
+                                                className="text-xs bg-[var(--brand)] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-semibold transition-all opacity-0 group-hover:opacity-100"
                                             >
                                                 Assign Bus
                                             </button>
@@ -145,39 +151,41 @@ export default function BusSwitchesPage() {
 
             {/* Assign Bus Modal */}
             {assignModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-black text-gray-900 dark:text-white">Assign Replacement Bus</h2>
-                            <button onClick={() => setAssignModal(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl text-gray-400 transition-all"><X className="w-5 h-5" /></button>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Assign Replacement Bus</h2>
+                            <button onClick={() => setAssignModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="mb-4 p-3 bg-gray-50 dark:bg-slate-800 rounded-xl text-sm space-y-1">
-                            <p className="text-gray-500 dark:text-slate-400">Driver: <span className="font-bold text-gray-800 dark:text-white">{assignModal.driver?.user?.name}</span></p>
-                            <p className="text-gray-500 dark:text-slate-400">Original Bus: <span className="font-bold text-gray-800 dark:text-white">{assignModal.original_bus?.bus_number}</span></p>
-                            {assignModal.reason && <p className="text-gray-500 dark:text-slate-400">Reason: <span className="text-gray-700 dark:text-slate-300">{assignModal.reason}</span></p>}
-                        </div>
-                        <div className="space-y-3">
-                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Select Replacement Bus</label>
-                            <select
-                                className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={selectedBusId}
-                                onChange={e => setSelectedBusId(e.target.value)}
-                            >
-                                <option value="">Choose a bus...</option>
-                                {buses.filter(b => b.id !== assignModal.original_bus?.id).map(b => (
-                                    <option key={b.id} value={b.id}>{b.bus_number}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="flex gap-3 mt-6">
-                            <button onClick={() => setAssignModal(null)} className="flex-1 py-2.5 border border-gray-200 dark:border-slate-700 rounded-xl font-semibold text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-all">Cancel</button>
-                            <button
-                                onClick={handleAssign}
-                                disabled={!selectedBusId || isSubmitting}
-                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50"
-                            >
-                                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Assign Bus'}
-                            </button>
+                        <div className="p-6 space-y-4">
+                            <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-sm space-y-1">
+                                <p className="text-slate-500 dark:text-slate-400">Driver: <span className="font-bold text-slate-800 dark:text-white">{assignModal.driver?.user?.name}</span></p>
+                                <p className="text-slate-500 dark:text-slate-400">Original Bus: <span className="font-bold text-slate-800 dark:text-white">{assignModal.original_bus?.bus_number}</span></p>
+                                {assignModal.reason && <p className="text-slate-500 dark:text-slate-400">Reason: <span className="text-slate-700 dark:text-slate-300">{assignModal.reason}</span></p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Select Replacement Bus</label>
+                                <select
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
+                                    value={selectedBusId}
+                                    onChange={e => setSelectedBusId(e.target.value)}
+                                >
+                                    <option value="">Choose a bus...</option>
+                                    {buses.filter(b => b.id !== assignModal.original_bus?.id).map(b => (
+                                        <option key={b.id} value={b.id}>{b.bus_number}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button onClick={() => setAssignModal(null)} className="flex-1 flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm justify-center">Cancel</button>
+                                <button
+                                    onClick={handleAssign}
+                                    disabled={!selectedBusId || isSubmitting}
+                                    className="flex-1 flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 justify-center disabled:opacity-50"
+                                >
+                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Assign Bus'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

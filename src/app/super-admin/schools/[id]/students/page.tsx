@@ -28,6 +28,8 @@ interface Stop {
     route_id: string;
 }
 
+const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
+
 export default function SchoolStudentsPage() {
     const { id } = useParams<{ id: string }>();
 
@@ -112,73 +114,73 @@ export default function SchoolStudentsPage() {
         <div className="space-y-5">
             {/* Search */}
             <div className="relative max-w-sm">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                     type="text"
                     placeholder="Search students..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="w-full bg-[#161b22] border border-[#30363d] rounded-xl pl-10 pr-4 py-2.5 text-white text-sm font-bold outline-none placeholder:text-white/20 focus:border-blue-500 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                 />
             </div>
 
             {/* Table */}
-            <div className="bg-[#161b22] rounded-2xl border border-[#30363d] overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     {loading ? (
-                        <div className="flex items-center justify-center py-20">
-                            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                        <div className="flex justify-center py-16">
+                            <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                         </div>
                     ) : filtered.length === 0 ? (
-                        <div className="text-center py-16 text-white/20 font-bold text-sm">
+                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
                             {search ? 'No students match your search.' : 'No students found.'}
                         </div>
                     ) : (
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-[#30363d]">
+                                <tr className="border-b border-slate-100 dark:border-slate-700">
                                     {['Student', 'Grade', 'Route', 'Stop', 'Parent', ''].map(col => (
-                                        <th key={col} className="px-5 py-3.5 text-left text-[9px] font-black uppercase tracking-widest text-white/30">
+                                        <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">
                                             {col}
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-[#30363d]">
+                            <tbody>
                                 {filtered.map(student => (
-                                    <tr key={student.id} className="hover:bg-white/[0.02] transition-all">
-                                        <td className="px-5 py-3.5">
+                                    <tr key={student.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                             <div className="flex items-center gap-3">
                                                 {student.photo_url ? (
                                                     <img
                                                         src={student.photo_url}
                                                         alt={student.name}
-                                                        className="w-8 h-8 rounded-full object-cover shrink-0 border border-white/10"
+                                                        className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-100 dark:border-slate-600"
                                                     />
                                                 ) : (
-                                                    <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                                                        <UserCircle2 className="w-4 h-4 text-white/30" />
+                                                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0">
+                                                        <UserCircle2 className="w-4 h-4 text-slate-400" />
                                                     </div>
                                                 )}
-                                                <span className="text-white font-bold text-sm">{student.name}</span>
+                                                <span className="font-semibold text-slate-900 dark:text-white">{student.name}</span>
                                             </div>
                                         </td>
-                                        <td className="px-5 py-3.5">
-                                            <span className="text-white/50 text-sm font-bold">{student.grade || '—'}</span>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                            {student.grade || '—'}
                                         </td>
-                                        <td className="px-5 py-3.5">
-                                            <span className="text-white/50 text-sm font-bold">{student.route_name || '—'}</span>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                            {student.route_name || '—'}
                                         </td>
-                                        <td className="px-5 py-3.5">
-                                            <span className="text-white/50 text-sm font-bold">{student.stop_name || '—'}</span>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                            {student.stop_name || '—'}
                                         </td>
-                                        <td className="px-5 py-3.5">
-                                            <span className="text-white/50 text-sm font-bold">{student.parent_name || '—'}</span>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                            {student.parent_name || '—'}
                                         </td>
-                                        <td className="px-5 py-3.5 text-right">
+                                        <td className="px-4 py-3 text-right">
                                             <button
                                                 onClick={() => openEdit(student)}
-                                                className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 text-[11px] font-black uppercase tracking-widest rounded-lg border border-blue-500/20 transition-all"
+                                                className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-3 py-1.5 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                                             >
                                                 Edit
                                             </button>
@@ -193,16 +195,16 @@ export default function SchoolStudentsPage() {
 
             {/* Edit modal */}
             {editingStudent && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#0d1117] border border-[#30363d] rounded-2xl w-full max-w-md shadow-2xl">
-                        <div className="flex items-center justify-between px-6 py-5 border-b border-[#30363d]">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
                             <div>
-                                <h2 className="text-white font-black text-base">Edit Assignment</h2>
-                                <p className="text-white/30 text-xs font-bold mt-0.5">{editingStudent.name}</p>
+                                <h2 className="text-slate-900 dark:text-white font-bold text-base">Edit Assignment</h2>
+                                <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{editingStudent.name}</p>
                             </div>
                             <button
                                 onClick={() => setEditingStudent(null)}
-                                className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"
                             >
                                 <X className="w-4 h-4" />
                             </button>
@@ -210,11 +212,11 @@ export default function SchoolStudentsPage() {
 
                         <div className="p-6 space-y-4">
                             <div>
-                                <label className="text-[10px] font-black text-white/30 uppercase tracking-widest block mb-2">Route</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Route</label>
                                 <select
                                     value={editForm.route_id}
                                     onChange={e => handleRouteChange(e.target.value)}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-blue-500 transition-all"
+                                    className={inputCls}
                                 >
                                     <option value="">No Route</option>
                                     {routes.map(r => (
@@ -224,12 +226,12 @@ export default function SchoolStudentsPage() {
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black text-white/30 uppercase tracking-widest block mb-2">Stop</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Stop</label>
                                 <select
                                     value={editForm.stop_id}
                                     onChange={e => setEditForm(f => ({ ...f, stop_id: e.target.value }))}
                                     disabled={!editForm.route_id}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-blue-500 transition-all disabled:opacity-40"
+                                    className={`${inputCls} disabled:opacity-40`}
                                 >
                                     <option value="">No Stop</option>
                                     {stops.map(s => (
@@ -239,7 +241,7 @@ export default function SchoolStudentsPage() {
                             </div>
 
                             {editError && (
-                                <p className="text-red-400 text-xs font-bold bg-red-500/10 rounded-lg px-4 py-3 border border-red-500/20">
+                                <p className="text-red-600 dark:text-red-400 text-xs font-medium bg-red-50 dark:bg-red-900/30 rounded-xl px-4 py-3 border border-red-200 dark:border-red-800">
                                     {editError}
                                 </p>
                             )}
@@ -248,14 +250,14 @@ export default function SchoolStudentsPage() {
                         <div className="flex gap-3 px-6 pb-6">
                             <button
                                 onClick={() => setEditingStudent(null)}
-                                className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white/50 rounded-xl font-black text-sm transition-all"
+                                className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSave}
                                 disabled={saving}
-                                className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-sm disabled:opacity-50 transition-all"
+                                className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
                             >
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 Save

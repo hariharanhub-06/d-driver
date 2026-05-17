@@ -50,11 +50,13 @@ function ProgressBar({ pct }: { pct: number }) {
   const clamped = Math.min(100, Math.max(0, pct));
   const color = clamped > 80 ? 'bg-red-500' : clamped > 60 ? 'bg-amber-500' : 'bg-emerald-500';
   return (
-    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mt-1.5">
+    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mt-1.5">
       <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${clamped}%` }} />
     </div>
   );
 }
+
+const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
 
 export default function SAExpensesPage() {
   const [usage, setUsage] = useState<PlatformUsage | null>(null);
@@ -62,7 +64,6 @@ export default function SAExpensesPage() {
   const [expenses, setExpenses] = useState<ManualExpense[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Add expense modal
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({
     label: '',
@@ -131,7 +132,6 @@ export default function SAExpensesPage() {
     }
   };
 
-  // Build revenue-vs-expenses table
   const revenueVsExpenses = (revenue?.monthly_revenue || []).map(m => {
     const manualForMonth = expenses
       .filter(e => e.month === m.month)
@@ -145,161 +145,163 @@ export default function SAExpensesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+      <div className="flex justify-center py-16">
+        <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   const resendPct = usage ? (usage.resend.used / usage.resend.limit) * 100 : 0;
   const imagekitPct = usage ? (usage.imagekit.used_gb / usage.imagekit.limit_gb) * 100 : 0;
-  const neonPct = Math.min(100, ((usage?.neon.estimated_mb ?? 0) / 512) * 100); // 512 MB free tier estimate
+  const neonPct = Math.min(100, ((usage?.neon.estimated_mb ?? 0) / 512) * 100);
 
   return (
-    <div className="space-y-8 animate-in">
+    <div className="space-y-6 animate-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-black text-white tracking-tighter flex items-center gap-3">
-          <TrendingUp className="w-7 h-7 text-primary-400" />
-          Platform Expenses
-        </h1>
-        <p className="text-white/30 text-xs font-bold uppercase tracking-widest mt-1">
-          Service usage, revenue vs costs, and manual expense log
-        </p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+            <TrendingUp className="w-7 h-7 text-[var(--brand)]" />
+            Platform Expenses
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            Service usage, revenue vs costs, and manual expense log
+          </p>
+        </div>
       </div>
 
-      {/* ── Section 1: Service Cards ───────────────────────────────────────── */}
+      {/* Service Cards */}
       <div>
-        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-4">Platform Services — This Month</p>
+        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Platform Services — This Month</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Resend */}
-          <div className="bg-[#161b22] rounded-2xl border border-[#30363d] p-5">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
             <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                <Mail className="w-4 h-4 text-blue-400" />
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-white font-black text-xs">Resend</p>
-                <p className="text-white/30 text-[10px] font-bold">Email service</p>
+                <p className="text-slate-900 dark:text-white font-semibold text-xs">Resend</p>
+                <p className="text-slate-500 dark:text-slate-400 text-xs">Email service</p>
               </div>
             </div>
-            <p className={cn('text-2xl font-black', resendPct > 80 ? 'text-red-400' : 'text-white')}>
+            <p className={cn('text-2xl font-bold', resendPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white')}>
               {usage?.resend.used.toLocaleString() ?? 0}
             </p>
-            <p className="text-white/30 text-[10px] font-bold mt-0.5">
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
               of {usage?.resend.limit.toLocaleString()} emails free
             </p>
             <ProgressBar pct={resendPct} />
-            <p className={cn('text-[10px] font-black mt-1.5', resendPct > 80 ? 'text-red-400' : 'text-white/40')}>
+            <p className={cn('text-xs font-semibold mt-1.5', resendPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400')}>
               {resendPct.toFixed(0)}% used
             </p>
           </div>
 
           {/* ImageKit */}
-          <div className="bg-[#161b22] rounded-2xl border border-[#30363d] p-5">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
             <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-                <Image className="w-4 h-4 text-purple-400" />
+              <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
+                <Image className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <p className="text-white font-black text-xs">ImageKit</p>
-                <p className="text-white/30 text-[10px] font-bold">Media storage</p>
+                <p className="text-slate-900 dark:text-white font-semibold text-xs">ImageKit</p>
+                <p className="text-slate-500 dark:text-slate-400 text-xs">Media storage</p>
               </div>
             </div>
-            <p className={cn('text-2xl font-black', imagekitPct > 80 ? 'text-red-400' : 'text-white')}>
+            <p className={cn('text-2xl font-bold', imagekitPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white')}>
               {usage?.imagekit.used_gb.toFixed(1) ?? 0} GB
             </p>
-            <p className="text-white/30 text-[10px] font-bold mt-0.5">
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
               of {usage?.imagekit.limit_gb} GB free
             </p>
             <ProgressBar pct={imagekitPct} />
-            <p className={cn('text-[10px] font-black mt-1.5', imagekitPct > 80 ? 'text-red-400' : 'text-white/40')}>
+            <p className={cn('text-xs font-semibold mt-1.5', imagekitPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400')}>
               {imagekitPct.toFixed(0)}% used
             </p>
           </div>
 
           {/* Razorpay */}
-          <div className="bg-[#161b22] rounded-2xl border border-[#30363d] p-5">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
             <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                <Zap className="w-4 h-4 text-emerald-400" />
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+                <Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-white font-black text-xs">Razorpay</p>
-                <p className="text-white/30 text-[10px] font-bold">Payment fees (~2%)</p>
+                <p className="text-slate-900 dark:text-white font-semibold text-xs">Razorpay</p>
+                <p className="text-slate-500 dark:text-slate-400 text-xs">Payment fees (~2%)</p>
               </div>
             </div>
-            <p className="text-2xl font-black text-white">
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">
               ₹{(usage?.razorpay.fees_this_month ?? 0).toLocaleString('en-IN')}
             </p>
-            <p className="text-white/30 text-[10px] font-bold mt-0.5">estimated this month</p>
-            <div className="mt-3 text-[10px] font-bold text-white/30">Per-transaction cost</div>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">estimated this month</p>
+            <div className="mt-3 text-xs font-medium text-slate-400 dark:text-slate-500">Per-transaction cost</div>
           </div>
 
           {/* Neon DB */}
-          <div className="bg-[#161b22] rounded-2xl border border-[#30363d] p-5">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
             <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                <Database className="w-4 h-4 text-amber-400" />
+              <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
+                <Database className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-white font-black text-xs">Neon DB</p>
-                <p className="text-white/30 text-[10px] font-bold">Postgres storage</p>
+                <p className="text-slate-900 dark:text-white font-semibold text-xs">Neon DB</p>
+                <p className="text-slate-500 dark:text-slate-400 text-xs">Postgres storage</p>
               </div>
             </div>
-            <p className={cn('text-2xl font-black', neonPct > 80 ? 'text-red-400' : 'text-white')}>
+            <p className={cn('text-2xl font-bold', neonPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white')}>
               {usage?.neon.estimated_mb ?? 0} MB
             </p>
-            <p className="text-white/30 text-[10px] font-bold mt-0.5">estimated usage</p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">estimated usage</p>
             <ProgressBar pct={neonPct} />
-            <p className={cn('text-[10px] font-black mt-1.5', neonPct > 80 ? 'text-red-400' : 'text-white/40')}>
+            <p className={cn('text-xs font-semibold mt-1.5', neonPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400')}>
               {neonPct.toFixed(0)}% of free tier
             </p>
           </div>
         </div>
       </div>
 
-      {/* ── Section 2: Revenue vs Expenses ───────────────────────────────── */}
-      <div className="bg-[#161b22] rounded-2xl border border-[#30363d] overflow-hidden">
-        <div className="px-6 py-5 border-b border-[#30363d]">
-          <h2 className="font-black text-white text-sm">Revenue vs Expenses — Last 6 Months</h2>
-          <p className="text-white/30 text-[10px] font-bold mt-0.5">Expenses = Razorpay fees (est.) + manual expenses logged below</p>
+      {/* Revenue vs Expenses Table */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700">
+          <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Revenue vs Expenses — Last 6 Months</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Expenses = Razorpay fees (est.) + manual expenses logged below</p>
         </div>
         {revenueVsExpenses.length === 0 ? (
-          <div className="p-8 text-center text-white/20 font-bold text-sm">No revenue data available</div>
+          <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No revenue data available</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#30363d]">
+                <tr className="border-b border-slate-100 dark:border-slate-700">
                   {['Month', 'Revenue', 'Expenses (est.)', 'Net Profit', 'Margin'].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#30363d]">
+              <tbody>
                 {revenueVsExpenses.map(row => (
-                  <tr key={row.month} className="hover:bg-white/[0.02] transition-all">
-                    <td className="px-5 py-4 font-bold text-white text-sm">{row.month}</td>
-                    <td className="px-5 py-4 font-black text-emerald-400 text-sm">
+                  <tr key={row.month} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white text-sm">{row.month}</td>
+                    <td className="px-4 py-3 font-semibold text-emerald-600 dark:text-emerald-400 text-sm">
                       ₹{row.collected.toLocaleString('en-IN')}
                     </td>
-                    <td className="px-5 py-4 font-bold text-red-400 text-sm">
+                    <td className="px-4 py-3 font-medium text-red-600 dark:text-red-400 text-sm">
                       ₹{row.totalExpenses.toLocaleString('en-IN')}
                     </td>
-                    <td className="px-5 py-4 font-black text-sm">
-                      <span className={row.net >= 0 ? 'text-white' : 'text-red-400'}>
+                    <td className="px-4 py-3 font-semibold text-sm">
+                      <span className={row.net >= 0 ? 'text-slate-900 dark:text-white' : 'text-red-600 dark:text-red-400'}>
                         {row.net < 0 ? '-' : ''}₹{Math.abs(row.net).toLocaleString('en-IN')}
                       </span>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <span className={cn(
-                        'text-xs font-black px-2 py-0.5 rounded-full border',
+                        'text-xs font-medium px-2.5 py-0.5 rounded-full',
                         row.margin > 50
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                           : row.margin > 0
-                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                            : 'bg-red-500/10 text-red-400 border-red-500/20'
+                            ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                            : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                       )}>
                         {row.margin}%
                       </span>
@@ -312,52 +314,52 @@ export default function SAExpensesPage() {
         )}
       </div>
 
-      {/* ── Section 3: Manual Expense Log ────────────────────────────────── */}
-      <div className="bg-[#161b22] rounded-2xl border border-[#30363d] overflow-hidden">
-        <div className="px-6 py-5 border-b border-[#30363d] flex items-center justify-between">
+      {/* Manual Expense Log */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
           <div>
-            <h2 className="font-black text-white text-sm">Manual Expense Log</h2>
-            <p className="text-white/30 text-[10px] font-bold mt-0.5">Track hosting, domain, and other operational costs</p>
+            <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Manual Expense Log</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Track hosting, domain, and other operational costs</p>
           </div>
           <button
             onClick={() => { setShowModal(true); setFormError(''); }}
-            className="flex items-center gap-2 px-4 py-2 bg-[#3B82F6] hover:bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95"
+            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
           >
-            <Plus className="w-3.5 h-3.5" /> Add Expense
+            <Plus className="w-4 h-4" /> Add Expense
           </button>
         </div>
 
         {expenses.length === 0 ? (
-          <div className="p-8 text-center text-white/20 font-bold text-sm">No manual expenses logged</div>
+          <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No manual expenses logged</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#30363d]">
+                <tr className="border-b border-slate-100 dark:border-slate-700">
                   {['Label', 'Category', 'Amount', 'Month', 'Notes', ''].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-[10px] font-black text-white/30 uppercase tracking-widest">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#30363d]">
+              <tbody>
                 {expenses.map(exp => (
-                  <tr key={exp.id} className="hover:bg-white/[0.02] transition-all">
-                    <td className="px-5 py-4 font-bold text-white text-sm">{exp.label}</td>
-                    <td className="px-5 py-4">
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-white/5 text-white/50 border border-white/10">
+                  <tr key={exp.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white text-sm">{exp.label}</td>
+                    <td className="px-4 py-3">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                         {CATEGORY_LABEL[exp.category] || exp.category}
                       </span>
                     </td>
-                    <td className="px-5 py-4 font-black text-white text-sm">
+                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white text-sm">
                       ₹{exp.amount.toLocaleString('en-IN')}
                     </td>
-                    <td className="px-5 py-4 font-bold text-white/60 text-sm">{exp.month}</td>
-                    <td className="px-5 py-4 text-white/30 text-xs max-w-[200px] truncate">{exp.notes || '—'}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300 text-sm">{exp.month}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs max-w-[200px] truncate">{exp.notes || '—'}</td>
+                    <td className="px-4 py-3">
                       <button
                         onClick={() => handleDelete(exp.id)}
                         disabled={deletingId === exp.id}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-[10px] font-black border border-red-500/20 transition-all active:scale-95 disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-xl text-xs font-semibold border border-red-200 dark:border-red-800 transition-all active:scale-95 disabled:opacity-50"
                       >
                         {deletingId === exp.id
                           ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -375,35 +377,35 @@ export default function SAExpensesPage() {
 
       {/* Add Expense Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-          <div className="bg-[#161b22] border border-[#30363d] rounded-[2rem] w-full max-w-md shadow-2xl">
-            <div className="px-8 py-6 border-b border-[#30363d] flex items-center justify-between">
-              <h3 className="text-lg font-black text-white">Add Expense</h3>
-              <button onClick={() => setShowModal(false)} className="text-white/40 hover:text-white transition-colors">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Add Expense</h3>
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddExpense} className="px-8 py-6 space-y-4">
+            <form onSubmit={handleAddExpense} className="p-6 space-y-4">
               <div>
-                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2">Label *</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Label *</label>
                 <input
                   type="text"
                   value={form.label}
                   onChange={e => setForm(p => ({ ...p, label: e.target.value }))}
                   placeholder="e.g. Render hosting — May"
                   required
-                  className="w-full bg-white/5 border border-[#30363d] rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500 transition-colors placeholder:text-white/20"
+                  className={inputCls}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2">Category</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Category</label>
                   <select
                     value={form.category}
                     onChange={e => setForm(p => ({ ...p, category: e.target.value as typeof CATEGORIES[number] }))}
-                    className="w-full bg-white/5 border border-[#30363d] rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500 transition-colors"
+                    className={inputCls}
                   >
                     {CATEGORIES.map(c => (
                       <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
@@ -411,7 +413,7 @@ export default function SAExpensesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2">Amount (₹) *</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount (₹) *</label>
                   <input
                     type="number"
                     min={0}
@@ -420,35 +422,35 @@ export default function SAExpensesPage() {
                     onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
                     placeholder="0.00"
                     required
-                    className="w-full bg-white/5 border border-[#30363d] rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500 transition-colors placeholder:text-white/20"
+                    className={inputCls}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2">Month *</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Month *</label>
                 <input
                   type="month"
                   value={form.month}
                   onChange={e => setForm(p => ({ ...p, month: e.target.value }))}
                   required
-                  className="w-full bg-white/5 border border-[#30363d] rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500 transition-colors"
+                  className={inputCls}
                 />
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2">Notes (optional)</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Notes (optional)</label>
                 <textarea
                   value={form.notes}
                   onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
                   placeholder="Any additional details..."
                   rows={2}
-                  className="w-full bg-white/5 border border-[#30363d] rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500 transition-colors placeholder:text-white/20 resize-none"
+                  className={`${inputCls} resize-none`}
                 />
               </div>
 
               {formError && (
-                <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold">
+                <div className="flex items-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-xs font-medium">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                   {formError}
                 </div>
@@ -458,14 +460,14 @@ export default function SAExpensesPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white/60 rounded-xl font-bold text-sm transition-all"
+                  className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-3 bg-[#3B82F6] hover:bg-blue-500 text-white rounded-xl font-black text-sm disabled:opacity-50 active:scale-95 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Expense'}
                 </button>

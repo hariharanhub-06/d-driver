@@ -151,17 +151,17 @@ export default function StopChangeRequest() {
 
     if (submitted) {
         return (
-            <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-950 min-h-full flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-6">
-                    <CheckCircle className="w-12 h-12 text-emerald-600" />
+            <div className="space-y-4 p-4 flex flex-col items-center justify-center py-16 text-center min-h-screen">
+                <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-6">
+                    <CheckCircle className="w-12 h-12 text-emerald-500" />
                 </div>
-                <h3 className="text-2xl font-black text-gray-800 dark:text-white mb-2">Request Submitted!</h3>
-                <p className="text-gray-500 text-sm max-w-xs mb-8">
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Request Submitted!</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs mb-8">
                     Admin will review your stop change request within 24 hours. You'll be notified once it's approved.
                 </p>
                 <button
                     onClick={() => router.push('/parent/dashboard')}
-                    className="px-6 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl font-semibold text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                    className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm"
                 >
                     Back to Home
                 </button>
@@ -170,44 +170,45 @@ export default function StopChangeRequest() {
     }
 
     return (
-        <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-950 min-h-full">
-            <div className="mb-6 mt-2">
-                <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-1">Stop Change Request</h2>
-                <p className="text-slate-500 text-sm">Request a temporary or permanent stop modification for your child.</p>
+        <div className="space-y-4 p-4">
+            {/* Header */}
+            <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Stop Change Request</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Request a temporary or permanent stop modification for your child.</p>
             </div>
 
             {/* Warning banner */}
-            <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 mb-6">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-sm text-amber-700 dark:text-amber-400">
                     Changes must be submitted at least <strong>1 hour before pickup time</strong>.
                 </p>
             </div>
 
             {error && (
-                <div className="bg-red-50 text-red-600 border border-red-200 rounded-xl p-3 text-sm mb-4">
+                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm">
                     {error}
                 </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 {/* 1. Select Child */}
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
-                        <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-full flex items-center justify-center text-xs font-black">1</span>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                    <h3 className="font-semibold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                        <span className="w-5 h-5 bg-[var(--brand)]/10 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold">1</span>
                         Select Child
                     </h3>
                     {loadingStudents ? (
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <div className="flex items-center gap-2 text-sm text-slate-400">
                             <Loader2 className="w-4 h-4 animate-spin" /> Loading...
                         </div>
                     ) : students.length === 0 ? (
-                        <p className="text-sm text-gray-400">No students found for your account.</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">No students found for your account.</p>
                     ) : (
                         <select
                             value={selectedStudentId}
                             onChange={e => handleStudentChange(e.target.value)}
-                            className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300"
+                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                         >
                             {students.map(s => (
                                 <option key={s.id} value={s.id}>{s.name}</option>
@@ -217,21 +218,21 @@ export default function StopChangeRequest() {
                 </div>
 
                 {/* 2. Current Stop (read-only) */}
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
-                        <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-full flex items-center justify-center text-xs font-black">2</span>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                    <h3 className="font-semibold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                        <span className="w-5 h-5 bg-[var(--brand)]/10 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold">2</span>
                         Current Stop
                     </h3>
-                    <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-600">
+                    <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-600">
                         <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
                         <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{currentStopName}</span>
                     </div>
                 </div>
 
                 {/* 3. Change Type */}
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
-                        <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-full flex items-center justify-center text-xs font-black">3</span>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                    <h3 className="font-semibold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                        <span className="w-5 h-5 bg-[var(--brand)]/10 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold">3</span>
                         Change Type
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
@@ -242,8 +243,8 @@ export default function StopChangeRequest() {
                                 onClick={() => setChangeType(type)}
                                 className={`p-3 rounded-xl border-2 text-sm font-semibold capitalize transition-all ${
                                     changeType === type
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
-                                        : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300'
+                                        ? 'border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]'
+                                        : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
                                 }`}
                             >
                                 {type}
@@ -253,17 +254,17 @@ export default function StopChangeRequest() {
                 </div>
 
                 {/* 4. New Stop */}
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
                     <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                            <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-full flex items-center justify-center text-xs font-black">4</span>
+                        <h3 className="font-semibold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                            <span className="w-5 h-5 bg-[var(--brand)]/10 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold">4</span>
                             New Stop
                         </h3>
                         <button
                             type="button"
                             onClick={handleFindNearby}
                             disabled={loadingNearby}
-                            className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
+                            className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
                         >
                             {loadingNearby ? (
                                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -275,7 +276,7 @@ export default function StopChangeRequest() {
                     </div>
 
                     {nearbyStops.length > 0 && (
-                        <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wide mb-2">
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wide mb-2">
                             Showing {nearbyStops.length} nearby stops
                         </p>
                     )}
@@ -283,7 +284,7 @@ export default function StopChangeRequest() {
                     <select
                         value={newStopId}
                         onChange={e => setNewStopId(e.target.value)}
-                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300"
+                        className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                         required
                     >
                         <option value="">Select a stop...</option>
@@ -298,7 +299,7 @@ export default function StopChangeRequest() {
                     </select>
 
                     {newStopId && (
-                        <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                             <Navigation className="w-3 h-3 text-emerald-500" />
                             {displayStops.find(s => s.id === newStopId)?.name}
                         </div>
@@ -306,28 +307,28 @@ export default function StopChangeRequest() {
                 </div>
 
                 {/* 5. Effective Date */}
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
-                        <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-full flex items-center justify-center text-xs font-black">5</span>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                    <h3 className="font-semibold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                        <span className="w-5 h-5 bg-[var(--brand)]/10 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold">5</span>
                         Effective Date
                     </h3>
-                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-3">
+                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5">
                         <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
                         <input
                             type="date"
                             value={effectiveDate}
                             min={new Date().toISOString().split('T')[0]}
                             onChange={e => setEffectiveDate(e.target.value)}
-                            className="flex-1 bg-transparent text-sm text-slate-700 dark:text-slate-300 focus:outline-none"
+                            className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white focus:outline-none"
                             required
                         />
                     </div>
                 </div>
 
                 {/* 6. Reason (optional) */}
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                    <h3 className="font-bold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
-                        <span className="w-5 h-5 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-full flex items-center justify-center text-xs font-black">6</span>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                    <h3 className="font-semibold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                        <span className="w-5 h-5 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-full flex items-center justify-center text-xs font-bold">6</span>
                         Reason
                         <span className="text-xs text-slate-400 font-normal">(optional)</span>
                     </h3>
@@ -336,7 +337,7 @@ export default function StopChangeRequest() {
                         onChange={e => setReason(e.target.value)}
                         rows={3}
                         placeholder="e.g. Moving to a new address temporarily..."
-                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+                        className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none"
                     />
                 </div>
 
@@ -344,10 +345,10 @@ export default function StopChangeRequest() {
                 <button
                     type="submit"
                     disabled={submitting || !selectedStudentId || !newStopId}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-colors disabled:opacity-60 shadow-lg shadow-blue-600/20"
+                    className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center disabled:opacity-60"
                 >
                     {submitting ? (
-                        <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+                        <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting...</>
                     ) : (
                         'Submit Request'
                     )}

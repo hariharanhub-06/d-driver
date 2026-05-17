@@ -117,79 +117,77 @@ export default function TrackingPage() {
     }));
 
     return (
-        <div className="animate-in">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div className="space-y-6 animate-in">
+            <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Live Tracking</h1>
-                    <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Live Tracking</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                         Real-time GPS positions of all active buses
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">
+                    <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
                         {activeBuses.length} Active
                     </span>
                 </div>
             </div>
 
             {error && (
-                <div className="bg-red-50 text-red-600 border border-red-200 rounded-xl p-3 text-sm mb-4">
+                <div className="bg-red-50 text-red-600 border border-red-200 rounded-xl p-3 text-sm">
                     {error}
                 </div>
             )}
 
-            <div className="flex h-[calc(100vh-148px)] gap-4">
+            <div className="flex h-[calc(100vh-200px)] gap-4">
                 {/* Bus List */}
                 <div className="w-80 shrink-0 overflow-y-auto space-y-3 pr-1">
                     {loading ? (
-                        <div className="flex items-center justify-center h-40">
-                            <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                        </div>
+                        <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin"></div></div>
                     ) : activeBuses.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-60 text-center">
-                            <Bus className="w-12 h-12 text-gray-300 mb-3" />
-                            <p className="text-sm font-semibold text-gray-500">No Active Buses</p>
-                            <p className="text-xs text-gray-400 mt-1">Positions will appear when trips begin</p>
+                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
+                            <Bus className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                            <p className="font-semibold">No Active Buses</p>
+                            <p className="text-xs mt-1">Positions will appear when trips begin</p>
                         </div>
                     ) : (
                         activeBuses.map(bus => (
                             <button
                                 key={bus.bus_id}
                                 onClick={() => setSelectedBusId(bus.bus_id === selectedBusId ? null : bus.bus_id)}
-                                className={`w-full text-left bg-white dark:bg-slate-900 rounded-2xl border p-4 shadow-sm hover:shadow-md transition-all ${
+                                className={`w-full text-left bg-white dark:bg-slate-800 rounded-2xl border p-4 shadow-sm hover:shadow-md transition-all ${
                                     selectedBusId === bus.bus_id
-                                        ? 'border-blue-400 ring-2 ring-blue-100 dark:ring-blue-900'
-                                        : 'border-gray-100 dark:border-slate-800'
+                                        ? 'border-[var(--brand)] ring-2 ring-[var(--brand)]/20'
+                                        : 'border-slate-100 dark:border-slate-700'
                                 }`}
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                                        <div className="w-8 h-8 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center">
                                             <Bus className="w-4 h-4 text-blue-600" />
                                         </div>
-                                        <span className="font-black text-sm text-gray-900 dark:text-white">
+                                        <span className="font-bold text-sm text-slate-900 dark:text-white">
                                             {bus.bus_number}
                                         </span>
                                     </div>
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">
+                                    <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
                                         Live
                                     </span>
                                 </div>
 
                                 <div className="space-y-1.5 pl-1">
-                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                    <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                                         <Navigation className="w-3 h-3 text-blue-400" />
                                         <span className="truncate">{bus.route_name}</span>
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                    <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                                         <MapPin className="w-3 h-3 text-purple-400" />
                                         <span>{bus.driver_name}</span>
                                     </div>
-                                    <div className="flex items-center justify-between text-[10px] text-gray-400 mt-2 pt-2 border-t border-gray-50 dark:border-slate-800">
-                                        <span className="font-bold text-blue-600">{bus.speed} km/h</span>
+                                    <div className="flex items-center justify-between text-xs text-slate-400 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                                        <span className="font-bold text-[var(--brand)]">{bus.speed} km/h</span>
                                         <span className="flex items-center gap-1">
-                                            <Clock className="w-2.5 h-2.5" />
+                                            <Clock className="w-3 h-3" />
                                             {timeAgo(bus.timestamp)}
                                         </span>
                                     </div>
@@ -200,7 +198,7 @@ export default function TrackingPage() {
                 </div>
 
                 {/* Map */}
-                <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 overflow-hidden shadow-sm">
+                <div className="flex-1 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
                     <MapComponent
                         buses={mapBuses}
                         center={mapCenter}

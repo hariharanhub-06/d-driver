@@ -23,10 +23,10 @@ interface Route {
 
 function StatusBadge({ status }: { status: AttendanceRecord['status'] }) {
     if (status === 'present')
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Present</span>;
+        return <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">Present</span>;
     if (status === 'absent')
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Absent</span>;
-    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-400">Not Marked</span>;
+        return <span className="inline-flex items-center bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full px-2.5 py-0.5 text-xs font-medium">Absent</span>;
+    return <span className="inline-flex items-center bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full px-2.5 py-0.5 text-xs font-medium">Not Marked</span>;
 }
 
 export default function AttendancePage() {
@@ -113,18 +113,18 @@ export default function AttendancePage() {
     return (
         <div className="space-y-6 animate-in">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Attendance</h1>
-                    <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Attendance</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
                         {new Date(date).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
                 </div>
                 <button
                     onClick={handleExport}
                     disabled={exporting || records.length === 0}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-semibold text-sm transition-colors disabled:opacity-60"
+                    className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60"
                 >
                     <Download className="w-4 h-4" />
                     {exporting ? 'Exporting...' : 'Export Excel'}
@@ -134,17 +134,17 @@ export default function AttendancePage() {
             {/* Summary Tiles */}
             <div className="grid grid-cols-3 gap-4">
                 {[
-                    { label: 'Present', count: present, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-100 dark:border-emerald-900/30' },
-                    { label: 'Absent', count: absent, icon: XCircle, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-100 dark:border-red-900/30' },
-                    { label: 'Not Marked', count: notMarked, icon: Clock, color: 'text-gray-400', bg: 'bg-gray-50 dark:bg-slate-800', border: 'border-gray-100 dark:border-slate-700' },
+                    { label: 'Present', count: present, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+                    { label: 'Absent', count: absent, icon: XCircle, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' },
+                    { label: 'Not Marked', count: notMarked, icon: Clock, color: 'text-slate-400', bg: 'bg-slate-50 dark:bg-slate-700/50' },
                 ].map(c => (
-                    <div key={c.label} className={`bg-white dark:bg-slate-900 rounded-2xl border ${c.border} p-4 flex items-center gap-3 shadow-sm`}>
+                    <div key={c.label} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${c.bg}`}>
                             <c.icon className={`w-4 h-4 ${c.color}`} />
                         </div>
                         <div>
-                            <p className="text-xl font-black text-gray-900 dark:text-white">{loading ? '—' : c.count}</p>
-                            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{c.label}</p>
+                            <p className="text-xl font-bold text-slate-900 dark:text-white">{loading ? '—' : c.count}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{c.label}</p>
                         </div>
                     </div>
                 ))}
@@ -155,98 +155,100 @@ export default function AttendancePage() {
             )}
 
             {/* Filters + Table */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 overflow-hidden shadow-sm">
-                <div className="p-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/50 flex flex-wrap gap-3 items-center">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex flex-wrap gap-3 items-center">
                     {/* Date picker */}
-                    <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2">
-                        <Calendar className="w-4 h-4 text-gray-400" />
+                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2">
+                        <Calendar className="w-4 h-4 text-slate-400" />
                         <input
                             type="date"
                             value={date}
                             max={today}
                             onChange={e => setDate(e.target.value)}
-                            className="text-sm bg-transparent focus:outline-none text-gray-700 dark:text-slate-300"
+                            className="text-sm bg-transparent focus:outline-none text-slate-700 dark:text-slate-300"
                         />
                     </div>
 
                     {/* Route filter */}
-                    <div className="relative flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2">
+                    <div className="relative flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2">
                         <select
                             value={routeId}
                             onChange={e => setRouteId(e.target.value)}
-                            className="text-sm bg-transparent focus:outline-none text-gray-700 dark:text-slate-300 pr-6 appearance-none"
+                            className="text-sm bg-transparent focus:outline-none text-slate-700 dark:text-slate-300 pr-6 appearance-none"
                         >
                             <option value="">All Routes</option>
                             {routes.map(r => (
                                 <option key={r.id} value={r.id}>{r.name}</option>
                             ))}
                         </select>
-                        <ChevronDown className="w-3.5 h-3.5 text-gray-400 pointer-events-none absolute right-3" />
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none absolute right-3" />
                     </div>
 
                     {/* Search */}
                     <div className="relative flex-1 min-w-[180px]">
-                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Search student..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 text-sm bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 pl-10 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                         />
                     </div>
 
-                    <span className="text-xs text-gray-400 ml-auto shrink-0">
+                    <span className="text-xs text-slate-400 ml-auto shrink-0">
                         {present}/{records.length} present
                     </span>
                 </div>
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 dark:bg-slate-800/80 text-gray-500 dark:text-slate-400 font-medium border-b border-gray-100 dark:border-slate-800 text-xs uppercase tracking-wider">
+                        <thead className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
                             <tr>
-                                <th className="px-6 py-3">Student</th>
-                                <th className="px-6 py-3">Grade</th>
-                                <th className="px-6 py-3">Status</th>
-                                <th className="px-6 py-3">Stop</th>
-                                <th className="px-6 py-3">Marked At</th>
-                                <th className="px-6 py-3">Note</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Grade</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stop</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Marked At</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Note</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                        <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center">
-                                        <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                                    <td colSpan={6} className="px-4 py-3">
+                                        <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin"></div></div>
                                     </td>
                                 </tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center">
-                                        <Calendar className="w-10 h-10 mx-auto text-gray-300 mb-3" />
-                                        <p className="text-gray-400 text-sm">No attendance records for this date.</p>
+                                    <td colSpan={6} className="px-4 py-3">
+                                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
+                                            <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                                            <p>No attendance records for this date.</p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
                                 filtered.map((r, i) => (
-                                    <tr key={r.id || i} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-3">
+                                    <tr key={r.id || i} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                             <div className="flex items-center gap-2.5">
-                                                <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center font-black text-blue-600 text-[10px] shrink-0">
+                                                <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center font-bold text-blue-600 text-[10px] shrink-0">
                                                     {getName(r).charAt(0)}
                                                 </div>
-                                                <span className="font-semibold text-gray-800 dark:text-white text-sm">{getName(r)}</span>
+                                                <span className="font-semibold text-slate-800 dark:text-white text-sm">{getName(r)}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-3 text-gray-500 text-xs font-medium">{getGrade(r)}</td>
-                                        <td className="px-6 py-3"><StatusBadge status={r.status} /></td>
-                                        <td className="px-6 py-3 text-gray-500 text-xs">{r.stop?.name || '—'}</td>
-                                        <td className="px-6 py-3 text-gray-500 text-xs">
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{getGrade(r)}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300"><StatusBadge status={r.status} /></td>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{r.stop?.name || '—'}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                             {r.marked_at
                                                 ? new Date(r.marked_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
                                                 : '—'}
                                         </td>
-                                        <td className="px-6 py-3 text-gray-400 text-xs max-w-[160px] truncate">{r.note || '—'}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 max-w-[160px] truncate">{r.note || '—'}</td>
                                     </tr>
                                 ))
                             )}

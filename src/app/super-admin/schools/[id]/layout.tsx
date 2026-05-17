@@ -25,16 +25,16 @@ export default function SchoolDrillLayout({ children }: { children: React.ReactN
     return (
         <div className="space-y-5">
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-                <Link href="/super-admin/schools" className="hover:text-white transition-colors">
+            <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                <Link href="/super-admin/schools" className="hover:text-slate-900 dark:hover:text-white transition-colors">
                     Schools
                 </Link>
-                <span className="text-white/20">/</span>
-                <span className="text-white font-semibold">{school?.name || '...'}</span>
+                <span className="text-slate-300 dark:text-slate-600">/</span>
+                <span className="text-slate-900 dark:text-white font-semibold">{school?.name || '...'}</span>
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-[#161b22] rounded-xl p-1 w-fit border border-[#30363d]">
+            <div className="flex gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl p-1 w-fit border border-slate-200 dark:border-slate-600">
                 {TABS.map(tab => {
                     const href = `/super-admin/schools/${id}${tab.path}`;
                     const isActive = tab.path === ''
@@ -46,8 +46,8 @@ export default function SchoolDrillLayout({ children }: { children: React.ReactN
                             href={href}
                             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${
                                 isActive
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                    ? 'bg-[var(--brand)] text-white'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700'
                             }`}
                         >
                             {tab.label}

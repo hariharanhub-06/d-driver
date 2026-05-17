@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Bus, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Bus, Eye, EyeOff } from 'lucide-react';
 import api from '@/lib/api';
 
 export default function LoginPage() {
@@ -76,80 +76,97 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white flex items-center justify-center p-6 relative overflow-hidden font-sans">
-            {/* Ambient Background Glow */}
-            <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-600/10 blur-[120px] rounded-full"></div>
-            <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-600/5 blur-[120px] rounded-full"></div>
-
-            <div className="max-w-[420px] w-full z-10 animate-in scale-95 md:scale-100 origin-center">
-                <div className="bg-[#121212] rounded-[32px] shadow-premium overflow-hidden border border-white/5 relative">
-                    {/* Header Section */}
-                    <div className="p-6 pt-8 text-center relative overflow-hidden">
-                        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-20"></div>
-                        <div className="w-16 h-16 bg-white rounded-2xl mx-auto flex items-center justify-center shadow-2xl mb-4 transform transition-transform border border-white/10 p-3">
-                            {currentSchool?.logo ? (
-                                <img src={currentSchool.logo} alt="School Logo" className="w-full h-full object-contain" />
-                            ) : (
-                                <Bus className="w-8 h-8 text-black" strokeWidth={1.5} />
-                            )}
-                        </div>
-                        <h1 className="text-2xl font-black text-white tracking-tighter mb-1">
-                            {currentSchool?.name || "D-DRIVER"}
-                        </h1>
-                        <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em]">
-                            {currentSchool ? "Institutional Logistics" : "Enterprise Transport Management"}
-                        </p>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+            <div className="flex w-full max-w-3xl gap-6">
+                {/* Left panel — desktop only */}
+                <div
+                    className="hidden lg:flex flex-col justify-center bg-[var(--brand)] text-white rounded-2xl p-10 w-[420px] shrink-0"
+                    style={currentSchool?.color ? { backgroundColor: currentSchool.color } : undefined}
+                >
+                    <div className="mb-6">
+                        {currentSchool?.logo ? (
+                            <img
+                                src={currentSchool.logo}
+                                alt="School Logo"
+                                className="w-16 h-16 object-contain rounded-2xl bg-white/10 p-2"
+                            />
+                        ) : (
+                            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center">
+                                <Bus className="w-8 h-8 text-white" />
+                            </div>
+                        )}
                     </div>
+                    <h2 className="text-3xl font-bold mb-3 leading-tight">
+                        {currentSchool?.name || 'D-Driver'}
+                    </h2>
+                    <p className="text-white/70 text-base leading-relaxed">
+                        Manage your school bus transport with ease
+                    </p>
+                </div>
 
-                    <div className="p-8 pt-4">
+                {/* Right panel — login form */}
+                <div className="flex-1 flex items-center justify-center p-8">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-sm p-8">
+                        {/* Brand logo */}
+                        <div className="w-12 h-12 rounded-2xl bg-[var(--brand)] flex items-center justify-center mx-auto mb-6">
+                            <Bus className="w-6 h-6 text-white" />
+                        </div>
+
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-1">
+                            Welcome back
+                        </h1>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
+                            Sign in to your account
+                        </p>
+
                         {error && (
-                            <div className="bg-red-500/10 text-red-400 border border-red-500/20 p-3 rounded-2xl text-[10px] font-bold mb-4 text-center animate-in flex items-center justify-center gap-2">
-                                <ShieldCheck className="w-3 h-3" /> {error}
+                            <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2.5 mb-4">
+                                {error}
                             </div>
                         )}
 
-                        <form onSubmit={handleLogin} className="space-y-4 relative z-10">
-                            <div className="space-y-2">
-                                <label className="block text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">
-                                    Email Terminal
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                                    Email
                                 </label>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-5 py-3.5 rounded-[18px] border border-white/10 bg-white/5 text-white placeholder:text-white/20 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-lg font-bold"
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                                     placeholder="admin@school.com"
                                     required
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center ml-1">
-                                    <label className="block text-[9px] font-black text-white/40 uppercase tracking-widest">
-                                        Access Key
+                            <div>
+                                <div className="flex justify-between items-center mb-1.5">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        Password
                                     </label>
                                     <Link
                                         href="/forgot-password"
-                                        className="text-[9px] font-black text-blue-400/70 hover:text-blue-400 uppercase tracking-widest transition-colors"
+                                        className="text-sm text-[var(--brand)] hover:underline font-medium"
                                     >
                                         Forgot password?
                                     </Link>
                                 </div>
                                 <div className="relative">
                                     <input
-                                        type={showPassword ? "text" : "password"}
+                                        type={showPassword ? 'text' : 'password'}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full px-5 py-3.5 rounded-[18px] border border-white/10 bg-white/5 text-white placeholder:text-white/20 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-lg font-bold"
+                                        className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors pr-10"
                                         placeholder="••••••••"
                                         required
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                                     >
-                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                     </button>
                                 </div>
                             </div>
@@ -157,24 +174,18 @@ export default function LoginPage() {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full bg-white hover:bg-white/90 text-black font-black py-4 px-6 rounded-[18px] transition-all flex justify-center items-center h-[56px] text-lg active:scale-[0.98] shadow-2xl overflow-hidden group mt-4"
+                                className="w-full bg-[var(--brand)] hover:opacity-90 text-white rounded-xl py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50 mt-2"
                             >
                                 {isLoading ? (
-                                    <div className="w-6 h-6 border-4 border-black/10 border-t-black rounded-full animate-spin"></div>
-                                ) : (
-                                    <span className="flex items-center">
-                                        Continue
-                                        <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                    <span className="flex items-center justify-center gap-2">
+                                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                        Signing in…
                                     </span>
+                                ) : (
+                                    'Sign in'
                                 )}
                             </button>
                         </form>
-
-                        <div className="mt-8 text-center border-t border-white/5 pt-6 relative z-10">
-                            <p className="text-white/20 text-[9px] font-black uppercase tracking-[0.4em]">
-                                &copy; 2025 D-Driver Portal
-                            </p>
-                        </div>
                     </div>
                 </div>
             </div>

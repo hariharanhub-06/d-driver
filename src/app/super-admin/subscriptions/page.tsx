@@ -33,69 +33,71 @@ export default function SubscriptionsPage() {
     }, 0);
 
     return (
-        <div className="space-y-8 animate-in p-2 max-w-7xl mx-auto">
-            <div className="flex justify-between items-center bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+        <div className="space-y-6 animate-in">
+            {/* Header */}
+            <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Subscription Plans</h1>
-                    <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-1 flex items-center">
-                        <ShieldCheck className="w-3 h-3 mr-1 text-primary-500" /> Revenue & Licensing Control
-                    </p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                        <ShieldCheck className="w-7 h-7 text-[var(--brand)]" />
+                        Subscription Plans
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Revenue and licensing control</p>
                 </div>
-                <div className="flex gap-4">
-                    <div className="bg-primary-50 px-6 py-3 rounded-2xl border border-primary-100 flex flex-col items-center">
-                        <p className="text-[10px] font-black text-primary-600 uppercase tracking-widest leading-none mb-1">M.R.R</p>
-                        <p className="text-xl font-black text-primary-700 leading-none">₹{(mrr / 1000).toFixed(1)}K</p>
-                    </div>
+                <div className="bg-[var(--brand)] text-white rounded-2xl p-6 shadow-lg shadow-[var(--brand)]/20">
+                    <p className="text-xs font-semibold uppercase tracking-wider opacity-80 mb-1">M.R.R</p>
+                    <p className="text-2xl font-bold">₹{(mrr / 1000).toFixed(1)}K</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Plan Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {plans.map((plan) => (
-                    <div key={plan.id} className="bg-white rounded-[2.5rem] border border-gray-100 p-8 shadow-sm hover:shadow-xl transition-all group">
-                        <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mb-6 border border-gray-100 group-hover:bg-primary-50 transition-colors">
-                            <plan.icon className="w-6 h-6 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                    <div key={plan.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 hover:shadow-md transition-all group">
+                        <div className="w-12 h-12 bg-slate-50 dark:bg-slate-700 rounded-xl flex items-center justify-center mb-5 border border-slate-100 dark:border-slate-600 group-hover:bg-[var(--brand)]/10 group-hover:border-[var(--brand)]/20 transition-colors">
+                            <plan.icon className="w-6 h-6 text-slate-400 group-hover:text-[var(--brand)] transition-colors" />
                         </div>
-                        <h3 className="text-2xl font-black text-slate-900 mb-1">{plan.name}</h3>
-                        <p className="text-3xl font-black text-primary-500 mb-6">{plan.price}</p>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">{plan.name}</h3>
+                        <p className="text-2xl font-bold text-[var(--brand)] mb-5">{plan.price}</p>
 
-                        <div className="space-y-4 mb-8">
-                            <div className="flex justify-between items-center text-sm font-bold text-slate-500">
-                                <span>Active Schools</span>
-                                <span className="text-slate-900">{loading ? '...' : plan.schools}</span>
+                        <div className="space-y-3 mb-6">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="font-medium text-slate-500 dark:text-slate-400">Active Schools</span>
+                                <span className="font-bold text-slate-900 dark:text-white">{loading ? '...' : plan.schools}</span>
                             </div>
-                            <div className="flex justify-between items-center text-sm font-bold text-slate-500">
-                                <span>Growth Rate</span>
-                                <span className="text-green-500 flex items-center">Live <ArrowUpRight className="w-3 h-3 ml-1" /></span>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="font-medium text-slate-500 dark:text-slate-400">Growth Rate</span>
+                                <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center">Live <ArrowUpRight className="w-3 h-3 ml-1" /></span>
                             </div>
                         </div>
 
-                        <button className="w-full py-4 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10">
+                        <button className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-slate-700 text-white font-semibold text-sm hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors">
                             Configure Plan
                         </button>
                     </div>
                 ))}
             </div>
 
-            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white overflow-hidden relative border border-white/10 shadow-2xl">
-                <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            {/* License Manager */}
+            <div className="bg-slate-900 rounded-2xl p-8 text-white border border-slate-800 shadow-xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
                     <div>
-                        <h2 className="text-3xl font-black tracking-tight mb-4 uppercase">License Manager</h2>
-                        <p className="text-slate-400 font-medium mb-8">All school licenses are currently validated through the Neon PostgreSQL cluster.</p>
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-                                <CheckCircle2 className="text-green-400 w-5 h-5 shrink-0" />
-                                <span className="text-sm font-bold">Network Wide Synced</span>
+                        <h2 className="text-2xl font-bold mb-3">License Manager</h2>
+                        <p className="text-slate-400 text-sm mb-6">All school licenses are currently validated through the Neon PostgreSQL cluster.</p>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3 bg-white/5 p-4 rounded-xl border border-white/10">
+                                <CheckCircle2 className="text-emerald-400 w-5 h-5 shrink-0" />
+                                <span className="text-sm font-medium">Network Wide Synced</span>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white/5 rounded-3xl p-8 border border-white/10">
-                        <div className="flex items-center justify-between mb-8">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Database Consistency</p>
-                            <Calendar className="w-4 h-4 text-primary-500" />
+                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                        <div className="flex items-center justify-between mb-6">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Database Consistency</p>
+                            <Calendar className="w-4 h-4 text-[var(--brand)]" />
                         </div>
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full w-full bg-primary-500"></div>
+                                <div className="h-full w-full bg-[var(--brand)]"></div>
                             </div>
                         </div>
                     </div>

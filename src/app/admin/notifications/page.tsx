@@ -121,10 +121,10 @@ export default function NotificationsPage() {
     return (
         <div className="space-y-6 animate-in max-w-3xl mx-auto">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Notifications</h1>
-                    <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Notifications</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                         Live alerts and system updates
                     </p>
                 </div>
@@ -132,7 +132,7 @@ export default function NotificationsPage() {
                     <button
                         onClick={handleMarkAllRead}
                         disabled={markingAll}
-                        className="text-sm font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-xl transition-colors disabled:opacity-60"
+                        className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm disabled:opacity-60"
                     >
                         {markingAll ? 'Marking...' : 'Mark All Read'}
                     </button>
@@ -144,16 +144,14 @@ export default function NotificationsPage() {
             )}
 
             {/* Filter Tabs */}
-            <div className="flex gap-1 bg-gray-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
+            <div className="flex border-b border-slate-100 dark:border-slate-700">
                 {tabs.map(tab => (
                     <button
                         key={tab.key}
                         onClick={() => setFilter(tab.key)}
-                        className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-                            filter === tab.key
-                                ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm'
-                                : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
-                        }`}
+                        className={filter === tab.key
+                            ? 'px-4 py-2 text-sm font-semibold text-[var(--brand)] border-b-2 border-[var(--brand)]'
+                            : 'px-4 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border-b-2 border-transparent'}
                     >
                         {tab.label}
                     </button>
@@ -162,17 +160,11 @@ export default function NotificationsPage() {
 
             {/* List */}
             {loading ? (
-                <div className="flex items-center justify-center h-40">
-                    <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                </div>
+                <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin"></div></div>
             ) : filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="w-16 h-16 bg-gray-50 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-4">
-                        <Bell className="w-7 h-7 text-gray-300" />
-                    </div>
-                    <p className="text-sm font-semibold text-gray-400">
-                        {filter === 'unread' ? 'No unread notifications' : filter === 'alerts' ? 'No alerts' : 'No notifications yet'}
-                    </p>
+                <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
+                    <Bell className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p>{filter === 'unread' ? 'No unread notifications' : filter === 'alerts' ? 'No alerts' : 'No notifications yet'}</p>
                 </div>
             ) : (
                 <div className="space-y-3">
@@ -180,8 +172,8 @@ export default function NotificationsPage() {
                         <div
                             key={n.id}
                             onClick={() => !n.is_read && handleMarkRead(n.id)}
-                            className={`bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-4 flex items-start gap-4 shadow-sm transition-all cursor-pointer hover:shadow-md ${
-                                !n.is_read ? 'border-l-4 border-l-blue-400' : ''
+                            className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 flex items-start gap-4 transition-all cursor-pointer hover:shadow-md ${
+                                !n.is_read ? 'border-l-4 border-l-[var(--brand)]' : ''
                             }`}
                         >
                             {/* Icon */}
@@ -193,25 +185,25 @@ export default function NotificationsPage() {
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex items-center gap-2">
-                                        <h3 className="font-semibold text-sm text-gray-900 dark:text-white leading-tight">
+                                        <h3 className="font-semibold text-sm text-slate-900 dark:text-white leading-tight">
                                             {n.title}
                                         </h3>
                                         {!n.is_read && (
-                                            <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />
+                                            <span className="w-2 h-2 bg-[var(--brand)] rounded-full shrink-0" />
                                         )}
                                     </div>
-                                    <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1 shrink-0">
+                                    <span className="text-xs text-slate-400 font-medium flex items-center gap-1 shrink-0">
                                         <Clock className="w-3 h-3" />
                                         {timeAgo(n.created_at)}
                                     </span>
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 leading-relaxed">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                                     {n.message}
                                 </p>
                                 {!n.is_read && (
                                     <button
                                         onClick={e => { e.stopPropagation(); handleMarkRead(n.id); }}
-                                        className="mt-2 text-[10px] font-semibold text-blue-500 hover:text-blue-700 uppercase tracking-wide"
+                                        className="mt-2 text-xs font-semibold text-[var(--brand)] hover:opacity-80 uppercase tracking-wide"
                                     >
                                         Mark as read
                                     </button>

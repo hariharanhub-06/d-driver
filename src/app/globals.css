@@ -4,134 +4,89 @@
 
 :root {
   --brand: #3B82F6;
-  --background: #ffffff;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --border: #e2e8f0;
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
-  /* Legacy vars kept for existing components */
-  --card-bg: #ffffff;
-  --sidebar-bg: #222d32;
-  --sidebar-text: #b8c7ce;
-  --sidebar-hover-bg: #1a2226;
-  --sidebar-active-bg: #1e282c;
-  --primary: #2dbc75;
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --border: #E2E8F0;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --sidebar-bg: #FFFFFF;
+  --sidebar-border: #E2E8F0;
+  --primary: #3B82F6;
 }
 
 .dark {
-  --brand: #3B82F6;
   --background: #0F172A;
-  --foreground: #f1f5f9;
+  --foreground: #F1F5F9;
   --card: #1E293B;
-  --card-foreground: #f1f5f9;
+  --card-foreground: #F1F5F9;
   --border: #334155;
   --muted: #1E293B;
-  --muted-foreground: #94a3b8;
-  /* Legacy vars kept for existing components */
-  --card-bg: #222d32;
-  --sidebar-bg: #222d32;
-  --sidebar-text: #b8c7ce;
+  --muted-foreground: #94A3B8;
+  --sidebar-bg: #1E293B;
+  --sidebar-border: #334155;
 }
 
 @layer base {
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--background);
+    color: var(--foreground);
   }
 }
 
 @layer components {
-  .card-premium {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border);
-    @apply rounded-md shadow-sm p-2 overflow-hidden;
-    @apply transition-all duration-300 hover:shadow-md;
+  .page-card {
+    @apply bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6;
   }
 
   .admin-sidebar {
     background-color: var(--sidebar-bg);
-    color: var(--sidebar-text);
-    @apply w-56 h-screen fixed left-0 top-0 overflow-y-auto z-50 border-r border-black/10 shadow-2xl;
+    border-right: 1px solid var(--sidebar-border);
+    @apply w-64 h-screen fixed left-0 top-0 overflow-y-auto z-50 flex flex-col;
   }
 
   .nav-item {
-    @apply flex items-center px-3 py-1 gap-2 transition-colors duration-200 border-l-[2px] border-transparent;
-    @apply text-[10px] font-semibold;
-
-    &:hover {
-      background-color: var(--sidebar-hover-bg);
-      @apply text-white;
-    }
+    @apply flex items-center gap-3 px-3 py-2.5 mx-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white transition-all duration-150 cursor-pointer;
   }
 
   .nav-item-active {
-    background-color: var(--sidebar-active-bg);
-    @apply text-white border-primary-500 bg-primary-500/10;
+    @apply bg-[var(--brand)]/10 !text-[var(--brand)] font-semibold;
   }
 
-  .btn-bus {
-    @apply bg-primary-500 hover:bg-primary-600 text-white font-bold py-1 px-3 rounded text-[10px] transition-all duration-200;
-  }
-
-  .dashboard-stat-card {
-    @apply overflow-hidden rounded-lg shadow-sm border-0 flex flex-col;
-  }
-
-  /* Compact UI Utilities */
   .input-field {
-    @apply w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-lg px-2 py-1 text-[10px] font-medium focus:ring-2 focus:ring-primary-500/20 outline-none transition-all placeholder:text-slate-400;
+    @apply w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors;
   }
 
   .modal-container-compact {
-    @apply bg-white dark:bg-slate-900 w-full max-w-lg rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh];
-    animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    @apply bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh];
+    animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .btn-primary {
+    @apply bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 flex items-center gap-2;
+  }
+
+  .btn-secondary {
+    @apply bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all;
   }
 }
 
 @keyframes modalIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* Custom Scrollbar for sidebar */
-::-webkit-scrollbar {
-  width: 5px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Fluid spacing and animation utilities */
 .animate-in {
-  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.6); }

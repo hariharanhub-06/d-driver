@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings, Key, Calendar, Shield, Loader2, Check, AlertCircle } from 'lucide-react';
+import { Settings, Key, Calendar, Shield, Loader2, Check, AlertCircle, Lock } from 'lucide-react';
 import api from '@/lib/api';
 
 interface BillingConfig {
@@ -14,6 +14,8 @@ interface BillingConfig {
 interface RazorpayStatus {
   configured: boolean;
 }
+
+const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
 
 export default function SASettingsPage() {
   // Razorpay state
@@ -33,6 +35,12 @@ export default function SASettingsPage() {
   const [cfgSaving, setCfgSaving] = useState(false);
   const [cfgMsg, setCfgMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Change password state
+  const [cpForm, setCpForm] = useState({ current: '', newPw: '', confirm: '' });
+  const [cpError, setCpError] = useState('');
+  const [cpSuccess, setCpSuccess] = useState(false);
+  const [cpLoading, setCpLoading] = useState(false);
 
   useEffect(() => {
     fetchAll();
@@ -95,38 +103,55 @@ export default function SASettingsPage() {
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCpError(''); setCpSuccess(false);
+    if (cpForm.newPw !== cpForm.confirm) { setCpError('Passwords do not match'); return; }
+    if (cpForm.newPw.length < 8) { setCpError('Minimum 8 characters'); return; }
+    setCpLoading(true);
+    try {
+      await api.post('/auth/change-password', { current_password: cpForm.current, new_password: cpForm.newPw });
+      setCpSuccess(true);
+      setCpForm({ current: '', newPw: '', confirm: '' });
+    } catch (err: any) {
+      setCpError(err.response?.data?.error || 'Failed to update password');
+    } finally { setCpLoading(false); }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+      <div className="flex justify-center py-16">
+        <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-in max-w-2xl">
+    <div className="space-y-6 animate-in max-w-2xl">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-black text-white tracking-tighter flex items-center gap-3">
-          <Settings className="w-7 h-7 text-primary-400" />
-          Platform Settings
-        </h1>
-        <p className="text-white/30 text-xs font-bold uppercase tracking-widest mt-1">
-          Razorpay credentials and billing configuration
-        </p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+            <Settings className="w-7 h-7 text-[var(--brand)]" />
+            Platform Settings
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            Razorpay credentials and billing configuration
+          </p>
+        </div>
       </div>
 
-      {/* ── Section 1: Razorpay Platform Keys ─────────────────────────────── */}
-      <div className="bg-[#161b22] rounded-2xl border border-[#30363d] overflow-hidden">
-        <div className="px-6 py-5 border-b border-[#30363d] flex items-center justify-between">
+      {/* Razorpay Platform Keys */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Key className="w-5 h-5 text-primary-400" />
-            <h2 className="font-black text-white text-sm">Razorpay Platform Keys</h2>
+            <Key className="w-5 h-5 text-[var(--brand)]" />
+            <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Razorpay Platform Keys</h2>
           </div>
-          <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+          <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
             rzConfigured
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+              ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+              : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
           }`}>
             {rzConfigured ? (
               <><Check className="w-3 h-3" /> Configured</>
@@ -137,12 +162,12 @@ export default function SASettingsPage() {
         </div>
 
         <div className="px-6 py-6 space-y-4">
-          <p className="text-white/30 text-xs font-bold">
+          <p className="text-slate-500 dark:text-slate-400 text-xs">
             These keys are encrypted and stored securely. Entering new keys will overwrite the existing ones.
           </p>
 
           <div>
-            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
               Platform Razorpay Key ID
             </label>
             <input
@@ -151,12 +176,12 @@ export default function SASettingsPage() {
               onChange={e => setRzKeyId(e.target.value)}
               placeholder="rzp_live_xxxxxxxxxxxxxxxxxx"
               autoComplete="off"
-              className="w-full bg-white/5 border border-[#30363d] rounded-xl px-4 py-3 text-white text-sm font-mono outline-none focus:border-primary-500 transition-colors placeholder:text-white/20"
+              className={`${inputCls} font-mono`}
             />
           </div>
 
           <div>
-            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
               Platform Razorpay Secret Key
             </label>
             <input
@@ -165,15 +190,15 @@ export default function SASettingsPage() {
               onChange={e => setRzKeySecret(e.target.value)}
               placeholder="••••••••••••••••••••••••"
               autoComplete="new-password"
-              className="w-full bg-white/5 border border-[#30363d] rounded-xl px-4 py-3 text-white text-sm font-mono outline-none focus:border-primary-500 transition-colors placeholder:text-white/20"
+              className={`${inputCls} font-mono`}
             />
           </div>
 
           {rzMsg && (
-            <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold border ${
+            <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium border ${
               rzMsg.type === 'success'
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                : 'bg-red-500/10 text-red-400 border-red-500/20'
+                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
             }`}>
               {rzMsg.type === 'success' ? <Check className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
               {rzMsg.text}
@@ -183,7 +208,7 @@ export default function SASettingsPage() {
           <button
             onClick={handleSaveRazorpay}
             disabled={rzSaving || !rzKeyId || !rzKeySecret}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#3B82F6] hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95"
+            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-95"
           >
             {rzSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
             Save Keys
@@ -191,17 +216,16 @@ export default function SASettingsPage() {
         </div>
       </div>
 
-      {/* ── Section 2: Billing Configuration ──────────────────────────────── */}
-      <div className="bg-[#161b22] rounded-2xl border border-[#30363d] overflow-hidden">
-        <div className="px-6 py-5 border-b border-[#30363d] flex items-center gap-3">
-          <Calendar className="w-5 h-5 text-primary-400" />
-          <h2 className="font-black text-white text-sm">Billing Configuration</h2>
+      {/* Billing Configuration */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+          <Calendar className="w-5 h-5 text-[var(--brand)]" />
+          <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Billing Configuration</h2>
         </div>
 
         <div className="px-6 py-6 space-y-5">
-          {/* Grace days */}
           <div>
-            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
               Grace Days Before Overdue Penalty
             </label>
             <div className="flex items-center gap-3">
@@ -211,29 +235,28 @@ export default function SASettingsPage() {
                 max={90}
                 value={config.overdue_grace_days ?? 7}
                 onChange={e => setConfig(prev => ({ ...prev, overdue_grace_days: parseInt(e.target.value) || 0 }))}
-                className="w-28 bg-white/5 border border-[#30363d] rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500 transition-colors"
+                className="w-28 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
               />
-              <span className="text-white/30 text-xs font-bold">days after due date</span>
+              <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">days after due date</span>
             </div>
           </div>
 
-          {/* Penalty type + rate */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                 Penalty Type
               </label>
               <select
                 value={config.overdue_rate_type ?? 'percentage'}
                 onChange={e => setConfig(prev => ({ ...prev, overdue_rate_type: e.target.value as 'percentage' | 'fixed' }))}
-                className="w-full bg-white/5 border border-[#30363d] rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500 transition-colors"
+                className={inputCls}
               >
                 <option value="percentage">Percentage (%)</option>
                 <option value="fixed">Fixed Amount (₹)</option>
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                 Penalty Rate {config.overdue_rate_type === 'percentage' ? '(%)' : '(₹)'}
               </label>
               <input
@@ -242,14 +265,13 @@ export default function SASettingsPage() {
                 step={0.1}
                 value={config.overdue_rate ?? 2}
                 onChange={e => setConfig(prev => ({ ...prev, overdue_rate: parseFloat(e.target.value) || 0 }))}
-                className="w-full bg-white/5 border border-[#30363d] rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500 transition-colors"
+                className={inputCls}
               />
             </div>
           </div>
 
-          {/* Billing cycle day */}
           <div>
-            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest block mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
               Billing Cycle Day (1–28)
             </label>
             <div className="flex items-center gap-3">
@@ -262,19 +284,19 @@ export default function SASettingsPage() {
                   ...prev,
                   billing_cycle_day: Math.min(28, Math.max(1, parseInt(e.target.value) || 1)),
                 }))}
-                className="w-28 bg-white/5 border border-[#30363d] rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-primary-500 transition-colors"
+                className="w-28 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
               />
-              <span className="text-white/30 text-xs font-bold">
+              <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">
                 Invoices are due on day {config.billing_cycle_day ?? 1} of the month
               </span>
             </div>
           </div>
 
           {cfgMsg && (
-            <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-bold border ${
+            <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium border ${
               cfgMsg.type === 'success'
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                : 'bg-red-500/10 text-red-400 border-red-500/20'
+                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
             }`}>
               {cfgMsg.type === 'success' ? <Check className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
               {cfgMsg.text}
@@ -284,12 +306,88 @@ export default function SASettingsPage() {
           <button
             onClick={handleSaveConfig}
             disabled={cfgSaving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#3B82F6] hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95"
+            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-95"
           >
             {cfgSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
             Save Config
           </button>
         </div>
+      </div>
+
+      {/* Security — Change Password */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+          <Lock className="w-5 h-5 text-[var(--brand)]" />
+          <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Security — Change Password</h2>
+        </div>
+
+        <form onSubmit={handleChangePassword} className="px-6 py-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              Current Password
+            </label>
+            <input
+              type="password"
+              value={cpForm.current}
+              onChange={e => setCpForm(p => ({ ...p, current: e.target.value }))}
+              placeholder="••••••••"
+              required
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              New Password <span className="text-slate-400 font-normal">(min. 8 characters)</span>
+            </label>
+            <input
+              type="password"
+              value={cpForm.newPw}
+              onChange={e => setCpForm(p => ({ ...p, newPw: e.target.value }))}
+              placeholder="••••••••"
+              required
+              minLength={8}
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              Confirm New Password
+            </label>
+            <input
+              type="password"
+              value={cpForm.confirm}
+              onChange={e => setCpForm(p => ({ ...p, confirm: e.target.value }))}
+              placeholder="••••••••"
+              required
+              className={inputCls}
+            />
+          </div>
+
+          {cpError && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium border bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              {cpError}
+            </div>
+          )}
+
+          {cpSuccess && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-medium border bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
+              <Check className="w-3.5 h-3.5 shrink-0" />
+              Password updated successfully.
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={cpLoading}
+            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-95"
+          >
+            {cpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+            Update Password
+          </button>
+        </form>
       </div>
     </div>
   );

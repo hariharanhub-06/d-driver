@@ -90,61 +90,28 @@ const listSAUsers = async (req, res) => {
     }
 };
 
-// POST /users/sa — create a new super_admin with temp password + welcome email
+// POST /users/sa — create a new super_admin with an explicit password
 const createSAUser = async (req, res) => {
     try {
-        const { name, email, phone } = req.body;
-        if (!name || !email) {
-            return res.status(400).json({ error: 'name and email are required' });
-        }
+        const { name, email, phone, password } = req.body;
+        if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
+        if (!password || password.length < 8) return res.status(400).json({ error: 'password is required and must be at least 8 characters' });
 
         const existing = await prisma.user.findUnique({ where: { email } });
-        if (existing) {
-            return res.status(409).json({ error: 'A user with this email already exists' });
-        }
+        if (existing) return res.status(409).json({ error: 'A user with this email already exists' });
 
-        const tempPassword = crypto.randomBytes(6).toString('hex');
-        const hashedPassword = await bcrypt.hash(tempPassword, 12);
-
+        const hashedPassword = await bcrypt.hash(password, 12);
         const user = await prisma.user.create({
             data: {
-                name,
-                email,
-                phone: phone || null,
+                name, email, phone: phone || null,
                 password: hashedPassword,
                 role: 'super_admin',
                 is_active: true,
                 is_first_login: true,
                 is_dev_sa: false,
             },
-            select: {
-                id: true, name: true, email: true, phone: true,
-                is_active: true, is_dev_sa: true, created_at: true,
-            },
+            select: { id: true, name: true, email: true, phone: true, is_active: true, is_dev_sa: true, created_at: true },
         });
-
-        const loginUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-        try {
-            await sendEmail({
-                to: email,
-                subject: 'Your D-Driver Platform Admin account',
-                html: `
-                    <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;">
-                        <h2 style="color:#3B82F6;margin:0 0 8px;">D-Driver Platform</h2>
-                        <p>Hi ${name},</p>
-                        <p>A Super Admin account has been created for you on the D-Driver platform.</p>
-                        <p><strong>Login URL:</strong> <a href="${loginUrl}/login">${loginUrl}/login</a></p>
-                        <p><strong>Email:</strong> ${email}</p>
-                        <p><strong>Temporary Password:</strong> <code style="background:#f1f5f9;padding:4px 8px;border-radius:4px;">${tempPassword}</code></p>
-                        <p style="color:#64748b;font-size:13px;">You will be asked to set a new password on first login.</p>
-                    </div>`,
-                template: 'sa_welcome',
-            });
-        } catch (emailErr) {
-            console.error('Welcome email failed:', emailErr.message);
-            // Don't fail account creation if email fails
-        }
-
         res.status(201).json(user);
     } catch (error) {
         console.error('createSAUser error:', error.message);
