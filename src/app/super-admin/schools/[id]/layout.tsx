@@ -39,7 +39,8 @@ export default function SchoolDrillLayout({ children }: { children: React.ReactN
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl p-1 w-fit border border-slate-200 dark:border-slate-600">
+            <div className="overflow-x-auto pb-0.5 -mb-0.5">
+            <div className="flex gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl p-1 w-max min-w-full border border-slate-200 dark:border-slate-600">
                 {TABS.map(tab => {
                     const href = `/super-admin/schools/${id}${tab.path}`;
                     const isActive = tab.path === ''
@@ -59,6 +60,7 @@ export default function SchoolDrillLayout({ children }: { children: React.ReactN
                         </Link>
                     );
                 })}
+            </div>
             </div>
 
             {children}

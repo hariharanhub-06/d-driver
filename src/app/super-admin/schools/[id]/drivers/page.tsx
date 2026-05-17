@@ -2,13 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Users, Plus, Trash2, X, Copy, CheckCircle2 } from 'lucide-react';
+import { Users, Plus, Trash2, X, Copy, CheckCircle2, Edit } from 'lucide-react';
 import api from '@/lib/api';
+
+interface Bus {
+    id: string;
+    bus_number: string;
+}
 
 interface Driver {
     id: string;
-    user: { name: string; email: string; phone?: string };
-    assigned_bus?: { bus_number: string };
+    user: { id: string; name: string; email: string; phone?: string };
+    bus?: { id: string; bus_number: string } | null;
     license_no?: string;
     is_active?: boolean;
 }
@@ -19,6 +24,7 @@ const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-20
 export default function SchoolDriversPage() {
     const { id } = useParams<{ id: string }>();
     const [drivers, setDrivers] = useState<Driver[]>([]);
+    const [buses, setBuses] = useState<Bus[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [modalOpen, setModalOpen] = useState(false);
@@ -28,14 +34,25 @@ export default function SchoolDriversPage() {
     const [createdPassword, setCreatedPassword] = useState('');
     const [copied, setCopied] = useState(false);
 
-    useEffect(() => { fetchDrivers(); }, [id]);
+    // Edit modal state
+    const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+    const [editBusId, setEditBusId] = useState('');
+    const [editLicense, setEditLicense] = useState('');
+    const [editSaving, setEditSaving] = useState(false);
+    const [editError, setEditError] = useState('');
 
-    const fetchDrivers = async () => {
+    useEffect(() => { fetchAll(); }, [id]);
+
+    const fetchAll = async () => {
         setLoading(true);
         setError('');
         try {
-            const res = await api.get(`/drivers?school_id=${id}`);
-            setDrivers(Array.isArray(res.data) ? res.data : []);
+            const [driverRes, busRes] = await Promise.allSettled([
+                api.get(`/drivers?school_id=${id}`),
+                api.get(`/buses?school_id=${id}`),
+            ]);
+            if (driverRes.status === 'fulfilled') setDrivers(Array.isArray(driverRes.value.data) ? driverRes.value.data : []);
+            if (busRes.status === 'fulfilled') setBuses(Array.isArray(busRes.value.data) ? busRes.value.data : []);
         } catch (e: any) {
             setError(e.response?.data?.message || 'Failed to load drivers.');
         } finally {
@@ -66,18 +83,43 @@ export default function SchoolDriversPage() {
                 school_id: id,
                 password: form.password,
             });
-            const userId = userRes.data?.id || userRes.data?.user?.id;
+            const userId = userRes.data?.id;
             await api.post('/drivers', {
                 user_id: userId,
                 license_no: form.license_no || undefined,
                 school_id: id,
             });
             setCreatedPassword(form.password);
-            fetchDrivers();
+            fetchAll();
         } catch (e: any) {
-            setFormError(e.response?.data?.message || 'Failed to create driver.');
+            setFormError(e.response?.data?.error || e.response?.data?.message || 'Failed to create driver.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const openEdit = (driver: Driver) => {
+        setEditingDriver(driver);
+        setEditBusId(driver.bus?.id || '');
+        setEditLicense(driver.license_no || '');
+        setEditError('');
+    };
+
+    const handleEditSave = async () => {
+        if (!editingDriver) return;
+        setEditSaving(true);
+        setEditError('');
+        try {
+            await api.put(`/drivers/${editingDriver.id}`, {
+                assigned_bus_id: editBusId || null,
+                license_no: editLicense || null,
+            });
+            setEditingDriver(null);
+            fetchAll();
+        } catch (e: any) {
+            setEditError(e.response?.data?.error || e.response?.data?.message || 'Failed to save changes.');
+        } finally {
+            setEditSaving(false);
         }
     };
 
@@ -85,7 +127,7 @@ export default function SchoolDriversPage() {
         if (!window.confirm(`Delete driver "${driver.user.name}"? This cannot be undone.`)) return;
         try {
             await api.delete(`/drivers/${driver.id}`);
-            fetchDrivers();
+            fetchAll();
         } catch (e: any) {
             alert(e.response?.data?.message || 'Failed to delete driver.');
         }
@@ -145,11 +187,20 @@ export default function SchoolDriversPage() {
                                         <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{driver.user.email}</td>
                                         <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{driver.user.phone || '—'}</td>
                                         <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{driver.license_no || '—'}</td>
-                                        <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{driver.assigned_bus?.bus_number || '—'}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                                            {driver.bus?.bus_number
+                                                ? <span className="bg-[var(--brand)]/10 text-[var(--brand)] rounded-lg px-2 py-0.5 text-xs font-semibold">{driver.bus.bus_number}</span>
+                                                : <span className="text-slate-400">—</span>}
+                                        </td>
                                         <td className="px-4 py-3">
-                                            <button onClick={() => handleDelete(driver)} className="flex items-center gap-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl px-3 py-1.5 font-semibold text-xs hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
-                                                <Trash2 className="w-3 h-3" /> Delete
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button onClick={() => openEdit(driver)} className="flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-3 py-1.5 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
+                                                    <Edit className="w-3 h-3" /> Edit
+                                                </button>
+                                                <button onClick={() => handleDelete(driver)} className="flex items-center gap-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl px-3 py-1.5 font-semibold text-xs hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
+                                                    <Trash2 className="w-3 h-3" /> Delete
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -159,6 +210,60 @@ export default function SchoolDriversPage() {
                 </div>
             </div>
 
+            {/* Edit Driver Modal */}
+            {editingDriver && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700">
+                            <div>
+                                <h2 className="text-slate-900 dark:text-white font-bold text-base">Edit Driver</h2>
+                                <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{editingDriver.user.name}</p>
+                            </div>
+                            <button onClick={() => setEditingDriver(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Assign Bus</label>
+                                <select
+                                    value={editBusId}
+                                    onChange={e => setEditBusId(e.target.value)}
+                                    className={inputCls}
+                                >
+                                    <option value="">No Bus Assigned</option>
+                                    {buses.map(b => (
+                                        <option key={b.id} value={b.id}>{b.bus_number}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">License No.</label>
+                                <input
+                                    className={inputCls}
+                                    placeholder="DL-XXXXXXXX"
+                                    value={editLicense}
+                                    onChange={e => setEditLicense(e.target.value)}
+                                />
+                            </div>
+                            {editError && (
+                                <p className="text-red-600 dark:text-red-400 text-xs font-medium bg-red-50 dark:bg-red-900/30 rounded-xl px-4 py-3 border border-red-200 dark:border-red-800">{editError}</p>
+                            )}
+                        </div>
+                        <div className="flex gap-3 px-6 pb-6">
+                            <button onClick={() => setEditingDriver(null)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
+                                Cancel
+                            </button>
+                            <button onClick={handleEditSave} disabled={editSaving} className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50">
+                                {editSaving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Driver Modal */}
             {modalOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -184,7 +289,7 @@ export default function SchoolDriversPage() {
                                             {copied ? 'Copied' : 'Copy'}
                                         </button>
                                     </div>
-                                    <p className="text-amber-700 dark:text-amber-400 text-xs">User must change this on first login.</p>
+                                    <p className="text-amber-700 dark:text-amber-400 text-xs">User will be prompted to change this on first login.</p>
                                 </div>
                                 <button onClick={() => { setModalOpen(false); setCreatedPassword(''); }} className="w-full bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all">
                                     Done

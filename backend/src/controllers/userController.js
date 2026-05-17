@@ -215,15 +215,28 @@ const getAllUsers = async (req, res) => {
 
 const createUser = async (req, res) => {
     try {
-        const { name, email, role, school_id, phone } = req.body;
+        const { name, email: rawEmail, role, school_id, phone: rawPhone } = req.body;
+        const email = rawEmail?.toLowerCase().trim();
+        const phone = rawPhone?.trim() || null;
+
+        if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
+
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing) return res.status(409).json({ error: 'A user with this email already exists' });
+
         const rawPassword = req.body.password || crypto.randomBytes(8).toString('base64url');
         const hashedPassword = await bcrypt.hash(rawPassword, 12);
         const user = await prisma.user.create({
-            data: { name, email, password: hashedPassword, role, school_id, phone, is_first_login: true },
+            data: { name, email, password: hashedPassword, role, school_id: school_id || null, phone, is_first_login: true, is_active: true },
             select: { id: true, name: true, email: true, phone: true, role: true, school_id: true, created_at: true },
         });
         res.status(201).json(user);
     } catch (error) {
+        console.error('createUser error:', error.message);
+        if (error.code === 'P2002') {
+            const field = error.meta?.target?.[0] || 'field';
+            return res.status(409).json({ error: `A user with this ${field} already exists` });
+        }
         res.status(500).json({ error: 'Error creating user', details: error.message });
     }
 };

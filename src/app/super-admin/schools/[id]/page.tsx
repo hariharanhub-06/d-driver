@@ -200,7 +200,10 @@ export default function SchoolDetailPage() {
                     <span className="text-xs text-slate-400 dark:text-slate-500">Admins, Drivers &amp; Parents all use the same page</span>
                 </div>
                 {(() => {
-                    const url = (typeof window !== 'undefined' ? window.location.origin : '') + '/login?school=' + school.slug;
+                    const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN;
+                    const url = baseDomain
+                        ? `https://${school.slug}.${baseDomain}/login`
+                        : (typeof window !== 'undefined' ? window.location.origin : '') + '/login?school=' + school.slug;
                     return (
                         <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 rounded-xl px-4 py-2.5">
                             <p className="text-xs font-mono text-blue-600 dark:text-blue-400 truncate">{url}</p>
