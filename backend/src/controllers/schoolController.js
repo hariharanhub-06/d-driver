@@ -101,13 +101,18 @@ const registerSchool = async (req, res) => {
       include: { users: { select: { id: true, email: true, role: true } } },
     });
 
-    await sendWelcomeAdmin({
-      adminEmail: admin_email, adminName: admin_name,
-      schoolName: name, slug, tempPassword,
-    });
+    // Email is best-effort — never block school creation if Resend isn't configured
+    try {
+      await sendWelcomeAdmin({
+        adminEmail: admin_email, adminName: admin_name,
+        schoolName: name, slug, tempPassword,
+      });
+    } catch (emailErr) {
+      console.warn('sendWelcomeAdmin failed (non-fatal):', emailErr.message);
+    }
 
     await logAction({ req, action: 'create_school', targetType: 'school', targetId: school.id, schoolId: school.id });
-    res.status(201).json(school);
+    res.status(201).json({ ...school, temp_password: tempPassword });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error creating school' });

@@ -83,6 +83,9 @@ export default function SchoolsManagement() {
     const [adminSubmitting, setAdminSubmitting] = useState(false);
     const [adminError, setAdminError] = useState('');
 
+    // ── Temp password shown after school creation ────────────────────────────
+    const [tempPassword, setTempPassword] = useState('');
+
     // ── Status toggle loading ────────────────────────────────────────────────
     const [toggleLoading, setToggleLoading] = useState<string | null>(null);
 
@@ -113,6 +116,7 @@ export default function SchoolsManagement() {
         setActiveTab('profile');
         setModalError('');
         setModalSuccess('');
+        setTempPassword('');
         setIsModalOpen(true);
     };
 
@@ -175,7 +179,7 @@ export default function SchoolsManagement() {
                 setModalSuccess('School updated successfully.');
             } else {
                 // Create school + first admin
-                await api.post('/schools', {
+                const { data: created } = await api.post('/schools', {
                     name: formData.name, slug: formData.slug,
                     address: formData.address, primary_color: formData.primary_color,
                     logo_url: finalLogoUrl, phone: formData.phone,
@@ -183,7 +187,8 @@ export default function SchoolsManagement() {
                     admin_name: formData.admin_name, admin_email: formData.admin_email,
                     admin_phone: formData.admin_phone || undefined,
                 });
-                setModalSuccess('School created! Admin login credentials sent to their email.');
+                setTempPassword(created.temp_password || '');
+                setModalSuccess(`School created! Admin: ${formData.admin_email}`);
             }
 
             setTimeout(() => {
@@ -396,59 +401,62 @@ export default function SchoolsManagement() {
                 </div>
             )}
 
-            {/* ── CREATE / EDIT MODAL (full screen) ─────────────────────────────── */}
+            {/* ── CREATE / EDIT MODAL ────────────────────────────────────────────── */}
             {isModalOpen && (
-                <>
-                    <div className="fixed inset-0 z-[110] flex flex-col bg-white dark:bg-slate-900">
-                        <div className="w-full max-w-2xl mx-auto flex flex-col h-full">
+                <div className="fixed inset-0 z-[9999] overflow-y-auto">
+                    {/* Backdrop */}
+                    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => !isSubmitting && setIsModalOpen(false)} />
+
+                    {/* Modal card — centered, no scrolling needed */}
+                    <div className="relative flex min-h-full items-center justify-center p-4">
+                        <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl">
+
                             {/* Header */}
-                            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700 shrink-0">
+                            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center shrink-0">
                                         <Building2 className="w-5 h-5 text-[var(--brand)]" />
                                     </div>
                                     <div>
                                         <h2 className="text-base font-bold text-slate-900 dark:text-white">{editingId ? 'Edit School' : 'Add School'}</h2>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">{editingId ? 'Update school details and permissions' : 'Create school + first admin account'}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{editingId ? 'Update details and feature permissions' : 'Create school + first admin account'}</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-all">
+                                <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-all shrink-0">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
 
-                            {/* Tabs */}
-                            <div className="flex border-b border-slate-100 dark:border-slate-700 px-6 shrink-0">
-                                {(['profile', 'permissions'] as const).map(tab => (
-                                    <button
-                                        key={tab}
-                                        onClick={() => setActiveTab(tab)}
-                                        className={cn("px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b-2 -mb-px transition-all",
-                                            activeTab === tab ? "border-[var(--brand)] text-[var(--brand)]" : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                        )}
-                                    >
-                                        {tab === 'profile' ? 'Profile & Admin' : 'Permissions'}
-                                    </button>
-                                ))}
-                            </div>
+                            {/* Tabs — only shown when editing (permissions tab) */}
+                            {editingId && (
+                                <div className="flex border-b border-slate-100 dark:border-slate-700 px-6">
+                                    {(['profile', 'permissions'] as const).map(tab => (
+                                        <button
+                                            key={tab}
+                                            onClick={() => setActiveTab(tab)}
+                                            className={cn("px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b-2 -mb-px transition-all",
+                                                activeTab === tab ? "border-[var(--brand)] text-[var(--brand)]" : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                            )}
+                                        >
+                                            {tab}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
 
-                            {/* Body */}
-                            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-                                <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
-
-                                    {activeTab === 'profile' && (
-                                        <>
-                                            {/* School info */}
-                                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">School Info</p>
+                            <form onSubmit={handleSubmit}>
+                                <div className="px-6 py-5">
+                                    {/* Profile tab (always shown on create; shown on edit when tab=profile) */}
+                                    {(!editingId || activeTab === 'profile') && (
+                                        <div className="space-y-4">
+                                            {/* Row 1: Name + Slug */}
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">School Name *</label>
-                                                    <input type="text" value={formData.name} onChange={e => handleNameChange(e.target.value)} placeholder="St. Joseph's School" required className={inputCls} />
+                                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">School Name *</label>
+                                                    <input type="text" value={formData.name} onChange={e => handleNameChange(e.target.value)} placeholder="St. Joseph's School" required className={inputCls} autoFocus />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                                                        Portal URL * <span className="text-slate-400 font-normal">(slug)</span>
-                                                    </label>
+                                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Portal Slug *</label>
                                                     <div className="flex items-center bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[var(--brand)]/30 focus-within:border-[var(--brand)] transition-all">
                                                         <input
                                                             type="text"
@@ -456,146 +464,142 @@ export default function SchoolsManagement() {
                                                             onChange={e => setFormData(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
                                                             disabled={!!editingId}
                                                             placeholder="st-josephs"
-                                                            className="flex-1 bg-transparent px-3 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none disabled:text-slate-400"
+                                                            className="flex-1 bg-transparent px-3 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none disabled:text-slate-400 disabled:cursor-not-allowed"
                                                         />
-                                                        <span className="text-xs text-slate-400 pr-3 shrink-0">.ddriver365.com</span>
+                                                        <span className="text-[10px] text-slate-400 pr-2.5 shrink-0 whitespace-nowrap">.ddriver365.com</span>
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {/* Row 2: Address */}
                                             <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Address</label>
-                                                <input type="text" value={formData.address} onChange={e => setFormData(p => ({ ...p, address: e.target.value }))} placeholder="123 Main St, Chennai" className={inputCls} />
+                                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Address</label>
+                                                <input type="text" value={formData.address} onChange={e => setFormData(p => ({ ...p, address: e.target.value }))} placeholder="123 Main St, Chennai, Tamil Nadu" className={inputCls} />
                                             </div>
+
+                                            {/* Row 3: Logo + Brand Color */}
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Logo</label>
-                                                    <label className="flex items-center justify-center w-full h-11 bg-slate-50 dark:bg-slate-700/50 border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl cursor-pointer hover:border-[var(--brand)] transition-all group">
-                                                        <span className="text-xs font-medium text-slate-400 group-hover:text-[var(--brand)] truncate px-4">{logoFile?.name || 'Click to upload logo'}</span>
+                                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Logo</label>
+                                                    <label className="flex items-center justify-center w-full h-11 bg-slate-50 dark:bg-slate-700/50 border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl cursor-pointer hover:border-[var(--brand)] hover:bg-[var(--brand)]/5 transition-all group">
+                                                        <span className="text-xs font-medium text-slate-400 group-hover:text-[var(--brand)] truncate px-4">{logoFile?.name || '+ Upload logo'}</span>
                                                         <input type="file" accept="image/*" className="hidden" onChange={e => setLogoFile(e.target.files?.[0] || null)} />
                                                     </label>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Brand Color</label>
+                                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Brand Color</label>
                                                     <div className="flex items-center h-11 bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 px-3 rounded-xl gap-3">
-                                                        <input type="color" value={formData.primary_color} onChange={e => setFormData(p => ({ ...p, primary_color: e.target.value }))} className="h-7 w-7 cursor-pointer rounded-lg bg-transparent border-0" />
+                                                        <input type="color" value={formData.primary_color} onChange={e => setFormData(p => ({ ...p, primary_color: e.target.value }))} className="h-7 w-7 cursor-pointer rounded-md bg-transparent border-0 p-0" />
                                                         <span className="text-xs font-mono text-slate-700 dark:text-slate-300">{formData.primary_color}</span>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* First admin — only when creating */}
+                                            {/* First admin — only on create */}
                                             {!editingId && (
                                                 <>
-                                                    <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
-                                                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">First Admin Account</p>
-                                                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl px-3 py-2.5">
-                                                            A login account will be created for this admin. They'll receive their temporary password by email and must change it on first login.
-                                                        </p>
+                                                    <div className="flex items-center gap-3 pt-1">
+                                                        <div className="flex-1 border-t border-dashed border-slate-200 dark:border-slate-600" />
+                                                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide whitespace-nowrap">First Admin Account</span>
+                                                        <div className="flex-1 border-t border-dashed border-slate-200 dark:border-slate-600" />
                                                     </div>
+
+                                                    {/* Row 4: Admin name + email */}
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div>
-                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Admin Name *</label>
+                                                            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Admin Name *</label>
                                                             <input type="text" value={formData.admin_name} onChange={e => setFormData(p => ({ ...p, admin_name: e.target.value }))} placeholder="John Doe" required className={inputCls} />
                                                         </div>
                                                         <div>
-                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Admin Email *</label>
+                                                            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Admin Email *</label>
                                                             <input type="email" value={formData.admin_email} onChange={e => setFormData(p => ({ ...p, admin_email: e.target.value }))} placeholder="admin@school.com" required className={inputCls} />
                                                         </div>
                                                     </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Admin Phone <span className="text-slate-400 font-normal">(optional)</span></label>
-                                                        <input type="tel" value={formData.admin_phone} onChange={e => setFormData(p => ({ ...p, admin_phone: e.target.value }))} placeholder="+91 98765 43210" className={inputCls} />
-                                                    </div>
                                                 </>
                                             )}
-
-                                            {/* Routes note */}
-                                            <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
-                                                <div className="flex items-start gap-3 p-3.5 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
-                                                    <Route className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                                                    <div>
-                                                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Routes & Stops are configured by the school admin</p>
-                                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">After school is created, the admin logs in and pins stops on a live map from their dashboard → Routes page.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </>
+                                        </div>
                                     )}
 
-                                    {activeTab === 'permissions' && (
-                                        <div className="space-y-2">
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Toggle features on or off for this school. Disabled features are hidden from the school's dashboard.</p>
-                                            <div className="grid grid-cols-1 gap-2">
-                                                {FEATURES.map(f => (
-                                                    <label key={f.key} className={cn(
-                                                        "flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all",
-                                                        permissions[f.key]
-                                                            ? "bg-[var(--brand)]/5 border-[var(--brand)]/30 dark:border-[var(--brand)]/30"
-                                                            : "bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600"
-                                                    )}>
-                                                        <div className="flex-1 mr-3">
-                                                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{f.label}</p>
-                                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{f.description}</p>
-                                                        </div>
-                                                        <div className="relative shrink-0">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={permissions[f.key] ?? false}
-                                                                onChange={e => setPermissions(p => ({ ...p, [f.key]: e.target.checked }))}
-                                                                className="sr-only peer"
-                                                            />
-                                                            <div className={cn(
-                                                                "w-10 h-6 rounded-full transition-all",
-                                                                permissions[f.key] ? "bg-[var(--brand)]" : "bg-slate-200 dark:bg-slate-600"
-                                                            )}>
-                                                                <div className={cn(
-                                                                    "w-4 h-4 bg-white rounded-full shadow transition-all mt-1",
-                                                                    permissions[f.key] ? "translate-x-5" : "translate-x-1"
-                                                                )} />
-                                                            </div>
-                                                        </div>
-                                                    </label>
-                                                ))}
-                                            </div>
+                                    {/* Permissions tab — edit mode only, scrollable within fixed height */}
+                                    {editingId && activeTab === 'permissions' && (
+                                        <div className="max-h-[50vh] overflow-y-auto pr-1 space-y-2">
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Disabled features are hidden from the school's sidebar and API.</p>
+                                            {FEATURES.map(f => (
+                                                <label key={f.key} className={cn(
+                                                    "flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all",
+                                                    permissions[f.key] ? "bg-[var(--brand)]/5 border-[var(--brand)]/20" : "bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600"
+                                                )}>
+                                                    <div className="flex-1 mr-3">
+                                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{f.label}</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400">{f.description}</p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPermissions(p => ({ ...p, [f.key]: !p[f.key] }))}
+                                                        className={cn("w-10 h-6 rounded-full transition-all shrink-0 relative", permissions[f.key] ? "bg-[var(--brand)]" : "bg-slate-200 dark:bg-slate-600")}
+                                                    >
+                                                        <span className={cn("absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all", permissions[f.key] ? "left-5" : "left-1")} />
+                                                    </button>
+                                                </label>
+                                            ))}
                                         </div>
                                     )}
 
                                     {/* Error / Success */}
                                     {modalError && (
-                                        <div className="flex items-start gap-2.5 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-xs font-medium">
-                                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />{modalError}
+                                        <div className="flex items-center gap-2.5 mt-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-xs font-medium">
+                                            <AlertCircle className="w-4 h-4 shrink-0" />{modalError}
                                         </div>
                                     )}
                                     {modalSuccess && (
-                                        <div className="flex items-start gap-2.5 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-700 dark:text-emerald-400 text-xs font-medium">
-                                            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />{modalSuccess}
+                                        <div className="mt-4 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-2">
+                                            <div className="flex items-start gap-2.5 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+                                                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" /><span>{modalSuccess}</span>
+                                            </div>
+                                            {tempPassword && (
+                                                <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-lg px-3 py-2 border border-emerald-200 dark:border-emerald-700">
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold tracking-wide">Temp Password</p>
+                                                        <p className="text-sm font-mono font-bold text-slate-900 dark:text-white">{tempPassword}</p>
+                                                    </div>
+                                                    <button type="button" onClick={() => navigator.clipboard.writeText(tempPassword)} className="ml-3 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-[var(--brand)] transition-all" title="Copy password">
+                                                        <Copy className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Footer */}
-                                <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0 flex gap-3">
-                                    <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                <div className="px-6 pb-6 flex gap-3">
+                                    <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                                         Cancel
                                     </button>
-                                    <button type="submit" disabled={isSubmitting} className="flex-1 py-3 rounded-xl bg-[var(--brand)] text-white text-sm font-semibold hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+                                    <button type="submit" disabled={isSubmitting} className="flex-1 py-2.5 rounded-xl bg-[var(--brand)] text-white text-sm font-semibold hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
                                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editingId ? 'Save Changes' : 'Create School'}
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
-                </>
+                </div>
             )}
 
-            {/* ── ADMIN MANAGEMENT MODAL (full screen) ───────────────────────────── */}
+            {/* ── ADMIN MANAGEMENT MODAL ─────────────────────────────────────────── */}
             {adminSchool && (
-                <>
-                    <div className="fixed inset-0 z-[110] flex flex-col bg-white dark:bg-slate-900">
-                        <div className="w-full max-w-lg mx-auto flex flex-col h-full">
-                            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700 shrink-0">
+                <div className="fixed inset-0 z-[9999] overflow-y-auto">
+                    {/* Backdrop */}
+                    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setAdminSchool(null)} />
+
+                    {/* Modal card */}
+                    <div className="relative flex min-h-full items-center justify-center p-4">
+                        <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg">
+
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
                                         <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                     </div>
                                     <div>
@@ -603,12 +607,12 @@ export default function SchoolsManagement() {
                                         <p className="text-xs text-slate-500 dark:text-slate-400">{adminSchool.name}</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setAdminSchool(null)} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-all">
+                                <button onClick={() => setAdminSchool(null)} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-all shrink-0">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
 
-                            <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+                            <div className="px-6 py-5 space-y-5">
                                 {/* Existing admins */}
                                 <div>
                                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Current Admins</p>
@@ -619,7 +623,7 @@ export default function SchoolsManagement() {
                                     ) : schoolAdmins.length === 0 ? (
                                         <p className="text-sm text-slate-500 text-center py-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">No admins yet</p>
                                     ) : (
-                                        <div className="space-y-2">
+                                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                                             {schoolAdmins.map(admin => (
                                                 <div key={admin.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-600">
                                                     <div>
@@ -660,15 +664,20 @@ export default function SchoolsManagement() {
                                                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />{adminError}
                                             </div>
                                         )}
-                                        <button type="submit" disabled={adminSubmitting} className="w-full py-2.5 rounded-xl bg-[var(--brand)] text-white text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                                            {adminSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><UserPlus className="w-4 h-4" /> Add Admin</>}
-                                        </button>
+                                        <div className="flex gap-3 pt-1">
+                                            <button type="button" onClick={() => setAdminSchool(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                                Close
+                                            </button>
+                                            <button type="submit" disabled={adminSubmitting} className="flex-1 py-2.5 rounded-xl bg-[var(--brand)] text-white text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                                                {adminSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><UserPlus className="w-4 h-4" /> Add Admin</>}
+                                            </button>
+                                        </div>
                                     </form>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </>
+                </div>
             )}
         </div>
     );
