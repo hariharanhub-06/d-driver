@@ -1,8 +1,33 @@
 const prisma = require('../prisma');
 
+// Returns IDs of all DEV SA users — used to scrub their traces from non-DEV SA views.
+const getDevSaIds = async () => {
+  const devSAs = await prisma.user.findMany({ where: { is_dev_sa: true }, select: { id: true } });
+  return devSAs.map(u => u.id);
+};
+
+// Build exclusion clause that hides all DEV SA traces from regular SAs.
+// Hides: logs where actor is DEV SA, OR where target is a DEV SA user.
+const buildDevSaExclude = (devSaIds) => {
+  if (!devSaIds.length) return {};
+  return {
+    actor_id: { notIn: devSaIds },
+    NOT: {
+      AND: [
+        { target_type: 'user' },
+        { target_id: { in: devSaIds } },
+      ],
+    },
+  };
+};
+
 const getAuditLogs = async (req, res) => {
   try {
     const { page = 1, limit = 50, action, targetType, schoolId, from, to } = req.query;
+
+    // Non-DEV SA must never see DEV SA traces
+    const devSaIds = req.user.is_dev_sa ? [] : await getDevSaIds();
+
     const where = {};
     if (action) where.action = action;
     if (targetType) where.target_type = targetType;
@@ -17,6 +42,15 @@ const getAuditLogs = async (req, res) => {
       if (to) where.created_at.lte = new Date(to);
     }
 
+    // Exclude DEV SA traces for regular SAs
+    if (devSaIds.length) {
+      where.actor_id = { notIn: devSaIds };
+      // Also hide logs that targeted a DEV SA user
+      where.NOT = {
+        AND: [{ target_type: 'user' }, { target_id: { in: devSaIds.map(String) } }],
+      };
+    }
+
     const [logs, total] = await Promise.all([
       prisma.auditLog.findMany({
         where,
@@ -27,10 +61,16 @@ const getAuditLogs = async (req, res) => {
       prisma.auditLog.count({ where }),
     ]);
 
-    // Enrich with actor names
+    // Enrich with actor names — exclude DEV SA users from lookup for non-DEV SA
     const actorIds = [...new Set(logs.map(l => l.actor_id).filter(id => id !== 'system'))];
     const users = actorIds.length > 0
-      ? await prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, name: true, email: true } })
+      ? await prisma.user.findMany({
+          where: {
+            id: { in: actorIds },
+            ...(devSaIds.length ? { is_dev_sa: false } : {}),
+          },
+          select: { id: true, name: true, email: true },
+        })
       : [];
     const userMap = Object.fromEntries(users.map(u => [u.id, u]));
 
@@ -50,6 +90,9 @@ const getAuditLogs = async (req, res) => {
 const getLoginActivity = async (req, res) => {
   try {
     const { page = 1, limit = 50, from, to, role } = req.query;
+
+    const devSaIds = req.user.is_dev_sa ? [] : await getDevSaIds();
+
     const where = { action: 'login' };
     if (role) where.actor_role = role;
     if (from || to) {
@@ -59,6 +102,11 @@ const getLoginActivity = async (req, res) => {
     }
     if (req.user.role !== 'super_admin' && req.user.school_id) {
       where.school_id = req.user.school_id;
+    }
+
+    // Hide DEV SA login traces from regular SAs
+    if (devSaIds.length) {
+      where.actor_id = { notIn: devSaIds };
     }
 
     const [logs, total] = await Promise.all([
@@ -73,7 +121,13 @@ const getLoginActivity = async (req, res) => {
 
     const actorIds = [...new Set(logs.map(l => l.actor_id).filter(id => id !== 'system'))];
     const users = actorIds.length > 0
-      ? await prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, name: true, email: true } })
+      ? await prisma.user.findMany({
+          where: {
+            id: { in: actorIds },
+            ...(devSaIds.length ? { is_dev_sa: false } : {}),
+          },
+          select: { id: true, name: true, email: true },
+        })
       : [];
     const userMap = Object.fromEntries(users.map(u => [u.id, u]));
 
