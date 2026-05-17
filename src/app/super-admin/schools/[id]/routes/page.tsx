@@ -185,7 +185,7 @@ export default function SchoolRoutesPage() {
             </div>
 
             {modalOpen && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700">
                             <h2 className="text-slate-900 dark:text-white font-bold text-base">{editing ? 'Edit Route' : 'Add Route'}</h2>

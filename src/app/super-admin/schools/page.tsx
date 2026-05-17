@@ -163,9 +163,10 @@ export default function SchoolsManagement() {
                     fd.append('file', logoFile);
                     fd.append('folder', 'schools');
                     const { data: uploadData } = await api.post('/upload/file', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                    if (!uploadData?.url) throw new Error('No URL returned');
                     finalLogoUrl = uploadData.url;
-                } catch {
-                    // Logo upload failed silently — school still created
+                } catch (uploadErr: any) {
+                    setModalError('Logo upload failed — ' + (uploadErr?.response?.data?.error || uploadErr?.message || 'check ImageKit env vars') + '. Saving without logo.');
                 }
             }
 

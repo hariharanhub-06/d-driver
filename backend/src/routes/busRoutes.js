@@ -8,9 +8,9 @@ router.use(authenticateToken, requirePasswordChanged);
 
 router.get('/', requireRole('admin', 'super_admin', 'driver'), requireSchoolScope, getAllBuses);
 router.get('/:id', requireRole('admin', 'super_admin', 'driver'), getBusById);
-router.post('/bulk', requireRole('admin'), bulkCreateBuses);
-router.post('/', requireRole('admin'), validate(busSchema), createBus);
-router.put('/:id', requireRole('admin'), updateBus);
-router.delete('/:id', requireRole('admin'), deleteBus);
+router.post('/bulk', requireRole('admin', 'super_admin'), bulkCreateBuses);
+router.post('/', requireRole('admin', 'super_admin'), validate(busSchema), createBus);
+router.put('/:id', requireRole('admin', 'super_admin'), updateBus);
+router.delete('/:id', requireRole('admin', 'super_admin'), deleteBus);
 
 module.exports = router;
