@@ -168,22 +168,27 @@ export default function SchoolsManagement() {
             }
 
             if (editingId) {
-                // Update basic info
+                // Update basic info — send undefined (not '') for blank optional fields
                 await api.put(`/schools/${editingId}`, {
-                    name: formData.name, address: formData.address,
-                    primary_color: formData.primary_color, logo_url: finalLogoUrl,
-                    phone: formData.phone, email_contact: formData.email_contact,
+                    name: formData.name,
+                    address: formData.address || undefined,
+                    primary_color: formData.primary_color,
+                    logo_url: finalLogoUrl || undefined,
+                    phone: formData.phone || undefined,
+                    email_contact: formData.email_contact || undefined,
                 });
                 // Update permissions separately
                 await api.put(`/schools/${editingId}/permissions`, { permissions });
                 setModalSuccess('School updated successfully.');
             } else {
-                // Create school + first admin
+                // Create school + first admin — send undefined (not '') for blank optional fields
                 const { data: created } = await api.post('/schools', {
                     name: formData.name, slug: formData.slug,
-                    address: formData.address, primary_color: formData.primary_color,
-                    logo_url: finalLogoUrl, phone: formData.phone,
-                    email_contact: formData.email_contact,
+                    address: formData.address || undefined,
+                    primary_color: formData.primary_color,
+                    logo_url: finalLogoUrl || undefined,
+                    phone: formData.phone || undefined,
+                    email_contact: formData.email_contact || undefined,
                     admin_name: formData.admin_name, admin_email: formData.admin_email,
                     admin_phone: formData.admin_phone || undefined,
                 });

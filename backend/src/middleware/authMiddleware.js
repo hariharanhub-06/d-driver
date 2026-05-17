@@ -9,47 +9,54 @@ const authenticateToken = async (req, res, next) => {
     return res.status(401).json({ error: 'No token provided' });
   }
 
-  // Check if token has been invalidated (logout blocklist)
-  const blocked = await prisma.blockedToken.findUnique({ where: { token } });
-  if (blocked) {
-    return res.status(401).json({ error: 'Token has been invalidated. Please log in again.' });
+  // Check if token has been invalidated (logout blocklist) — fail open on DB error
+  try {
+    const blocked = await prisma.blockedToken.findUnique({ where: { token } });
+    if (blocked) {
+      return res.status(401).json({ error: 'Token has been invalidated. Please log in again.' });
+    }
+  } catch {
+    // Blocklist check failed (DB hiccup) — proceed rather than block the user
   }
 
   let user;
   try {
     user = jwt.verify(token, process.env.JWT_SECRET);
-  } catch (err) {
+  } catch {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 
-  // Verify user still exists and is active
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-  if (!dbUser || !dbUser.is_active) {
-    return res.status(401).json({ error: 'Account not found or deactivated' });
-  }
-
-  // Verify the school the user belongs to is still active (skip for super_admin)
-  if (dbUser.school_id && dbUser.role !== 'super_admin') {
-    const school = await prisma.school.findUnique({
-      where: { id: dbUser.school_id },
-      select: { status: true },
-    });
-    if (!school || school.status !== 'active') {
-      return res.status(403).json({
-        error: 'Account inactive. Contact your service provider.',
-      });
+  try {
+    // Verify user still exists and is active
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+    if (!dbUser || !dbUser.is_active) {
+      return res.status(401).json({ error: 'Account not found or deactivated' });
     }
+
+    // Verify the school the user belongs to is still active (skip for super_admin)
+    if (dbUser.school_id && dbUser.role !== 'super_admin') {
+      const school = await prisma.school.findUnique({
+        where: { id: dbUser.school_id },
+        select: { status: true },
+      });
+      if (!school || school.status !== 'active') {
+        return res.status(403).json({ error: 'Account inactive. Contact your service provider.' });
+      }
+    }
+
+    req.user = {
+      id: dbUser.id,
+      role: dbUser.role,
+      school_id: dbUser.school_id,
+      is_dev_sa: dbUser.is_dev_sa,
+      is_first_login: dbUser.is_first_login,
+    };
+
+    next();
+  } catch (err) {
+    console.error('authenticateToken DB error:', err.message);
+    return res.status(500).json({ error: 'Authentication error. Please try again.' });
   }
-
-  req.user = {
-    id: dbUser.id,
-    role: dbUser.role,
-    school_id: dbUser.school_id,
-    is_dev_sa: dbUser.is_dev_sa,
-    is_first_login: dbUser.is_first_login,
-  };
-
-  next();
 };
 
 // Role-based access guard
