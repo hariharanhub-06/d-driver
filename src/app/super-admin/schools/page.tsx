@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import {
@@ -54,6 +55,7 @@ function Backdrop({ onClick }: { onClick: () => void }) {
 }
 
 export default function SchoolsManagement() {
+    const router = useRouter();
     const [schools, setSchools] = useState<School[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -196,9 +198,9 @@ export default function SchoolsManagement() {
                 setModalSuccess(`School created! Admin: ${formData.admin_email}`);
             }
 
+            fetchSchools();
             setTimeout(() => {
                 setIsModalOpen(false);
-                fetchSchools();
             }, 1500);
         } catch (err: any) {
             setModalError(err.response?.data?.error || err.response?.data?.message || 'Failed to save school.');
@@ -352,11 +354,13 @@ export default function SchoolsManagement() {
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-100 dark:border-slate-600 flex items-center justify-center p-2 shrink-0">
                                         {school.logo_url
-                                            ? <img src={school.logo_url} alt={school.name} className="w-full h-full object-contain" />
-                                            : <Building2 className="w-5 h-5 text-slate-300 dark:text-slate-500" />
+                                            ? <img src={school.logo_url} alt={school.name} className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.removeAttribute('style'); }} />
+                                            : null
                                         }
+                                        <Building2 className="w-5 h-5 text-slate-300 dark:text-slate-500" style={school.logo_url ? { display: 'none' } : {}} />
                                     </div>
                                     <div className="flex items-center gap-1 ml-2">
+                                        <button onClick={() => router.push(`/super-admin/schools/${school.id}`)} title="Manage School" className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Settings2 className="w-4 h-4" /></button>
                                         <button onClick={() => openAdminModal(school)} title="Manage Admins" className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all"><ShieldCheck className="w-4 h-4" /></button>
                                         <button onClick={() => openEdit(school)} title="Edit School" className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Edit className="w-4 h-4" /></button>
                                         <button

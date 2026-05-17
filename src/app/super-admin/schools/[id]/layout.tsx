@@ -8,7 +8,12 @@ import api from '@/lib/api';
 const TABS = [
     { label: 'Overview',      path: '' },
     { label: 'Permissions',   path: '/permissions' },
+    { label: 'Buses',         path: '/buses' },
+    { label: 'Routes',        path: '/routes' },
+    { label: 'Drivers',       path: '/drivers' },
     { label: 'Students',      path: '/students' },
+    { label: 'Fees',          path: '/fees' },
+    { label: 'Attendance',    path: '/attendance' },
     { label: 'Live Tracking', path: '/tracking' },
     { label: 'Revenue',       path: '/revenue' },
 ];

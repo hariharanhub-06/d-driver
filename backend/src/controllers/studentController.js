@@ -79,7 +79,7 @@ const createStudent = async (req, res) => {
             academic_year,
         } = req.body;
 
-        const schoolId = req.user.school_id;
+        const schoolId = req.user.role === 'super_admin' ? (req.body.school_id || req.query.school_id) : req.user.school_id;
 
         const student = await prisma.student.create({
             data: {

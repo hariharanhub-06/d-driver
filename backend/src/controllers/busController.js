@@ -56,8 +56,8 @@ const getBusById = async (req, res) => {
 
 const createBus = async (req, res) => {
     try {
-        const { bus_number, capacity, registration_no, mileage, initial_fuel_liters } = req.body;
-        const schoolId = req.user.school_id;
+        const { bus_number, capacity, registration_no, mileage, initial_fuel_liters, school_id } = req.body;
+        const schoolId = req.user.role === 'super_admin' ? (school_id || req.query.school_id) : req.user.school_id;
 
         const parsedInitialFuel = initial_fuel_liters ? parseFloat(initial_fuel_liters) : 0;
 

@@ -108,8 +108,8 @@ const getFees = async (req, res) => {
 
 const createFee = async (req, res) => {
     try {
-        const { student_id, total_amount, due_amount, due_date, payment_method } = req.body;
-        const schoolId = req.user.school_id;
+        const { student_id, total_amount, due_amount, due_date, payment_method, school_id } = req.body;
+        const schoolId = req.user.role === 'super_admin' ? (school_id || req.query.school_id) : req.user.school_id;
 
         const fee = await prisma.fee.create({
             data: {
@@ -131,8 +131,8 @@ const createFee = async (req, res) => {
 
 const createFeeStructure = async (req, res) => {
     try {
-        const { student_id, amount, frequency, due_day, academic_year } = req.body;
-        const schoolId = req.user.school_id;
+        const { student_id, amount, frequency, due_day, academic_year, school_id } = req.body;
+        const schoolId = req.user.role === 'super_admin' ? (school_id || req.query.school_id) : req.user.school_id;
 
         const feeStructure = await prisma.feeStructure.upsert({
             where: { student_id },
