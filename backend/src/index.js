@@ -36,6 +36,7 @@ const stopChangeRoutes = require('./routes/stopChangeRoutes');
 const billingRoutes = require('./routes/billingRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const parentRoutes = require('./routes/parentRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
 const httpServer = require('http').createServer(app);
@@ -160,10 +161,9 @@ cron.schedule('0 6 * * *', async () => {
           data: {
             student_id: fs.student_id,
             school_id: fs.student.school_id,
-            amount: fs.amount,
+            total_amount: fs.amount,
+            due_amount: fs.amount,
             due_date: today,
-            description: `${fs.frequency} fee`,
-            status: 'pending',
           },
         });
         generated++;
@@ -228,6 +228,7 @@ app.use('/api/v1/stop-change',   stopChangeRoutes.default   || stopChangeRoutes)
 app.use('/api/v1/billing',       billingRoutes.default      || billingRoutes);
 app.use('/api/v1/reports',       reportRoutes.default       || reportRoutes);
 app.use('/api/v1/parents',       parentRoutes.default       || parentRoutes);
+app.use('/api/v1/upload',        uploadRoutes.default       || uploadRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

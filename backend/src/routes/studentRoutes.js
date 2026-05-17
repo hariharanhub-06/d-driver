@@ -15,6 +15,7 @@ router.use(authenticateToken, requirePasswordChanged);
 
 router.get('/', requireRole('admin', 'super_admin', 'driver'), requireSchoolScope, getAllStudents);
 router.get('/my', requireRole('parent'), getMyStudents);
+router.get('/my-children', requireRole('parent'), getMyStudents);
 router.get('/:id', requireRole('admin', 'super_admin', 'driver'), getStudentById);
 router.post('/upload-photo', requireRole('admin'), requirePermission('student_photos'), upload.single('photo'), uploadStudentPhoto);
 router.post('/bulk', requireRole('admin'), bulkCreateStudents);

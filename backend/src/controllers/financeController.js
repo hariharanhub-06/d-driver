@@ -373,12 +373,58 @@ const generateFees = async (req, res) => {
     }
 };
 
+// POST /finance/payment/verify — parent calls this after completing Razorpay checkout in browser
+const verifyPayment = async (req, res) => {
+    try {
+        const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+        if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+            return res.status(400).json({ error: 'Missing payment verification fields' });
+        }
+
+        const fee = await prisma.fee.findFirst({ where: { razorpay_order_id } });
+        if (!fee) return res.status(404).json({ error: 'Fee not found for this order' });
+
+        const { keySecret } = await getSchoolRazorpay(fee.school_id);
+
+        const expectedSig = crypto
+            .createHmac('sha256', keySecret)
+            .update(razorpay_order_id + '|' + razorpay_payment_id)
+            .digest('hex');
+
+        if (expectedSig !== razorpay_signature) {
+            return res.status(400).json({ error: 'Invalid payment signature' });
+        }
+
+        await prisma.$transaction([
+            prisma.payment.create({
+                data: {
+                    fee_id: fee.id,
+                    amount: fee.due_amount,
+                    status: 'paid',
+                    payment_method: 'razorpay',
+                    razorpay_payment_id,
+                },
+            }),
+            prisma.fee.update({
+                where: { id: fee.id },
+                data: { due_amount: 0 },
+            }),
+        ]);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('verifyPayment error:', error);
+        res.status(500).json({ error: 'Payment verification failed' });
+    }
+};
+
 module.exports = {
     getFees,
     createFee,
     createFeeStructure,
     createOrder,
     handleWebhook,
+    verifyPayment,
     recordManualPayment,
     getRevenue,
     getMyFees,

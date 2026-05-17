@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const {
   getFees, createFee, createFeeStructure,
-  createOrder, handleWebhook, recordManualPayment,
+  createOrder, handleWebhook, verifyPayment, recordManualPayment,
   getRevenue, getMyFees, generateFees,
 } = require('../controllers/financeController');
 const { authenticateToken, requireRole, requireSchoolScope, requirePasswordChanged } = require('../middleware/authMiddleware');
@@ -17,6 +17,7 @@ router.use(authenticateToken, requirePasswordChanged);
 // Parent
 router.get('/my-fees', requireRole('parent'), requirePermission('fee_management'), getMyFees);
 router.post('/payment/create-order', requireRole('parent'), requirePermission('razorpay_payments'), createOrder);
+router.post('/payment/verify', requireRole('parent'), requirePermission('razorpay_payments'), verifyPayment);
 
 // Admin
 router.get('/fees', requireRole('admin', 'super_admin'), requireSchoolScope, requirePermission('fee_management'), getFees);

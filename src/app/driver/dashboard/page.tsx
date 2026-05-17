@@ -9,7 +9,7 @@ interface DriverInfo {
     id: string;
     name: string;
     license: string;
-    bus?: { bus_number: string; fuel_level?: number };
+    bus?: { id: string; bus_number: string; fuel_liters?: number; mileage?: number };
 }
 
 interface Trip {
@@ -95,7 +95,7 @@ export default function DriverDashboard() {
         try {
             if (kmDialogMode === 'start') {
                 const res = await api.post('/shifts/start', {
-                    bus_id: driverInfo?.bus?.bus_number,
+                    bus_id: driverInfo?.bus?.id,
                     start_km: parseFloat(kmValue),
                 });
                 setActiveShift(res.data);
