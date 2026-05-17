@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const prisma = require('../prisma');
 const { sendEmail } = require('../utils/resend');
+const { logAction } = require('../utils/auditLog');
 
 // GET /users/me — current user's safe profile (no password), with school name
 const getMe = async (req, res) => {
@@ -112,6 +113,7 @@ const createSAUser = async (req, res) => {
             },
             select: { id: true, name: true, email: true, phone: true, is_active: true, is_dev_sa: true, created_at: true },
         });
+        await logAction({ req, action: 'create_user', targetType: 'user', targetId: user.id });
         res.status(201).json(user);
     } catch (error) {
         console.error('createSAUser error:', error.message);
@@ -179,6 +181,7 @@ const deleteUser = async (req, res) => {
         }
 
         await prisma.user.delete({ where: { id } });
+        await logAction({ req, action: 'delete_user', targetType: 'user', targetId: id });
         res.json({ message: 'User deleted successfully' });
     } catch (error) {
         console.error('DATABASE ERROR (deleteUser):', error.message);

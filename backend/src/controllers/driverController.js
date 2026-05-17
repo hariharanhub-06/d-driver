@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const prisma = require('../prisma');
+const { logAction } = require('../utils/auditLog');
 
 const getAllDrivers = async (req, res) => {
     try {
@@ -48,6 +49,7 @@ const createDriver = async (req, res) => {
         const newDriver = await prisma.driver.create({
             data: { user_id, license_no, assigned_bus_id, school_id: effectiveSchoolId },
         });
+        await logAction({ req, action: 'create_driver', targetType: 'driver', targetId: newDriver.id });
         res.status(201).json(newDriver);
     } catch (error) {
         res.status(500).json({ error: 'Error creating driver', details: error.message });
@@ -67,6 +69,7 @@ const updateDriver = async (req, res) => {
             where: { id },
             data: req.body,
         });
+        await logAction({ req, action: 'update_driver', targetType: 'driver', targetId: id });
         res.json(updatedDriver);
     } catch (error) {
         res.status(500).json({ error: 'Error updating driver', details: error.message });
@@ -83,6 +86,7 @@ const deleteDriver = async (req, res) => {
             if (existing.school_id !== schoolId) return res.status(403).json({ error: 'Access denied' });
         }
         await prisma.driver.delete({ where: { id } });
+        await logAction({ req, action: 'delete_driver', targetType: 'driver', targetId: id });
         res.json({ message: 'Driver deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: 'Error deleting driver', details: error.message });

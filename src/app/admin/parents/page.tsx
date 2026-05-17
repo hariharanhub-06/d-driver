@@ -275,7 +275,7 @@ export default function ParentsPage() {
             {shareParent && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
                             <div>
                                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">Share Credentials</h2>
                                 <p className="text-xs text-slate-400 mt-0.5">{shareParent.name}</p>

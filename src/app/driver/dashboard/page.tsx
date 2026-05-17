@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, LogOut } from 'lucide-react';
+import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, LogOut, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 
@@ -330,10 +330,16 @@ export default function DriverDashboard() {
             {/* KM Input Dialog */}
             {showKmDialog && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
-                            {kmDialogMode === 'start' ? 'Start Shift' : 'End Shift'}
-                        </h3>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                                {kmDialogMode === 'start' ? 'Start Shift' : 'End Shift'}
+                            </h3>
+                            <button onClick={() => setShowKmDialog(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
                         <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">Enter current odometer reading</p>
                         <div className="mb-5">
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
@@ -366,6 +372,7 @@ export default function DriverDashboard() {
                                     kmDialogMode === 'start' ? 'Start Shift' : 'End Shift'
                                 )}
                             </button>
+                        </div>
                         </div>
                     </div>
                 </div>

@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const prisma = require('../prisma');
 const { sendPasswordReset } = require('../utils/resend');
+const { logAction } = require('../utils/auditLog');
 
 const JWT_SECRET         = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
@@ -41,6 +42,8 @@ const login = async (req, res) => {
 
   const accessToken  = signAccess(user);
   const refreshToken = signRefresh(user);
+
+  await logAction({ req: { ...req, user: { id: user.id, role: user.role, school_id: user.school_id } }, action: 'login', targetType: 'auth', targetId: user.id });
 
   res.json({
     access_token: accessToken,

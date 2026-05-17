@@ -272,11 +272,17 @@ export default function ActiveRide() {
             {/* SOS Confirm Modal */}
             {showSosConfirm && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Send SOS Alert?</h3>
+                            <button onClick={() => setShowSosConfirm(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
                         <div className="w-14 h-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <AlertTriangle className="w-7 h-7 text-red-500" />
                         </div>
-                        <h3 className="text-lg font-bold text-center text-slate-900 dark:text-white mb-2">Send SOS Alert?</h3>
                         <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">This will immediately notify school administration of an emergency.</p>
                         <div className="flex gap-3">
                             <button
@@ -293,6 +299,7 @@ export default function ActiveRide() {
                                 {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Send SOS'}
                             </button>
                         </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -300,7 +307,7 @@ export default function ActiveRide() {
             {/* Bus Switch Modal */}
             {showBusSwitch && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-5">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Bus className="w-5 h-5 text-[var(--brand)]" /> Switch Bus
@@ -357,7 +364,7 @@ export default function ActiveRide() {
             {/* Fuel Fill Modal */}
             {showFuelFill && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-5">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Fuel className="w-5 h-5 text-amber-500" /> Log Fuel Fill
@@ -402,7 +409,7 @@ export default function ActiveRide() {
             {/* Fuel Request Modal */}
             {showFuelRequest && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-5">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <DollarSign className="w-5 h-5 text-emerald-500" /> Request Funds

@@ -1,6 +1,6 @@
 const prisma = require('../prisma');
 const { encrypt } = require('../utils/encryption');
-const { logAudit } = require('../utils/auditLog');
+const { logAudit, logAction } = require('../utils/auditLog');
 const { sendWelcomeAdmin } = require('../utils/resend');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
@@ -106,6 +106,7 @@ const registerSchool = async (req, res) => {
       schoolName: name, slug, tempPassword,
     });
 
+    await logAction({ req, action: 'create_school', targetType: 'school', targetId: school.id, schoolId: school.id });
     res.status(201).json(school);
   } catch (err) {
     console.error(err);
@@ -124,6 +125,7 @@ const updateSchool = async (req, res) => {
     const data = {};
     allowed.forEach(f => { if (req.body[f] !== undefined) data[f] = req.body[f]; });
     const school = await prisma.school.update({ where: { id }, data });
+    await logAction({ req, action: 'update_school', targetType: 'school', targetId: id, schoolId: id });
     res.json(school);
   } catch (err) {
     res.status(500).json({ error: 'Error updating school' });
@@ -171,7 +173,9 @@ const updatePermissions = async (req, res) => {
 // DELETE /schools/:id — SA only
 const deleteSchool = async (req, res) => {
   try {
-    await prisma.school.delete({ where: { id: req.params.id } });
+    const { id } = req.params;
+    await prisma.school.delete({ where: { id } });
+    await logAction({ req, action: 'delete_school', targetType: 'school', targetId: id, schoolId: id });
     res.json({ message: 'School deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Error deleting school' });

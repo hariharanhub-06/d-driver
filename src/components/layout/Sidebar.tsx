@@ -6,7 +6,7 @@ import {
     Bus, CreditCard, ShieldCheck, Building2, Truck, Map,
     MapPin, CheckSquare, Locate, Bell, BarChart2,
     Fuel, GitMerge, ArrowLeftRight, X, User,
-    DollarSign, Activity, ClipboardList, BookOpen, Shield
+    DollarSign, Activity, ClipboardList, BookOpen, Shield, UserCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -29,6 +29,8 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
             ]},
             { section: 'GENERAL', items: [
                 { icon: Users, label: 'SA Users', href: '/super-admin/users' },
+                { icon: UserCheck, label: 'Login Activity', href: '/super-admin/activity' },
+                { icon: ClipboardList, label: 'Audit Trail', href: '/super-admin/audit' },
                 { icon: FileText, label: 'Reports', href: '/super-admin/reports' },
                 { icon: Settings, label: 'Settings', href: '/super-admin/settings' },
             ]},

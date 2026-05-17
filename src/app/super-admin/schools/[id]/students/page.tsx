@@ -197,7 +197,7 @@ export default function SchoolStudentsPage() {
             {editingStudent && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
                             <div>
                                 <h2 className="text-slate-900 dark:text-white font-bold text-base">Edit Assignment</h2>
                                 <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{editingStudent.name}</p>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bus, AlertTriangle, MapPin, Phone, Clock, ChevronRight, Navigation } from 'lucide-react';
+import { Bus, AlertTriangle, MapPin, Phone, Clock, ChevronRight, Navigation, X } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
@@ -250,11 +250,17 @@ export default function ParentDashboard() {
             {/* Report Absent Modal */}
             {showAbsentModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Report Absence</h3>
+                            <button onClick={() => setShowAbsentModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-5">
                                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Report Absence</h3>
+                                <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Fill in the details below</span>
                             </div>
                             <div className="space-y-4 mb-6">
                                 {children.length > 1 && (

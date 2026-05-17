@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const prisma = require('../prisma');
 const { uploadImage } = require('../utils/imagekit');
+const { logAction } = require('../utils/auditLog');
 
 const getAllStudents = async (req, res) => {
     try {
@@ -128,6 +129,7 @@ const createStudent = async (req, res) => {
             },
         });
 
+        await logAction({ req, action: 'create_student', targetType: 'student', targetId: student.id });
         res.status(201).json(fullStudent);
     } catch (error) {
         console.error('createStudent error:', error);
@@ -155,6 +157,7 @@ const updateStudent = async (req, res) => {
             data,
         });
 
+        await logAction({ req, action: 'update_student', targetType: 'student', targetId: id });
         res.json(updatedStudent);
     } catch (error) {
         console.error('updateStudent error:', error);
@@ -166,6 +169,7 @@ const deleteStudent = async (req, res) => {
     try {
         const { id } = req.params;
         await prisma.student.delete({ where: { id } });
+        await logAction({ req, action: 'delete_student', targetType: 'student', targetId: id });
         res.json({ deleted: true });
     } catch (error) {
         console.error('deleteStudent error:', error);

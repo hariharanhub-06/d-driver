@@ -1,4 +1,5 @@
 const prisma = require('../prisma');
+const { logAction } = require('../utils/auditLog');
 
 const getAllBuses = async (req, res) => {
     try {
@@ -72,6 +73,7 @@ const createBus = async (req, res) => {
             },
         });
 
+        await logAction({ req, action: 'create_bus', targetType: 'bus', targetId: newBus.id });
         res.status(201).json(newBus);
     } catch (error) {
         console.error('createBus error:', error);
@@ -104,6 +106,7 @@ const updateBus = async (req, res) => {
             data,
         });
 
+        await logAction({ req, action: 'update_bus', targetType: 'bus', targetId: id });
         res.json(updatedBus);
     } catch (error) {
         console.error('updateBus error:', error);
@@ -115,6 +118,7 @@ const deleteBus = async (req, res) => {
     try {
         const { id } = req.params;
         await prisma.bus.delete({ where: { id } });
+        await logAction({ req, action: 'delete_bus', targetType: 'bus', targetId: id });
         res.json({ deleted: true });
     } catch (error) {
         console.error('deleteBus error:', error);

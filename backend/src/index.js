@@ -37,6 +37,7 @@ const billingRoutes = require('./routes/billingRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const parentRoutes = require('./routes/parentRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const auditRoutes = require('./routes/auditRoutes');
 
 const app = express();
 const httpServer = require('http').createServer(app);
@@ -229,6 +230,7 @@ app.use('/api/v1/billing',       billingRoutes.default      || billingRoutes);
 app.use('/api/v1/reports',       reportRoutes.default       || reportRoutes);
 app.use('/api/v1/parents',       parentRoutes.default       || parentRoutes);
 app.use('/api/v1/upload',        uploadRoutes.default       || uploadRoutes);
+app.use('/api/v1/audit',         auditRoutes.default        || auditRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

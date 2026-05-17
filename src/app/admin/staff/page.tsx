@@ -137,7 +137,7 @@ export default function StaffPage() {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="modal-container-compact">
+                    <div className="modal-container-compact max-h-[90vh] overflow-y-auto">
                         <div className="px-6 pt-6 pb-0 flex items-center justify-between mb-4 shrink-0">
                             <div>
                                 <h2 className="text-lg font-black text-slate-900 dark:text-white leading-none">Provision Account</h2>
