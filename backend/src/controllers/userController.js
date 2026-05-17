@@ -94,7 +94,8 @@ const listSAUsers = async (req, res) => {
 // POST /users/sa — create a new super_admin with an explicit password
 const createSAUser = async (req, res) => {
     try {
-        const { name, email, phone, password } = req.body;
+        const { name, email: rawEmail, phone, password } = req.body;
+        const email = rawEmail?.toLowerCase().trim();
         if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
         if (!password || password.length < 8) return res.status(400).json({ error: 'password is required and must be at least 8 characters' });
 

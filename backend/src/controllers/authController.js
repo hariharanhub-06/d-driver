@@ -22,7 +22,8 @@ const signRefresh = (user) =>
 // ─── LOGIN ───────────────────────────────────────────────────────────────────
 
 const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email: rawEmail, password } = req.body;
+  const email = rawEmail?.toLowerCase().trim();
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await bcrypt.compare(password, user.password))) {

@@ -12,12 +12,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto-refresh on 401
+// Auto-refresh on 401 — skip for auth endpoints so login/refresh errors surface normally
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    const isAuthEndpoint = original?.url?.includes('/auth/');
+    if (error.response?.status === 401 && !original._retry && !isAuthEndpoint) {
       original._retry = true;
       try {
         const refreshToken = localStorage.getItem('refresh_token');
@@ -33,6 +34,7 @@ api.interceptors.response.use(
       } catch {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
         if (typeof window !== 'undefined') window.location.href = '/login';
         return Promise.reject(error);
       }
