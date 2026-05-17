@@ -1,5 +1,8 @@
 'use client';
 
+// Static CSS import — works because this component is always loaded with { ssr: false }
+import 'leaflet/dist/leaflet.css';
+
 import { useEffect, useRef, useState } from 'react';
 import { MapPin, Plus } from 'lucide-react';
 
@@ -43,8 +46,6 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
 
         (async () => {
             const L = (await import('leaflet')).default;
-            await import('leaflet/dist/leaflet.css' as string);
-
             if (cancelled || !containerRef.current) return;
 
             // Fix broken default-icon paths in Webpack/Next.js
@@ -72,6 +73,9 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
             LRef.current = L;
             mapRef.current = map;
             setReady(true);
+
+            // Force tile re-render after container becomes visible
+            setTimeout(() => map.invalidateSize(), 50);
         })();
 
         return () => {
@@ -89,11 +93,8 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
         const map = mapRef.current;
         if (!L || !map) return;
 
-        // Remove old markers
         markersRef.current.forEach(m => map.removeLayer(m));
         markersRef.current = [];
-
-        // Remove old polyline
         if (polylineRef.current) { map.removeLayer(polylineRef.current); polylineRef.current = null; }
 
         const sorted = [...stops].sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
@@ -107,51 +108,37 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
             });
 
             const marker = L.marker([stop.latitude, stop.longitude], { icon }).addTo(map);
-
-            const popupHtml = `
+            marker.bindPopup(`
                 <div style="min-width:150px;font-family:sans-serif;">
                   <div style="font-weight:700;font-size:13px;margin-bottom:4px;">
                     <span style="display:inline-flex;align-items:center;justify-content:center;background:#3B82F6;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;margin-right:6px;">${idx + 1}</span>
                     ${stop.name}
                   </div>
-                  ${stop.pickup_time ? `<div style="font-size:11px;color:#64748b;margin-bottom:6px;">Pickup: ${stop.pickup_time}</div>` : ''}
-                  <button data-stop-id="${stop.id}" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;">
-                    Delete Stop
+                  ${stop.pickup_time ? `<div style="font-size:11px;color:#64748b;margin-bottom:8px;">Pickup: ${stop.pickup_time}</div>` : '<div style="margin-bottom:8px;"></div>'}
+                  <button data-stop-id="${stop.id}" style="background:#fee2e2;color:#ef4444;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;width:100%;">
+                    🗑 Delete Stop
                   </button>
-                </div>`;
-
-            marker.bindPopup(popupHtml);
-
+                </div>`);
             marker.on('popupopen', () => {
                 const btn = document.querySelector(`[data-stop-id="${stop.id}"]`);
-                if (btn) {
-                    btn.addEventListener('click', () => {
-                        if (window.confirm(`Delete stop "${stop.name}"?`)) {
-                            onDeleteStop(stop.id);
-                            map.closePopup();
-                        }
-                    });
-                }
+                if (btn) btn.addEventListener('click', () => {
+                    if (window.confirm(`Delete stop "${stop.name}"?`)) {
+                        onDeleteStop(stop.id);
+                        map.closePopup();
+                    }
+                });
             });
-
             markersRef.current.push(marker);
         });
 
-        // Polyline
         const coords = sorted
             .filter(s => s.latitude !== 0 || s.longitude !== 0)
             .map(s => [s.latitude, s.longitude] as [number, number]);
 
         if (coords.length > 1) {
-            polylineRef.current = L.polyline(coords, {
-                color: '#3B82F6',
-                weight: 3,
-                opacity: 0.8,
-                dashArray: '8 5',
-            }).addTo(map);
+            polylineRef.current = L.polyline(coords, { color: '#3B82F6', weight: 3, opacity: 0.8, dashArray: '8 5' }).addTo(map);
         }
 
-        // Fly to first stop
         if (sorted.length > 0 && (sorted[0].latitude !== 0 || sorted[0].longitude !== 0)) {
             map.setView([sorted[0].latitude, sorted[0].longitude], 13);
         }
@@ -205,17 +192,15 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
                 Click anywhere on the map to place a stop. Numbered pins are connected in sequence order.
             </div>
 
-            {!ready && (
-                <div className="flex items-center justify-center h-64 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-200 dark:border-slate-600">
-                    <div className="w-7 h-7 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
-                </div>
-            )}
-
-            <div
-                ref={containerRef}
-                className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-600"
-                style={{ height: 400, display: ready ? 'block' : 'none' }}
-            />
+            {/* Map container — always in DOM so Leaflet gets correct size */}
+            <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-600" style={{ height: 400 }}>
+                <div ref={containerRef} style={{ height: '100%', width: '100%' }} />
+                {!ready && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-700/50 z-[400]">
+                        <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                    </div>
+                )}
+            </div>
 
             {draft && (
                 <div className="bg-slate-50 dark:bg-slate-700/30 border border-[var(--brand)] border-dashed rounded-2xl p-4 space-y-3">
