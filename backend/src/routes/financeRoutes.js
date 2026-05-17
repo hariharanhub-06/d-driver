@@ -21,10 +21,10 @@ router.post('/payment/verify', requireRole('parent'), requirePermission('razorpa
 
 // Admin
 router.get('/fees', requireRole('admin', 'super_admin'), requireSchoolScope, requirePermission('fee_management'), getFees);
-router.post('/fees', requireRole('admin'), requirePermission('fee_management'), createFee);
-router.post('/fees/fee-structure', requireRole('admin'), requirePermission('fee_management'), createFeeStructure);
-router.post('/fees/generate', requireRole('admin'), requirePermission('fee_management'), generateFees);
-router.post('/payment/manual', requireRole('admin'), requirePermission('fee_management'), recordManualPayment);
+router.post('/fees', requireRole('admin', 'super_admin'), requirePermission('fee_management'), createFee);
+router.post('/fees/fee-structure', requireRole('admin', 'super_admin'), requirePermission('fee_management'), createFeeStructure);
+router.post('/fees/generate', requireRole('admin', 'super_admin'), requirePermission('fee_management'), generateFees);
+router.post('/payment/manual', requireRole('admin', 'super_admin'), requirePermission('fee_management'), recordManualPayment);
 router.get('/revenue', requireRole('super_admin'), getRevenue);
 
 module.exports = router;
