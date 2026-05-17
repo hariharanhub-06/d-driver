@@ -12,6 +12,7 @@ interface Bus {
     registration_no?: string;
     mileage?: number;
     initial_fuel_liters?: number;
+    routes?: { id: string; name: string }[];
 }
 
 const emptyForm = { bus_number: '', capacity: '', registration_no: '', mileage: '', initial_fuel_liters: '' };
@@ -134,7 +135,7 @@ export default function SchoolBusesPage() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-slate-100 dark:border-slate-700">
-                                    {['Bus Number', 'Capacity', 'Registration No.', 'Mileage (km/L)', 'Fuel (L)', 'Actions'].map(col => (
+                                    {['Bus Number', 'Route(s)', 'Capacity', 'Registration No.', 'Mileage (km/L)', 'Fuel (L)', 'Actions'].map(col => (
                                         <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">{col}</th>
                                     ))}
                                 </tr>
@@ -143,6 +144,13 @@ export default function SchoolBusesPage() {
                                 {buses.map(bus => (
                                     <tr key={bus.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                         <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">{bus.bus_number}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                                            {bus.routes && bus.routes.length > 0
+                                                ? bus.routes.map(r => (
+                                                    <span key={r.id} className="inline-block bg-[var(--brand)]/10 text-[var(--brand)] rounded-lg px-2 py-0.5 text-xs font-semibold mr-1">{r.name}</span>
+                                                ))
+                                                : <span className="text-slate-400">—</span>}
+                                        </td>
                                         <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{bus.capacity ?? '—'}</td>
                                         <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{bus.registration_no || '—'}</td>
                                         <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{bus.mileage ?? '—'}</td>

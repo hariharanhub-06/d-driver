@@ -12,6 +12,9 @@ const getAllBuses = async (req, res) => {
 
         const buses = await prisma.bus.findMany({
             where: schoolId ? { school_id: schoolId } : {},
+            include: {
+                routes: { select: { id: true, name: true } },
+            },
             orderBy: { bus_number: 'asc' },
         });
 
