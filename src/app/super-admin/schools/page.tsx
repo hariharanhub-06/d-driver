@@ -6,78 +6,94 @@ import api from '@/lib/api';
 import {
     Building2, Search, Plus, Loader2, ShieldCheck, Edit, Trash2,
     Globe, ExternalLink, Copy, Truck, Users, GraduationCap,
-    X, Link as LinkIcon, Upload, MapPin, Shield
+    X, MapPin, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight,
+    UserPlus, Settings2, Route,
 } from 'lucide-react';
 
 interface School {
     id: string;
     name: string;
     slug: string;
-    address: string;
+    address?: string;
     logo_url?: string;
     primary_color?: string;
     status: string;
-    subscription_plan: string;
-    permissions?: any;
-    buses?: any[];
-    drivers?: any[];
-    routes?: any[];
-    students?: any[];
+    plan_id?: string;
+    permissions?: Record<string, boolean>;
+    _count?: { buses: number; students: number; drivers: number };
+}
+
+// ── Real feature permission keys ────────────────────────────────────────────
+const FEATURES: { key: string; label: string; description: string }[] = [
+    { key: 'gps_tracking',         label: 'GPS Tracking',          description: 'Live bus location for parents and admin' },
+    { key: 'fee_management',       label: 'Fee Management',         description: 'Fee collection, invoices, and payments' },
+    { key: 'fuel_management',      label: 'Fuel Management',        description: 'Fuel requests, fills, and cost tracking' },
+    { key: 'shift_tracking',       label: 'Shift & KM Tracking',   description: 'Driver shift logs and odometer entries' },
+    { key: 'attendance',           label: 'Attendance',             description: 'Driver marks student boarding/drop' },
+    { key: 'parent_portal',        label: 'Parent Portal',          description: 'Parent app with tracking and notifications' },
+    { key: 'route_management',     label: 'Route Management',       description: 'Create and edit routes and stops' },
+    { key: 'student_photos',       label: 'Student Photos',         description: 'Upload and display student profile photos' },
+    { key: 'stop_change_requests', label: 'Stop Change Requests',   description: 'Parents can request stop changes' },
+    { key: 'absence_reporting',    label: 'Absence Reporting',      description: 'Parents pre-report student absence' },
+    { key: 'razorpay_payments',    label: 'Online Payments',        description: 'Razorpay integration for fee payments' },
+];
+
+const DEFAULT_PERMISSIONS = Object.fromEntries(
+    FEATURES.map(f => [f.key, f.key !== 'razorpay_payments'])
+) as Record<string, boolean>;
+
+const inputCls = "w-full bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/30 focus:border-[var(--brand)] transition-all";
+
+function Backdrop({ onClick }: { onClick: () => void }) {
+    return (
+        <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[100]"
+            onClick={onClick}
+        />
+    );
 }
 
 export default function SchoolsManagement() {
     const [schools, setSchools] = useState<School[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
-    // Admin Creation State
-    const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
-    const [selectedSchoolForAdmin, setSelectedSchoolForAdmin] = useState<School | null>(null);
-    const [adminFormData, setAdminFormData] = useState({ name: '', email: '', password: 'password123' });
-    const [schoolAdmins, setSchoolAdmins] = useState<any[]>([]);
-    const [loadingAdmins, setLoadingAdmins] = useState(false);
-
-    // Modal State
+    // ── Create/Edit modal ────────────────────────────────────────────────────
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'profile' | 'permissions'>('profile');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [activeTab, setActiveTab] = useState<'profile' | 'buses' | 'drivers' | 'routes' | 'permissions' | 'students'>('profile');
+    const [modalError, setModalError] = useState('');
+    const [modalSuccess, setModalSuccess] = useState('');
 
     const [formData, setFormData] = useState({
-        name: '',
-        slug: '',
-        address: '',
-        subscription_plan: 'Basic',
-        status: 'Active',
-        primary_color: '#2dbc75',
-        logo_url: '',
-        permissions: { f1: true, f4: false, f5: false, f6: false, f7: false, f8: false, f9: false, f10: false } as Record<string, boolean>,
-        buses: [] as any[],
-        drivers: [] as any[],
-        routes: [] as any[],
-        students: [] as any[]
+        name: '', slug: '', address: '', primary_color: '#3B82F6', logo_url: '',
+        phone: '', email_contact: '',
+        // First admin (only for new school)
+        admin_name: '', admin_email: '', admin_phone: '',
     });
-
-    const [editingBus, setEditingBus] = useState<{ index: number | null, bus_number: string, capacity: string }>({ index: null, bus_number: '', capacity: '' });
-    const [editingDriver, setEditingDriver] = useState<{ index: number | null, name: string, email: string, license: string, assigned_bus: string }>({ index: null, name: '', email: '', license: '', assigned_bus: '' });
-    const [editingRoute, setEditingRoute] = useState<{ index: number | null, name: string }>({ index: null, name: '' });
-    const [editingStudent, setEditingStudent] = useState<any>({ index: null, name: '', grade: '', parent_phone: '', bus_id: '' });
-    const [editingRouteStops, setEditingRouteStops] = useState<{ routeIndex: number | null, stops: any[] }>({ routeIndex: null, stops: [] });
-    const [newStop, setNewStop] = useState({ name: '', time: '', lat: '', lng: '' });
+    const [permissions, setPermissions] = useState<Record<string, boolean>>(DEFAULT_PERMISSIONS);
     const [logoFile, setLogoFile] = useState<File | null>(null);
 
-    useEffect(() => {
-        fetchSchools();
-    }, []);
+    // ── Admin modal (for existing schools) ───────────────────────────────────
+    const [adminSchool, setAdminSchool] = useState<School | null>(null);
+    const [schoolAdmins, setSchoolAdmins] = useState<any[]>([]);
+    const [loadingAdmins, setLoadingAdmins] = useState(false);
+    const [adminForm, setAdminForm] = useState({ name: '', email: '', phone: '', password: '' });
+    const [adminSubmitting, setAdminSubmitting] = useState(false);
+    const [adminError, setAdminError] = useState('');
+
+    // ── Status toggle loading ────────────────────────────────────────────────
+    const [toggleLoading, setToggleLoading] = useState<string | null>(null);
+
+    useEffect(() => { fetchSchools(); }, []);
 
     const fetchSchools = async () => {
         setIsLoading(true);
         try {
-            const response = await api.get('/schools');
-            setSchools(response.data);
-        } catch (error) {
-            console.error('Failed to fetch real schools:', error);
+            const { data } = await api.get('/schools');
+            setSchools(Array.isArray(data) ? data : []);
+        } catch {
             setSchools([]);
         } finally {
             setIsLoading(false);
@@ -85,73 +101,132 @@ export default function SchoolsManagement() {
     };
 
     const handleNameChange = (name: string) => {
-        const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
-        setFormData({ ...formData, name, slug });
+        const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '');
+        setFormData(p => ({ ...p, name, slug }));
     };
 
-    const handleCreateSchool = async (e: React.FormEvent) => {
+    const openCreate = () => {
+        setEditingId(null);
+        setFormData({ name: '', slug: '', address: '', primary_color: '#3B82F6', logo_url: '', phone: '', email_contact: '', admin_name: '', admin_email: '', admin_phone: '' });
+        setPermissions(DEFAULT_PERMISSIONS);
+        setLogoFile(null);
+        setActiveTab('profile');
+        setModalError('');
+        setModalSuccess('');
+        setIsModalOpen(true);
+    };
+
+    const openEdit = (school: School) => {
+        setEditingId(school.id);
+        setFormData({
+            name: school.name || '', slug: school.slug || '',
+            address: school.address || '', primary_color: school.primary_color || '#3B82F6',
+            logo_url: school.logo_url || '', phone: '', email_contact: '',
+            admin_name: '', admin_email: '', admin_phone: '',
+        });
+        setPermissions({ ...DEFAULT_PERMISSIONS, ...(school.permissions || {}) });
+        setLogoFile(null);
+        setActiveTab('profile');
+        setModalError('');
+        setModalSuccess('');
+        setIsModalOpen(true);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setModalError('');
+        setModalSuccess('');
+
+        if (!formData.name.trim() || !formData.slug.trim()) {
+            setModalError('School name and portal URL are required.');
+            return;
+        }
+        if (!editingId && (!formData.admin_name.trim() || !formData.admin_email.trim())) {
+            setModalError('First admin name and email are required.');
+            setActiveTab('profile');
+            return;
+        }
+
         setIsSubmitting(true);
-
         try {
-            let finalLogoUrl = formData.logo_url || '';
-
+            // Logo upload via ImageKit
+            let finalLogoUrl = formData.logo_url;
             if (logoFile) {
                 try {
-                    const { data } = await api.get(`/upload/presigned-url?fileName=${logoFile.name}&fileType=${logoFile.type}`);
-                    await fetch(data.uploadUrl, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': logoFile.type },
-                        body: logoFile
-                    });
-                    finalLogoUrl = data.finalUrl;
-                } catch (err) {
-                    console.error('Logo upload failed:', err);
+                    const fd = new FormData();
+                    fd.append('file', logoFile);
+                    fd.append('folder', 'schools');
+                    const { data: uploadData } = await api.post('/upload/file', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                    finalLogoUrl = uploadData.url;
+                } catch {
+                    // Logo upload failed silently — school still created
                 }
             }
 
-            const payload = {
-                ...formData,
-                logo_url: finalLogoUrl,
-                status: 'Active'
-            };
-
             if (editingId) {
-                await api.put(`/schools/${editingId}`, payload);
+                // Update basic info
+                await api.put(`/schools/${editingId}`, {
+                    name: formData.name, address: formData.address,
+                    primary_color: formData.primary_color, logo_url: finalLogoUrl,
+                    phone: formData.phone, email_contact: formData.email_contact,
+                });
+                // Update permissions separately
+                await api.put(`/schools/${editingId}/permissions`, { permissions });
+                setModalSuccess('School updated successfully.');
             } else {
-                await api.post('/schools', payload);
+                // Create school + first admin
+                await api.post('/schools', {
+                    name: formData.name, slug: formData.slug,
+                    address: formData.address, primary_color: formData.primary_color,
+                    logo_url: finalLogoUrl, phone: formData.phone,
+                    email_contact: formData.email_contact,
+                    admin_name: formData.admin_name, admin_email: formData.admin_email,
+                    admin_phone: formData.admin_phone || undefined,
+                });
+                setModalSuccess('School created! Admin login credentials sent to their email.');
             }
 
-            setIsModalOpen(false);
-            setEditingId(null);
-            resetFormData();
-            fetchSchools();
-            alert(editingId ? 'Network Updated!' : 'Network Registered!');
-        } catch (error: any) {
-            const msg = error.response?.data?.message || error.message;
-            alert(`Error: ${msg}`);
+            setTimeout(() => {
+                setIsModalOpen(false);
+                fetchSchools();
+            }, 1500);
+        } catch (err: any) {
+            setModalError(err.response?.data?.error || err.response?.data?.message || 'Failed to save school.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const resetFormData = () => {
-        setFormData({
-            name: '', slug: '', address: '', subscription_plan: 'Basic', status: 'Active', primary_color: '#2dbc75', logo_url: '',
-            permissions: { f1: true, f4: false, f5: false, f6: false, f7: false, f8: false, f9: false, f10: false } as Record<string, boolean>,
-            buses: [] as any[], drivers: [] as any[], routes: [] as any[], students: [] as any[]
-        });
-        setLogoFile(null);
+    const handleToggleStatus = async (school: School) => {
+        setToggleLoading(school.id);
+        try {
+            await api.patch(`/schools/${school.id}/status`, {});
+            fetchSchools();
+        } catch (err: any) {
+            alert(err.response?.data?.error || 'Failed to update status.');
+        } finally {
+            setToggleLoading(null);
+        }
     };
 
-    const handleOpenAdminModal = async (school: School) => {
-        setSelectedSchoolForAdmin(school);
-        setIsAdminModalOpen(true);
+    const handleDelete = async (id: string) => {
+        if (!confirm('Permanently delete this school and all its data? This cannot be undone.')) return;
+        try {
+            await api.delete(`/schools/${id}`);
+            fetchSchools();
+        } catch (err: any) {
+            alert(err.response?.data?.error || 'Failed to delete school.');
+        }
+    };
+
+    const openAdminModal = async (school: School) => {
+        setAdminSchool(school);
+        setAdminForm({ name: '', email: '', phone: '', password: '' });
+        setAdminError('');
         setLoadingAdmins(true);
         try {
-            const res = await api.get('/users?role=admin');
-            const filtered = res.data.filter((u: any) => u.school_id === school.id);
-            setSchoolAdmins(filtered);
+            const { data } = await api.get(`/users?school_id=${school.id}&role=admin`);
+            setSchoolAdmins(Array.isArray(data) ? data : []);
         } catch {
             setSchoolAdmins([]);
         } finally {
@@ -161,21 +236,25 @@ export default function SchoolsManagement() {
 
     const handleCreateAdmin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedSchoolForAdmin) return;
-        setIsSubmitting(true);
+        if (!adminSchool) return;
+        setAdminError('');
+        if (!adminForm.password || adminForm.password.length < 8) {
+            setAdminError('Password must be at least 8 characters.');
+            return;
+        }
+        setAdminSubmitting(true);
         try {
-            const res = await api.post('/users', {
-                ...adminFormData,
-                role: 'admin',
-                school_id: selectedSchoolForAdmin.id
+            const { data } = await api.post('/users', {
+                name: adminForm.name, email: adminForm.email.toLowerCase(),
+                phone: adminForm.phone || undefined, password: adminForm.password,
+                role: 'admin', school_id: adminSchool.id,
             });
-            setSchoolAdmins(prev => [...prev, res.data]);
-            setAdminFormData({ name: '', email: '', password: 'password123' });
-            alert(`Admin Created for ${selectedSchoolForAdmin.name}!`);
-        } catch (error: any) {
-            alert(`Failed: ${error.response?.data?.message || error.message}`);
+            setSchoolAdmins(p => [...p, data]);
+            setAdminForm({ name: '', email: '', phone: '', password: '' });
+        } catch (err: any) {
+            setAdminError(err.response?.data?.error || err.response?.data?.message || 'Failed to create admin.');
         } finally {
-            setIsSubmitting(false);
+            setAdminSubmitting(false);
         }
     };
 
@@ -183,43 +262,25 @@ export default function SchoolsManagement() {
         if (!confirm('Remove this admin?')) return;
         try {
             await api.delete(`/users/${userId}`);
-            setSchoolAdmins(prev => prev.filter(u => u.id !== userId));
-        } catch (e: any) {
-            alert('Failed to remove admin');
-        }
-    };
-
-    const handleToggleAdminStatus = async (admin: any) => {
-        const newStatus = admin.status === 'Inactive' ? 'Active' : 'Inactive';
-        try {
-            await api.put(`/users/${admin.id}`, { ...admin, status: newStatus });
-            setSchoolAdmins(prev => prev.map(u => u.id === admin.id ? { ...u, status: newStatus } : u));
+            setSchoolAdmins(p => p.filter(u => u.id !== userId));
         } catch {
-            alert('Failed to update status');
+            alert('Failed to remove admin.');
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Permanently delete this school network?')) return;
+    const handleToggleAdminActive = async (admin: any) => {
         try {
-            await api.delete(`/schools/${id}`);
-            fetchSchools();
-        } catch (error) {
-            console.error('Failed to delete:', error);
+            await api.patch(`/users/${admin.id}/active`, {});
+            setSchoolAdmins(p => p.map(u => u.id === admin.id ? { ...u, is_active: !u.is_active } : u));
+        } catch {
+            alert('Failed to update status.');
         }
     };
 
-    const handleToggleStatus = async (school: School) => {
-        const newStatus = school.status === 'Active' ? 'Inactive' : 'Active';
-        try {
-            await api.put(`/schools/${school.id}`, { ...school, status: newStatus });
-            fetchSchools();
-        } catch (error: any) {
-            alert(`Failed: ${error.message}`);
-        }
-    };
-
-    const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
+    const filtered = schools.filter(s =>
+        s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.slug?.includes(searchTerm.toLowerCase())
+    );
 
     return (
         <div className="space-y-6 animate-in">
@@ -228,427 +289,388 @@ export default function SchoolsManagement() {
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                         <Building2 className="w-7 h-7 text-[var(--brand)]" />
-                        School Network
+                        Schools
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Administrative control for all school networks</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Manage all school networks on the platform</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl">
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={cn(
-                                "px-3 py-1.5 rounded-lg transition-all text-xs font-semibold flex items-center gap-1.5",
-                                viewMode === 'grid'
-                                    ? "bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                            )}
-                        >
-                            <Building2 className="w-3.5 h-3.5" /> Grid
-                        </button>
-                        <button
-                            onClick={() => setViewMode('table')}
-                            className={cn(
-                                "px-3 py-1.5 rounded-lg transition-all text-xs font-semibold flex items-center gap-1.5",
-                                viewMode === 'table'
-                                    ? "bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                            )}
-                        >
-                            <Search className="w-3.5 h-3.5" /> Table
-                        </button>
-                    </div>
-                    <button
-                        onClick={() => {
-                            setEditingId(null);
-                            resetFormData();
-                            setActiveTab('profile');
-                            setIsModalOpen(true);
-                        }}
-                        className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
-                    >
-                        <Plus className="w-4 h-4" /> Register School
-                    </button>
-                </div>
+                <button
+                    onClick={openCreate}
+                    className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-5 py-2.5 font-semibold text-sm transition-all active:scale-95 shadow-sm"
+                >
+                    <Plus className="w-4 h-4" /> Add School
+                </button>
             </div>
 
-            {/* Search + stats */}
-            <div className="flex flex-col md:flex-row items-center gap-4">
-                <div className="relative flex-1 w-full">
+            {/* Search */}
+            <div className="flex items-center gap-4">
+                <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                     <input
                         type="text"
-                        placeholder="Search networks..."
-                        className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
+                        placeholder="Search schools..."
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 px-6 py-4 shrink-0">
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Networks</p>
-                    <p className="text-2xl font-bold text-[var(--brand)]">{schools.filter(s => s.status === 'Active').length}</p>
+                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-2.5 shrink-0 text-center">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Active</p>
+                    <p className="text-xl font-bold text-[var(--brand)]">{schools.filter(s => s.status === 'active').length}</p>
                 </div>
             </div>
 
-            {/* Schools Grid/Table */}
+            {/* Grid */}
             {isLoading ? (
-                <div className="flex justify-center py-16">
+                <div className="flex justify-center py-20">
                     <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                 </div>
-            ) : schools.length === 0 ? (
-                <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
-                    <Building2 className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
-                    <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300">No Networks Found</h3>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Deploy your first school network to get started.</p>
+            ) : filtered.length === 0 ? (
+                <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <Building2 className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                    <p className="text-slate-700 dark:text-slate-300 font-semibold">No schools yet</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Add your first school to get started.</p>
                 </div>
-            ) : viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {schools.filter(s => s.name?.toLowerCase().includes(searchTerm.toLowerCase()) || s.slug?.includes(searchTerm.toLowerCase())).map((school) => (
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {filtered.map(school => (
                         <div key={school.id} className={cn(
-                            "bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden group hover:border-[var(--brand)]/30 transition-all flex flex-col",
-                            school.status !== 'Active' && "opacity-60"
+                            "bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md",
+                            school.status !== 'active' && "opacity-60"
                         )}>
-                            <div className="h-2 w-full" style={{ backgroundColor: school.primary_color || '#2dbc75' }}></div>
+                            <div className="h-1.5 w-full" style={{ backgroundColor: school.primary_color || '#3B82F6' }} />
                             <div className="p-5 flex flex-col flex-1">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="w-12 h-12 bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-100 dark:border-slate-600 flex items-center justify-center p-2">
-                                        {school.logo_url ? (
-                                            <img src={school.logo_url} alt={school.name} className="w-full h-full object-contain" />
-                                        ) : (
-                                            <Building2 className="w-6 h-6 text-slate-300 dark:text-slate-500" />
-                                        )}
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-100 dark:border-slate-600 flex items-center justify-center p-2 shrink-0">
+                                        {school.logo_url
+                                            ? <img src={school.logo_url} alt={school.name} className="w-full h-full object-contain" />
+                                            : <Building2 className="w-5 h-5 text-slate-300 dark:text-slate-500" />
+                                        }
                                     </div>
-                                    <div className="flex flex-col gap-1 text-right">
-                                        <div className="flex gap-1 justify-end">
-                                            <button onClick={() => handleOpenAdminModal(school)} className="p-1.5 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all text-slate-400" title="Manage Admins"><ShieldCheck className="w-3.5 h-3.5" /></button>
-                                            <a href={`/super-admin/schools/${school.id}`} className="p-1.5 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-600 dark:hover:text-purple-400 transition-all text-slate-400" title="View Details"><ExternalLink className="w-3.5 h-3.5" /></a>
-                                            <button onClick={() => { setEditingId(school.id); setFormData({ ...school } as any); setActiveTab('profile'); setIsModalOpen(true); }} className="p-1.5 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-[var(--brand)]/10 hover:text-[var(--brand)] transition-all text-slate-400" title="Edit"><Edit className="w-3.5 h-3.5" /></button>
-                                            <button onClick={() => handleDelete(school.id)} className="p-1.5 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all text-slate-400"><Trash2 className="w-3.5 h-3.5" /></button>
-                                        </div>
-                                        <button onClick={() => handleToggleStatus(school)} className={cn("py-0.5 px-2 rounded-lg text-xs font-semibold transition-all border self-end", school.status === 'Active' ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50" : "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50")}>
-                                            {school.status === 'Active' ? 'Deactivate' : 'Activate'}
+                                    <div className="flex items-center gap-1 ml-2">
+                                        <button onClick={() => openAdminModal(school)} title="Manage Admins" className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all"><ShieldCheck className="w-4 h-4" /></button>
+                                        <button onClick={() => openEdit(school)} title="Edit School" className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Edit className="w-4 h-4" /></button>
+                                        <button
+                                            onClick={() => handleToggleStatus(school)}
+                                            title={school.status === 'active' ? 'Deactivate' : 'Activate'}
+                                            disabled={toggleLoading === school.id}
+                                            className={cn("p-1.5 rounded-lg transition-all", school.status === 'active' ? "hover:bg-orange-50 dark:hover:bg-orange-900/30 text-slate-400 hover:text-orange-500" : "hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-400 hover:text-emerald-500")}
+                                        >
+                                            {toggleLoading === school.id
+                                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                                : school.status === 'active' ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />
+                                            }
                                         </button>
+                                        <button onClick={() => handleDelete(school.id)} title="Delete" className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all"><Trash2 className="w-4 h-4" /></button>
                                     </div>
                                 </div>
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">{school.name}</h3>
-                                <div className="space-y-2 mb-4">
-                                    <a href={`/school/${school.slug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-slate-700 dark:text-slate-300 bg-[var(--brand)]/5 px-3 py-2 rounded-xl border border-[var(--brand)]/20 hover:bg-[var(--brand)]/10 transition-all w-full">
-                                        <Globe className="w-3.5 h-3.5 text-[var(--brand)] shrink-0" />
-                                        <span className="text-xs font-medium truncate flex-1">localhost/school/{school.slug}</span>
-                                        <ExternalLink className="w-3 h-3 text-[var(--brand)] shrink-0" />
-                                    </a>
-                                    <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-xl border border-amber-100 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all w-full cursor-pointer" onClick={() => { navigator.clipboard.writeText(`${school.slug}.ddriver365.com`); alert('Prod URL copied!'); }}>
-                                        <span className="text-xs font-bold uppercase text-amber-600 dark:text-amber-400">Prod</span>
-                                        <span className="text-xs font-medium truncate flex-1">{school.slug}.ddriver365.com</span>
-                                        <Copy className="w-3 h-3 shrink-0" />
+
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">{school.name}</h3>
+                                        <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                                            school.status === 'active' ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400" : "bg-slate-100 dark:bg-slate-700 text-slate-500"
+                                        )}>
+                                            <span className={cn("w-1 h-1 rounded-full", school.status === 'active' ? "bg-emerald-500" : "bg-slate-400")} />
+                                            {school.status}
+                                        </span>
                                     </div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mb-3">{school.slug}.ddriver365.com</p>
                                 </div>
-                                <div className="grid grid-cols-4 gap-1.5">
+
+                                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
                                     {[
-                                        { label: 'Buses', count: school.buses?.length || 0, icon: Truck, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-                                        { label: 'Drivers', count: school.drivers?.length || 0, icon: Users, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-                                        { label: 'Routes', count: school.routes?.length || 0, icon: Globe, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-                                        { label: 'Students', count: school.students?.length || 0, icon: GraduationCap, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20' },
-                                    ].map((stat) => (
-                                        <div key={stat.label} className={cn("p-1.5 rounded-xl border border-slate-100 dark:border-slate-700 flex flex-col items-center", stat.bg)}>
-                                            <stat.icon className={cn("w-3 h-3 mb-0.5", stat.color)} />
-                                            <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">{stat.count}</p>
-                                            <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 uppercase mt-0.5">{stat.label}</p>
+                                        { label: 'Buses', count: school._count?.buses ?? 0, icon: Truck, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+                                        { label: 'Drivers', count: school._count?.drivers ?? 0, icon: Users, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                                        { label: 'Students', count: school._count?.students ?? 0, icon: GraduationCap, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+                                    ].map(stat => (
+                                        <div key={stat.label} className={cn("rounded-xl p-2 flex flex-col items-center gap-0.5", stat.bg)}>
+                                            <stat.icon className={cn("w-3.5 h-3.5", stat.color)} />
+                                            <p className="text-sm font-bold text-slate-900 dark:text-white leading-none">{stat.count}</p>
+                                            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium">{stat.label}</p>
                                         </div>
                                     ))}
-                                </div>
-                                <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                                    <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", school.subscription_plan === 'Enterprise' ? "bg-[var(--brand)]/10 text-[var(--brand)]" : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400")}>
-                                        {school.subscription_plan}
-                                    </span>
-                                    <span className="text-xs font-medium flex items-center gap-1">
-                                        <div className={cn("w-1.5 h-1.5 rounded-full", school.status === 'Active' ? 'bg-emerald-500' : 'bg-red-500')}></div>
-                                        <span className={school.status === 'Active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>{school.status}</span>
-                                    </span>
                                 </div>
                             </div>
                         </div>
                     ))}
                 </div>
-            ) : (
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="border-b border-slate-100 dark:border-slate-700">
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">Institution</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">Portal / URL</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">Fleet</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">Subscription</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {schools.filter(s => s.name?.toLowerCase().includes(searchTerm.toLowerCase()) || s.slug?.includes(searchTerm.toLowerCase())).map((school) => (
-                                    <tr key={school.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-100 dark:border-slate-600 flex items-center justify-center p-2 shrink-0">
-                                                    {school.logo_url ? (
-                                                        <img src={school.logo_url} alt={school.name} className="w-full h-full object-contain" />
-                                                    ) : (
-                                                        <Building2 className="w-5 h-5 text-slate-300 dark:text-slate-500" />
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{school.name}</p>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[180px]">{school.address || 'Standard Access'}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                            <div className="flex flex-col gap-1">
-                                                <a href={`/school/${school.slug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs font-medium text-[var(--brand)] hover:opacity-80">
-                                                    <Globe className="w-3 h-3" /> {school.slug}.localhost
-                                                </a>
-                                                <div className="text-xs font-medium text-amber-600 dark:text-amber-400">{school.slug}.ddriver365.com</div>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                            <div className="flex items-center gap-4">
-                                                <div className="text-center">
-                                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{school.buses?.length || 0}</p>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400">Buses</p>
-                                                </div>
-                                                <div className="text-center">
-                                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{school.students?.length || 0}</p>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400">Students</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                            <div className="flex flex-col gap-1">
-                                                <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium w-fit", school.subscription_plan === 'Enterprise' ? "bg-[var(--brand)]/10 text-[var(--brand)]" : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400")}>
-                                                    {school.subscription_plan}
-                                                </span>
-                                                <span className={cn("text-xs font-medium", school.status === 'Active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>{school.status}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                            <div className="flex items-center gap-2">
-                                                <button onClick={() => handleOpenAdminModal(school)} className="p-1.5 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 text-slate-400 transition-colors"><ShieldCheck className="w-4 h-4" /></button>
-                                                <button onClick={() => { setEditingId(school.id); setFormData({ ...school } as any); setActiveTab('profile'); setIsModalOpen(true); }} className="p-1.5 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-[var(--brand)]/10 hover:text-[var(--brand)] text-slate-400 transition-colors"><Edit className="w-4 h-4" /></button>
-                                                <button onClick={() => handleToggleStatus(school)} className={cn("p-1.5 rounded-lg transition-colors", school.status === 'Active' ? "bg-red-50 dark:bg-red-900/30 text-red-500" : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500")}><X className="w-4 h-4" /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
             )}
 
-            {/* Registration Modal */}
+            {/* ── CREATE / EDIT MODAL ────────────────────────────────────────────── */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <div>
-                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{editingId ? 'Edit Institution' : 'Deploy Network'}</h2>
-                                <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Configuration Protocol</p>
-                            </div>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"><X className="w-5 h-5" /></button>
-                        </div>
-
-                        <div className="flex border-b border-slate-100 dark:border-slate-700 overflow-x-auto px-4">
-                            {['profile', 'buses', 'drivers', 'routes', 'students', 'permissions'].map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab as any)}
-                                    className={cn(
-                                        "px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all whitespace-nowrap",
-                                        activeTab === tab ? "border-[var(--brand)] text-[var(--brand)]" : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                    )}
-                                >
-                                    {tab}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="p-6 space-y-5">
-                            {activeTab === 'profile' && (
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Name</label>
-                                            <input type="text" value={formData.name} onChange={e => handleNameChange(e.target.value)} className={inputCls} placeholder="School Name" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Portal URL</label>
-                                            <input type="text" value={formData.slug} onChange={e => setFormData({ ...formData, slug: e.target.value })} className={inputCls} />
-                                        </div>
+                <>
+                    <Backdrop onClick={() => !isSubmitting && setIsModalOpen(false)} />
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col pointer-events-auto">
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700 shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center">
+                                        <Building2 className="w-5 h-5 text-[var(--brand)]" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Address</label>
-                                        <input type="text" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className={inputCls} placeholder="Branch Address" />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Logo</label>
-                                            <label className="flex items-center justify-center w-full h-11 bg-slate-50 dark:bg-slate-700/50 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl cursor-pointer hover:border-[var(--brand)] transition-all">
-                                                <span className="text-xs font-medium text-slate-400 truncate px-4">{logoFile?.name || 'Upload Logo'}</span>
-                                                <input type="file" accept="image/*" className="hidden" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
-                                            </label>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Theme Color</label>
-                                            <div className="flex items-center h-11 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 px-4 rounded-xl gap-3">
-                                                <input type="color" value={formData.primary_color} onChange={e => setFormData({ ...formData, primary_color: e.target.value })} className="h-7 w-7 cursor-pointer rounded-lg bg-transparent" />
-                                                <span className="text-xs font-mono text-slate-700 dark:text-slate-300">{formData.primary_color}</span>
-                                            </div>
-                                        </div>
+                                        <h2 className="text-base font-bold text-slate-900 dark:text-white">{editingId ? 'Edit School' : 'Add School'}</h2>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{editingId ? 'Update school details and permissions' : 'Create school + first admin account'}</p>
                                     </div>
                                 </div>
-                            )}
-
-                            {activeTab === 'buses' && (
-                                <div className="space-y-4">
-                                    <div className="flex gap-3">
-                                        <input type="text" placeholder="Bus Number" value={editingBus.bus_number} onChange={e => setEditingBus({ ...editingBus, bus_number: e.target.value })} className={cn(inputCls, 'flex-1')} />
-                                        <input type="number" placeholder="Seats" value={editingBus.capacity} onChange={e => setEditingBus({ ...editingBus, capacity: e.target.value })} className={cn(inputCls, 'w-24')} />
-                                        <button type="button" onClick={() => { if (!editingBus.bus_number) return; const newBuses = [...formData.buses]; editingBus.index !== null ? newBuses[editingBus.index] = { bus_number: editingBus.bus_number, capacity: parseInt(editingBus.capacity) || 0 } : newBuses.push({ bus_number: editingBus.bus_number, capacity: parseInt(editingBus.capacity) || 0 }); setFormData({ ...formData, buses: newBuses }); setEditingBus({ index: null, bus_number: '', capacity: '' }); }} className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95">Add</button>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {formData.buses.map((bus, i) => (
-                                            <div key={i} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-600">
-                                                <span className="text-sm font-medium text-slate-900 dark:text-white">{bus.bus_number} ({bus.capacity} seats)</span>
-                                                <button type="button" onClick={() => setFormData({ ...formData, buses: formData.buses.filter((_, idx) => idx !== i) })} className="text-red-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'drivers' && (
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <input type="text" placeholder="Driver Name" value={editingDriver.name} onChange={e => setEditingDriver({ ...editingDriver, name: e.target.value })} className={inputCls} />
-                                        <input type="email" placeholder="Email" value={editingDriver.email} onChange={e => setEditingDriver({ ...editingDriver, email: e.target.value })} className={inputCls} />
-                                    </div>
-                                    <button type="button" onClick={() => { if (!editingDriver.name) return; const newDrivers = [...formData.drivers]; newDrivers.push({ ...editingDriver }); setFormData({ ...formData, drivers: newDrivers }); setEditingDriver({ index: null, name: '', email: '', license: '', assigned_bus: '' }); }} className="w-full flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95">Register Driver</button>
-                                    <div className="space-y-2">
-                                        {formData.drivers.map((driver, i) => (
-                                            <div key={i} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-600">
-                                                <span className="text-sm font-medium text-slate-900 dark:text-white">{driver.name} ({driver.email})</span>
-                                                <button type="button" onClick={() => setFormData({ ...formData, drivers: formData.drivers.filter((_, idx) => idx !== i) })} className="text-red-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'routes' && (
-                                <div className="space-y-4">
-                                    <div className="flex gap-3">
-                                        <input type="text" placeholder="Route Name" value={editingRoute.name} onChange={e => setEditingRoute({ ...editingRoute, name: e.target.value })} className={cn(inputCls, 'flex-1')} />
-                                        <button type="button" onClick={() => { if (!editingRoute.name) return; const newRoutes = [...formData.routes]; newRoutes.push({ name: editingRoute.name }); setFormData({ ...formData, routes: newRoutes }); setEditingRoute({ index: null, name: '' }); }} className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95">Add Route</button>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {formData.routes.map((route, i) => (
-                                            <div key={i} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-600">
-                                                <span className="text-sm font-medium text-slate-900 dark:text-white">{route.name}</span>
-                                                <button type="button" onClick={() => setFormData({ ...formData, routes: formData.routes.filter((_, idx) => idx !== i) })} className="text-red-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'students' && (
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <input type="text" placeholder="Student Name" value={editingStudent.name} onChange={e => setEditingStudent({ ...editingStudent, name: e.target.value })} className={inputCls} />
-                                        <input type="text" placeholder="Grade" value={editingStudent.grade} onChange={e => setEditingStudent({ ...editingStudent, grade: e.target.value })} className={inputCls} />
-                                    </div>
-                                    <button type="button" onClick={() => { if (!editingStudent.name) return; const newStudents = [...formData.students]; newStudents.push({ ...editingStudent }); setFormData({ ...formData, students: newStudents }); setEditingStudent({ index: null, name: '', grade: '', parent_phone: '', bus_id: '' }); }} className="w-full flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95">Enroll Student</button>
-                                    <div className="space-y-2">
-                                        {formData.students.map((student, i) => (
-                                            <div key={i} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-600">
-                                                <span className="text-sm font-medium text-slate-900 dark:text-white">{student.name} - {student.grade}</span>
-                                                <button type="button" onClick={() => setFormData({ ...formData, students: formData.students.filter((_, idx) => idx !== i) })} className="text-red-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'permissions' && (
-                                <div className="grid grid-cols-2 gap-4">
-                                    {Object.entries(formData.permissions).map(([key, val]) => (
-                                        <label key={key} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-600 cursor-pointer">
-                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{key} Feature</span>
-                                            <input type="checkbox" checked={val} onChange={e => setFormData({ ...formData, permissions: { ...formData.permissions, [key]: e.target.checked } })} className="w-4 h-4 accent-[var(--brand)]" />
-                                        </label>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="p-6 border-t border-slate-100 dark:border-slate-700">
-                            <button onClick={handleCreateSchool} disabled={isSubmitting} className="w-full flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50">
-                                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : editingId ? 'Update Network' : 'Deploy School Network'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Admin Management Modal */}
-            {isAdminModalOpen && selectedSchoolForAdmin && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <div>
-                                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Manage Admins</h2>
-                                <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{selectedSchoolForAdmin.name}</p>
-                            </div>
-                            <button onClick={() => setIsAdminModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"><X className="w-5 h-5" /></button>
-                        </div>
-                        <div className="p-6 space-y-5">
-                            <div className="space-y-3">
-                                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Current Assignments</p>
-                                {loadingAdmins ? (
-                                    <div className="flex justify-center py-4">
-                                        <div className="w-5 h-5 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
-                                    </div>
-                                ) : schoolAdmins.length === 0 ? (
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-center">No admins assigned</p>
-                                ) : (
-                                    schoolAdmins.map((admin) => (
-                                        <div key={admin.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-600">
-                                            <div>
-                                                <p className="text-sm font-semibold text-slate-900 dark:text-white">{admin.name}</p>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400">{admin.email}</p>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => handleToggleAdminStatus(admin)} className={cn("px-2 py-1 rounded-lg text-xs font-semibold", admin.status === 'Active' ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400" : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400")}>
-                                                    {admin.status === 'Active' ? 'Stop' : 'Start'}
-                                                </button>
-                                                <button onClick={() => handleDeleteAdmin(admin.id)} className="p-1.5 text-red-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-
-                            <hr className="border-slate-100 dark:border-slate-700" />
-
-                            <form onSubmit={handleCreateAdmin} className="space-y-3">
-                                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Authorize New Admin</p>
-                                <input required type="text" placeholder="Admin Name" value={adminFormData.name} onChange={e => setAdminFormData({ ...adminFormData, name: e.target.value })} className={inputCls} />
-                                <input required type="email" placeholder="Email Address" value={adminFormData.email} onChange={e => setAdminFormData({ ...adminFormData, email: e.target.value })} className={inputCls} />
-                                <button type="submit" disabled={isSubmitting} className="w-full flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50">
-                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Grant Administrative Rights'}
+                                <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-all">
+                                    <X className="w-4 h-4" />
                                 </button>
+                            </div>
+
+                            {/* Tabs */}
+                            <div className="flex border-b border-slate-100 dark:border-slate-700 px-6 shrink-0">
+                                {(['profile', 'permissions'] as const).map(tab => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={cn("px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b-2 -mb-px transition-all",
+                                            activeTab === tab ? "border-[var(--brand)] text-[var(--brand)]" : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                        )}
+                                    >
+                                        {tab === 'profile' ? 'Profile & Admin' : 'Permissions'}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Body */}
+                            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                                <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+
+                                    {activeTab === 'profile' && (
+                                        <>
+                                            {/* School info */}
+                                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">School Info</p>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">School Name *</label>
+                                                    <input type="text" value={formData.name} onChange={e => handleNameChange(e.target.value)} placeholder="St. Joseph's School" required className={inputCls} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                                                        Portal URL * <span className="text-slate-400 font-normal">(slug)</span>
+                                                    </label>
+                                                    <div className="flex items-center bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[var(--brand)]/30 focus-within:border-[var(--brand)] transition-all">
+                                                        <input
+                                                            type="text"
+                                                            value={formData.slug}
+                                                            onChange={e => setFormData(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+                                                            disabled={!!editingId}
+                                                            placeholder="st-josephs"
+                                                            className="flex-1 bg-transparent px-3 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none disabled:text-slate-400"
+                                                        />
+                                                        <span className="text-xs text-slate-400 pr-3 shrink-0">.ddriver365.com</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Address</label>
+                                                <input type="text" value={formData.address} onChange={e => setFormData(p => ({ ...p, address: e.target.value }))} placeholder="123 Main St, Chennai" className={inputCls} />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Logo</label>
+                                                    <label className="flex items-center justify-center w-full h-11 bg-slate-50 dark:bg-slate-700/50 border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl cursor-pointer hover:border-[var(--brand)] transition-all group">
+                                                        <span className="text-xs font-medium text-slate-400 group-hover:text-[var(--brand)] truncate px-4">{logoFile?.name || 'Click to upload logo'}</span>
+                                                        <input type="file" accept="image/*" className="hidden" onChange={e => setLogoFile(e.target.files?.[0] || null)} />
+                                                    </label>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Brand Color</label>
+                                                    <div className="flex items-center h-11 bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 px-3 rounded-xl gap-3">
+                                                        <input type="color" value={formData.primary_color} onChange={e => setFormData(p => ({ ...p, primary_color: e.target.value }))} className="h-7 w-7 cursor-pointer rounded-lg bg-transparent border-0" />
+                                                        <span className="text-xs font-mono text-slate-700 dark:text-slate-300">{formData.primary_color}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* First admin — only when creating */}
+                                            {!editingId && (
+                                                <>
+                                                    <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
+                                                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">First Admin Account</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl px-3 py-2.5">
+                                                            A login account will be created for this admin. They'll receive their temporary password by email and must change it on first login.
+                                                        </p>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Admin Name *</label>
+                                                            <input type="text" value={formData.admin_name} onChange={e => setFormData(p => ({ ...p, admin_name: e.target.value }))} placeholder="John Doe" required className={inputCls} />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Admin Email *</label>
+                                                            <input type="email" value={formData.admin_email} onChange={e => setFormData(p => ({ ...p, admin_email: e.target.value }))} placeholder="admin@school.com" required className={inputCls} />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Admin Phone <span className="text-slate-400 font-normal">(optional)</span></label>
+                                                        <input type="tel" value={formData.admin_phone} onChange={e => setFormData(p => ({ ...p, admin_phone: e.target.value }))} placeholder="+91 98765 43210" className={inputCls} />
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {/* Routes note */}
+                                            <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
+                                                <div className="flex items-start gap-3 p-3.5 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                                                    <Route className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                                                    <div>
+                                                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Routes & Stops are configured by the school admin</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">After school is created, the admin logs in and pins stops on a live map from their dashboard → Routes page.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {activeTab === 'permissions' && (
+                                        <div className="space-y-2">
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Toggle features on or off for this school. Disabled features are hidden from the school's dashboard.</p>
+                                            <div className="grid grid-cols-1 gap-2">
+                                                {FEATURES.map(f => (
+                                                    <label key={f.key} className={cn(
+                                                        "flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all",
+                                                        permissions[f.key]
+                                                            ? "bg-[var(--brand)]/5 border-[var(--brand)]/30 dark:border-[var(--brand)]/30"
+                                                            : "bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600"
+                                                    )}>
+                                                        <div className="flex-1 mr-3">
+                                                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{f.label}</p>
+                                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{f.description}</p>
+                                                        </div>
+                                                        <div className="relative shrink-0">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={permissions[f.key] ?? false}
+                                                                onChange={e => setPermissions(p => ({ ...p, [f.key]: e.target.checked }))}
+                                                                className="sr-only peer"
+                                                            />
+                                                            <div className={cn(
+                                                                "w-10 h-6 rounded-full transition-all",
+                                                                permissions[f.key] ? "bg-[var(--brand)]" : "bg-slate-200 dark:bg-slate-600"
+                                                            )}>
+                                                                <div className={cn(
+                                                                    "w-4 h-4 bg-white rounded-full shadow transition-all mt-1",
+                                                                    permissions[f.key] ? "translate-x-5" : "translate-x-1"
+                                                                )} />
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Error / Success */}
+                                    {modalError && (
+                                        <div className="flex items-start gap-2.5 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-xs font-medium">
+                                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />{modalError}
+                                        </div>
+                                    )}
+                                    {modalSuccess && (
+                                        <div className="flex items-start gap-2.5 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+                                            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />{modalSuccess}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Footer */}
+                                <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 shrink-0 flex gap-3">
+                                    <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" disabled={isSubmitting} className="flex-1 py-2.5 rounded-xl bg-[var(--brand)] text-white text-sm font-semibold hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+                                        {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editingId ? 'Save Changes' : 'Create School'}
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     </div>
-                </div>
+                </>
+            )}
+
+            {/* ── ADMIN MANAGEMENT MODAL ─────────────────────────────────────────── */}
+            {adminSchool && (
+                <>
+                    <Backdrop onClick={() => !adminSubmitting && setAdminSchool(null)} />
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col pointer-events-auto">
+                            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700 shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                                        <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-bold text-slate-900 dark:text-white">Manage Admins</h3>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{adminSchool.name}</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setAdminSchool(null)} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-all">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+                                {/* Existing admins */}
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Current Admins</p>
+                                    {loadingAdmins ? (
+                                        <div className="flex justify-center py-6">
+                                            <div className="w-5 h-5 border-2 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                                        </div>
+                                    ) : schoolAdmins.length === 0 ? (
+                                        <p className="text-sm text-slate-500 text-center py-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">No admins yet</p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {schoolAdmins.map(admin => (
+                                                <div key={admin.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-600">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{admin.name}</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400">{admin.email}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button onClick={() => handleToggleAdminActive(admin)} className={cn("px-2.5 py-1 rounded-lg text-xs font-semibold transition-all", admin.is_active ? "bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400")}>
+                                                            {admin.is_active ? 'Deactivate' : 'Activate'}
+                                                        </button>
+                                                        <button onClick={() => handleDeleteAdmin(admin.id)} className="p-1.5 text-red-500 hover:text-red-600 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Add Admin</p>
+                                    <form onSubmit={handleCreateAdmin} className="space-y-3">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Name *</label>
+                                                <input type="text" value={adminForm.name} onChange={e => setAdminForm(p => ({ ...p, name: e.target.value }))} required className={inputCls} placeholder="John Doe" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Email *</label>
+                                                <input type="email" value={adminForm.email} onChange={e => setAdminForm(p => ({ ...p, email: e.target.value }))} required className={inputCls} placeholder="admin@school.com" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Password * <span className="text-slate-400 font-normal">min. 8 chars</span></label>
+                                            <input type="password" value={adminForm.password} onChange={e => setAdminForm(p => ({ ...p, password: e.target.value }))} required minLength={8} className={inputCls} placeholder="••••••••" />
+                                        </div>
+                                        {adminError && (
+                                            <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2.5">
+                                                <AlertCircle className="w-3.5 h-3.5 shrink-0" />{adminError}
+                                            </div>
+                                        )}
+                                        <button type="submit" disabled={adminSubmitting} className="w-full py-2.5 rounded-xl bg-[var(--brand)] text-white text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                                            {adminSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><UserPlus className="w-4 h-4" /> Add Admin</>}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </>
             )}
         </div>
     );
