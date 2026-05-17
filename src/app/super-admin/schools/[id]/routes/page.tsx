@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { MapPin, Plus, Edit, Trash2, X } from 'lucide-react';
+import { MapPin, Plus, Edit, Trash2, X, ChevronDown } from 'lucide-react';
 import api from '@/lib/api';
 
 interface Route {
@@ -13,9 +13,18 @@ interface Route {
     end_point?: string;
     is_active: boolean;
     bus?: { bus_number: string };
+    stop_count?: number;
+}
+
+interface Stop {
+    id: string;
+    name: string;
+    sequence?: number;
+    pickup_time?: string;
 }
 
 const emptyForm = { name: '', route_type: 'morning', start_point: '', end_point: '', is_active: true };
+const emptyStopForm = { name: '', sequence: '', pickup_time: '' };
 const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
 
 const typeBadge: Record<string, string> = {
@@ -34,6 +43,14 @@ export default function SchoolRoutesPage() {
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
     const [formError, setFormError] = useState('');
+
+    // Stops state
+    const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+    const [stops, setStops] = useState<Stop[]>([]);
+    const [stopsLoading, setStopsLoading] = useState(false);
+    const [stopForm, setStopForm] = useState(emptyStopForm);
+    const [addingStop, setAddingStop] = useState(false);
+    const [stopError, setStopError] = useState('');
 
     useEffect(() => { fetchRoutes(); }, [id]);
 
@@ -105,11 +122,63 @@ export default function SchoolRoutesPage() {
         if (!window.confirm(`Delete route "${route.name}"? This cannot be undone.`)) return;
         try {
             await api.delete(`/routes/${route.id}`);
+            if (selectedRouteId === route.id) setSelectedRouteId(null);
             fetchRoutes();
         } catch (e: any) {
             alert(e.response?.data?.message || 'Failed to delete route.');
         }
     };
+
+    const openStops = async (routeId: string) => {
+        if (selectedRouteId === routeId) { setSelectedRouteId(null); return; }
+        setSelectedRouteId(routeId);
+        setStopForm(emptyStopForm);
+        setStopError('');
+        setStopsLoading(true);
+        try {
+            const res = await api.get(`/stops?route_id=${routeId}&school_id=${id}`);
+            setStops(Array.isArray(res.data) ? res.data : []);
+        } catch {
+            setStops([]);
+        } finally {
+            setStopsLoading(false);
+        }
+    };
+
+    const handleAddStop = async () => {
+        if (!stopForm.name.trim()) { setStopError('Stop name is required.'); return; }
+        setAddingStop(true);
+        setStopError('');
+        try {
+            await api.post('/stops', {
+                name: stopForm.name.trim(),
+                sequence: stopForm.sequence ? parseInt(stopForm.sequence) : undefined,
+                pickup_time: stopForm.pickup_time || undefined,
+                route_id: selectedRouteId,
+                school_id: id,
+            });
+            setStopForm(emptyStopForm);
+            // Refresh stops
+            const res = await api.get(`/stops?route_id=${selectedRouteId}&school_id=${id}`);
+            setStops(Array.isArray(res.data) ? res.data : []);
+        } catch (e: any) {
+            setStopError(e.response?.data?.message || 'Failed to add stop.');
+        } finally {
+            setAddingStop(false);
+        }
+    };
+
+    const handleDeleteStop = async (stopId: string) => {
+        if (!window.confirm('Delete this stop? This cannot be undone.')) return;
+        try {
+            await api.delete(`/stops/${stopId}`);
+            setStops(prev => prev.filter(s => s.id !== stopId));
+        } catch (e: any) {
+            alert(e.response?.data?.message || 'Failed to delete stop.');
+        }
+    };
+
+    const selectedRoute = routes.find(r => r.id === selectedRouteId);
 
     return (
         <div className="space-y-5">
@@ -167,7 +236,14 @@ export default function SchoolRoutesPage() {
                                             </span>
                                         </td>
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <button
+                                                    onClick={() => openStops(route.id)}
+                                                    className={`flex items-center gap-1.5 border rounded-xl px-3 py-1.5 font-semibold text-xs transition-colors ${selectedRouteId === route.id ? 'bg-[var(--brand)] border-[var(--brand)] text-white' : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-600'}`}
+                                                >
+                                                    <ChevronDown className="w-3 h-3" />
+                                                    Stops{route.stop_count !== undefined ? ` (${route.stop_count})` : ''}
+                                                </button>
                                                 <button onClick={() => openEdit(route)} className="flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-3 py-1.5 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
                                                     <Edit className="w-3 h-3" /> Edit
                                                 </button>
@@ -183,6 +259,111 @@ export default function SchoolRoutesPage() {
                     )}
                 </div>
             </div>
+
+            {/* Stops Panel */}
+            {selectedRouteId && selectedRoute && (
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center gap-2.5">
+                            <MapPin className="w-4 h-4 text-[var(--brand)]" />
+                            <span className="font-bold text-sm text-slate-900 dark:text-white">
+                                Stops — <span className="text-[var(--brand)]">{selectedRoute.name}</span>
+                            </span>
+                            <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-full px-2.5 py-0.5 font-medium">{stops.length}</span>
+                        </div>
+                        <button
+                            onClick={() => setSelectedRouteId(null)}
+                            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-slate-400 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {/* Add stop form */}
+                    <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Add Stop</p>
+                        <div className="flex flex-wrap gap-3 items-end">
+                            <div className="flex-1 min-w-[160px]">
+                                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Name <span className="text-red-500">*</span></label>
+                                <input
+                                    className={inputCls}
+                                    placeholder="e.g. Bus Stand"
+                                    value={stopForm.name}
+                                    onChange={e => setStopForm(p => ({ ...p, name: e.target.value }))}
+                                />
+                            </div>
+                            <div className="w-24">
+                                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Sequence</label>
+                                <input
+                                    type="number"
+                                    className={inputCls}
+                                    placeholder="1"
+                                    value={stopForm.sequence}
+                                    onChange={e => setStopForm(p => ({ ...p, sequence: e.target.value }))}
+                                />
+                            </div>
+                            <div className="w-32">
+                                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Pickup Time</label>
+                                <input
+                                    type="time"
+                                    className={inputCls}
+                                    value={stopForm.pickup_time}
+                                    onChange={e => setStopForm(p => ({ ...p, pickup_time: e.target.value }))}
+                                />
+                            </div>
+                            <button
+                                onClick={handleAddStop}
+                                disabled={addingStop}
+                                className="flex items-center gap-1.5 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+                            >
+                                {addingStop ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Plus className="w-4 h-4" />}
+                                Add
+                            </button>
+                        </div>
+                        {stopError && (
+                            <p className="text-red-600 dark:text-red-400 text-xs font-medium bg-red-50 dark:bg-red-900/30 rounded-xl px-4 py-2.5 border border-red-200 dark:border-red-800 mt-3">{stopError}</p>
+                        )}
+                    </div>
+
+                    {/* Stops list */}
+                    <div className="overflow-x-auto">
+                        {stopsLoading ? (
+                            <div className="flex justify-center py-10">
+                                <div className="w-6 h-6 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                            </div>
+                        ) : stops.length === 0 ? (
+                            <div className="text-center py-10 text-slate-400 dark:text-slate-500 text-sm">No stops yet. Add one above.</div>
+                        ) : (
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-slate-100 dark:border-slate-700">
+                                        {['#', 'Name', 'Pickup Time', ''].map(col => (
+                                            <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">{col}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {stops.map(stop => (
+                                        <tr key={stop.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                            <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400 w-12">{stop.sequence ?? '—'}</td>
+                                            <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">{stop.name}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{stop.pickup_time || '—'}</td>
+                                            <td className="px-4 py-3 text-right">
+                                                <button
+                                                    onClick={() => handleDeleteStop(stop.id)}
+                                                    className="flex items-center gap-1.5 ml-auto bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl px-3 py-1.5 font-semibold text-xs hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                                                >
+                                                    <Trash2 className="w-3 h-3" /> Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {modalOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">

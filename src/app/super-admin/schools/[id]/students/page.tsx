@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Search, Loader2, X, Save, UserCircle2 } from 'lucide-react';
+import { Search, Loader2, X, Save, UserCircle2, Plus, Copy, Check } from 'lucide-react';
 import api from '@/lib/api';
 
 interface Student {
@@ -30,6 +30,18 @@ interface Stop {
 
 const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
 
+const emptyAddForm = {
+    name: '',
+    grade: '',
+    section: '',
+    gr_no: '',
+    parent_name: '',
+    parent_email: '',
+    parent_phone: '',
+    route_id: '',
+    stop_id: '',
+};
+
 export default function SchoolStudentsPage() {
     const { id } = useParams<{ id: string }>();
 
@@ -43,6 +55,15 @@ export default function SchoolStudentsPage() {
     const [editForm, setEditForm] = useState({ route_id: '', stop_id: '' });
     const [saving, setSaving] = useState(false);
     const [editError, setEditError] = useState('');
+
+    // Add student modal state
+    const [addModalOpen, setAddModalOpen] = useState(false);
+    const [addForm, setAddForm] = useState(emptyAddForm);
+    const [addStops, setAddStops] = useState<Stop[]>([]);
+    const [addSaving, setAddSaving] = useState(false);
+    const [addError, setAddError] = useState('');
+    const [tempPassword, setTempPassword] = useState('');
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         fetchAll();
@@ -106,22 +127,93 @@ export default function SchoolStudentsPage() {
         }
     };
 
+    const fetchAddStops = async (routeId: string) => {
+        if (!routeId) { setAddStops([]); return; }
+        try {
+            const res = await api.get(`/stops?route_id=${routeId}`);
+            setAddStops(Array.isArray(res.data) ? res.data : []);
+        } catch {
+            setAddStops([]);
+        }
+    };
+
+    const handleAddRouteChange = (routeId: string) => {
+        setAddForm(f => ({ ...f, route_id: routeId, stop_id: '' }));
+        fetchAddStops(routeId);
+    };
+
+    const openAddModal = () => {
+        setAddForm(emptyAddForm);
+        setAddStops([]);
+        setAddError('');
+        setTempPassword('');
+        setCopied(false);
+        setAddModalOpen(true);
+    };
+
+    const handleAddStudent = async () => {
+        if (!addForm.name.trim()) { setAddError('Student name is required.'); return; }
+        if (!addForm.parent_email.trim()) { setAddError('Parent email is required.'); return; }
+        setAddSaving(true);
+        setAddError('');
+        try {
+            const res = await api.post('/students', {
+                name: addForm.name.trim(),
+                grade: addForm.grade || undefined,
+                section: addForm.section || undefined,
+                gr_no: addForm.gr_no || undefined,
+                parent_name: addForm.parent_name || undefined,
+                parent_email: addForm.parent_email.trim(),
+                parent_phone: addForm.parent_phone || undefined,
+                route_id: addForm.route_id || undefined,
+                stop_id: addForm.stop_id || undefined,
+                school_id: id,
+            });
+            const pwd = res.data?.temp_password || res.data?.parent?.temp_password || '';
+            if (pwd) {
+                setTempPassword(pwd);
+            } else {
+                setAddModalOpen(false);
+                fetchAll();
+            }
+            fetchAll();
+        } catch (e: any) {
+            setAddError(e.response?.data?.message || 'Failed to create student.');
+        } finally {
+            setAddSaving(false);
+        }
+    };
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(tempPassword);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     const filtered = students.filter(s =>
         s.name?.toLowerCase().includes(search.toLowerCase())
     );
 
     return (
         <div className="space-y-5">
-            {/* Search */}
-            <div className="relative max-w-sm">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                    type="text"
-                    placeholder="Search students..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
-                />
+            {/* Header: search + add */}
+            <div className="flex items-center gap-3 flex-wrap">
+                <div className="relative flex-1 min-w-[200px] max-w-sm">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Search students..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
+                    />
+                </div>
+                <button
+                    onClick={openAddModal}
+                    className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
+                >
+                    <Plus className="w-4 h-4" /> Add Student
+                </button>
             </div>
 
             {/* Table */}
@@ -192,6 +284,125 @@ export default function SchoolStudentsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Add Student modal */}
+            {addModalOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+                            <h2 className="text-slate-900 dark:text-white font-bold text-base">Add Student</h2>
+                            <button
+                                onClick={() => { setAddModalOpen(false); setTempPassword(''); }}
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {tempPassword ? (
+                            <div className="p-6 space-y-4">
+                                <p className="text-sm font-semibold text-slate-900 dark:text-white">Student created successfully!</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">Share this temporary password with the parent:</p>
+                                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3">
+                                    <span className="flex-1 font-mono text-sm text-slate-900 dark:text-white select-all">{tempPassword}</span>
+                                    <button
+                                        onClick={handleCopy}
+                                        className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] hover:opacity-80 transition-opacity"
+                                    >
+                                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                        {copied ? 'Copied!' : 'Copy'}
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => { setAddModalOpen(false); setTempPassword(''); }}
+                                    className="w-full bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
+                                >
+                                    Done
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="p-6 space-y-4">
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student Details</p>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Name <span className="text-red-500">*</span></label>
+                                        <input className={inputCls} placeholder="Full name" value={addForm.name} onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))} />
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Grade</label>
+                                            <input className={inputCls} placeholder="e.g. 5" value={addForm.grade} onChange={e => setAddForm(f => ({ ...f, grade: e.target.value }))} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Section</label>
+                                            <input className={inputCls} placeholder="e.g. A" value={addForm.section} onChange={e => setAddForm(f => ({ ...f, section: e.target.value }))} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">GR No.</label>
+                                            <input className={inputCls} placeholder="e.g. 1023" value={addForm.gr_no} onChange={e => setAddForm(f => ({ ...f, gr_no: e.target.value }))} />
+                                        </div>
+                                    </div>
+
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Parent / Guardian</p>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Name</label>
+                                        <input className={inputCls} placeholder="Full name" value={addForm.parent_name} onChange={e => setAddForm(f => ({ ...f, parent_name: e.target.value }))} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Email <span className="text-red-500">*</span></label>
+                                        <input type="email" className={inputCls} placeholder="parent@email.com" value={addForm.parent_email} onChange={e => setAddForm(f => ({ ...f, parent_email: e.target.value }))} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Phone</label>
+                                        <input type="tel" className={inputCls} placeholder="+91 9876543210" value={addForm.parent_phone} onChange={e => setAddForm(f => ({ ...f, parent_phone: e.target.value }))} />
+                                    </div>
+
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Transport Assignment</p>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Route</label>
+                                        <select className={inputCls} value={addForm.route_id} onChange={e => handleAddRouteChange(e.target.value)}>
+                                            <option value="">No Route</option>
+                                            {routes.map(r => (
+                                                <option key={r.id} value={r.id}>{r.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Stop</label>
+                                        <select className={`${inputCls} disabled:opacity-40`} value={addForm.stop_id} onChange={e => setAddForm(f => ({ ...f, stop_id: e.target.value }))} disabled={!addForm.route_id}>
+                                            <option value="">No Stop</option>
+                                            {addStops.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {addError && (
+                                        <p className="text-red-600 dark:text-red-400 text-xs font-medium bg-red-50 dark:bg-red-900/30 rounded-xl px-4 py-3 border border-red-200 dark:border-red-800">{addError}</p>
+                                    )}
+                                </div>
+
+                                <div className="flex gap-3 px-6 pb-6">
+                                    <button
+                                        onClick={() => setAddModalOpen(false)}
+                                        className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleAddStudent}
+                                        disabled={addSaving}
+                                        className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+                                    >
+                                        {addSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                        Create Student
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Edit modal */}
             {editingStudent && (

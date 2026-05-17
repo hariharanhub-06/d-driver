@@ -195,42 +195,36 @@ export default function SchoolDetailPage() {
 
             {/* Login links */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4">
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">School Login Links</p>
-                <div className="space-y-2">
-                    {[
-                        { label: 'Admin Login', path: '/login', color: 'text-blue-600 dark:text-blue-400' },
-                        { label: 'Driver Login', path: '/login', color: 'text-amber-600 dark:text-amber-400' },
-                        { label: 'Parent Login', path: '/login', color: 'text-purple-600 dark:text-purple-400' },
-                    ].map(link => {
-                        const url = `https://${school.slug}.ddriver365.com${link.path}`;
-                        return (
-                            <div key={link.label} className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 rounded-xl px-4 py-2.5">
-                                <div>
-                                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{link.label}</p>
-                                    <p className={`text-xs font-mono ${link.color} truncate`}>{url}</p>
-                                </div>
-                                <div className="flex items-center gap-1 ml-3 shrink-0">
-                                    <button
-                                        onClick={() => navigator.clipboard.writeText(url)}
-                                        className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-400 transition-colors"
-                                        title="Copy link"
-                                    >
-                                        <Copy className="w-3.5 h-3.5" />
-                                    </button>
-                                    <a
-                                        href={url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-400 transition-colors"
-                                        title="Open"
-                                    >
-                                        <ExternalLink className="w-3.5 h-3.5" />
-                                    </a>
-                                </div>
-                            </div>
-                        );
-                    })}
+                <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">School Login Link</p>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">Admins, Drivers &amp; Parents all use the same page</span>
                 </div>
+                {(() => {
+                    const url = (typeof window !== 'undefined' ? window.location.origin : '') + '/login';
+                    return (
+                        <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 rounded-xl px-4 py-2.5">
+                            <p className="text-xs font-mono text-blue-600 dark:text-blue-400 truncate">{url}</p>
+                            <div className="flex items-center gap-1 ml-3 shrink-0">
+                                <button
+                                    onClick={() => navigator.clipboard.writeText(url)}
+                                    className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-400 transition-colors"
+                                    title="Copy link"
+                                >
+                                    <Copy className="w-3.5 h-3.5" />
+                                </button>
+                                <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-400 transition-colors"
+                                    title="Open"
+                                >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* Quick stats */}

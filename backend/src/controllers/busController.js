@@ -12,14 +12,7 @@ const getAllBuses = async (req, res) => {
 
         const buses = await prisma.bus.findMany({
             where: schoolId ? { school_id: schoolId } : {},
-            include: {
-                drivers: {
-                    include: {
-                        user: { select: { name: true } },
-                    },
-                },
-                routes: { select: { id: true, name: true } },
-            },
+            orderBy: { bus_number: 'asc' },
         });
 
         res.json(buses);
@@ -33,17 +26,7 @@ const getBusById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const bus = await prisma.bus.findUnique({
-            where: { id },
-            include: {
-                drivers: {
-                    include: {
-                        user: { select: { name: true, phone: true } },
-                    },
-                },
-                routes: { select: { id: true, name: true } },
-            },
-        });
+        const bus = await prisma.bus.findUnique({ where: { id } });
 
         if (!bus) return res.status(404).json({ error: 'Bus not found' });
 
