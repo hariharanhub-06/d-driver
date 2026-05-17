@@ -5,6 +5,12 @@ import { useParams } from 'next/navigation';
 import { Truck, Plus, Edit, Trash2, X } from 'lucide-react';
 import api from '@/lib/api';
 
+interface Route {
+    id: string;
+    name: string;
+    bus_id?: string | null;
+}
+
 interface Bus {
     id: string;
     bus_number: string;
@@ -15,12 +21,13 @@ interface Bus {
     routes?: { id: string; name: string }[];
 }
 
-const emptyForm = { bus_number: '', capacity: '', registration_no: '', mileage: '', initial_fuel_liters: '' };
+const emptyForm = { bus_number: '', capacity: '', registration_no: '', mileage: '', initial_fuel_liters: '', route_id: '' };
 const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
 
 export default function SchoolBusesPage() {
     const { id } = useParams<{ id: string }>();
     const [buses, setBuses] = useState<Bus[]>([]);
+    const [routes, setRoutes] = useState<Route[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [modalOpen, setModalOpen] = useState(false);
@@ -29,14 +36,18 @@ export default function SchoolBusesPage() {
     const [saving, setSaving] = useState(false);
     const [formError, setFormError] = useState('');
 
-    useEffect(() => { fetchBuses(); }, [id]);
+    useEffect(() => { fetchAll(); }, [id]);
 
-    const fetchBuses = async () => {
+    const fetchAll = async () => {
         setLoading(true);
         setError('');
         try {
-            const res = await api.get(`/buses?school_id=${id}`);
-            setBuses(Array.isArray(res.data) ? res.data : []);
+            const [busRes, routeRes] = await Promise.allSettled([
+                api.get(`/buses?school_id=${id}`),
+                api.get(`/routes?school_id=${id}`),
+            ]);
+            if (busRes.status === 'fulfilled') setBuses(Array.isArray(busRes.value.data) ? busRes.value.data : []);
+            if (routeRes.status === 'fulfilled') setRoutes(Array.isArray(routeRes.value.data) ? routeRes.value.data : []);
         } catch (e: any) {
             setError(e.response?.data?.message || 'Failed to load buses.');
         } finally {
@@ -53,12 +64,15 @@ export default function SchoolBusesPage() {
 
     const openEdit = (bus: Bus) => {
         setEditing(bus);
+        // Pre-select the first route already assigned to this bus
+        const assignedRoute = routes.find(r => r.bus_id === bus.id) || bus.routes?.[0];
         setForm({
             bus_number: bus.bus_number,
             capacity: bus.capacity?.toString() || '',
             registration_no: bus.registration_no || '',
             mileage: bus.mileage?.toString() || '',
             initial_fuel_liters: bus.initial_fuel_liters?.toString() || '',
+            route_id: assignedRoute?.id || '',
         });
         setFormError('');
         setModalOpen(true);
@@ -76,13 +90,31 @@ export default function SchoolBusesPage() {
             initial_fuel_liters: form.initial_fuel_liters ? Number(form.initial_fuel_liters) : undefined,
         };
         try {
+            let busId = editing?.id;
             if (editing) {
                 await api.put(`/buses/${editing.id}`, payload);
             } else {
-                await api.post('/buses', { ...payload, school_id: id });
+                const res = await api.post('/buses', { ...payload, school_id: id });
+                busId = res.data?.id;
             }
+
+            // Handle route assignment: update route's bus_id
+            if (busId) {
+                // Clear bus_id from any route that currently has this bus but is no longer selected
+                const prevRoutes = routes.filter(r => r.bus_id === busId);
+                for (const r of prevRoutes) {
+                    if (r.id !== form.route_id) {
+                        await api.put(`/routes/${r.id}`, { bus_id: null }).catch(() => {});
+                    }
+                }
+                // Assign the selected route
+                if (form.route_id) {
+                    await api.put(`/routes/${form.route_id}`, { bus_id: busId }).catch(() => {});
+                }
+            }
+
             setModalOpen(false);
-            fetchBuses();
+            fetchAll();
         } catch (e: any) {
             setFormError(e.response?.data?.message || 'Failed to save bus.');
         } finally {
@@ -94,7 +126,7 @@ export default function SchoolBusesPage() {
         if (!window.confirm(`Delete bus "${bus.bus_number}"? This cannot be undone.`)) return;
         try {
             await api.delete(`/buses/${bus.id}`);
-            fetchBuses();
+            fetchAll();
         } catch (e: any) {
             alert(e.response?.data?.message || 'Failed to delete bus.');
         }
@@ -186,6 +218,19 @@ export default function SchoolBusesPage() {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Bus Number <span className="text-red-500">*</span></label>
                                 <input className={inputCls} placeholder="e.g. KA-01-AB-1234" value={form.bus_number} onChange={f('bus_number')} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Assign Route</label>
+                                <select
+                                    className={inputCls}
+                                    value={form.route_id}
+                                    onChange={e => setForm(prev => ({ ...prev, route_id: e.target.value }))}
+                                >
+                                    <option value="">No Route</option>
+                                    {routes.map(r => (
+                                        <option key={r.id} value={r.id}>{r.name}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
