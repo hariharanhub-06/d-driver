@@ -16,7 +16,7 @@ async function main() {
 
   const devSa = await prisma.user.upsert({
     where: { email },
-    update: { is_dev_sa: true, is_active: true, is_first_login: false },
+    update: { password: hashed, is_dev_sa: true, is_active: true, is_first_login: false },
     create: {
       name: 'Dev Super Admin',
       email,
