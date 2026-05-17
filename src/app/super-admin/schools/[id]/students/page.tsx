@@ -11,10 +11,10 @@ interface Student {
     grade?: string;
     photo_url?: string;
     route_id?: string;
-    route_name?: string;
     stop_id?: string;
-    stop_name?: string;
-    parent_name?: string;
+    route?: { id: string; name: string } | null;
+    stop?: { id: string; name: string } | null;
+    parent?: { name: string; phone?: string } | null;
 }
 
 interface Route {
@@ -99,9 +99,11 @@ export default function SchoolStudentsPage() {
 
     const openEdit = (student: Student) => {
         setEditingStudent(student);
-        setEditForm({ route_id: student.route_id || '', stop_id: student.stop_id || '' });
+        const routeId = student.route_id || student.route?.id || '';
+        const stopId = student.stop_id || student.stop?.id || '';
+        setEditForm({ route_id: routeId, stop_id: stopId });
         setEditError('');
-        if (student.route_id) fetchStopsForRoute(student.route_id);
+        if (routeId) fetchStopsForRoute(routeId);
     };
 
     const handleRouteChange = (routeId: string) => {
@@ -261,13 +263,13 @@ export default function SchoolStudentsPage() {
                                             {student.grade || '—'}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                            {student.route_name || '—'}
+                                            {student.route?.name || '—'}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                            {student.stop_name || '—'}
+                                            {student.stop?.name || '—'}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                            {student.parent_name || '—'}
+                                            {student.parent?.name || '—'}
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <button

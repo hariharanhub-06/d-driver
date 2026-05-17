@@ -87,6 +87,28 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
         };
     }, []);
 
+    // ── Fetch road route from OSRM ─────────────────────────────────────────────
+    const fetchRoadRoute = async (pts: StopPoint[]): Promise<[number, number][] | null> => {
+        const valid = pts.filter(s => s.latitude !== 0 || s.longitude !== 0);
+        if (valid.length < 2) return null;
+        // OSRM expects lon,lat
+        const coordStr = valid.map(s => `${s.longitude},${s.latitude}`).join(';');
+        try {
+            const res = await fetch(
+                `https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson`,
+                { signal: AbortSignal.timeout(8000) }
+            );
+            const data = await res.json();
+            if (data.routes?.[0]?.geometry?.coordinates) {
+                // OSRM returns [lon, lat] — flip to Leaflet [lat, lon]
+                return data.routes[0].geometry.coordinates.map(
+                    ([lon, lat]: [number, number]) => [lat, lon] as [number, number]
+                );
+            }
+        } catch { /* fall back to straight line */ }
+        return null;
+    };
+
     // ── Sync stop markers + polyline ───────────────────────────────────────────
     useEffect(() => {
         const L = LRef.current;
@@ -131,12 +153,28 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
             markersRef.current.push(marker);
         });
 
-        const coords = sorted
+        const straightCoords = sorted
             .filter(s => s.latitude !== 0 || s.longitude !== 0)
             .map(s => [s.latitude, s.longitude] as [number, number]);
 
-        if (coords.length > 1) {
-            polylineRef.current = L.polyline(coords, { color: '#3B82F6', weight: 3, opacity: 0.8, dashArray: '8 5' }).addTo(map);
+        if (straightCoords.length > 1) {
+            // Draw straight dashed line immediately as placeholder
+            polylineRef.current = L.polyline(straightCoords, {
+                color: '#3B82F6', weight: 3, opacity: 0.5, dashArray: '8 5',
+            }).addTo(map);
+
+            // Then fetch real road route and replace
+            fetchRoadRoute(sorted).then(roadCoords => {
+                if (!mapRef.current) return; // component unmounted
+                if (polylineRef.current) { map.removeLayer(polylineRef.current); polylineRef.current = null; }
+                const coords = roadCoords ?? straightCoords;
+                polylineRef.current = L.polyline(coords, {
+                    color: '#3B82F6',
+                    weight: roadCoords ? 4 : 3,
+                    opacity: 0.85,
+                    dashArray: roadCoords ? undefined : '8 5', // solid for road route
+                }).addTo(map);
+            });
         }
 
         if (sorted.length > 0 && (sorted[0].latitude !== 0 || sorted[0].longitude !== 0)) {
