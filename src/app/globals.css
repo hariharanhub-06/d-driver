@@ -51,7 +51,9 @@
   }
 
   .nav-item-active {
-    @apply bg-[var(--brand)]/10 !text-[var(--brand)] font-semibold;
+    background-color: color-mix(in srgb, var(--brand) 10%, transparent);
+    color: var(--brand) !important;
+    font-weight: 600;
   }
 
   .input-field {
