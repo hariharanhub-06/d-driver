@@ -85,7 +85,8 @@ export default function ParentFees() {
             if (!loaded) { alert('Failed to load payment gateway.'); return; }
 
             const orderRes = await api.post('/finance/payment/create-order', { fee_id: fee.id });
-            const { order_id, amount, currency = 'INR' } = orderRes.data;
+            const { order_id, amount, currency = 'INR' } = orderRes.data || {};
+            if (!order_id) { alert('Failed to create payment order. Please try again.'); return; }
 
             const options = {
                 key: schoolConfig.razorpay_key_id,
@@ -169,7 +170,10 @@ export default function ParentFees() {
                     <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                 </div>
             ) : error ? (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl p-5 text-sm font-semibold text-center">{error}</div>
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl p-5 text-sm font-semibold text-center flex flex-col items-center gap-3">
+                    <span>{error}</span>
+                    <button onClick={fetchFees} className="text-xs font-medium underline hover:no-underline">Try Again</button>
+                </div>
             ) : filtered.length === 0 ? (
                 <div className="text-center py-16">
                     <IndianRupee className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-3" />

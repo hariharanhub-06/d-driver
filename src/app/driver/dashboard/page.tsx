@@ -120,7 +120,7 @@ export default function DriverDashboard() {
         }
     };
 
-    const fuelLevel = driverInfo?.bus?.fuel_level ?? 0;
+    const fuelLevel = driverInfo?.bus?.fuel_liters ?? 0;
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-8">

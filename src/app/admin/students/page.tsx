@@ -23,7 +23,7 @@ const EMPTY_FORM = {
     name: '', grade: '', section: '', gr_no: '',
     parent_mode: 'new' as 'new' | 'existing',
     parent_id: '',
-    parent_name: '', parent_email: '', parent_phone: '', parent_password: 'parent123',
+    parent_name: '', parent_email: '', parent_phone: '',
     route_id: '', stop_id: '',
     fee_amount: '', fee_frequency: 'monthly', fee_due_day: '5', academic_year: new Date().getFullYear().toString(),
 };
@@ -102,7 +102,7 @@ export default function StudentsPage() {
             parent_mode: s.parent ? 'existing' : 'new',
             parent_id: s.parent?.id || '',
             parent_name: s.parent?.name || '', parent_email: s.parent?.email || '',
-            parent_phone: s.parent?.phone || '', parent_password: 'parent123',
+            parent_phone: s.parent?.phone || '',
             route_id: s.route?.id || '', stop_id: s.stop?.id || '',
             fee_amount: '', fee_frequency: 'monthly', fee_due_day: '5', academic_year: new Date().getFullYear().toString(),
         });
@@ -122,7 +122,7 @@ export default function StudentsPage() {
                 try {
                     const res = await api.post('/users', {
                         name: formData.parent_name, email: formData.parent_email,
-                        phone: formData.parent_phone, password: formData.parent_password, role: 'parent',
+                        phone: formData.parent_phone, role: 'parent',
                     });
                     parent_id = res.data?.id;
                 } catch { /* parent may already exist */ }

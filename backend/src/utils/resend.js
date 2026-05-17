@@ -122,7 +122,7 @@ const sendWelcomeAdmin = async ({ to, adminEmail, name, adminName, loginUrl, pas
     const logoUrl = school?.logo_url || null;
     const school_id = school?.id || null;
 
-    const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+    const baseDomain = process.env.BASE_DOMAIN || 'localhost:3000';
     const resolvedLoginUrl = loginUrl || (slug ? `http://${slug}.${baseDomain}` : `http://${baseDomain}`);
     const resolvedPassword = tempPassword || password || '(see your portal)';
 
@@ -162,7 +162,7 @@ const sendParentWelcome = async ({ to, parentEmail, name, parentName, childName,
     const logoUrl = school?.logo_url || null;
     const school_id = school?.id || null;
 
-    const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+    const baseDomain = process.env.BASE_DOMAIN || 'localhost:3000';
     const resolvedLoginUrl = loginUrl || (slug ? `http://${slug}.${baseDomain}` : `http://${baseDomain}`);
     const resolvedPassword = tempPassword || password || '(see your portal)';
 

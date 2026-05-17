@@ -384,7 +384,14 @@ const verifyPayment = async (req, res) => {
         const fee = await prisma.fee.findFirst({ where: { razorpay_order_id } });
         if (!fee) return res.status(404).json({ error: 'Fee not found for this order' });
 
-        const { keySecret } = await getSchoolRazorpay(fee.school_id);
+        const schoolData = await prisma.school.findUnique({
+            where: { id: fee.school_id },
+            select: { razorpay_key_secret: true, razorpay_configured: true },
+        });
+        if (!schoolData?.razorpay_configured || !schoolData.razorpay_key_secret) {
+            return res.status(400).json({ error: 'Razorpay not configured for this school' });
+        }
+        const keySecret = decrypt(schoolData.razorpay_key_secret);
 
         const expectedSig = crypto
             .createHmac('sha256', keySecret)

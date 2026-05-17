@@ -122,9 +122,15 @@ const updateLocation = async (req, res) => {
                     });
 
                     if (!existingAlert) {
+                        const adminUser = await prisma.user.findFirst({
+                            where: { school_id: schoolId, role: 'admin', is_active: true },
+                            select: { id: true },
+                        });
+                        if (!adminUser) return;
+
                         const fuelNotification = await prisma.notification.create({
                             data: {
-                                user_id: schoolId, // target school admin context
+                                user_id: adminUser.id,
                                 school_id: schoolId,
                                 type: 'alert',
                                 message: `Low fuel alert for bus ${bus.bus_number}. Estimated remaining: ${estimatedRemaining.toFixed(1)}L.`,

@@ -35,7 +35,10 @@ const requestChange = async (req, res) => {
 // GET /api/v1/stop-change  (admin)
 const listRequests = async (req, res) => {
   const { status } = req.query;
-  const where = { school_id: req.schoolId };
+  const schoolId = req.user.role === 'super_admin'
+    ? (req.query.school_id || null)
+    : req.user.school_id;
+  const where = { school_id: schoolId };
   if (status) where.status = status;
 
   const requests = await prisma.stopChangeRequest.findMany({

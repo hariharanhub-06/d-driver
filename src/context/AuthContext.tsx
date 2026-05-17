@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 
 interface User {
     id: string;
@@ -69,7 +70,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const logout = () => {
+    const logout = async () => {
+        try { await api.post('/auth/logout'); } catch { /* fail silently — still clear local state */ }
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');

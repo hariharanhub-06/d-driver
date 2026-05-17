@@ -27,7 +27,9 @@ const reportAbsence = async (req, res) => {
 
 // GET /api/v1/absence  (admin sees all; driver sees only their route's students)
 const getTodayAbsences = async (req, res) => {
-  const schoolId = req.schoolId;
+  const schoolId = req.user.role === 'super_admin'
+    ? (req.query.school_id || null)
+    : req.user.school_id;
   const { route_id, date } = req.query;
 
   const targetDate = date ? new Date(date) : new Date();

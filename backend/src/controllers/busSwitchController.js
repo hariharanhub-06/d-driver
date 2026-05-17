@@ -7,7 +7,10 @@ const requestSwitch = async (req, res) => {
   const schoolId = req.user.school_id;
   const io = req.app.get('io');
 
-  const driver = await prisma.driver.findUnique({ where: { user_id: driverId } });
+  const driver = await prisma.driver.findUnique({
+    where: { user_id: driverId },
+    include: { user: { select: { name: true } } },
+  });
   if (!driver) return res.status(404).json({ error: 'Driver profile not found' });
 
   const activeShift = await prisma.driverShift.findFirst({

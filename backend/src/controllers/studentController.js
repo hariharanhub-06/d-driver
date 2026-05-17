@@ -221,7 +221,7 @@ const bulkCreateStudents = async (req, res) => {
 
                 if (!parentUser) {
                     const tempPassword = crypto.randomBytes(8).toString('hex');
-                    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+                    const hashedPassword = await bcrypt.hash(tempPassword, 12);
 
                     parentUser = await prisma.user.create({
                         data: {

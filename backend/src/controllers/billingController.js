@@ -677,7 +677,6 @@ const createManualExpense = async (req, res) => {
         amount: parseFloat(amount),
         month,
         notes: notes || null,
-        created_by: req.user.id,
       },
     });
     res.status(201).json(expense);

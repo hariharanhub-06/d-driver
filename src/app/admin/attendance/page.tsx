@@ -30,7 +30,7 @@ function StatusBadge({ status }: { status: AttendanceRecord['status'] }) {
 }
 
 export default function AttendancePage() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local timezone
 
     const [records, setRecords] = useState<AttendanceRecord[]>([]);
     const [routes, setRoutes] = useState<Route[]>([]);

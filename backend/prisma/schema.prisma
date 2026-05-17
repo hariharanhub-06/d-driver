@@ -71,7 +71,7 @@ model User {
   notification_prefs Json?
   created_at         DateTime  @default(now())
 
-  school              School?              @relation(fields: [school_id], references: [id])
+  school              School?              @relation(fields: [school_id], references: [id], onDelete: SetNull)
   driver              Driver?
   children            Student[]            @relation("ParentStudents")
   passwordResetTokens PasswordResetToken[]
@@ -91,7 +91,7 @@ model Bus {
   initial_fuel_liters Float?
   total_km_run        Float?  @default(0)
 
-  school                School          @relation(fields: [school_id], references: [id])
+  school                School          @relation(fields: [school_id], references: [id], onDelete: Cascade)
   drivers               Driver[]
   locations             Location[]
   routes                Route[]
@@ -110,9 +110,9 @@ model Driver {
   assigned_bus_id String?
   school_id       String
 
-  user            User            @relation(fields: [user_id], references: [id])
-  bus             Bus?            @relation(fields: [assigned_bus_id], references: [id])
-  school          School          @relation(fields: [school_id], references: [id])
+  user            User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  bus             Bus?            @relation(fields: [assigned_bus_id], references: [id], onDelete: SetNull)
+  school          School          @relation(fields: [school_id], references: [id], onDelete: Cascade)
   shifts          DriverShift[]
   busSwitchLogs   BusSwitchLog[]
   fuelFillEntries FuelFillEntry[]
@@ -132,8 +132,8 @@ model Route {
   route_type  String  @default("morning") // morning | afternoon | both
   is_active   Boolean @default(true)
 
-  school     School      @relation(fields: [school_id], references: [id])
-  bus        Bus?        @relation(fields: [bus_id], references: [id])
+  school     School      @relation(fields: [school_id], references: [id], onDelete: Cascade)
+  bus        Bus?        @relation(fields: [bus_id], references: [id], onDelete: SetNull)
   stops      Stop[]
   students   Student[]
   activeTrip ActiveTrip?
@@ -150,8 +150,8 @@ model Stop {
   pickup_time String?
   drop_time   String?
 
-  school                      School              @relation(fields: [school_id], references: [id])
-  route                       Route               @relation(fields: [route_id], references: [id])
+  school                      School              @relation(fields: [school_id], references: [id], onDelete: Cascade)
+  route                       Route               @relation(fields: [route_id], references: [id], onDelete: Cascade)
   students                    Student[]
   stopChangeRequestsCurrent   StopChangeRequest[] @relation("CurrentStop")
   stopChangeRequestsRequested StopChangeRequest[] @relation("RequestedStop")
@@ -171,10 +171,10 @@ model Student {
   school_id String
   photo_url String?
 
-  school             School              @relation(fields: [school_id], references: [id])
-  route              Route?              @relation(fields: [route_id], references: [id])
-  stop               Stop?               @relation(fields: [stop_id], references: [id])
-  parent             User?               @relation("ParentStudents", fields: [parent_id], references: [id])
+  school             School              @relation(fields: [school_id], references: [id], onDelete: Cascade)
+  route              Route?              @relation(fields: [route_id], references: [id], onDelete: SetNull)
+  stop               Stop?               @relation(fields: [stop_id], references: [id], onDelete: SetNull)
+  parent             User?               @relation("ParentStudents", fields: [parent_id], references: [id], onDelete: SetNull)
   attendance         Attendance[]
   fees               Fee[]
   feeStructure       FeeStructure?
@@ -193,8 +193,8 @@ model Attendance {
   note       String?
   marked_at  DateTime @default(now())
 
-  student Student @relation(fields: [student_id], references: [id])
-  school  School  @relation(fields: [school_id], references: [id])
+  student Student @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  school  School  @relation(fields: [school_id], references: [id], onDelete: Cascade)
 }
 
 // ─── FINANCE ─────────────────────────────────────────────────────────────────
@@ -209,8 +209,8 @@ model Fee {
   payment_method    String?
   razorpay_order_id String?
 
-  student  Student   @relation(fields: [student_id], references: [id])
-  school   School    @relation(fields: [school_id], references: [id])
+  student  Student   @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  school   School    @relation(fields: [school_id], references: [id], onDelete: Cascade)
   payments Payment[]
 }
 
@@ -225,8 +225,8 @@ model Payment {
   razorpay_payment_id String?
   receipt_url         String?
 
-  fee    Fee    @relation(fields: [fee_id], references: [id])
-  school School @relation(fields: [school_id], references: [id])
+  fee    Fee    @relation(fields: [fee_id], references: [id], onDelete: Cascade)
+  school School @relation(fields: [school_id], references: [id], onDelete: Cascade)
 }
 
 model FeeStructure {
@@ -449,6 +449,7 @@ model BillingConfig {
   overdue_rate       Float    @default(2)
   billing_cycle_day  Int      @default(1)
   created_at         DateTime @default(now())
+  updated_at         DateTime @default(now()) @updatedAt
 }
 
 // ─── BILLING & PRICING ────────────────────────────────────────────────────────

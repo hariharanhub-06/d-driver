@@ -3,17 +3,17 @@ services:
     name: d-driver-backend
     env: node
     rootDir: backend
-    buildCommand: npm install && npm run build && npm run seed
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
-        value: postgresql://neondb_owner:npg_rEFeG2BPd5qU@ep-patient-glitter-anohkgwu-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require
+        sync: false
       - key: JWT_SECRET
-        value: d8c0380a0b2fa9f0b570e4d1a47e2b9125d511d51ddab1c06fb806171fd14cc1
+        sync: false
       - key: JWT_REFRESH_SECRET
-        value: eff24b9fb6acceff85dc83048f8e429524ef73f94070344650edda401ee5ad83
+        sync: false
       - key: ENCRYPTION_KEY
-        value: 2222c8eda27e646a4e7144787dcc994d2887011ebb40947d21ca44993df3155f
+        sync: false
       - key: PORT
         value: 10000
       - key: NODE_ENV
@@ -21,14 +21,18 @@ services:
       - key: FRONTEND_URL
         value: https://d-driver.vercel.app
       - key: SA_EMAIL
-        value: hariharanjeyaramamoorthy@gmail.com
+        sync: false
       - key: SA_PASSWORD
-        value: Prabu@te123
+        sync: false
       - key: IMAGEKIT_PUBLIC_KEY
         value: public_z27Z1/hVaSHjsLuCBbPABzR/i4M=
       - key: IMAGEKIT_PRIVATE_KEY
-        value: private_Xh2njUZHMlH5tZ/G/2txOuvPC5Y=
+        sync: false
       - key: IMAGEKIT_URL_ENDPOINT
         value: https://ik.imagekit.io/zr66xdfcs
       - key: RESEND_FROM_DEFAULT
         value: noreply@ddriver.app
+      - key: RESEND_API_KEY
+        sync: false
+      - key: BASE_DOMAIN
+        sync: false

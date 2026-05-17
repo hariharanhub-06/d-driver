@@ -40,17 +40,20 @@ export default function BusesPage() {
     const [formData, setFormData] = useState({ ...EMPTY_FORM });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [fetchError, setFetchError] = useState('');
     const importRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => { fetchBuses(); }, []);
 
     const fetchBuses = async () => {
         setLoading(true);
+        setFetchError('');
         try {
             const { data } = await api.get('/buses');
             setBuses(Array.isArray(data) ? data : []);
         } catch {
             setBuses([]);
+            setFetchError('Failed to load buses. Please refresh.');
         } finally {
             setLoading(false);
         }
@@ -129,6 +132,12 @@ export default function BusesPage() {
 
     return (
         <div className="space-y-6 animate-in">
+            {fetchError && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-300 flex items-center justify-between">
+                    <span>{fetchError}</span>
+                    <button onClick={fetchBuses} className="font-medium underline ml-3">Retry</button>
+                </div>
+            )}
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>

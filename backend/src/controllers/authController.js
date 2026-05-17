@@ -77,6 +77,13 @@ const refresh = async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: payload.id } });
   if (!user || !user.is_active) return res.status(401).json({ error: 'User not found or deactivated' });
 
+  if (user.school_id && user.role !== 'super_admin') {
+    const school = await prisma.school.findUnique({ where: { id: user.school_id }, select: { status: true } });
+    if (!school || school.status !== 'active') {
+      return res.status(403).json({ error: 'Account inactive. Contact your service provider.' });
+    }
+  }
+
   res.json({ access_token: signAccess(user), expires_in: 15 * 60 });
 };
 
@@ -152,7 +159,7 @@ const forgotPassword = async (req, res) => {
     school = await prisma.school.findUnique({ where: { id: user.school_id } });
   }
 
-  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+  const baseDomain = process.env.BASE_DOMAIN || 'localhost:3000';
   const slug = school?.slug;
   const baseUrl = slug ? `http://${slug}.${baseDomain}` : `http://${baseDomain}`;
   const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;

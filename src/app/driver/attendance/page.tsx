@@ -71,10 +71,13 @@ export default function DriverAttendancePage() {
                 }
             }
 
-            // Fetch pre-reported absences
+            // Fetch pre-reported absences for today only
             try {
-                const absRes = await api.get('/absence');
-                setAbsences(Array.isArray(absRes.data) ? absRes.data : []);
+                const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local tz
+                const routeParam = trip?.route_id ? `&route_id=${trip.route_id}` : '';
+                const absRes = await api.get(`/absence?date=${today}${routeParam}`);
+                const absData = absRes.data;
+                setAbsences(Array.isArray(absData) ? absData : absData?.absences || []);
             } catch {
                 setAbsences([]);
             }

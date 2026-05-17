@@ -36,7 +36,7 @@ export default function StopChangeRequest() {
     const [changeType, setChangeType] = useState<ChangeType>('temporary');
     const [newStopId, setNewStopId] = useState('');
     const [effectiveDate, setEffectiveDate] = useState(
-        new Date().toISOString().split('T')[0]
+        new Date().toLocaleDateString('en-CA')
     );
     const [reason, setReason] = useState('');
 
@@ -317,7 +317,7 @@ export default function StopChangeRequest() {
                         <input
                             type="date"
                             value={effectiveDate}
-                            min={new Date().toISOString().split('T')[0]}
+                            min={new Date().toLocaleDateString('en-CA')}
                             onChange={e => setEffectiveDate(e.target.value)}
                             className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white focus:outline-none"
                             required

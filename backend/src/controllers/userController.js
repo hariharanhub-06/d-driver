@@ -215,10 +215,11 @@ const getAllUsers = async (req, res) => {
 
 const createUser = async (req, res) => {
     try {
-        const { name, email, password, role, school_id, phone } = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const { name, email, role, school_id, phone } = req.body;
+        const rawPassword = req.body.password || crypto.randomBytes(8).toString('base64url');
+        const hashedPassword = await bcrypt.hash(rawPassword, 12);
         const user = await prisma.user.create({
-            data: { name, email, password: hashedPassword, role, school_id, phone },
+            data: { name, email, password: hashedPassword, role, school_id, phone, is_first_login: true },
             select: { id: true, name: true, email: true, phone: true, role: true, school_id: true, created_at: true },
         });
         res.status(201).json(user);

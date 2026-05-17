@@ -32,7 +32,7 @@ export default function ParentDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showAbsentModal, setShowAbsentModal] = useState(false);
-    const [absentForm, setAbsentForm] = useState({ student_id: '', date: new Date().toISOString().split('T')[0], reason: '' });
+    const [absentForm, setAbsentForm] = useState({ student_id: '', date: new Date().toLocaleDateString('en-CA'), reason: '' });
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
@@ -72,7 +72,7 @@ export default function ParentDashboard() {
                 reason: absentForm.reason,
             });
             setShowAbsentModal(false);
-            setAbsentForm({ student_id: '', date: new Date().toISOString().split('T')[0], reason: '' });
+            setAbsentForm({ student_id: '', date: new Date().toLocaleDateString('en-CA'), reason: '' });
             alert('Absence reported successfully.');
         } catch (e: any) {
             alert(e.response?.data?.message || 'Failed to report absence');

@@ -79,20 +79,18 @@ export default function ParentTracking() {
                     stop: student.stop,
                     route_id: student.route_id,
                 });
-                const foundBusId = student.bus?.id || student.bus_id || '12';
-                setBusId(String(foundBusId));
-                connectSocket(String(foundBusId));
-                try {
-                    const { data: loc } = await api.get(`/location/bus/${foundBusId}`);
-                    if (loc?.latitude) setBusPosition([loc.latitude, loc.longitude]);
-                } catch { /* use default position */ }
-            } else {
-                setBusId('12');
-                connectSocket('12');
+                const foundBusId = student.bus?.id || student.bus_id;
+                if (foundBusId) {
+                    setBusId(String(foundBusId));
+                    connectSocket(String(foundBusId));
+                    try {
+                        const { data: loc } = await api.get(`/location/bus/${foundBusId}`);
+                        if (loc?.latitude) setBusPosition([loc.latitude, loc.longitude]);
+                    } catch { /* use default position */ }
+                }
             }
         } catch {
-            setBusId('12');
-            connectSocket('12');
+            // Fetch failed — show error state, no bus ID fallback
         } finally {
             setLoading(false);
         }

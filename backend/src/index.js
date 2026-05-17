@@ -73,12 +73,14 @@ const io = new Server(httpServer, {
   },
 });
 
-// JWT authentication on every Socket.io connection
-io.use((socket, next) => {
+// JWT authentication on every Socket.io connection — also checks logout blocklist
+io.use(async (socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error('Unauthorized: no token'));
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const blocked = await prisma.blockedToken.findUnique({ where: { token } }).catch(() => null);
+    if (blocked) return next(new Error('Unauthorized: token invalidated'));
     socket.user = payload;
     next();
   } catch {
@@ -91,6 +93,20 @@ io.on('connection', (socket) => {
   socket.on('join-driver-room',  (driverId) => socket.join(`driver-${driverId}`));
   socket.on('join-school-room',  (schoolId) => socket.join(`school-${schoolId}`));
   socket.on('join-admin-room',   (schoolId) => socket.join(`admin-${schoolId}`));
+
+  // Relay driver location to the school room — driver emits 'update-location',
+  // parents and admin listen for 'location-updated'
+  socket.on('update-location', ({ busId, lat, lng }) => {
+    const schoolId = socket.user?.school_id;
+    if (!schoolId || !busId) return;
+    io.to(`school-${schoolId}`).emit('location-updated', {
+      busId,
+      latitude: lat,
+      longitude: lng,
+      timestamp: new Date(),
+    });
+  });
+
   socket.on('disconnect', () => {});
 });
 

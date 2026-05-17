@@ -48,7 +48,27 @@ export default function ActiveRide() {
     const [fuelReqForm, setFuelReqForm] = useState({ amount_requested: '', reason: '' });
 
     useEffect(() => {
-        fetchTripData();
+        let watchId: number | null = null;
+
+        fetchTripData().then(() => {
+            if ('geolocation' in navigator) {
+                watchId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        const { latitude, longitude } = pos.coords;
+                        setCurrentPos([latitude, longitude]);
+                        if (busId) {
+                            getSocket().emit('update-location', { busId, lat: latitude, lng: longitude });
+                        }
+                    },
+                    () => {},
+                    { enableHighAccuracy: true }
+                );
+            }
+        });
+
+        return () => {
+            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        };
     }, []);
 
     const fetchTripData = async () => {
@@ -67,7 +87,8 @@ export default function ActiveRide() {
                 // Get bus id
                 try {
                     const driverRes = await api.get('/drivers/me');
-                    const bid = driverRes.data?.bus?.id || driverRes.data?.bus_id || '12';
+                    const bid = driverRes.data?.bus?.id || driverRes.data?.bus_id;
+                    if (!bid) throw new Error('No bus assigned to this driver');
                     setBusId(String(bid));
                     connectSocket(String(bid));
 
@@ -77,29 +98,13 @@ export default function ActiveRide() {
                         setCurrentPos([locRes.data.latitude, locRes.data.longitude]);
                     }
                 } catch {
-                    setBusId('12');
-                    connectSocket('12');
+                    // Bus not yet assigned — no fallback to avoid cross-school contamination
                 }
             }
         } catch {
-            // fallback: connect default socket
-            connectSocket('12');
-            setBusId('12');
+            // Trip fetch failed — stay on loading state
         } finally {
             setLoading(false);
-        }
-
-        // GPS tracking
-        if ('geolocation' in navigator) {
-            navigator.geolocation.watchPosition(
-                (pos) => {
-                    const { latitude, longitude } = pos.coords;
-                    setCurrentPos([latitude, longitude]);
-                    getSocket().emit('update-location', { busId, lat: latitude, lng: longitude });
-                },
-                () => {},
-                { enableHighAccuracy: true }
-            );
         }
     };
 
