@@ -124,7 +124,6 @@ const getActiveTrips = async (req, res) => {
           stops: { orderBy: { sequence: 'asc' } },
           students: {
             select: { id: true, name: true, photo_url: true, grade: true, stop_id: true },
-            where: { is_active: true },
           },
         },
       },

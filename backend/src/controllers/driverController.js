@@ -112,7 +112,7 @@ const getMe = async (req, res) => {
                         routes: { select: { id: true, name: true } },
                     },
                 },
-                school: { select: { id: true, name: true, primary_color: true, slug: true } },
+                school: { select: { id: true, name: true, primary_color: true, slug: true, logo_url: true } },
             },
         });
         if (!driver) return res.status(404).json({ error: 'Driver profile not found' });

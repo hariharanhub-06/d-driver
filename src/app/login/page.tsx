@@ -95,20 +95,21 @@ export default function LoginPage() {
                 <div className="relative z-10 flex flex-col justify-center flex-1 px-14 py-16">
                     {/* Logo */}
                     <div className="flex items-center gap-3 mb-16">
-                        <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                            <Bus className="w-7 h-7 text-white" />
-                        </div>
-                        <span className="text-white font-bold text-xl tracking-tight">D-Driver</span>
+                        {currentSchool?.logo ? (
+                            <img
+                                src={currentSchool.logo}
+                                alt={currentSchool.name}
+                                className="w-12 h-12 rounded-2xl object-cover bg-white/10"
+                            />
+                        ) : (
+                            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                <Bus className="w-7 h-7 text-white" />
+                            </div>
+                        )}
+                        <span className="text-white font-bold text-xl tracking-tight">
+                            {currentSchool?.name || 'D-Driver'}
+                        </span>
                     </div>
-
-                    {/* School branding or default */}
-                    {currentSchool?.logo ? (
-                        <img
-                            src={currentSchool.logo}
-                            alt={currentSchool.name}
-                            className="w-20 h-20 object-contain rounded-2xl bg-white/10 p-2 mb-8"
-                        />
-                    ) : null}
 
                     <h1 className="text-4xl font-bold text-white leading-tight mb-4">
                         {currentSchool?.name
@@ -143,13 +144,19 @@ export default function LoginPage() {
             <div className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-slate-900 px-6 py-12">
                 {/* Mobile-only logo */}
                 <div className="flex items-center gap-2 mb-10 lg:hidden">
-                    <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center"
-                        style={{ backgroundColor: currentSchool?.color || 'var(--brand)' }}
-                    >
-                        <Bus className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="font-bold text-slate-900 dark:text-white text-lg">D-Driver</span>
+                    {currentSchool?.logo ? (
+                        <img src={currentSchool.logo} alt={currentSchool.name} className="w-9 h-9 rounded-xl object-cover" />
+                    ) : (
+                        <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center"
+                            style={{ backgroundColor: currentSchool?.color || 'var(--brand)' }}
+                        >
+                            <Bus className="w-5 h-5 text-white" />
+                        </div>
+                    )}
+                    <span className="font-bold text-slate-900 dark:text-white text-lg">
+                        {currentSchool?.name || 'D-Driver'}
+                    </span>
                 </div>
 
                 <div className="w-full max-w-sm">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, LogOut, X, Moon, Sun } from 'lucide-react';
+import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, LogOut, X, Moon, Sun, DollarSign } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from 'next-themes';
 import api from '@/lib/api';
@@ -22,7 +22,7 @@ interface DriverInfo {
         mileage?: number;
         routes?: DriverRoute[];
     };
-    school?: { id: string; name: string; primary_color?: string; slug?: string };
+    school?: { id: string; name: string; primary_color?: string; slug?: string; logo_url?: string };
 }
 
 interface ActiveTrip {
@@ -53,6 +53,13 @@ export default function DriverDashboard() {
     const [kmDialogMode, setKmDialogMode] = useState<'start' | 'end'>('start');
     const [kmValue, setKmValue] = useState('');
     const [kmSubmitting, setKmSubmitting] = useState(false);
+
+    const [showFuelModal, setShowFuelModal] = useState(false);
+    const [fuelAmount, setFuelAmount] = useState('');
+    const [fuelKm, setFuelKm] = useState('');
+    const [fuelReason, setFuelReason] = useState('');
+    const [fuelSubmitting, setFuelSubmitting] = useState(false);
+    const [fuelSuccess, setFuelSuccess] = useState(false);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -138,6 +145,28 @@ export default function DriverDashboard() {
         }
     };
 
+    const handleFuelRequest = async () => {
+        if (!fuelAmount) return;
+        setFuelSubmitting(true);
+        try {
+            await api.post('/fuel/request', {
+                bus_id: driverInfo?.bus?.id,
+                amount_requested: parseFloat(fuelAmount),
+                current_km: fuelKm ? parseFloat(fuelKm) : undefined,
+                reason: fuelReason || undefined,
+            });
+            setFuelSuccess(true);
+            setFuelAmount('');
+            setFuelKm('');
+            setFuelReason('');
+            setTimeout(() => { setShowFuelModal(false); setFuelSuccess(false); }, 1500);
+        } catch (e: any) {
+            alert(e.response?.data?.error || 'Failed to submit fuel request');
+        } finally {
+            setFuelSubmitting(false);
+        }
+    };
+
     const getActiveTrip = (routeId: string) => activeTrips.find(t => t.route_id === routeId);
 
     const routes = driverInfo?.bus?.routes || [];
@@ -148,9 +177,13 @@ export default function DriverDashboard() {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-8">
             <header className="bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 h-14 flex items-center justify-between sticky top-0 z-40">
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[var(--brand)] flex items-center justify-center shadow-sm">
-                        <Bus className="w-5 h-5 text-white" />
-                    </div>
+                    {driverInfo?.school?.logo_url ? (
+                        <img src={driverInfo.school.logo_url} alt={driverInfo.school.name || 'School'} className="w-9 h-9 rounded-xl object-cover" />
+                    ) : (
+                        <div className="w-9 h-9 rounded-xl bg-[var(--brand)] flex items-center justify-center shadow-sm">
+                            <Bus className="w-5 h-5 text-white" />
+                        </div>
+                    )}
                     <div>
                         <h2 className="text-sm font-bold text-slate-900 dark:text-white leading-none">
                             {driverInfo?.school?.name || 'D-Driver'}
@@ -285,6 +318,27 @@ export default function DriverDashboard() {
                     </div>
                 )}
 
+                {/* Fuel Request */}
+                {driverInfo?.bus && (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
+                                <DollarSign className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-slate-900 dark:text-white">Fuel Fund Request</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">Request funds from admin</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => { setShowFuelModal(true); setFuelSuccess(false); }}
+                            className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-4 py-2 text-sm font-semibold active:scale-95 transition-all"
+                        >
+                            Request
+                        </button>
+                    </div>
+                )}
+
                 {/* Today's Routes — from driver's bus.routes */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
                     <div className="flex items-center justify-between mb-4">
@@ -355,6 +409,77 @@ export default function DriverDashboard() {
                     </a>
                 </div>
             </div>
+
+            {/* Fuel Request Modal */}
+            {showFuelModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Request Fuel Fund</h3>
+                            <button onClick={() => setShowFuelModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            {fuelSuccess ? (
+                                <div className="flex flex-col items-center py-6 gap-3">
+                                    <CheckCircle className="w-12 h-12 text-emerald-500" />
+                                    <p className="text-base font-bold text-slate-900 dark:text-white">Request Sent!</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Admin will review your request</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount Requested (₹) *</label>
+                                        <input
+                                            type="number"
+                                            value={fuelAmount}
+                                            onChange={e => setFuelAmount(e.target.value)}
+                                            placeholder="e.g. 2000"
+                                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km)</label>
+                                        <input
+                                            type="number"
+                                            value={fuelKm}
+                                            onChange={e => setFuelKm(e.target.value)}
+                                            placeholder="e.g. 45230"
+                                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Reason (optional)</label>
+                                        <input
+                                            type="text"
+                                            value={fuelReason}
+                                            onChange={e => setFuelReason(e.target.value)}
+                                            placeholder="e.g. Low fuel before morning route"
+                                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
+                                        />
+                                    </div>
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            onClick={() => setShowFuelModal(false)}
+                                            className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleFuelRequest}
+                                            disabled={!fuelAmount || fuelSubmitting}
+                                            className="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-4 py-2.5 font-semibold text-sm disabled:opacity-50"
+                                        >
+                                            {fuelSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Submit Request'}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* KM Input Dialog */}
             {showKmDialog && (

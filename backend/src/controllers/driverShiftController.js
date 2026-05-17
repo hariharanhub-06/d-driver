@@ -91,6 +91,26 @@ const endShift = async (req, res) => {
   res.json({ message: 'Shift ended', total_km: totalKm });
 };
 
+// GET /api/v1/shifts/active  (driver — returns own active shift or null)
+const getActiveShift = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const schoolId = req.user.school_id;
+
+    const driver = await prisma.driver.findUnique({ where: { user_id: driverId } });
+    if (!driver) return res.status(404).json({ error: 'Driver profile not found' });
+
+    const shift = await prisma.driverShift.findFirst({
+      where: { driver_id: driver.id, status: 'active', school_id: schoolId },
+      include: { kmEntries: { orderBy: { recorded_at: 'asc' } } },
+    });
+
+    res.json(shift || null);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching active shift', details: error.message });
+  }
+};
+
 // GET /api/v1/shifts  (admin)
 const listShifts = async (req, res) => {
   const schoolId = req.schoolId;
@@ -145,4 +165,4 @@ const getShiftEntries = async (req, res) => {
   res.json({ shift });
 };
 
-module.exports = { startShift, addKmEntry, endShift, listShifts, myShifts, getShiftEntries };
+module.exports = { startShift, addKmEntry, endShift, getActiveShift, listShifts, myShifts, getShiftEntries };
