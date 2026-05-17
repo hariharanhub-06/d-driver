@@ -1,14 +1,21 @@
 const prisma = require('../prisma');
 
-// POST /api/v1/trips/start
+// POST /api/v1/trips/start  (also POST /api/v1/trips/)
 const startTrip = async (req, res) => {
-  const { route_id, bus_id, shift_id } = req.body;
+  const { route_id, bus_id: bodyBusId, shift_id } = req.body;
   const driverId = req.user.id;
   const schoolId = req.user.school_id;
   const io = req.app.get('io');
 
-  const driver = await prisma.driver.findUnique({ where: { user_id: driverId } });
+  if (!route_id) return res.status(400).json({ error: 'route_id is required' });
+
+  const driver = await prisma.driver.findUnique({
+    where: { user_id: driverId },
+    include: { bus: { select: { id: true } } },
+  });
   if (!driver) return res.status(404).json({ error: 'Driver profile not found' });
+
+  const bus_id = bodyBusId || driver.bus?.id || driver.assigned_bus_id;
 
   // One active trip per route at a time
   const existing = await prisma.activeTrip.findUnique({ where: { route_id } });
@@ -100,16 +107,32 @@ const completeTrip = async (req, res) => {
 
 // GET /api/v1/trips/active
 const getActiveTrips = async (req, res) => {
-  const schoolId = req.schoolId;
+  const schoolId = req.user.role === 'driver' ? req.user.school_id : req.schoolId;
+  const where = { school_id: schoolId, status: 'running' };
+
+  // Drivers only see their own active trips
+  if (req.user.role === 'driver') {
+    const driver = await prisma.driver.findUnique({ where: { user_id: req.user.id }, select: { id: true } });
+    if (driver) where.driver_id = driver.id;
+  }
+
   const trips = await prisma.activeTrip.findMany({
-    where: { school_id: schoolId, status: 'running' },
+    where,
     include: {
-      route: { include: { stops: { orderBy: { sequence: 'asc' } } } },
+      route: {
+        include: {
+          stops: { orderBy: { sequence: 'asc' } },
+          students: {
+            select: { id: true, name: true, photo_url: true, grade: true, stop_id: true },
+            where: { is_active: true },
+          },
+        },
+      },
       driver: { include: { user: { select: { name: true, phone: true } } } },
       bus: { select: { bus_number: true } },
     },
   });
-  res.json({ trips });
+  res.json(trips);
 };
 
 module.exports = { startTrip, updateStopIndex, completeTrip, getActiveTrips };

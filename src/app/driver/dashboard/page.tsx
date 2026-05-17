@@ -1,22 +1,35 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, LogOut, X } from 'lucide-react';
+import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, LogOut, X, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from 'next-themes';
 import api from '@/lib/api';
+
+interface DriverRoute {
+    id: string;
+    name: string;
+}
 
 interface DriverInfo {
     id: string;
-    name: string;
-    license: string;
-    bus?: { id: string; bus_number: string; fuel_liters?: number; mileage?: number };
+    license_no?: string;
+    user?: { id: string; name: string; phone?: string; email?: string };
+    bus?: {
+        id: string;
+        bus_number: string;
+        fuel_liters?: number;
+        mileage?: number;
+        routes?: DriverRoute[];
+    };
+    school?: { id: string; name: string; primary_color?: string; slug?: string };
 }
 
-interface Trip {
+interface ActiveTrip {
     id: string;
     route_id: string;
-    route: { name: string; type?: string };
     status: string;
+    current_stop_index: number;
 }
 
 interface Shift {
@@ -27,15 +40,15 @@ interface Shift {
 
 export default function DriverDashboard() {
     const { user, logout } = useAuth();
+    const { theme, setTheme } = useTheme();
     const [currentTime, setCurrentTime] = useState(new Date());
     const [driverInfo, setDriverInfo] = useState<DriverInfo | null>(null);
     const [activeShift, setActiveShift] = useState<Shift | null>(null);
-    const [trips, setTrips] = useState<Trip[]>([]);
+    const [activeTrips, setActiveTrips] = useState<ActiveTrip[]>([]);
     const [absenceCount, setAbsenceCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    // KM Dialog state
     const [showKmDialog, setShowKmDialog] = useState(false);
     const [kmDialogMode, setKmDialogMode] = useState<'start' | 'end'>('start');
     const [kmValue, setKmValue] = useState('');
@@ -46,37 +59,42 @@ export default function DriverDashboard() {
         return () => clearInterval(timer);
     }, []);
 
-    useEffect(() => {
-        fetchAll();
-    }, []);
+    useEffect(() => { fetchAll(); }, []);
 
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [driverRes, tripsRes, absenceRes] = await Promise.allSettled([
+            const [driverRes, absenceRes, tripsRes] = await Promise.allSettled([
                 api.get('/drivers/me'),
-                api.get('/trips/active'),
                 api.get('/absence'),
+                api.get('/trips/active'),
             ]);
 
-            if (driverRes.status === 'fulfilled') setDriverInfo(driverRes.value.data);
-            if (tripsRes.status === 'fulfilled') {
-                const data = tripsRes.value.data;
-                setTrips(Array.isArray(data) ? data : data ? [data] : []);
+            if (driverRes.status === 'fulfilled') {
+                const d: DriverInfo = driverRes.value.data;
+                setDriverInfo(d);
+                if (d?.school?.primary_color) {
+                    document.documentElement.style.setProperty('--brand', d.school.primary_color);
+                }
             }
+
             if (absenceRes.status === 'fulfilled') {
                 const abs = absenceRes.value.data;
                 setAbsenceCount(Array.isArray(abs) ? abs.length : 0);
             }
 
-            // Check active shift
+            if (tripsRes.status === 'fulfilled') {
+                const data = tripsRes.value.data;
+                setActiveTrips(Array.isArray(data) ? data : []);
+            }
+
             try {
                 const shiftRes = await api.get('/shifts/active');
                 setActiveShift(shiftRes.data || null);
             } catch {
                 setActiveShift(null);
             }
-        } catch (e: any) {
+        } catch {
             setError('Failed to load dashboard data');
         } finally {
             setLoading(false);
@@ -105,7 +123,7 @@ export default function DriverDashboard() {
             }
             setShowKmDialog(false);
         } catch (e: any) {
-            alert(e.response?.data?.message || 'Action failed');
+            alert(e.response?.data?.error || e.response?.data?.message || 'Action failed');
         } finally {
             setKmSubmitting(false);
         }
@@ -114,42 +132,59 @@ export default function DriverDashboard() {
     const handleStartTrip = async (routeId: string) => {
         try {
             await api.post('/trips/start', { route_id: routeId });
-            fetchAll();
+            await fetchAll();
         } catch (e: any) {
-            alert(e.response?.data?.message || 'Failed to start trip');
+            alert(e.response?.data?.error || e.response?.data?.message || 'Failed to start trip');
         }
     };
 
+    const getActiveTrip = (routeId: string) => activeTrips.find(t => t.route_id === routeId);
+
+    const routes = driverInfo?.bus?.routes || [];
     const fuelLevel = driverInfo?.bus?.fuel_liters ?? 0;
+    const driverName = driverInfo?.user?.name || user?.name || 'Driver';
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-8">
-            {/* Top Navigation */}
             <header className="bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 h-14 flex items-center justify-between sticky top-0 z-40">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-[var(--brand)] flex items-center justify-center shadow-sm">
                         <Bus className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h2 className="text-sm font-bold text-slate-900 dark:text-white leading-none">D-Driver</h2>
+                        <h2 className="text-sm font-bold text-slate-900 dark:text-white leading-none">
+                            {driverInfo?.school?.name || 'D-Driver'}
+                        </h2>
                         <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Driver Console</span>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <span className="text-slate-400 dark:text-slate-500 text-xs font-medium">
+                <div className="flex items-center gap-2">
+                    <span className="text-slate-400 dark:text-slate-500 text-xs font-medium hidden sm:block">
                         {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <button onClick={logout} className="w-9 h-9 bg-slate-50 dark:bg-slate-700 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors">
+                    <button
+                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        className="w-9 h-9 bg-slate-50 dark:bg-slate-700 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                        title="Toggle theme"
+                    >
+                        {theme === 'dark'
+                            ? <Sun className="w-4 h-4 text-amber-400" />
+                            : <Moon className="w-4 h-4 text-slate-500" />}
+                    </button>
+                    <button
+                        onClick={logout}
+                        className="w-9 h-9 bg-slate-50 dark:bg-slate-700 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                        title="Logout"
+                    >
                         <LogOut className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                     </button>
                 </div>
             </header>
 
             <div className="space-y-4 p-4">
-                {/* Greeting */}
                 <div>
                     <h1 className="text-lg font-bold text-slate-900 dark:text-white">
-                        {loading ? 'Loading...' : `Hey, ${(driverInfo?.name || user?.name || 'Driver').split(' ')[0]}`}
+                        {loading ? 'Loading...' : `Hey, ${driverName.split(' ')[0]}`}
                     </h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                         {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
@@ -162,7 +197,6 @@ export default function DriverDashboard() {
                     </div>
                 )}
 
-                {/* Absence Alert Banner */}
                 {absenceCount > 0 && (
                     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex items-center gap-3">
                         <Bell className="w-5 h-5 text-amber-500 shrink-0" />
@@ -172,7 +206,7 @@ export default function DriverDashboard() {
                     </div>
                 )}
 
-                {/* Shift Status Card — filled brand color when active, white when inactive */}
+                {/* Shift Status */}
                 {activeShift ? (
                     <div className="bg-[var(--brand)] text-white rounded-2xl p-6 shadow-lg">
                         <div className="flex justify-between items-start mb-5">
@@ -190,8 +224,8 @@ export default function DriverDashboard() {
                                 </div>
                             )}
                         </div>
-                        {driverInfo?.license && (
-                            <p className="text-white/70 text-xs font-medium mb-5">License: {driverInfo.license}</p>
+                        {driverInfo?.license_no && (
+                            <p className="text-white/70 text-xs font-medium mb-5">License: {driverInfo.license_no}</p>
                         )}
                         <button
                             onClick={() => openShiftDialog('end')}
@@ -204,7 +238,7 @@ export default function DriverDashboard() {
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
                         <div className="flex justify-between items-start mb-5">
                             <div>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest mb-2">Shift Status</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mb-2">Shift Status</p>
                                 <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
                                     <span className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest">No Active Shift</span>
@@ -217,8 +251,8 @@ export default function DriverDashboard() {
                                 </div>
                             )}
                         </div>
-                        {driverInfo?.license && (
-                            <p className="text-sm text-slate-500 dark:text-slate-400 text-xs font-medium mb-5">License: {driverInfo.license}</p>
+                        {driverInfo?.license_no && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-5">License: {driverInfo.license_no}</p>
                         )}
                         <button
                             onClick={() => openShiftDialog('start')}
@@ -237,12 +271,12 @@ export default function DriverDashboard() {
                                 <Fuel className="w-4 h-4 text-amber-500" />
                                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fuel Level</span>
                             </div>
-                            <span className="text-sm font-bold text-slate-900 dark:text-white">{fuelLevel}%</span>
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">{Math.round(fuelLevel)}%</span>
                         </div>
                         <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div
                                 className={`h-full rounded-full transition-all duration-1000 ${fuelLevel > 50 ? 'bg-emerald-500' : fuelLevel > 25 ? 'bg-amber-500' : 'bg-red-500'}`}
-                                style={{ width: `${fuelLevel}%` }}
+                                style={{ width: `${Math.min(Math.max(fuelLevel, 0), 100)}%` }}
                             />
                         </div>
                         {fuelLevel < 25 && (
@@ -251,12 +285,12 @@ export default function DriverDashboard() {
                     </div>
                 )}
 
-                {/* Today's Routes */}
+                {/* Today's Routes — from driver's bus.routes */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white">Today's Routes</h2>
                         <span className="text-sm text-slate-500 dark:text-slate-400">
-                            {loading ? '...' : `${trips.length} assigned`}
+                            {loading ? '...' : `${routes.length} assigned`}
                         </span>
                     </div>
 
@@ -264,48 +298,43 @@ export default function DriverDashboard() {
                         <div className="flex justify-center py-12">
                             <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                         </div>
-                    ) : trips.length === 0 ? (
+                    ) : routes.length === 0 ? (
                         <div className="text-center py-8">
                             <Navigation className="w-8 h-8 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
-                            <p className="text-sm text-slate-500 dark:text-slate-400">No active trips assigned</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                {driverInfo?.bus ? 'No routes assigned to your bus yet' : 'No bus assigned to you yet'}
+                            </p>
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {trips.map((trip) => (
-                                <div key={trip.id} className="border border-slate-100 dark:border-slate-700 rounded-xl p-4">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div>
-                                            <h4 className="font-bold text-slate-900 dark:text-white">
-                                                {trip.route?.name || 'Route'}
-                                            </h4>
-                                            {trip.route?.type && (
-                                                <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${trip.route.type === 'Morning' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'}`}>
-                                                    {trip.route.type}
-                                                </span>
-                                            )}
+                            {routes.map((route) => {
+                                const activeTrip = getActiveTrip(route.id);
+                                return (
+                                    <div key={route.id} className="border border-slate-100 dark:border-slate-700 rounded-xl p-4">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h4 className="font-bold text-slate-900 dark:text-white">{route.name}</h4>
+                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${activeTrip ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
+                                                {activeTrip ? 'Running' : 'Ready'}
+                                            </span>
                                         </div>
-                                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${trip.status === 'active' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
-                                            {trip.status}
-                                        </span>
+                                        {activeTrip ? (
+                                            <a
+                                                href="/driver/ride"
+                                                className="flex items-center justify-center gap-2 w-full bg-[var(--brand)]/10 border border-[var(--brand)]/30 text-[var(--brand)] rounded-xl px-4 py-2.5 font-semibold text-sm active:scale-95 transition-all"
+                                            >
+                                                Open Live Map <Navigation className="w-4 h-4" />
+                                            </a>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleStartTrip(route.id)}
+                                                className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center"
+                                            >
+                                                Start Trip
+                                            </button>
+                                        )}
                                     </div>
-                                    {trip.status !== 'active' && (
-                                        <button
-                                            onClick={() => handleStartTrip(trip.route_id)}
-                                            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center"
-                                        >
-                                            Start Trip
-                                        </button>
-                                    )}
-                                    {trip.status === 'active' && (
-                                        <a
-                                            href="/driver/ride"
-                                            className="flex items-center justify-center gap-2 w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm active:scale-95 transition-all"
-                                        >
-                                            Open Map <Navigation className="w-4 h-4" />
-                                        </a>
-                                    )}
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -330,49 +359,47 @@ export default function DriverDashboard() {
             {/* KM Input Dialog */}
             {showKmDialog && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                                 {kmDialogMode === 'start' ? 'Start Shift' : 'End Shift'}
                             </h3>
-                            <button onClick={() => setShowKmDialog(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                            <button onClick={() => setShowKmDialog(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
                         <div className="p-6">
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">Enter current odometer reading</p>
-                        <div className="mb-5">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                                Current Odometer Reading (km)
-                            </label>
-                            <input
-                                type="number"
-                                value={kmValue}
-                                onChange={(e) => setKmValue(e.target.value)}
-                                placeholder="e.g. 45230"
-                                className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
-                                autoFocus
-                            />
-                        </div>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setShowKmDialog(false)}
-                                className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm flex-1 justify-center"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleShiftAction}
-                                disabled={!kmValue || kmSubmitting}
-                                className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 flex-1 justify-center disabled:opacity-50"
-                            >
-                                {kmSubmitting ? (
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    kmDialogMode === 'start' ? 'Start Shift' : 'End Shift'
-                                )}
-                            </button>
-                        </div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">Enter current odometer reading</p>
+                            <div className="mb-5">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                                    Current Odometer Reading (km)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={kmValue}
+                                    onChange={(e) => setKmValue(e.target.value)}
+                                    placeholder="e.g. 45230"
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowKmDialog(false)}
+                                    className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleShiftAction}
+                                    disabled={!kmValue || kmSubmitting}
+                                    className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm disabled:opacity-50"
+                                >
+                                    {kmSubmitting
+                                        ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        : kmDialogMode === 'start' ? 'Start Shift' : 'End Shift'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

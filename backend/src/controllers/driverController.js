@@ -105,8 +105,14 @@ const getMe = async (req, res) => {
             where: { user_id: req.user.id },
             include: {
                 user: { select: { id: true, name: true, phone: true, email: true } },
-                bus: { select: { id: true, bus_number: true, registration_no: true, fuel_liters: true, mileage: true } },
-                school: { select: { id: true, name: true } },
+                bus: {
+                    select: {
+                        id: true, bus_number: true, registration_no: true,
+                        fuel_liters: true, mileage: true,
+                        routes: { select: { id: true, name: true } },
+                    },
+                },
+                school: { select: { id: true, name: true, primary_color: true, slug: true } },
             },
         });
         if (!driver) return res.status(404).json({ error: 'Driver profile not found' });

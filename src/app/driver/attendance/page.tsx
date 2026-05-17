@@ -8,7 +8,7 @@ import api from '@/lib/api';
 interface Student {
     id: string;
     name: string;
-    photo?: string;
+    photo_url?: string;
     grade?: string;
     stop_id?: string;
 }
@@ -46,29 +46,31 @@ export default function DriverAttendancePage() {
         try {
             // Get active trip
             const tripsRes = await api.get('/trips/active');
-            const trips = Array.isArray(tripsRes.data) ? tripsRes.data : tripsRes.data ? [tripsRes.data] : [];
+            const trips = Array.isArray(tripsRes.data) ? tripsRes.data : [];
             const trip = trips[0];
 
             if (trip) {
                 setTripId(trip.id);
-                const routeRes = await api.get(`/routes/${trip.route_id}`);
-                const route = routeRes.data;
+                // Use students/stops already included in the active trip's route data
+                const route = trip.route || {};
+                const students = route.students || [];
                 const enrichedStops: TripStop[] = (route.stops || []).map((stop: any) => ({
                     ...stop,
-                    students: (route.students || []).filter((s: any) => s.stop_id === stop.id),
+                    students: students.filter((s: any) => s.stop_id === stop.id),
                 }));
-                setStops(enrichedStops);
-            } else {
-                // Fallback to first route
-                const routesRes = await api.get('/routes');
-                if (routesRes.data?.length > 0) {
-                    const route = routesRes.data[0];
-                    const enrichedStops: TripStop[] = (route.stops || []).map((stop: any) => ({
-                        ...stop,
-                        students: (route.students || []).filter((s: any) => s.stop_id === stop.id),
-                    }));
+                if (enrichedStops.length > 0) {
                     setStops(enrichedStops);
+                } else {
+                    // Fallback: fetch route separately (now includes students)
+                    const routeRes = await api.get(`/routes/${trip.route_id}`);
+                    const r = routeRes.data;
+                    const s2 = r.students || [];
+                    setStops((r.stops || []).map((stop: any) => ({
+                        ...stop,
+                        students: s2.filter((s: any) => s.stop_id === stop.id),
+                    })));
                 }
+                setCurrentStopIndex(trip.current_stop_index ?? 0);
             }
 
             // Fetch pre-reported absences for today only
@@ -214,8 +216,8 @@ export default function DriverAttendancePage() {
                             >
                                 {/* Avatar */}
                                 <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
-                                    {student.photo ? (
-                                        <img src={student.photo} alt={student.name} className="w-full h-full object-cover" />
+                                    {student.photo_url ? (
+                                        <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
                                     ) : (
                                         <span className="text-lg font-bold text-slate-400 dark:text-slate-500">
                                             {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
@@ -286,8 +288,8 @@ export default function DriverAttendancePage() {
                         </div>
                         <div className="bg-[var(--brand)] p-8 flex flex-col items-center">
                             <div className="w-20 h-20 rounded-full bg-white/20 border-4 border-white/40 flex items-center justify-center mb-4 overflow-hidden">
-                                {activeStudent.photo ? (
-                                    <img src={activeStudent.photo} alt={activeStudent.name} className="w-full h-full object-cover" />
+                                {activeStudent.photo_url ? (
+                                    <img src={activeStudent.photo_url} alt={activeStudent.name} className="w-full h-full object-cover" />
                                 ) : (
                                     <span className="text-3xl font-bold text-white">
                                         {activeStudent.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
