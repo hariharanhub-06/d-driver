@@ -45,7 +45,7 @@ export default function ShiftLogsPage() {
             if (dateFrom) params.from = dateFrom;
             if (dateTo) params.to = dateTo;
             const { data } = await api.get('/shifts', { params });
-            setShifts(Array.isArray(data) ? data : []);
+            setShifts(Array.isArray(data) ? data : (Array.isArray(data?.shifts) ? data.shifts : []));
         } catch {
             setShifts([]);
         } finally {

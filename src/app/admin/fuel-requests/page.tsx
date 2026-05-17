@@ -39,7 +39,7 @@ export default function FuelRequestsPage() {
         setLoading(true);
         try {
             const { data } = await api.get('/fuel/requests');
-            setRequests(Array.isArray(data) ? data : []);
+            setRequests(Array.isArray(data) ? data : (Array.isArray(data?.requests) ? data.requests : []));
         } catch {
             setRequests([]);
         } finally {

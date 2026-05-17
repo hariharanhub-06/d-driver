@@ -1,21 +1,7 @@
 'use client';
 
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import { useEffect } from 'react';
-import L from 'leaflet';
-
-// Fix for default marker icons in React-Leaflet
-const DefaultIcon = L.icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
-L.Marker.prototype.options.icon = DefaultIcon;
+import { useEffect, useState } from 'react';
 
 interface MapConfigProps {
     center: [number, number];
@@ -28,10 +14,36 @@ interface MapConfigProps {
 }
 
 export default function FreeMap({ center, zoom = 14, markers = [] }: MapConfigProps) {
+    const [ready, setReady] = useState(false);
+
     useEffect(() => {
-        // Quick fix to ensure map renders correctly in modal/hidden containers
-        window.dispatchEvent(new Event('resize'));
+        // Fix default marker icons (must run client-side only)
+        import('leaflet').then((L) => {
+            const icon = L.default.icon({
+                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41],
+            });
+            L.default.Marker.prototype.options.icon = icon;
+            setReady(true);
+        });
     }, []);
+
+    useEffect(() => {
+        if (ready) window.dispatchEvent(new Event('resize'));
+    }, [ready]);
+
+    if (!ready) {
+        return (
+            <div className="w-full h-full min-h-[400px] bg-slate-800 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <MapContainer
@@ -41,12 +53,10 @@ export default function FreeMap({ center, zoom = 14, markers = [] }: MapConfigPr
             className="w-full h-full min-h-[400px] z-0"
             zoomControl={false}
         >
-            {/* CartoDB Dark Matter Tile Layer (100% Free, No API Key, Uber-style Night Mode) */}
             <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             />
-
             {markers.map((marker, index) => (
                 <Marker key={index} position={marker.position}>
                     <Popup>
