@@ -18,10 +18,13 @@ export default function LoginPage() {
     const router = useRouter();
 
     useEffect(() => {
-        const slug = document.cookie
+        const params = new URLSearchParams(window.location.search);
+        const slugFromQuery = params.get('school');
+        const slugFromCookie = document.cookie
             .split('; ')
             .find(r => r.startsWith('school-slug='))
             ?.split('=')[1];
+        const slug = slugFromQuery || slugFromCookie;
 
         if (slug) {
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/schools/public/${slug}`)
