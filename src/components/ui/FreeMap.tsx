@@ -7,6 +7,8 @@ interface MarkerData {
     position: [number, number];
     title: string;
     description?: string;
+    isBus?: boolean;
+    stopNumber?: number;
 }
 
 interface MapConfigProps {
@@ -16,7 +18,6 @@ interface MapConfigProps {
     followCenter?: boolean;
 }
 
-// Imperatively pans map when center prop changes (MapContainer center is immutable after mount)
 function MapRecenter({ center, follow }: { center: [number, number]; follow: boolean }) {
     const map = useMap();
     useEffect(() => {
@@ -27,20 +28,59 @@ function MapRecenter({ center, follow }: { center: [number, number]; follow: boo
 
 export default function FreeMap({ center, zoom = 14, markers = [], followCenter = false }: MapConfigProps) {
     const [ready, setReady] = useState(false);
+    const [L, setL] = useState<any>(null);
 
     useEffect(() => {
-        import('leaflet').then((L) => {
-            // v4-compatible: set default icon on prototype
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            delete (L.Icon.Default.prototype as any)._getIconUrl;
-            L.Icon.Default.mergeOptions({
+        import('leaflet').then((leaflet) => {
+            delete (leaflet.Icon.Default.prototype as any)._getIconUrl;
+            leaflet.Icon.Default.mergeOptions({
                 iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
                 iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
                 shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
             });
+            setL(leaflet);
             setReady(true);
         });
     }, []);
+
+    const getBusIcon = () => L?.divIcon({
+        className: '',
+        html: `<div style="
+            background:#FFD700;
+            border:3px solid #1a1a1a;
+            border-radius:8px;
+            width:42px;height:26px;
+            display:flex;align-items:center;justify-content:center;
+            font-size:18px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.5);
+            position:relative;
+        ">🚌<div style="
+            position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
+            width:0;height:0;
+            border-left:6px solid transparent;
+            border-right:6px solid transparent;
+            border-top:8px solid #1a1a1a;
+        "></div></div>`,
+        iconSize: [42, 34],
+        iconAnchor: [21, 34],
+        popupAnchor: [0, -34],
+    });
+
+    const getStopIcon = (num: number) => L?.divIcon({
+        className: '',
+        html: `<div style="
+            background:#3B82F6;
+            border:2px solid white;
+            border-radius:50%;
+            width:26px;height:26px;
+            display:flex;align-items:center;justify-content:center;
+            color:white;font-size:11px;font-weight:700;font-family:sans-serif;
+            box-shadow:0 2px 6px rgba(0,0,0,0.4);
+        ">${num}</div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+        popupAnchor: [0, -14],
+    });
 
     if (!ready) {
         return (
@@ -63,16 +103,23 @@ export default function FreeMap({ center, zoom = 14, markers = [], followCenter 
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             />
             <MapRecenter center={center} follow={followCenter} />
-            {markers.map((marker, index) => (
-                <Marker key={index} position={marker.position}>
-                    <Popup>
-                        <div className="font-sans">
-                            <h3 className="font-bold text-slate-800">{marker.title}</h3>
-                            {marker.description && <p className="text-sm text-slate-600">{marker.description}</p>}
-                        </div>
-                    </Popup>
-                </Marker>
-            ))}
+            {markers.map((marker, index) => {
+                const icon = marker.isBus
+                    ? getBusIcon()
+                    : marker.stopNumber !== undefined
+                        ? getStopIcon(marker.stopNumber)
+                        : undefined;
+                return (
+                    <Marker key={index} position={marker.position} icon={icon || undefined}>
+                        <Popup>
+                            <div className="font-sans">
+                                <h3 className="font-bold text-slate-800">{marker.title}</h3>
+                                {marker.description && <p className="text-sm text-slate-600">{marker.description}</p>}
+                            </div>
+                        </Popup>
+                    </Marker>
+                );
+            })}
         </MapContainer>
     );
 }

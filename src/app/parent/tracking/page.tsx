@@ -100,9 +100,9 @@ export default function ParentTracking() {
     const stopLng = childData?.stop?.lng;
 
     const markers = [
-        { position: busPosition, title: `School Bus ${busId || ''}` },
+        { position: busPosition, title: `School Bus ${busId || ''}`, isBus: true },
         ...(stopLat && stopLng
-            ? [{ position: [stopLat, stopLng] as [number, number], title: `Your Stop: ${childData?.stop?.name || 'Home Stop'}`, description: childData?.stop?.name }]
+            ? [{ position: [stopLat, stopLng] as [number, number], title: `Your Stop: ${childData?.stop?.name || 'Home Stop'}`, description: childData?.stop?.name, stopNumber: 1 }]
             : []),
     ];
 

@@ -292,10 +292,10 @@ export default function ActiveRide() {
     };
 
     const mapMarkers = [
-        { position: currentPos, title: `Bus ${busId || ''}` },
+        { position: currentPos, title: `Bus ${busId || ''}`, isBus: true },
         ...stops
             .filter(s => s.lat && s.lng)
-            .map(s => ({ position: [s.lat!, s.lng!] as [number, number], title: `${s.sequence}. ${s.name}` })),
+            .map(s => ({ position: [s.lat!, s.lng!] as [number, number], title: s.name, stopNumber: s.sequence })),
     ];
 
     if (loading) {

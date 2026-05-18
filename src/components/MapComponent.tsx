@@ -64,18 +64,32 @@ export default function MapComponent({ buses, center, selectedBusId }: Props) {
             buses.forEach(bus => {
                 const busIcon = L.divIcon({
                     className: '',
-                    html: `<div style="
-                        background:#2563eb;
-                        color:white;
-                        font-size:10px;
-                        font-weight:bold;
-                        padding:4px 6px;
-                        border-radius:8px;
-                        border:2px solid white;
-                        box-shadow:0 2px 8px rgba(0,0,0,0.3);
-                        white-space:nowrap;
-                    ">${bus.bus_number}</div>`,
-                    iconAnchor: [20, 14],
+                    html: `<div style="display:flex;flex-direction:column;align-items:center;">
+                        <div style="
+                            background:#FFD700;
+                            border:3px solid #1a1a1a;
+                            border-radius:8px;
+                            width:46px;height:28px;
+                            display:flex;align-items:center;justify-content:center;
+                            font-size:18px;
+                            box-shadow:0 2px 8px rgba(0,0,0,0.5);
+                            position:relative;
+                        ">🚌<div style="
+                            position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
+                            width:0;height:0;
+                            border-left:6px solid transparent;
+                            border-right:6px solid transparent;
+                            border-top:8px solid #1a1a1a;
+                        "></div></div>
+                        <div style="
+                            background:rgba(0,0,0,0.75);
+                            color:white;font-size:10px;font-weight:700;
+                            padding:2px 6px;border-radius:4px;margin-top:10px;
+                            white-space:nowrap;
+                        ">${bus.bus_number}</div>
+                    </div>`,
+                    iconSize: [46, 58],
+                    iconAnchor: [23, 36],
                 });
 
                 if (markersRef.current[bus.bus_id]) {
