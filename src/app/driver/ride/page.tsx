@@ -345,12 +345,17 @@ export default function ActiveRide() {
                         </div>
                         <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">All Stops Completed!</h2>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">The route is complete. You can end the trip and return to your dashboard.</p>
-                        <a
-                            href="/driver/dashboard"
+                        <button
+                            onClick={async () => {
+                                if (tripData?.id) {
+                                    try { await api.post(`/trips/${tripData.id}/complete`); } catch { /* best effort */ }
+                                }
+                                window.location.href = '/driver/dashboard';
+                            }}
                             className="flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-3 font-bold text-sm transition-all active:scale-95 w-full"
                         >
                             End Trip — Go to Dashboard
-                        </a>
+                        </button>
                     </div>
                 ) : (
                     <>

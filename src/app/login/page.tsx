@@ -84,62 +84,12 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen flex">
-            {/* ── Left brand panel ─────────────────────────────── */}
+            {/* ── Left panel — animated bus scene only ─────────── */}
             <div
-                className="hidden lg:flex lg:w-[52%] flex-col relative overflow-hidden"
+                className="hidden lg:block lg:w-[52%] relative overflow-hidden"
                 style={{ backgroundColor: currentSchool?.color || 'var(--brand)' }}
             >
-                {/* Subtle circle decorations */}
-                <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-white/5" />
-                <div className="absolute top-1/3 -right-14 w-56 h-56 rounded-full bg-white/5" />
-
-                {/* Text content — upper portion */}
-                <div className="relative z-10 flex flex-col flex-1 px-12 pt-14 pb-4">
-                    {/* Logo */}
-                    <div className="flex items-center gap-3 mb-10">
-                        {currentSchool?.logo ? (
-                            <img
-                                src={currentSchool.logo}
-                                alt={currentSchool.name}
-                                className="w-12 h-12 rounded-2xl object-cover bg-white/10"
-                            />
-                        ) : (
-                            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                <Bus className="w-7 h-7 text-white" />
-                            </div>
-                        )}
-                        <span className="text-white font-bold text-xl tracking-tight">
-                            {currentSchool?.name || 'D-Driver'}
-                        </span>
-                    </div>
-
-                    <h1 className="text-4xl font-bold text-white leading-tight mb-4">
-                        {currentSchool?.name
-                            ? `${currentSchool.name}`
-                            : 'School Bus\nManagement\nSimplified'}
-                    </h1>
-
-                    <p className="text-white/70 text-lg leading-relaxed mb-8 max-w-sm">
-                        {currentSchool?.name
-                            ? 'Manage your school bus transport with ease'
-                            : 'Everything you need to run safe, efficient student transport — in one platform.'}
-                    </p>
-
-                    {/* Feature list */}
-                    <div className="space-y-3">
-                        {features.map(({ icon: Icon, text }) => (
-                            <div key={text} className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                                    <Icon className="w-4 h-4 text-white" />
-                                </div>
-                                <span className="text-white/85 text-sm font-medium">{text}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Animated bus scene — bottom of left panel */}
-                <BusScene compact className="w-full" />
+                <BusScene fullPanel />
             </div>
 
             {/* ── Right form panel ─────────────────────────────── */}

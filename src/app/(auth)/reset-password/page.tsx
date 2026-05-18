@@ -46,28 +46,9 @@ function ResetPasswordContent() {
 
   return (
     <div className="min-h-screen flex">
-      {/* ── Left panel ──────────────────────────────────────── */}
-      <div
-        className="hidden lg:flex lg:w-[48%] flex-col relative overflow-hidden"
-        style={{ backgroundColor: 'var(--brand, #3B82F6)' }}
-      >
-        <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-white/5" />
-        <div className="absolute top-1/3 -right-12 w-48 h-48 rounded-full bg-white/5" />
-        <div className="relative z-10 flex flex-col flex-1 px-12 pt-14 pb-4">
-          <div className="flex items-center gap-3 mb-10">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-              <Bus className="w-7 h-7 text-white" />
-            </div>
-            <span className="text-white font-bold text-xl">D-Driver</span>
-          </div>
-          <h2 className="text-4xl font-bold text-white leading-tight mb-4">
-            School Bus<br />Management<br />Simplified
-          </h2>
-          <p className="text-white/70 text-base leading-relaxed max-w-xs">
-            Secure access to your school's transport dashboard.
-          </p>
-        </div>
-        <BusScene compact className="w-full" />
+      {/* ── Left panel — animated bus scene only ────────────────── */}
+      <div className="hidden lg:block lg:w-[48%] relative overflow-hidden" style={{ backgroundColor: 'var(--brand, #3B82F6)' }}>
+        <BusScene fullPanel />
       </div>
 
       {/* ── Right panel ─────────────────────────────────────── */}
