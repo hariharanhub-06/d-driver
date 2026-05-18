@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Bus, Eye, EyeOff, CheckCircle2, MapPin, Users, BarChart3 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+const BusScene = dynamic(() => import('@/components/ui/BusScene'), { ssr: false });
 import api from '@/lib/api';
 
 export default function LoginPage() {
@@ -87,14 +89,14 @@ export default function LoginPage() {
                 className="hidden lg:flex lg:w-[52%] flex-col relative overflow-hidden"
                 style={{ backgroundColor: currentSchool?.color || 'var(--brand)' }}
             >
-                {/* Decorative circles */}
-                <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-white/5" />
-                <div className="absolute top-1/3 -right-16 w-64 h-64 rounded-full bg-white/5" />
-                <div className="absolute -bottom-20 left-1/4 w-80 h-80 rounded-full bg-white/5" />
+                {/* Subtle circle decorations */}
+                <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-white/5" />
+                <div className="absolute top-1/3 -right-14 w-56 h-56 rounded-full bg-white/5" />
 
-                <div className="relative z-10 flex flex-col justify-center flex-1 px-14 py-16">
+                {/* Text content — upper portion */}
+                <div className="relative z-10 flex flex-col flex-1 px-12 pt-14 pb-4">
                     {/* Logo */}
-                    <div className="flex items-center gap-3 mb-16">
+                    <div className="flex items-center gap-3 mb-10">
                         {currentSchool?.logo ? (
                             <img
                                 src={currentSchool.logo}
@@ -117,14 +119,14 @@ export default function LoginPage() {
                             : 'School Bus\nManagement\nSimplified'}
                     </h1>
 
-                    <p className="text-white/70 text-lg leading-relaxed mb-12 max-w-sm">
+                    <p className="text-white/70 text-lg leading-relaxed mb-8 max-w-sm">
                         {currentSchool?.name
                             ? 'Manage your school bus transport with ease'
                             : 'Everything you need to run safe, efficient student transport — in one platform.'}
                     </p>
 
                     {/* Feature list */}
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         {features.map(({ icon: Icon, text }) => (
                             <div key={text} className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
@@ -136,8 +138,8 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                {/* Bottom accent line */}
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20" />
+                {/* Animated bus scene — bottom of left panel */}
+                <BusScene compact className="w-full" />
             </div>
 
             {/* ── Right form panel ─────────────────────────────── */}

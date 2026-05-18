@@ -36,6 +36,16 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
             .catch(() => {});
     }, [user]);
 
+    // Apply school brand color so --brand CSS var reflects the school's primary_color
+    useEffect(() => {
+        if (!user) return;
+        api.get('/schools/my')
+            .then(({ data }) => {
+                if (data?.primary_color) document.documentElement.style.setProperty('--brand', data.primary_color);
+            })
+            .catch(() => {});
+    }, [user]);
+
     if (loading || !user) {
         return (
             <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex justify-center items-center">

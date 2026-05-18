@@ -11,6 +11,7 @@ interface School {
     name: string;
     status: string;
     subscription_plan?: string;
+    _count?: { buses: number; students: number; drivers: number };
     buses?: any[];
     students?: any[];
 }
@@ -56,8 +57,8 @@ export default function SuperAdminDashboard() {
         fetchAll();
     }, []);
 
-    const totalStudents = schools.reduce((sum, s) => sum + (s.students?.length || 0), 0);
-    const totalBuses = schools.reduce((sum, s) => sum + (s.buses?.length || 0), 0);
+    const totalStudents = schools.reduce((sum, s) => sum + (s._count?.students || s.students?.length || 0), 0);
+    const totalBuses    = schools.reduce((sum, s) => sum + (s._count?.buses    || s.buses?.length    || 0), 0);
 
     const statCards = [
         { label: 'Total Schools', value: schools.length, icon: Building2, iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
