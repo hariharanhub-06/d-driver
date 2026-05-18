@@ -7,7 +7,7 @@ import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import dynamic from 'next/dynamic';
 
-const BusScene = dynamic(() => import('@/components/ui/BusScene'), { ssr: false });
+const AuthBusPanel = dynamic(() => import('@/components/ui/AuthBusPanel'), { ssr: false });
 
 export default function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -50,7 +50,7 @@ export default function ChangePasswordPage() {
     <div className="min-h-screen flex">
       {/* ── Left panel — animated bus scene only ────────────────── */}
       <div className="hidden lg:block lg:w-[48%] relative overflow-hidden" style={{ backgroundColor: 'var(--brand, #3B82F6)' }}>
-        <BusScene fullPanel />
+        <AuthBusPanel />
       </div>
 
       {/* ── Right panel ─────────────────────────────────────── */}

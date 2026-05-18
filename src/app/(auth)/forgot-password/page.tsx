@@ -6,7 +6,7 @@ import { Bus, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import api from '@/lib/api';
 import dynamic from 'next/dynamic';
 
-const BusScene = dynamic(() => import('@/components/ui/BusScene'), { ssr: false });
+const AuthBusPanel = dynamic(() => import('@/components/ui/AuthBusPanel'), { ssr: false });
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex">
       {/* ── Left panel — animated bus scene only ────────────────── */}
       <div className="hidden lg:block lg:w-[48%] relative overflow-hidden" style={{ backgroundColor: 'var(--brand, #3B82F6)' }}>
-        <BusScene fullPanel />
+        <AuthBusPanel />
       </div>
 
       {/* ── Right panel — form ───────────────────────────────── */}

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Bus, Eye, EyeOff, CheckCircle2, MapPin, Users, BarChart3 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-const BusScene = dynamic(() => import('@/components/ui/BusScene'), { ssr: false });
+const AuthBusPanel = dynamic(() => import('@/components/ui/AuthBusPanel'), { ssr: false });
 import api from '@/lib/api';
 
 export default function LoginPage() {
@@ -89,7 +89,7 @@ export default function LoginPage() {
                 className="hidden lg:block lg:w-[52%] relative overflow-hidden"
                 style={{ backgroundColor: currentSchool?.color || 'var(--brand)' }}
             >
-                <BusScene fullPanel />
+                <AuthBusPanel brandColor={currentSchool?.color} />
             </div>
 
             {/* ── Right form panel ─────────────────────────────── */}
