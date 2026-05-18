@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Bus, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import api from '@/lib/api';
 import dynamic from 'next/dynamic';
 
