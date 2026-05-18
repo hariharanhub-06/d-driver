@@ -128,7 +128,7 @@ const updateSchool = async (req, res) => {
       'primary_color', 'plan_id', 'subscription_plan', 'notification_email',
     ];
     const data = {};
-    allowed.forEach(f => { if (req.body[f] !== undefined) data[f] = req.body[f]; });
+    allowed.forEach(f => { if (req.body[f] !== undefined && req.body[f] !== null) data[f] = req.body[f]; });
     const school = await prisma.school.update({ where: { id }, data });
     await logAction({ req, action: 'update_school', targetType: 'school', targetId: id, schoolId: id });
     res.json(school);

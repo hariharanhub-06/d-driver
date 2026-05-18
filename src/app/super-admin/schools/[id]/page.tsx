@@ -115,7 +115,7 @@ export default function SchoolDetailPage() {
                 email_contact: editForm.email || '',
                 logo_url: editForm.logo_url || '',
                 primary_color: editForm.primary_color || '#3B82F6',
-                subscription_plan: selectedPlan,
+                ...(selectedPlan ? { subscription_plan: selectedPlan } : {}),
             });
             fetchAll();
             alert('School updated.');
