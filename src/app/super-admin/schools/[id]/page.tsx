@@ -108,11 +108,19 @@ export default function SchoolDetailPage() {
     const handleSaveOverview = async () => {
         setSaving(true);
         try {
-            await api.put(`/schools/${id}`, { ...school, ...editForm, subscription_plan: selectedPlan });
+            await api.put(`/schools/${id}`, {
+                name: editForm.name,
+                address: editForm.address || '',
+                phone: editForm.phone || '',
+                email_contact: editForm.email || '',
+                logo_url: editForm.logo_url || '',
+                primary_color: editForm.primary_color || '#3B82F6',
+                subscription_plan: selectedPlan,
+            });
             fetchAll();
             alert('School updated.');
         } catch (e: any) {
-            alert(e.response?.data?.message || 'Failed to update');
+            alert(e.response?.data?.error || e.response?.data?.message || 'Failed to update');
         } finally {
             setSaving(false);
         }

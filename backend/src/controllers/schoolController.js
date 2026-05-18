@@ -125,7 +125,7 @@ const updateSchool = async (req, res) => {
     const { id } = req.params;
     const allowed = [
       'name', 'address', 'phone', 'email_contact', 'logo_url',
-      'primary_color', 'plan_id', 'notification_email',
+      'primary_color', 'plan_id', 'subscription_plan', 'notification_email',
     ];
     const data = {};
     allowed.forEach(f => { if (req.body[f] !== undefined) data[f] = req.body[f]; });
