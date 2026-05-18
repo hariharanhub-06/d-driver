@@ -120,24 +120,15 @@ export default function StudentsPage() {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            let parent_id = formData.parent_id || undefined;
-            if (formData.parent_mode === 'new' && formData.parent_name && !formData.parent_email) {
-                setIsSubmitting(false);
-                return;
-            }
-            if (formData.parent_mode === 'new' && formData.parent_email) {
-                try {
-                    const res = await api.post('/users', {
-                        name: formData.parent_name, email: formData.parent_email,
-                        phone: formData.parent_phone, role: 'parent',
-                    });
-                    parent_id = res.data?.id;
-                } catch { /* parent may already exist */ }
-            }
-
+            // Let the backend handle parent lookup/creation — avoids silent 409 failures
             const payload: any = {
                 name: formData.name, grade: formData.grade, section: formData.section, gr_no: formData.gr_no,
-                ...(parent_id && { parent_id }),
+                ...(formData.parent_mode === 'existing' && formData.parent_id && { parent_id: formData.parent_id }),
+                ...(formData.parent_mode === 'new' && formData.parent_email && {
+                    parent_name: formData.parent_name,
+                    parent_email: formData.parent_email,
+                    parent_phone: formData.parent_phone || undefined,
+                }),
                 ...(formData.route_id && { route_id: formData.route_id }),
                 ...(formData.stop_id && { stop_id: formData.stop_id }),
                 ...(formData.fee_amount && {

@@ -169,17 +169,32 @@ const createStudent = async (req, res) => {
 const updateStudent = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, grade, section, gr_no, parent_id, route_id, stop_id, photo_url } = req.body;
+        const { name, grade, section, gr_no, parent_id, parent_name, parent_email, parent_phone, route_id, stop_id, photo_url } = req.body;
+        const schoolId = req.user.school_id || null;
 
         const data = {};
         if (name !== undefined) data.name = name;
         if (grade !== undefined) data.grade = grade;
         if (section !== undefined) data.section = section;
         if (gr_no !== undefined) data.gr_no = gr_no;
-        if (parent_id !== undefined) data.parent_id = parent_id;
         if (route_id !== undefined) data.route_id = route_id;
         if (stop_id !== undefined) data.stop_id = stop_id;
         if (photo_url !== undefined) data.photo_url = photo_url;
+
+        // Resolve parent: explicit ID takes precedence, else look up / create by email
+        if (parent_id !== undefined) {
+            data.parent_id = parent_id;
+        } else if (parent_email) {
+            let parentUser = await prisma.user.findUnique({ where: { email: parent_email } });
+            if (!parentUser) {
+                const tempPassword = crypto.randomBytes(8).toString('hex');
+                const hashedPassword = await bcrypt.hash(tempPassword, 12);
+                parentUser = await prisma.user.create({
+                    data: { name: parent_name || 'Parent', email: parent_email, password: hashedPassword, phone: parent_phone || null, role: 'parent', school_id: schoolId, is_first_login: true, is_active: true },
+                });
+            }
+            data.parent_id = parentUser.id;
+        }
 
         const updatedStudent = await prisma.student.update({
             where: { id },
