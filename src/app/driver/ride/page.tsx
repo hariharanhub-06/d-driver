@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AlertTriangle, Navigation, ChevronRight, Fuel, DollarSign, X, Bus, Wrench, Check, User } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { connectSocket, getSocket } from '@/lib/socket';
@@ -41,6 +41,7 @@ export default function ActiveRide() {
     const [currentPos, setCurrentPos] = useState<[number, number]>([12.9716, 77.5946]);
     const [tripData, setTripData] = useState<TripData | null>(null);
     const [busId, setBusId] = useState<string>('');
+    const busIdRef = useRef<string>('');
     const [loading, setLoading] = useState(true);
     const [noTrip, setNoTrip] = useState(false);
 
@@ -63,6 +64,24 @@ export default function ActiveRide() {
 
     const fetchTripData = useCallback(async () => {
         try {
+            // Load driver profile first to get bus_id
+            let bid = '';
+            try {
+                const driverRes = await api.get('/drivers/me');
+                bid = driverRes.data?.bus?.id ? String(driverRes.data.bus.id) : '';
+                if (bid) {
+                    setBusId(bid);
+                    busIdRef.current = bid;
+                    connectSocket(bid);
+                    try {
+                        const locRes = await api.get(`/location/bus/${bid}`);
+                        if (locRes.data?.latitude) {
+                            setCurrentPos([locRes.data.latitude, locRes.data.longitude]);
+                        }
+                    } catch { /* no saved location yet */ }
+                }
+            } catch { /* driver profile unavailable */ }
+
             const tripsRes = await api.get('/trips/active');
             const trips: TripData[] = Array.isArray(tripsRes.data) ? tripsRes.data : [];
             const activeTrip = trips[0];
@@ -70,22 +89,6 @@ export default function ActiveRide() {
             if (activeTrip) {
                 setTripData(activeTrip);
                 setNoTrip(false);
-
-                try {
-                    const driverRes = await api.get('/drivers/me');
-                    const bid = driverRes.data?.bus?.id;
-                    if (bid) {
-                        setBusId(String(bid));
-                        connectSocket(String(bid));
-
-                        try {
-                            const locRes = await api.get(`/location/bus/${bid}`);
-                            if (locRes.data?.latitude) {
-                                setCurrentPos([locRes.data.latitude, locRes.data.longitude]);
-                            }
-                        } catch { /* no saved location yet */ }
-                    }
-                } catch { /* driver profile unavailable */ }
             } else {
                 setNoTrip(true);
             }
@@ -105,8 +108,9 @@ export default function ActiveRide() {
                     (pos) => {
                         const { latitude, longitude } = pos.coords;
                         setCurrentPos([latitude, longitude]);
-                        if (busId) {
-                            getSocket().emit('update-location', { busId, lat: latitude, lng: longitude });
+                        const currentBusId = busIdRef.current;
+                        if (currentBusId) {
+                            getSocket().emit('update-location', { busId: currentBusId, lat: latitude, lng: longitude });
                         }
                     },
                     () => {},
@@ -207,17 +211,19 @@ export default function ActiveRide() {
     };
 
     const handleFuelFill = async () => {
+        if (!fuelFillForm.liters_filled) return;
         setSubmitting(true);
         try {
             await api.post('/fuel/fill', {
+                bus_id: busId || undefined,
                 liters_filled: parseFloat(fuelFillForm.liters_filled),
-                current_km: parseFloat(fuelFillForm.current_km),
+                km_at_fill: fuelFillForm.current_km ? parseFloat(fuelFillForm.current_km) : undefined,
             });
             setShowFuelFill(false);
             setFuelFillForm({ liters_filled: '', current_km: '' });
-            alert('Fuel log submitted.');
+            alert(`Fuel logged: ${fuelFillForm.liters_filled}L added to bus.`);
         } catch (e: any) {
-            alert(e.response?.data?.message || 'Failed to log fuel');
+            alert(e.response?.data?.message || e.response?.data?.error || 'Failed to log fuel');
         } finally {
             setSubmitting(false);
         }
@@ -438,7 +444,7 @@ export default function ActiveRide() {
 
             {/* SOS Confirm Modal */}
             {showSosConfirm && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Send SOS Alert?</h3>
@@ -464,7 +470,7 @@ export default function ActiveRide() {
 
             {/* Bus Switch Modal */}
             {showBusSwitch && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center p-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-end justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-5">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -502,7 +508,7 @@ export default function ActiveRide() {
 
             {/* Fuel Fill Modal */}
             {showFuelFill && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center p-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-end justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-5">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -529,7 +535,7 @@ export default function ActiveRide() {
 
             {/* Fuel Request Modal */}
             {showFuelRequest && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center p-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-end justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-5">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">

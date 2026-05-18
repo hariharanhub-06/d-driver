@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Droplets, X, Loader2, CheckCircle2, XCircle, Fuel } from 'lucide-react';
+import { Droplets, X, Loader2, CheckCircle2, XCircle, Fuel, Banknote, CreditCard } from 'lucide-react';
 import api from '@/lib/api';
 
 type FuelRequest = {
@@ -13,6 +13,8 @@ type FuelRequest = {
     reason?: string;
     status: 'pending' | 'approved' | 'rejected' | 'disbursed';
     admin_note?: string;
+    payment_method?: string;
+    transfer_id?: string;
     created_at?: string;
 };
 
@@ -31,6 +33,9 @@ export default function FuelRequestsPage() {
     const [tab, setTab] = useState<typeof STATUS_TABS[number]>('All');
     const [actionModal, setActionModal] = useState<{ req: FuelRequest; action: 'approve' | 'reject' | 'disburse' } | null>(null);
     const [adminNote, setAdminNote] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'account_transfer'>('cash');
+    const [transferId, setTransferId] = useState('');
+    const [transferIdError, setTransferIdError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => { fetchRequests(); }, []);
@@ -47,21 +52,39 @@ export default function FuelRequestsPage() {
         }
     };
 
+    const openModal = (req: FuelRequest, action: 'approve' | 'reject' | 'disburse') => {
+        setActionModal({ req, action });
+        setAdminNote('');
+        setPaymentMethod('cash');
+        setTransferId('');
+        setTransferIdError('');
+    };
+
     const handleAction = async () => {
         if (!actionModal) return;
+
+        if (actionModal.action === 'approve' && paymentMethod === 'account_transfer' && !transferId.trim()) {
+            setTransferIdError('Transfer ID is required for account transfer.');
+            return;
+        }
+
         setIsSubmitting(true);
         const statusMap = { approve: 'approved', reject: 'rejected', disburse: 'disbursed' };
         try {
-            await api.put(`/fuel/requests/${actionModal.req.id}`, {
+            const payload: Record<string, string | undefined> = {
                 status: statusMap[actionModal.action],
-                admin_note: adminNote,
-            });
+                admin_note: adminNote || undefined,
+            };
+            if (actionModal.action === 'approve') {
+                payload.payment_method = paymentMethod;
+                if (paymentMethod === 'account_transfer') payload.transfer_id = transferId.trim();
+            }
+            await api.put(`/fuel/requests/${actionModal.req.id}`, payload);
             setRequests(prev => prev.map(r => r.id === actionModal.req.id
-                ? { ...r, status: statusMap[actionModal.action] as FuelRequest['status'], admin_note: adminNote }
+                ? { ...r, status: statusMap[actionModal.action] as FuelRequest['status'], admin_note: adminNote, payment_method: payload.payment_method, transfer_id: payload.transfer_id }
                 : r
             ));
             setActionModal(null);
-            setAdminNote('');
         } catch { /* ignore */ }
         setIsSubmitting(false);
     };
@@ -140,16 +163,16 @@ export default function FuelRequestsPage() {
                                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             {req.status === 'pending' && (
                                                 <>
-                                                    <button onClick={() => { setActionModal({ req, action: 'approve' }); setAdminNote(''); }} className="text-xs bg-[var(--brand)] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1">
+                                                    <button onClick={() => openModal(req, 'approve')} className="text-xs bg-[var(--brand)] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1">
                                                         <CheckCircle2 className="w-3 h-3" /> Approve
                                                     </button>
-                                                    <button onClick={() => { setActionModal({ req, action: 'reject' }); setAdminNote(''); }} className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white rounded-lg px-3 py-1.5 font-semibold text-xs">
+                                                    <button onClick={() => openModal(req, 'reject')} className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white rounded-lg px-3 py-1.5 font-semibold text-xs">
                                                         <XCircle className="w-3 h-3" /> Reject
                                                     </button>
                                                 </>
                                             )}
                                             {req.status === 'approved' && (
-                                                <button onClick={() => { setActionModal({ req, action: 'disburse' }); setAdminNote(''); }} className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1">
+                                                <button onClick={() => openModal(req, 'disburse')} className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1">
                                                     <Droplets className="w-3 h-3" /> Disburse
                                                 </button>
                                             )}
@@ -164,17 +187,81 @@ export default function FuelRequestsPage() {
 
             {/* Action Modal */}
             {actionModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white capitalize">{actionModal.action} Request</h2>
                             <button onClick={() => setActionModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
                         </div>
                         <div className="p-6 space-y-4">
-                            <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-sm space-y-1">
+                            {/* Request summary */}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-sm space-y-1.5">
                                 <p className="text-slate-500 dark:text-slate-400">Driver: <span className="font-bold text-slate-800 dark:text-white">{actionModal.req.driver?.user?.name}</span></p>
-                                <p className="text-slate-500 dark:text-slate-400">Amount: <span className="font-bold text-slate-800 dark:text-white">₹{actionModal.req.amount_requested?.toLocaleString()}</span></p>
+                                <p className="text-slate-500 dark:text-slate-400">Bus: <span className="font-semibold text-slate-700 dark:text-slate-200">{actionModal.req.bus?.bus_number || '—'}</span></p>
+                                <p className="text-slate-500 dark:text-slate-400">Amount Requested: <span className="font-bold text-slate-800 dark:text-white">₹{actionModal.req.amount_requested?.toLocaleString()}</span></p>
+                                {actionModal.req.reason && <p className="text-slate-500 dark:text-slate-400">Reason: <span className="text-slate-700 dark:text-slate-300">{actionModal.req.reason}</span></p>}
                             </div>
+
+                            {/* Payment method — only for approve */}
+                            {actionModal.action === 'approve' && (
+                                <div className="space-y-3">
+                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Payment Method</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setPaymentMethod('cash'); setTransferId(''); setTransferIdError(''); }}
+                                            className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                                                paymentMethod === 'cash'
+                                                    ? 'border-[var(--brand)] bg-[var(--brand)]/5 text-[var(--brand)]'
+                                                    : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'
+                                            }`}
+                                        >
+                                            <Banknote className="w-5 h-5 shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-semibold">Cash</p>
+                                                <p className="text-xs opacity-70">Paid in hand</p>
+                                            </div>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setPaymentMethod('account_transfer'); setTransferIdError(''); }}
+                                            className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                                                paymentMethod === 'account_transfer'
+                                                    ? 'border-[var(--brand)] bg-[var(--brand)]/5 text-[var(--brand)]'
+                                                    : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'
+                                            }`}
+                                        >
+                                            <CreditCard className="w-5 h-5 shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-semibold">Account Transfer</p>
+                                                <p className="text-xs opacity-70">Bank / UPI transfer</p>
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    {paymentMethod === 'account_transfer' && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                                                Transfer ID / Reference Number <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. UTR123456789 or UPI ref ID"
+                                                className={`w-full bg-slate-50 dark:bg-slate-700/50 border rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-colors ${
+                                                    transferIdError
+                                                        ? 'border-red-400 focus:border-red-500'
+                                                        : 'border-slate-200 dark:border-slate-600 focus:border-[var(--brand)]'
+                                                }`}
+                                                value={transferId}
+                                                onChange={e => { setTransferId(e.target.value); if (e.target.value.trim()) setTransferIdError(''); }}
+                                            />
+                                            {transferIdError && <p className="mt-1.5 text-xs text-red-500">{transferIdError}</p>}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Admin note */}
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Admin Note (optional)</label>
                                 <textarea
@@ -185,6 +272,7 @@ export default function FuelRequestsPage() {
                                     onChange={e => setAdminNote(e.target.value)}
                                 />
                             </div>
+
                             <div className="flex gap-3 pt-2">
                                 <button onClick={() => setActionModal(null)} className="flex-1 flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm justify-center">Cancel</button>
                                 <button
@@ -192,7 +280,7 @@ export default function FuelRequestsPage() {
                                     disabled={isSubmitting}
                                     className={`flex-1 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${
                                         actionModal.action === 'reject'
-                                            ? 'flex items-center gap-2 bg-red-600 hover:bg-red-500'
+                                            ? 'bg-red-600 hover:bg-red-500'
                                             : actionModal.action === 'disburse'
                                             ? 'bg-emerald-600 hover:bg-emerald-700'
                                             : 'bg-[var(--brand)] hover:opacity-90'

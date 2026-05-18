@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { TourProvider } from '@/components/tour/TourProvider';
 import AdminTour from '@/components/tour/AdminTour';
+import api from '@/lib/api';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
@@ -16,6 +17,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             router.push('/login');
         }
     }, [user, loading, router]);
+
+    useEffect(() => {
+        if (!user || user.role !== 'admin') return;
+        api.get('/schools/my')
+            .then(({ data }) => {
+                const color = data?.primary_color;
+                if (color) document.documentElement.style.setProperty('--brand', color);
+            })
+            .catch(() => {});
+    }, [user]);
 
     if (loading || !user) {
         return (

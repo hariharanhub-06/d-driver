@@ -61,6 +61,12 @@ export default function DriverDashboard() {
     const [fuelSubmitting, setFuelSubmitting] = useState(false);
     const [fuelSuccess, setFuelSuccess] = useState(false);
 
+    const [showFuelFillModal, setShowFuelFillModal] = useState(false);
+    const [fillLiters, setFillLiters] = useState('');
+    const [fillKm, setFillKm] = useState('');
+    const [fillSubmitting, setFillSubmitting] = useState(false);
+    const [fillSuccess, setFillSuccess] = useState(false);
+
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);
         return () => clearInterval(timer);
@@ -164,6 +170,26 @@ export default function DriverDashboard() {
             alert(e.response?.data?.error || 'Failed to submit fuel request');
         } finally {
             setFuelSubmitting(false);
+        }
+    };
+
+    const handleFuelFill = async () => {
+        if (!fillLiters) return;
+        setFillSubmitting(true);
+        try {
+            await api.post('/fuel/fill', {
+                bus_id: driverInfo?.bus?.id,
+                liters_filled: parseFloat(fillLiters),
+                km_at_fill: fillKm ? parseFloat(fillKm) : undefined,
+            });
+            setFillSuccess(true);
+            setFillLiters('');
+            setFillKm('');
+            setTimeout(() => { setShowFuelFillModal(false); setFillSuccess(false); fetchAll(); }, 1500);
+        } catch (e: any) {
+            alert(e.response?.data?.error || 'Failed to log fuel fill');
+        } finally {
+            setFillSubmitting(false);
         }
     };
 
@@ -296,46 +322,41 @@ export default function DriverDashboard() {
                     </div>
                 )}
 
-                {/* Fuel Status */}
+                {/* Fuel Status + Actions */}
                 {driverInfo?.bus && (
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
-                        <div className="flex items-center justify-between mb-3">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 space-y-4">
+                        <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Fuel className="w-4 h-4 text-amber-500" />
-                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fuel Level</span>
+                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fuel Status</span>
                             </div>
-                            <span className="text-sm font-bold text-slate-900 dark:text-white">{Math.round(fuelLevel)}%</span>
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">
+                                {fuelLevel > 0 ? `${Math.round(fuelLevel)} L` : 'Unknown'}
+                            </span>
                         </div>
                         <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div
-                                className={`h-full rounded-full transition-all duration-1000 ${fuelLevel > 50 ? 'bg-emerald-500' : fuelLevel > 25 ? 'bg-amber-500' : 'bg-red-500'}`}
-                                style={{ width: `${Math.min(Math.max(fuelLevel, 0), 100)}%` }}
+                                className={`h-full rounded-full transition-all duration-1000 ${fuelLevel > 30 ? 'bg-emerald-500' : fuelLevel > 10 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                style={{ width: `${Math.min(Math.max((fuelLevel / (driverInfo.bus.mileage ? driverInfo.bus.mileage * 10 : 100)) * 100, 0), 100)}%` }}
                             />
                         </div>
-                        {fuelLevel < 25 && (
-                            <p className="text-red-500 dark:text-red-400 text-xs font-medium mt-2">Low fuel — plan refuel</p>
+                        {fuelLevel > 0 && fuelLevel < 10 && (
+                            <p className="text-red-500 dark:text-red-400 text-xs font-medium">Low fuel — plan refuel soon</p>
                         )}
-                    </div>
-                )}
-
-                {/* Fuel Request */}
-                {driverInfo?.bus && (
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
-                                <DollarSign className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-semibold text-slate-900 dark:text-white">Fuel Fund Request</p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">Request funds from admin</p>
-                            </div>
+                        <div className="grid grid-cols-2 gap-3 pt-1">
+                            <button
+                                onClick={() => { setShowFuelFillModal(true); setFillSuccess(false); setFillLiters(''); setFillKm(''); }}
+                                className="py-2.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm border border-amber-100 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all active:scale-95"
+                            >
+                                <Fuel className="w-4 h-4" /> Log Fuel Fill
+                            </button>
+                            <button
+                                onClick={() => { setShowFuelModal(true); setFuelSuccess(false); }}
+                                className="py-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all active:scale-95"
+                            >
+                                <DollarSign className="w-4 h-4" /> Request Fund
+                            </button>
                         </div>
-                        <button
-                            onClick={() => { setShowFuelModal(true); setFuelSuccess(false); }}
-                            className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-4 py-2 text-sm font-semibold active:scale-95 transition-all"
-                        >
-                            Request
-                        </button>
                     </div>
                 )}
 
@@ -412,7 +433,7 @@ export default function DriverDashboard() {
 
             {/* Fuel Request Modal */}
             {showFuelModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Request Fuel Fund</h3>
@@ -481,9 +502,70 @@ export default function DriverDashboard() {
                 </div>
             )}
 
+            {/* Fuel Fill Modal */}
+            {showFuelFillModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Fuel className="w-5 h-5 text-amber-500" /> Log Fuel Fill
+                            </h3>
+                            <button onClick={() => setShowFuelFillModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            {fillSuccess ? (
+                                <div className="flex flex-col items-center py-6 gap-3">
+                                    <CheckCircle className="w-12 h-12 text-emerald-500" />
+                                    <p className="text-base font-bold text-slate-900 dark:text-white">Fuel Logged!</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Bus fuel level updated</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Litres Filled <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="number"
+                                            value={fillLiters}
+                                            onChange={e => setFillLiters(e.target.value)}
+                                            placeholder="e.g. 40"
+                                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km)</label>
+                                        <input
+                                            type="number"
+                                            value={fillKm}
+                                            onChange={e => setFillKm(e.target.value)}
+                                            placeholder="e.g. 45230"
+                                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
+                                        />
+                                    </div>
+                                    <div className="flex gap-3 pt-2">
+                                        <button onClick={() => setShowFuelFillModal(false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm">
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleFuelFill}
+                                            disabled={!fillLiters || fillSubmitting}
+                                            className="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-4 py-2.5 font-semibold text-sm disabled:opacity-50"
+                                        >
+                                            {fillSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Log Fill'}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* KM Input Dialog */}
             {showKmDialog && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">
