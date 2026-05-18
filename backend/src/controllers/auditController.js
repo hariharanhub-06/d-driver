@@ -23,10 +23,10 @@ const buildDevSaExclude = (devSaIds) => {
 
 const getAuditLogs = async (req, res) => {
   try {
-    const { page = 1, limit = 50, action, targetType, schoolId, from, to } = req.query;
+    const { page = 1, limit = 50, action, targetType, schoolId, date_from: from, date_to: to } = req.query;
 
     // Non-DEV SA must never see DEV SA traces
-    const devSaIds = req.user.is_dev_sa ? [] : await getDevSaIds();
+    const devSaIds = req.user.is_dev_sa ? [] : await getDevSaIds().catch(() => []);
 
     const where = {};
     if (action) where.action = action;
@@ -89,9 +89,9 @@ const getAuditLogs = async (req, res) => {
 
 const getLoginActivity = async (req, res) => {
   try {
-    const { page = 1, limit = 50, from, to, role } = req.query;
+    const { page = 1, limit = 50, date_from: from, date_to: to, role } = req.query;
 
-    const devSaIds = req.user.is_dev_sa ? [] : await getDevSaIds();
+    const devSaIds = req.user.is_dev_sa ? [] : await getDevSaIds().catch(() => []);
 
     const where = { action: 'login' };
     if (role) where.actor_role = role;
@@ -109,15 +109,20 @@ const getLoginActivity = async (req, res) => {
       where.actor_id = { notIn: devSaIds };
     }
 
-    const [logs, total] = await Promise.all([
-      prisma.auditLog.findMany({
-        where,
-        orderBy: { created_at: 'desc' },
-        skip: (parseInt(page) - 1) * parseInt(limit),
-        take: parseInt(limit),
-      }),
-      prisma.auditLog.count({ where }),
-    ]);
+    let logs = [], total = 0;
+    try {
+      [logs, total] = await Promise.all([
+        prisma.auditLog.findMany({
+          where,
+          orderBy: { created_at: 'desc' },
+          skip: (parseInt(page) - 1) * parseInt(limit),
+          take: parseInt(limit),
+        }),
+        prisma.auditLog.count({ where }),
+      ]);
+    } catch (e) {
+      console.error('auditLog query failed (table may not exist yet):', e.message);
+    }
 
     const actorIds = [...new Set(logs.map(l => l.actor_id).filter(id => id !== 'system'))];
     const users = actorIds.length > 0
@@ -127,7 +132,7 @@ const getLoginActivity = async (req, res) => {
             ...(devSaIds.length ? { is_dev_sa: false } : {}),
           },
           select: { id: true, name: true, email: true },
-        })
+        }).catch(() => [])
       : [];
     const userMap = Object.fromEntries(users.map(u => [u.id, u]));
 

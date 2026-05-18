@@ -30,7 +30,7 @@ const logAction = async ({ req, action, targetType, targetId, schoolId = null, d
       },
     });
   } catch (e) {
-    // Never crash on audit log failure
+    console.error('AuditLog write failed:', e.message);
   }
 };
 

@@ -621,22 +621,19 @@ const getPlatformUsage = async (req, res) => {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
+    // Each query is independent — a missing table won't crash the whole response
     const [emailCount, paymentsThisMonth, studentCount, busCount] = await Promise.all([
-      prisma.emailLog.count({
-        where: { created_at: { gte: monthStart, lt: monthEnd } },
-      }),
+      prisma.emailLog.count({ where: { created_at: { gte: monthStart, lt: monthEnd } } }).catch(() => 0),
       prisma.schoolInvoice.findMany({
         where: { paid_at: { gte: monthStart, lt: monthEnd }, status: 'paid' },
         select: { total_amount: true },
-      }),
-      prisma.student.count(),
-      prisma.bus.count(),
+      }).catch(() => []),
+      prisma.student.count().catch(() => 0),
+      prisma.bus.count().catch(() => 0),
     ]);
 
     const razorpay_fees = paymentsThisMonth.reduce((sum, inv) => sum + inv.total_amount * 0.02, 0);
-    // Estimate: ~1 MB per 10 buses + 0.5 MB per 100 students
     const neon_estimated_mb = Math.round(busCount * 0.1 + studentCount * 0.005 + 50);
-    // Estimate: ~0.1 GB per 50 buses for images
     const imagekit_used_gb = parseFloat((busCount * 0.002 + studentCount * 0.0005 + 0.5).toFixed(2));
 
     res.json({
@@ -646,7 +643,7 @@ const getPlatformUsage = async (req, res) => {
       neon: { estimated_mb: neon_estimated_mb },
     });
   } catch (err) {
-    console.error(err);
+    console.error('getPlatformUsage error:', err);
     res.status(500).json({ error: 'Error fetching platform usage' });
   }
 };
