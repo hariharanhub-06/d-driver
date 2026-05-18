@@ -64,32 +64,29 @@ export default function MapComponent({ buses, center, selectedBusId }: Props) {
             buses.forEach(bus => {
                 const busIcon = L.divIcon({
                     className: '',
-                    html: `<div style="display:flex;flex-direction:column;align-items:center;">
-                        <div style="
-                            background:#FFD700;
-                            border:3px solid #1a1a1a;
-                            border-radius:8px;
-                            width:46px;height:28px;
-                            display:flex;align-items:center;justify-content:center;
-                            font-size:18px;
-                            box-shadow:0 2px 8px rgba(0,0,0,0.5);
-                            position:relative;
-                        ">🚌<div style="
-                            position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
-                            width:0;height:0;
-                            border-left:6px solid transparent;
-                            border-right:6px solid transparent;
-                            border-top:8px solid #1a1a1a;
-                        "></div></div>
-                        <div style="
-                            background:rgba(0,0,0,0.75);
-                            color:white;font-size:10px;font-weight:700;
-                            padding:2px 6px;border-radius:4px;margin-top:10px;
-                            white-space:nowrap;
-                        ">${bus.bus_number}</div>
+                    html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 8px rgba(0,0,0,0.55))">
+                      <svg width="52" height="28" viewBox="0 0 52 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="1" y="4" width="50" height="20" rx="4" fill="#FDD835" stroke="#1a1a1a" stroke-width="1.5"/>
+                        <rect x="1" y="4" width="50" height="5" rx="3" fill="#FFE57F"/>
+                        <rect x="1" y="19" width="50" height="5" rx="2" fill="#1a1a1a"/>
+                        <rect x="5" y="9" width="8" height="8" rx="1.5" fill="#1e3d6b" opacity="0.9"/>
+                        <rect x="15" y="9" width="8" height="8" rx="1.5" fill="#1e3d6b" opacity="0.9"/>
+                        <rect x="25" y="9" width="8" height="8" rx="1.5" fill="#1e3d6b" opacity="0.9"/>
+                        <rect x="35" y="9" width="7" height="8" rx="1.5" fill="#1e3d6b" opacity="0.9"/>
+                        <rect x="44" y="10" width="5" height="9" rx="2" fill="#F9A825"/>
+                        <path d="M44 13 L48 11 L49 17 L44 17 Z" fill="#1e3d6b" opacity="0.85"/>
+                        <rect x="48" y="13" width="3" height="5" rx="1" fill="#FFF9C4"/>
+                        <rect x="1" y="13" width="3" height="5" rx="1" fill="#FF4444"/>
+                        <circle cx="11" cy="25" r="3.5" fill="#111" stroke="#555" stroke-width="0.5"/>
+                        <circle cx="11" cy="25" r="1.8" fill="#333"/>
+                        <circle cx="41" cy="25" r="3.5" fill="#111" stroke="#555" stroke-width="0.5"/>
+                        <circle cx="41" cy="25" r="1.8" fill="#333"/>
+                      </svg>
+                      <div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:8px solid #FDD835;margin-top:-1px;"></div>
+                      <div style="background:rgba(10,10,20,0.82);backdrop-filter:blur(4px);color:#FDD835;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;margin-top:4px;white-space:nowrap;border:1px solid rgba(253,216,53,0.3)">${bus.bus_number}</div>
                     </div>`,
-                    iconSize: [46, 58],
-                    iconAnchor: [23, 36],
+                    iconSize: [52, 72],
+                    iconAnchor: [26, 48],
                 });
 
                 if (markersRef.current[bus.bus_id]) {
