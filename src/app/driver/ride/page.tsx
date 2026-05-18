@@ -45,6 +45,7 @@ export default function ActiveRide() {
     const [loading, setLoading] = useState(true);
     const [noTrip, setNoTrip] = useState(false);
     const [geoError, setGeoError] = useState('');
+    const [locationDenied, setLocationDenied] = useState(false);
 
     // Stop arrival attendance popup
     const [showAttendancePopup, setShowAttendancePopup] = useState(false);
@@ -103,19 +104,15 @@ export default function ActiveRide() {
     useEffect(() => {
         let watchId: number | null = null;
 
-        fetchTripData().then(() => {
-            if (!('geolocation' in navigator)) {
-                setGeoError('Geolocation is not supported by this browser.');
-                return;
-            }
-            // Trigger a one-shot request first — this shows the permission dialog immediately
+        const startTracking = () => {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     setCurrentPos([pos.coords.latitude, pos.coords.longitude]);
                     setGeoError('');
+                    setLocationDenied(false);
                 },
                 (err) => {
-                    if (err.code === 1) setGeoError('Location permission denied. Please allow location access in your browser settings and reload.');
+                    if (err.code === 1) setLocationDenied(true);
                     else setGeoError('Unable to get location. Please check your GPS signal.');
                 },
                 { enableHighAccuracy: true, timeout: 10000 }
@@ -125,6 +122,7 @@ export default function ActiveRide() {
                     const { latitude, longitude } = pos.coords;
                     setCurrentPos([latitude, longitude]);
                     setGeoError('');
+                    setLocationDenied(false);
                     const currentBusId = busIdRef.current;
                     if (currentBusId) {
                         try {
@@ -133,10 +131,37 @@ export default function ActiveRide() {
                     }
                 },
                 (err) => {
-                    if (err.code === 1) setGeoError('Location permission denied. Please allow location access in your browser settings and reload.');
+                    if (err.code === 1) setLocationDenied(true);
                 },
                 { enableHighAccuracy: true, timeout: 30000, maximumAge: 5000 }
             );
+        };
+
+        fetchTripData().then(() => {
+            if (!('geolocation' in navigator)) {
+                setGeoError('Geolocation is not supported by this browser.');
+                return;
+            }
+            // Check permission state first
+            if ('permissions' in navigator) {
+                navigator.permissions.query({ name: 'geolocation' as PermissionName }).then((result) => {
+                    if (result.state === 'denied') {
+                        setLocationDenied(true);
+                    } else {
+                        startTracking();
+                    }
+                    result.onchange = () => {
+                        if (result.state === 'granted') {
+                            setLocationDenied(false);
+                            startTracking();
+                        } else if (result.state === 'denied') {
+                            setLocationDenied(true);
+                        }
+                    };
+                });
+            } else {
+                startTracking();
+            }
         });
 
         return () => {
@@ -296,6 +321,44 @@ export default function ActiveRide() {
         );
     }
 
+    if (locationDenied) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mb-6">
+                    <AlertTriangle className="w-10 h-10 text-amber-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-3">Location Access Required</h2>
+                <p className="text-slate-400 text-sm mb-6 max-w-xs">
+                    D-Driver needs your location to track the bus and show parents where you are. Please enable location and reload.
+                </p>
+                <div className="bg-slate-800 rounded-2xl p-5 text-left mb-6 w-full max-w-xs space-y-3">
+                    <p className="text-white text-sm font-semibold">How to enable:</p>
+                    <div className="flex items-start gap-3 text-slate-400 text-sm">
+                        <span className="w-5 h-5 rounded-full bg-[var(--brand)] text-white text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                        <span>Tap the <strong className="text-white">lock icon</strong> or <strong className="text-white">ⓘ</strong> in your browser's address bar</span>
+                    </div>
+                    <div className="flex items-start gap-3 text-slate-400 text-sm">
+                        <span className="w-5 h-5 rounded-full bg-[var(--brand)] text-white text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                        <span>Tap <strong className="text-white">Location</strong> → set to <strong className="text-white">Allow</strong></span>
+                    </div>
+                    <div className="flex items-start gap-3 text-slate-400 text-sm">
+                        <span className="w-5 h-5 rounded-full bg-[var(--brand)] text-white text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                        <span>Reload this page</span>
+                    </div>
+                </div>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="bg-[var(--brand)] text-white rounded-xl px-8 py-3 font-semibold text-sm w-full max-w-xs"
+                >
+                    Reload Page
+                </button>
+                <a href="/driver/dashboard" className="mt-4 text-sm text-slate-500 hover:text-slate-300">
+                    ← Back to Dashboard
+                </a>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col w-full relative overflow-hidden">
             {/* Map */}
@@ -325,8 +388,8 @@ export default function ActiveRide() {
                 </div>
             </div>
 
-            {/* Geo error banner */}
-            {geoError && (
+            {/* Geo error banner (non-permission errors only) */}
+            {geoError && !locationDenied && (
                 <div className="fixed top-16 left-4 right-4 z-[300] bg-red-500 text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     {geoError}
