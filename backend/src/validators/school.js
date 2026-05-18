@@ -19,8 +19,10 @@ const updateSchoolSchema = z.object({
   address: z.string().optional(),
   primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   phone: z.string().optional(),
-  email_contact: z.string().email().optional(),
-  notification_email: z.string().email().optional(),
+  email_contact: z.union([z.string().email(), z.literal('')]).optional(),
+  notification_email: z.union([z.string().email(), z.literal('')]).optional(),
+  logo_url: z.string().optional(),
+  subscription_plan: z.string().optional(),
 });
 
 const updatePermissionsSchema = z.object({
