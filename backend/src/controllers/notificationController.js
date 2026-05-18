@@ -3,15 +3,9 @@ const prisma = require('../prisma');
 const getNotifications = async (req, res) => {
     try {
         const userId = req.user.id;
-        const schoolId = req.user.school_id;
 
         const notifications = await prisma.notification.findMany({
-            where: {
-                OR: [
-                    { user_id: userId },
-                    ...(schoolId ? [{ user_id: null, school_id: schoolId }] : []),
-                ],
-            },
+            where: { user_id: userId },
             orderBy: { created_at: 'desc' },
             take: 50,
         });

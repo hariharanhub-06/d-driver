@@ -9,7 +9,7 @@ import { getSocket } from '@/lib/socket';
 interface Notification {
     id: string;
     type: 'alert' | 'info' | 'success';
-    title: string;
+    title?: string;
     message: string;
     is_read: boolean;
     created_at: string;

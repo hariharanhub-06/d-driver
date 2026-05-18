@@ -121,6 +121,10 @@ export default function StudentsPage() {
         setIsSubmitting(true);
         try {
             let parent_id = formData.parent_id || undefined;
+            if (formData.parent_mode === 'new' && formData.parent_name && !formData.parent_email) {
+                setIsSubmitting(false);
+                return;
+            }
             if (formData.parent_mode === 'new' && formData.parent_email) {
                 try {
                     const res = await api.post('/users', {
@@ -192,6 +196,7 @@ export default function StudentsPage() {
 
     const canProceed = () => {
         if (step === 0) return !!formData.name;
+        if (step === 1 && formData.parent_mode === 'new' && formData.parent_name && !formData.parent_email) return false;
         return true;
     };
 
@@ -411,8 +416,13 @@ export default function StudentsPage() {
                                                     <input type="text" placeholder="e.g. Suresh Kumar" className={inputCls} value={formData.parent_name} onChange={e => setFormData({ ...formData, parent_name: e.target.value })} />
                                                 </div>
                                                 <div>
-                                                    <label className={labelCls}>Email (Login ID)</label>
-                                                    <input type="email" placeholder="parent@email.com" className={inputCls} value={formData.parent_email} onChange={e => setFormData({ ...formData, parent_email: e.target.value })} />
+                                                    <label className={labelCls}>
+                                                        Email (Login ID){formData.parent_name ? ' *' : ''}
+                                                    </label>
+                                                    <input type="email" placeholder="parent@email.com" className={`${inputCls} ${formData.parent_name && !formData.parent_email ? 'border-red-400 focus:border-red-400' : ''}`} value={formData.parent_email} onChange={e => setFormData({ ...formData, parent_email: e.target.value })} />
+                                                    {formData.parent_name && !formData.parent_email && (
+                                                        <p className="text-xs text-red-500 mt-1">Email is required to create the parent account.</p>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <label className={labelCls}>Phone</label>
