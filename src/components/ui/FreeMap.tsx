@@ -1,25 +1,37 @@
 'use client';
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { useEffect, useState } from 'react';
+import type { Icon } from 'leaflet';
+
+interface MarkerData {
+    position: [number, number];
+    title: string;
+    description?: string;
+}
 
 interface MapConfigProps {
     center: [number, number];
     zoom?: number;
-    markers?: {
-        position: [number, number];
-        title: string;
-        description?: string;
-    }[];
+    markers?: MarkerData[];
+}
+
+// Inner component — runs inside MapContainer context, safe to call useMap()
+function MapCenter({ center }: { center: [number, number] }) {
+    const map = useMap();
+    useEffect(() => {
+        map.setView(center);
+    }, [center, map]);
+    return null;
 }
 
 export default function FreeMap({ center, zoom = 14, markers = [] }: MapConfigProps) {
-    const [ready, setReady] = useState(false);
+    const [leafletIcon, setLeafletIcon] = useState<Icon | null>(null);
 
     useEffect(() => {
-        // Fix default marker icons (must run client-side only)
+        // Dynamically import leaflet to build icon — avoids SSR issues and v5 prototype conflicts
         import('leaflet').then((L) => {
-            const icon = L.default.icon({
+            const icon = L.icon({
                 iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
                 iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
                 shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -28,16 +40,11 @@ export default function FreeMap({ center, zoom = 14, markers = [] }: MapConfigPr
                 popupAnchor: [1, -34],
                 shadowSize: [41, 41],
             });
-            L.default.Marker.prototype.options.icon = icon;
-            setReady(true);
+            setLeafletIcon(icon);
         });
     }, []);
 
-    useEffect(() => {
-        if (ready) window.dispatchEvent(new Event('resize'));
-    }, [ready]);
-
-    if (!ready) {
+    if (!leafletIcon) {
         return (
             <div className="w-full h-full min-h-[400px] bg-slate-800 flex items-center justify-center">
                 <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
@@ -49,7 +56,7 @@ export default function FreeMap({ center, zoom = 14, markers = [] }: MapConfigPr
         <MapContainer
             center={center}
             zoom={zoom}
-            scrollWheelZoom={true}
+            scrollWheelZoom
             className="w-full h-full min-h-[400px] z-0"
             zoomControl={false}
         >
@@ -57,8 +64,10 @@ export default function FreeMap({ center, zoom = 14, markers = [] }: MapConfigPr
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             />
+            {/* Keeps map centered on live position updates */}
+            <MapCenter center={center} />
             {markers.map((marker, index) => (
-                <Marker key={index} position={marker.position}>
+                <Marker key={index} position={marker.position} icon={leafletIcon}>
                     <Popup>
                         <div className="font-sans">
                             <h3 className="font-bold text-slate-800">{marker.title}</h3>
