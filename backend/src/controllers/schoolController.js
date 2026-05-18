@@ -133,7 +133,8 @@ const updateSchool = async (req, res) => {
     await logAction({ req, action: 'update_school', targetType: 'school', targetId: id, schoolId: id });
     res.json(school);
   } catch (err) {
-    res.status(500).json({ error: 'Error updating school' });
+    console.error('updateSchool error:', err);
+    res.status(500).json({ error: err?.message || 'Error updating school' });
   }
 };
 
