@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, LogOut, X, Moon, Sun, DollarSign } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from 'next-themes';
@@ -41,6 +42,7 @@ interface Shift {
 export default function DriverDashboard() {
     const { user, logout } = useAuth();
     const { theme, setTheme } = useTheme();
+    const router = useRouter();
     const [currentTime, setCurrentTime] = useState(new Date());
     const [driverInfo, setDriverInfo] = useState<DriverInfo | null>(null);
     const [activeShift, setActiveShift] = useState<Shift | null>(null);
@@ -143,9 +145,19 @@ export default function DriverDashboard() {
     };
 
     const handleStartTrip = async (routeId: string) => {
+        // Ask for geolocation permission before starting
+        if ('geolocation' in navigator) {
+            await new Promise<void>((resolve) => {
+                navigator.geolocation.getCurrentPosition(
+                    () => resolve(),
+                    () => resolve(), // proceed even if denied — ride page will show error
+                    { timeout: 5000 }
+                );
+            });
+        }
         try {
             await api.post('/trips/start', { route_id: routeId });
-            await fetchAll();
+            router.push('/driver/ride');
         } catch (e: any) {
             alert(e.response?.data?.error || e.response?.data?.message || 'Failed to start trip');
         }
