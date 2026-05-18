@@ -1,6 +1,6 @@
 'use client';
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { useEffect, useState } from 'react';
 
 interface MarkerData {
@@ -13,9 +13,19 @@ interface MapConfigProps {
     center: [number, number];
     zoom?: number;
     markers?: MarkerData[];
+    followCenter?: boolean;
 }
 
-export default function FreeMap({ center, zoom = 14, markers = [] }: MapConfigProps) {
+// Imperatively pans map when center prop changes (MapContainer center is immutable after mount)
+function MapRecenter({ center, follow }: { center: [number, number]; follow: boolean }) {
+    const map = useMap();
+    useEffect(() => {
+        if (follow) map.panTo(center, { animate: true, duration: 0.5 });
+    }, [center, follow, map]);
+    return null;
+}
+
+export default function FreeMap({ center, zoom = 14, markers = [], followCenter = false }: MapConfigProps) {
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
@@ -52,6 +62,7 @@ export default function FreeMap({ center, zoom = 14, markers = [] }: MapConfigPr
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             />
+            <MapRecenter center={center} follow={followCenter} />
             {markers.map((marker, index) => (
                 <Marker key={index} position={marker.position}>
                     <Popup>

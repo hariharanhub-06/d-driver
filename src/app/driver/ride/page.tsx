@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AlertTriangle, Navigation, ChevronRight, Fuel, DollarSign, X, Bus, Wrench, Check, User } from 'lucide-react';
+import { AlertTriangle, Navigation, ChevronRight, Fuel, DollarSign, X, Bus, Wrench, Check, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { connectSocket, getSocket } from '@/lib/socket';
 import api from '@/lib/api';
@@ -44,6 +44,7 @@ export default function ActiveRide() {
     const busIdRef = useRef<string>('');
     const [loading, setLoading] = useState(true);
     const [noTrip, setNoTrip] = useState(false);
+    const [geoError, setGeoError] = useState('');
 
     // Stop arrival attendance popup
     const [showAttendancePopup, setShowAttendancePopup] = useState(false);
@@ -103,20 +104,39 @@ export default function ActiveRide() {
         let watchId: number | null = null;
 
         fetchTripData().then(() => {
-            if ('geolocation' in navigator) {
-                watchId = navigator.geolocation.watchPosition(
-                    (pos) => {
-                        const { latitude, longitude } = pos.coords;
-                        setCurrentPos([latitude, longitude]);
-                        const currentBusId = busIdRef.current;
-                        if (currentBusId) {
-                            getSocket().emit('update-location', { busId: currentBusId, lat: latitude, lng: longitude });
-                        }
-                    },
-                    () => {},
-                    { enableHighAccuracy: true }
-                );
+            if (!('geolocation' in navigator)) {
+                setGeoError('Geolocation is not supported by this browser.');
+                return;
             }
+            // Trigger a one-shot request first — this shows the permission dialog immediately
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    setCurrentPos([pos.coords.latitude, pos.coords.longitude]);
+                    setGeoError('');
+                },
+                (err) => {
+                    if (err.code === 1) setGeoError('Location permission denied. Please allow location access in your browser settings and reload.');
+                    else setGeoError('Unable to get location. Please check your GPS signal.');
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+            watchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    setCurrentPos([latitude, longitude]);
+                    setGeoError('');
+                    const currentBusId = busIdRef.current;
+                    if (currentBusId) {
+                        try {
+                            getSocket().emit('update-location', { busId: currentBusId, lat: latitude, lng: longitude });
+                        } catch { /* socket unavailable */ }
+                    }
+                },
+                (err) => {
+                    if (err.code === 1) setGeoError('Location permission denied. Please allow location access in your browser settings and reload.');
+                },
+                { enableHighAccuracy: true, timeout: 30000, maximumAge: 5000 }
+            );
         });
 
         return () => {
@@ -280,7 +300,7 @@ export default function ActiveRide() {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col w-full relative overflow-hidden">
             {/* Map */}
             <div className="flex-1 bg-slate-200 dark:bg-slate-800 relative z-0" style={{ minHeight: '60vh' }}>
-                <FreeMap center={currentPos} zoom={15} markers={mapMarkers} />
+                <FreeMap center={currentPos} zoom={15} markers={mapMarkers} followCenter />
 
                 <button
                     onClick={() => setShowSosConfirm(true)}
@@ -289,48 +309,80 @@ export default function ActiveRide() {
                     SOS
                 </button>
 
-                <button
-                    onClick={() => setShowBusSwitch(true)}
-                    className="absolute top-4 left-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white px-4 py-2 rounded-xl flex items-center gap-2 z-[400] text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 shadow-sm"
-                >
-                    <Wrench className="w-4 h-4" /> Switch Bus
-                </button>
+                <div className="absolute top-4 left-4 flex gap-2 z-[400]">
+                    <a
+                        href="/driver/dashboard"
+                        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white px-3 py-2 rounded-xl flex items-center gap-1.5 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 shadow-sm"
+                    >
+                        <ArrowLeft className="w-4 h-4" /> Dashboard
+                    </a>
+                    <button
+                        onClick={() => setShowBusSwitch(true)}
+                        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white px-3 py-2 rounded-xl flex items-center gap-1.5 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 shadow-sm"
+                    >
+                        <Wrench className="w-4 h-4" /> Switch Bus
+                    </button>
+                </div>
             </div>
+
+            {/* Geo error banner */}
+            {geoError && (
+                <div className="fixed top-16 left-4 right-4 z-[300] bg-red-500 text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    {geoError}
+                </div>
+            )}
 
             {/* Bottom control sheet */}
             <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl border-t border-slate-100 dark:border-slate-700 p-5 z-20">
                 <div className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-4" />
 
-                <div className="flex items-start justify-between mb-4">
-                    <div>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Current Stop</p>
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <Navigation className="w-5 h-5 text-[var(--brand)] shrink-0" />
-                            {currentStop?.name || 'No active stop'}
-                        </h2>
-                        {currentStop && (
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                {getStudentsAtStop(currentStop.id).length} students at this stop
-                            </p>
-                        )}
-                    </div>
-                    {nextStop && (
-                        <div className="text-right">
-                            <p className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Next</p>
-                            <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                                {nextStop.name} <ChevronRight className="w-3 h-3" />
-                            </p>
+                {/* Trip complete state — all stops done */}
+                {!currentStop ? (
+                    <div className="text-center py-2 mb-4">
+                        <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Check className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                         </div>
-                    )}
-                </div>
+                        <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">All Stops Completed!</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">The route is complete. You can end the trip and return to your dashboard.</p>
+                        <a
+                            href="/driver/dashboard"
+                            className="flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-3 font-bold text-sm transition-all active:scale-95 w-full"
+                        >
+                            End Trip — Go to Dashboard
+                        </a>
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex items-start justify-between mb-4">
+                            <div>
+                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Current Stop</p>
+                                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <Navigation className="w-5 h-5 text-[var(--brand)] shrink-0" />
+                                    {currentStop.name}
+                                </h2>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                    {getStudentsAtStop(currentStop.id).length} students at this stop
+                                </p>
+                            </div>
+                            {nextStop && (
+                                <div className="text-right">
+                                    <p className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Next</p>
+                                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                                        {nextStop.name} <ChevronRight className="w-3 h-3" />
+                                    </p>
+                                </div>
+                            )}
+                        </div>
 
-                <button
-                    onClick={handleArrivedAtStop}
-                    disabled={!currentStop}
-                    className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center mb-3 disabled:opacity-50"
-                >
-                    {getStudentsAtStop(currentStop?.id || '').length > 0 ? 'Arrived — Mark Attendance' : 'Arrived at Stop'}
-                </button>
+                        <button
+                            onClick={handleArrivedAtStop}
+                            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center mb-3"
+                        >
+                            {getStudentsAtStop(currentStop.id).length > 0 ? 'Arrived — Mark Attendance' : 'Arrived at Stop'}
+                        </button>
+                    </>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                     <button
