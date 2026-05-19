@@ -6,22 +6,23 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 
+interface PerSchoolEntry {
+    school_id: string;
+    name: string;
+    plan_name?: string | null;
+    bus_count: number;
+    student_count: number;
+    this_month_amount: number;
+    status: string;
+}
+
 interface RevenueData {
+    total_billed?: number;
     total_collected?: number;
     total_overdue?: number;
     active_schools?: number;
-    total_students?: number;
-    total_buses?: number;
-    monthly_breakdown?: { month: string; amount: number }[];
-    per_school?: {
-        id: string;
-        name: string;
-        plan?: string;
-        buses?: number;
-        students?: number;
-        this_month?: number;
-        status?: string;
-    }[];
+    monthly_revenue?: { month: string; billed: number; collected: number }[];
+    per_school?: PerSchoolEntry[];
 }
 
 export default function RevenuePage() {
@@ -49,8 +50,10 @@ export default function RevenuePage() {
     const mrr = data.total_collected || 0;
     const arr = mrr * 12;
     const overdue = data.total_overdue || 0;
-    const activeSchoolCount = data.active_schools ?? schools.filter(s => s.status === 'Active').length;
-    const totalStudents = data.total_students ?? schools.reduce((sum, s) => sum + (s.students?.length || 0), 0);
+    const activeSchoolCount = data.active_schools ?? schools.filter(s => s.status === 'active').length;
+    const totalStudents = data.per_school
+        ? data.per_school.reduce((sum, s) => sum + s.student_count, 0)
+        : schools.reduce((sum, s) => sum + (s._count?.students || 0), 0);
 
     const heroMetrics = [
         { label: 'MRR', value: `₹${(mrr / 1000).toFixed(1)}K`, icon: IndianRupee, iconColor: 'text-[var(--brand)]', bg: 'bg-[var(--brand)]/10' },
@@ -60,24 +63,21 @@ export default function RevenuePage() {
         { label: 'Total Students', value: totalStudents.toLocaleString('en-IN'), icon: Users, iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30' },
     ];
 
-    const monthlyData: { month: string; amount: number }[] = data.monthly_breakdown && data.monthly_breakdown.length > 0
-        ? data.monthly_breakdown
-        : (() => {
-            const months = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
-            return months.map((month, i) => ({ month, amount: Math.round((mrr / 6) * (0.8 + i * 0.05)) }));
-        })();
+    const monthlyData = data.monthly_revenue && data.monthly_revenue.length > 0
+        ? data.monthly_revenue.map(m => ({ month: m.month.slice(5), billed: m.billed, collected: m.collected }))
+        : [];
 
     const perSchool = data.per_school && data.per_school.length > 0
         ? data.per_school
         : schools.map(s => ({
-            id: s.id,
+            school_id: s.id,
             name: s.name,
-            plan: s.subscription_plan || 'Basic',
-            buses: s.buses?.length || 0,
-            students: s.students?.length || 0,
-            this_month: undefined as number | undefined,
-            status: s.status,
-        }));
+            plan_name: s.subscription_plan || 'Basic',
+            bus_count: s._count?.buses || 0,
+            student_count: s._count?.students || 0,
+            this_month_amount: 0,
+            status: 'no_invoice',
+        } as PerSchoolEntry));
 
     return (
         <div className="space-y-6 animate-in">
@@ -154,7 +154,7 @@ export default function RevenuePage() {
                             </thead>
                             <tbody>
                                 {perSchool.map(s => (
-                                    <tr key={s.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                    <tr key={s.school_id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center shrink-0">
@@ -164,31 +164,33 @@ export default function RevenuePage() {
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                            <span className="text-xs font-medium text-[var(--brand)] bg-[var(--brand)]/10 px-2 py-0.5 rounded-full uppercase">{s.plan || 'Basic'}</span>
+                                            <span className="text-xs font-medium text-[var(--brand)] bg-[var(--brand)]/10 px-2 py-0.5 rounded-full uppercase">{s.plan_name || 'Basic'}</span>
                                         </td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                             <div className="flex items-center gap-1.5">
                                                 <Bus className="w-3.5 h-3.5 text-slate-400" />
-                                                <span className="font-medium">{s.buses ?? '—'}</span>
+                                                <span className="font-medium">{s.bus_count}</span>
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                             <div className="flex items-center gap-1.5">
                                                 <Users className="w-3.5 h-3.5 text-slate-400" />
-                                                <span className="font-medium">{s.students ?? '—'}</span>
+                                                <span className="font-medium">{s.student_count}</span>
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">
-                                            {s.this_month !== undefined ? `₹${s.this_month.toLocaleString('en-IN')}` : '—'}
+                                            {s.this_month_amount > 0 ? `₹${s.this_month_amount.toLocaleString('en-IN')}` : '—'}
                                         </td>
                                         <td className="px-4 py-3">
                                             <span className={cn(
                                                 'rounded-full px-2.5 py-0.5 text-xs font-medium',
-                                                (s.status || 'Active') === 'Active'
+                                                s.status === 'paid'
                                                     ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                                    : s.status === 'no_invoice'
+                                                    ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
                                                     : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                                             )}>
-                                                {s.status || 'Active'}
+                                                {s.status === 'no_invoice' ? 'No Invoice' : s.status}
                                             </span>
                                         </td>
                                     </tr>
