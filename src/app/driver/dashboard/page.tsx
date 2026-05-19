@@ -10,6 +10,7 @@ import api from '@/lib/api';
 interface DriverRoute {
     id: string;
     name: string;
+    route_type?: string;
 }
 
 interface DriverInfo {
@@ -66,6 +67,9 @@ export default function DriverDashboard() {
     const [showFuelFillModal, setShowFuelFillModal] = useState(false);
     const [fillLiters, setFillLiters] = useState('');
     const [fillKm, setFillKm] = useState('');
+
+    const [pendingRouteId, setPendingRouteId] = useState<string | null>(null);
+    const [showRouteTypeModal, setShowRouteTypeModal] = useState(false);
     const [fillSubmitting, setFillSubmitting] = useState(false);
     const [fillSuccess, setFillSuccess] = useState(false);
 
@@ -144,19 +148,21 @@ export default function DriverDashboard() {
         }
     };
 
-    const handleStartTrip = async (routeId: string) => {
-        // Ask for geolocation permission before starting
+    const handleStartTrip = (routeId: string) => {
+        setPendingRouteId(routeId);
+        setShowRouteTypeModal(true);
+    };
+
+    const confirmStartTrip = async (routeType: string) => {
+        setShowRouteTypeModal(false);
+        if (!pendingRouteId) return;
         if ('geolocation' in navigator) {
             await new Promise<void>((resolve) => {
-                navigator.geolocation.getCurrentPosition(
-                    () => resolve(),
-                    () => resolve(), // proceed even if denied — ride page will show error
-                    { timeout: 5000 }
-                );
+                navigator.geolocation.getCurrentPosition(() => resolve(), () => resolve(), { timeout: 5000 });
             });
         }
         try {
-            await api.post('/trips/start', { route_id: routeId });
+            await api.post('/trips/start', { route_id: pendingRouteId, route_type: routeType });
             router.push('/driver/ride');
         } catch (e: any) {
             alert(e.response?.data?.error || e.response?.data?.message || 'Failed to start trip');
@@ -620,6 +626,40 @@ export default function DriverDashboard() {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Morning / Afternoon route type selector */}
+            {showRouteTypeModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-xs p-6">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-1">Select Trip Type</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">Which route are you running?</p>
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            <button
+                                onClick={() => confirmStartTrip('morning')}
+                                className="flex flex-col items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500 rounded-xl p-4 transition-all active:scale-95"
+                            >
+                                <span className="text-2xl">🌅</span>
+                                <span className="text-sm font-bold text-amber-700 dark:text-amber-400">Morning</span>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">Pickup route</span>
+                            </button>
+                            <button
+                                onClick={() => confirmStartTrip('afternoon')}
+                                className="flex flex-col items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500 rounded-xl p-4 transition-all active:scale-95"
+                            >
+                                <span className="text-2xl">🌆</span>
+                                <span className="text-sm font-bold text-blue-700 dark:text-blue-400">Afternoon</span>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">Drop route</span>
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setShowRouteTypeModal(false)}
+                            className="w-full py-2.5 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </div>
             )}

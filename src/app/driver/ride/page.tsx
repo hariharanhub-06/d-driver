@@ -38,9 +38,10 @@ interface TripData {
 
 export default function ActiveRide() {
     const { user } = useAuth();
-    const [currentPos, setCurrentPos] = useState<[number, number]>([12.9716, 77.5946]);
+    const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
     const [tripData, setTripData] = useState<TripData | null>(null);
     const [busId, setBusId] = useState<string>('');
+    const [busNumber, setBusNumber] = useState<string>('');
     const busIdRef = useRef<string>('');
     const [loading, setLoading] = useState(true);
     const [noTrip, setNoTrip] = useState(false);
@@ -73,14 +74,10 @@ export default function ActiveRide() {
                 bid = driverRes.data?.bus?.id ? String(driverRes.data.bus.id) : '';
                 if (bid) {
                     setBusId(bid);
+                    setBusNumber(driverRes.data?.bus?.bus_number || '');
                     busIdRef.current = bid;
                     connectSocket(bid);
-                    try {
-                        const locRes = await api.get(`/location/bus/${bid}`);
-                        if (locRes.data?.latitude) {
-                            setCurrentPos([locRes.data.latitude, locRes.data.longitude]);
-                        }
-                    } catch { /* no saved location yet */ }
+                    // Don't use stale DB location — GPS watchPosition sets real position
                 }
             } catch { /* driver profile unavailable */ }
 
@@ -291,8 +288,9 @@ export default function ActiveRide() {
         }
     };
 
+    const mapCenter: [number, number] = currentPos || [20.5937, 78.9629]; // India center as fallback
     const mapMarkers = [
-        { position: currentPos, title: `Bus ${busId || ''}`, isBus: true },
+        ...(currentPos ? [{ position: currentPos, title: busNumber || `Bus ${busId.slice(0, 6)}`, isBus: true }] : []),
         ...stops
             .filter(s => s.lat && s.lng)
             .map(s => ({ position: [s.lat!, s.lng!] as [number, number], title: s.name, stopNumber: s.sequence })),
@@ -363,7 +361,7 @@ export default function ActiveRide() {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col w-full relative overflow-hidden">
             {/* Map */}
             <div className="flex-1 bg-slate-200 dark:bg-slate-800 relative z-0" style={{ minHeight: '60vh' }}>
-                <FreeMap center={currentPos} zoom={15} markers={mapMarkers} followCenter />
+                <FreeMap center={mapCenter} zoom={currentPos ? 15 : 5} markers={mapMarkers} followCenter={!!currentPos} />
 
                 <button
                     onClick={() => setShowSosConfirm(true)}
