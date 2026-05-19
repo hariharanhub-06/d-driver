@@ -71,9 +71,9 @@ const studentSchema = z.object({
 });
 
 const fuelFillSchema = z.object({
-  bus_id: z.string().uuid(),
+  bus_id: z.string().uuid().optional(),
   liters_filled: z.number().positive(),
-  km_at_fill: z.number().nonnegative(),
+  km_at_fill: z.number().nonnegative().optional(),
 });
 
 const fuelRequestSchema = z.object({

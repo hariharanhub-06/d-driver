@@ -128,4 +128,19 @@ const myRequests = async (req, res) => {
   res.json({ requests });
 };
 
-module.exports = { recordFuelFill, requestFuel, listRequests, updateRequest, myRequests };
+// GET /api/v1/fuel/fills — admin sees all fill entries for their school
+const listFills = async (req, res) => {
+  const schoolId = req.user.school_id || req.query.school_id;
+  const fills = await prisma.fuelFillEntry.findMany({
+    where: schoolId ? { school_id: schoolId } : {},
+    orderBy: { filled_at: 'desc' },
+    take: 200,
+    include: {
+      driver: { include: { user: { select: { name: true } } } },
+      bus: { select: { bus_number: true } },
+    },
+  });
+  res.json(fills);
+};
+
+module.exports = { recordFuelFill, requestFuel, listRequests, updateRequest, myRequests, listFills };

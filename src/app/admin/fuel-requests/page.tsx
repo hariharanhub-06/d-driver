@@ -29,6 +29,7 @@ const statusBadge = (s: string) => {
 
 export default function FuelRequestsPage() {
     const [requests, setRequests] = useState<FuelRequest[]>([]);
+    const [fillEntries, setFillEntries] = useState<{ liters_filled: number }[]>([]);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState<typeof STATUS_TABS[number]>('All');
     const [actionModal, setActionModal] = useState<{ req: FuelRequest; action: 'approve' | 'reject' | 'disburse' } | null>(null);
@@ -43,8 +44,18 @@ export default function FuelRequestsPage() {
     const fetchRequests = async () => {
         setLoading(true);
         try {
-            const { data } = await api.get('/fuel/requests');
-            setRequests(Array.isArray(data) ? data : (Array.isArray(data?.requests) ? data.requests : []));
+            const [reqRes, fillRes] = await Promise.allSettled([
+                api.get('/fuel/requests'),
+                api.get('/fuel/fills'),
+            ]);
+            if (reqRes.status === 'fulfilled') {
+                const d = reqRes.value.data;
+                setRequests(Array.isArray(d) ? d : (Array.isArray(d?.requests) ? d.requests : []));
+            }
+            if (fillRes.status === 'fulfilled') {
+                const d = fillRes.value.data;
+                setFillEntries(Array.isArray(d) ? d : []);
+            }
         } catch {
             setRequests([]);
         } finally {
@@ -91,6 +102,18 @@ export default function FuelRequestsPage() {
 
     const filtered = requests.filter(r => tab === 'All' || r.status === tab);
 
+    // Summary calculations
+    const totalDisbursed = requests
+        .filter(r => r.status === 'disbursed')
+        .reduce((sum, r) => sum + (r.amount_requested || 0), 0);
+    const totalApproved = requests
+        .filter(r => r.status === 'approved')
+        .reduce((sum, r) => sum + (r.amount_requested || 0), 0);
+    const totalPending = requests
+        .filter(r => r.status === 'pending')
+        .reduce((sum, r) => sum + (r.amount_requested || 0), 0);
+    const totalLitersLogged = fillEntries.reduce((sum, f) => sum + (f.liters_filled || 0), 0);
+
     return (
         <div className="space-y-6 animate-in">
             {/* Header */}
@@ -98,6 +121,30 @@ export default function FuelRequestsPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Fuel Requests</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Review and process driver fuel reimbursement requests.</p>
+                </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Funds Disbursed</p>
+                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">₹{totalDisbursed.toLocaleString('en-IN')}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Cash given to drivers</p>
+                </div>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Fuel Logged</p>
+                    <p className="text-2xl font-bold text-[var(--brand)]">{totalLitersLogged.toFixed(1)} L</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{fillEntries.length} fill{fillEntries.length !== 1 ? 's' : ''} recorded</p>
+                </div>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Approved (To Give)</p>
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">₹{totalApproved.toLocaleString('en-IN')}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Approved, not yet given</p>
+                </div>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Awaiting Approval</p>
+                    <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">₹{totalPending.toLocaleString('en-IN')}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{requests.filter(r => r.status === 'pending').length} pending</p>
                 </div>
             </div>
 
