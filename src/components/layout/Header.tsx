@@ -2,11 +2,20 @@
 
 import { Menu, Search, Bell, User, Sun, Moon, LogOut, Settings, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { useTour } from '@/components/tour/TourProvider';
+import api from '@/lib/api';
+
+interface RealNotification {
+    id: string;
+    message: string;
+    type: string;
+    is_read: boolean;
+    created_at: string;
+}
 
 export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
     const { user, logout } = useAuth();
@@ -14,6 +23,8 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
     const { theme, setTheme } = useTheme();
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [notifications, setNotifications] = useState<RealNotification[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     // useTour returns a no-op startTour when called outside TourProvider (safe default context)
     const { startTour } = useTour();
@@ -22,11 +33,39 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
         setTheme(theme === 'dark' ? 'light' : 'dark');
     };
 
-    const notifications = [
-        { id: 1, title: 'Bus #12 is 1km away', time: '2 mins ago', type: 'info' },
-        { id: 2, title: 'Alex Johnson marked Present', time: '5 mins ago', type: 'success' },
-        { id: 3, title: 'Stop Change Request: Sarah Williams', time: '1 hour ago', type: 'warning' },
-    ];
+    const fetchNotifications = useCallback(async () => {
+        try {
+            const res = await api.get('/notifications?limit=5');
+            const data = Array.isArray(res.data) ? res.data : (res.data?.notifications || []);
+            setNotifications(data);
+            setUnreadCount(data.filter((n: RealNotification) => !n.is_read).length);
+        } catch { /* silent */ }
+    }, []);
+
+    useEffect(() => {
+        if (!user) return;
+        fetchNotifications();
+        const interval = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(interval);
+    }, [user, fetchNotifications]);
+
+    const markAllRead = async () => {
+        try {
+            await api.post('/notifications/mark-all-read');
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            setUnreadCount(0);
+        } catch { /* silent */ }
+    };
+
+    const timeAgo = (dateStr: string) => {
+        const diff = Date.now() - new Date(dateStr).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'just now';
+        if (mins < 60) return `${mins} min ago`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `${hrs}h ago`;
+        return `${Math.floor(hrs / 24)}d ago`;
+    };
 
     return (
         <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between px-4 sticky top-0 z-[100]">
@@ -83,26 +122,37 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                         )}
                     >
                         <Bell size={18} />
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800" />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 rounded-full border-2 border-white dark:border-slate-800 text-white text-[9px] font-bold flex items-center justify-center px-0.5">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
                     </button>
 
                     {isNotificationOpen && (
                         <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden animate-in z-50">
                             <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-widest">Notifications</span>
-                                <span className="text-xs text-[var(--brand)] font-medium cursor-pointer hover:opacity-80">Mark all read</span>
+                                {unreadCount > 0 && (
+                                    <span onClick={markAllRead} className="text-xs text-[var(--brand)] font-medium cursor-pointer hover:opacity-80">Mark all read</span>
+                                )}
                             </div>
                             <div className="max-h-[300px] overflow-y-auto">
-                                {notifications.map(n => (
-                                    <div key={n.id} className="p-4 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group">
+                                {notifications.length === 0 ? (
+                                    <div className="p-6 text-center text-sm text-slate-400">No notifications yet</div>
+                                ) : notifications.map(n => (
+                                    <div key={n.id} className={cn(
+                                        'p-4 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group',
+                                        !n.is_read && 'bg-[var(--brand)]/5'
+                                    )}>
                                         <div className="flex gap-3">
                                             <div className={cn(
                                                 'w-2 h-2 rounded-full mt-1.5 shrink-0',
-                                                n.type === 'info' ? 'bg-blue-500' : n.type === 'success' ? 'bg-emerald-500' : 'bg-orange-500'
+                                                n.type === 'alert' ? 'bg-red-500' : n.type === 'success' ? 'bg-emerald-500' : 'bg-blue-500'
                                             )} />
                                             <div>
-                                                <p className="text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:text-[var(--brand)] transition-colors">{n.title}</p>
-                                                <p className="text-xs text-slate-400 mt-0.5">{n.time}</p>
+                                                <p className="text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:text-[var(--brand)] transition-colors">{n.message}</p>
+                                                <p className="text-xs text-slate-400 mt-0.5">{timeAgo(n.created_at)}</p>
                                             </div>
                                         </div>
                                     </div>

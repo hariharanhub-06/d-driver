@@ -18,6 +18,26 @@ const updateLocation = async (req, res) => {
         }
         const busId = driver.assigned_bus_id;
 
+        // Deduct fuel based on distance since last ping
+        try {
+            const prevLocation = await prisma.location.findFirst({
+                where: { bus_id: busId },
+                orderBy: { timestamp: 'desc' },
+            });
+            const bus = await prisma.bus.findUnique({ where: { id: busId }, select: { mileage: true, fuel_liters: true } });
+            if (prevLocation && bus?.mileage && bus.mileage > 0 && bus.fuel_liters !== null) {
+                const distKm = distanceMeters(
+                    parseFloat(latitude), parseFloat(longitude),
+                    prevLocation.latitude, prevLocation.longitude
+                ) / 1000;
+                if (distKm > 0.01) { // ignore micro-movements < 10 m
+                    const fuelUsed = distKm / bus.mileage;
+                    const newFuel = Math.max(0, bus.fuel_liters - fuelUsed);
+                    await prisma.bus.update({ where: { id: busId }, data: { fuel_liters: newFuel } });
+                }
+            }
+        } catch { /* non-critical — don't block location update */ }
+
         const location = await prisma.location.create({
             data: {
                 bus_id: busId,

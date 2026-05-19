@@ -21,7 +21,7 @@ const recordFuelFill = async (req, res) => {
   if (!bus_id) bus_id = driver.bus?.id || driver.assigned_bus_id;
   if (!bus_id) return res.status(400).json({ error: 'No bus assigned to this driver' });
 
-  const updateData = { fuel_liters: liters_filled };
+  const updateData = { fuel_liters: { increment: liters_filled } };
   if (km_at_fill) updateData.last_fuel_km = km_at_fill;
 
   const [entry] = await prisma.$transaction([
