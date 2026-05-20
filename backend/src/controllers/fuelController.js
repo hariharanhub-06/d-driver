@@ -73,7 +73,7 @@ const listRequests = async (req, res) => {
     take: 100,
     include: {
       driver: { include: { user: { select: { name: true } } } },
-      bus: { select: { bus_number: true } },
+      bus: { select: { bus_number: true, fuel_liters: true } },
     },
   });
   res.json({ requests });

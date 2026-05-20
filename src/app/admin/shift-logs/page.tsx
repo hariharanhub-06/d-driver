@@ -55,6 +55,13 @@ export default function ShiftLogsPage() {
 
     const handleFilterApply = () => { fetchShifts(); };
 
+    const fmtTime = (s?: string) => {
+        if (!s) return '—';
+        try {
+            return new Date(s).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+        } catch { return '—'; }
+    };
+
     const toggleExpand = (id: string) => {
         setExpandedId(prev => prev === id ? null : id);
     };
@@ -140,8 +147,8 @@ export default function ShiftLogsPage() {
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                             {shift.date ? new Date(shift.date).toLocaleDateString('en-IN') : '—'}
                                         </td>
-                                        <td className="px-4 py-3 font-mono text-xs text-emerald-600 dark:text-emerald-400 font-semibold">{shift.start_time || '—'}</td>
-                                        <td className="px-4 py-3 font-mono text-xs text-amber-600 dark:text-amber-400 font-semibold">{shift.end_time || '—'}</td>
+                                        <td className="px-4 py-3 font-mono text-xs text-emerald-600 dark:text-emerald-400 font-semibold">{fmtTime(shift.start_time)}</td>
+                                        <td className="px-4 py-3 font-mono text-xs text-amber-600 dark:text-amber-400 font-semibold">{fmtTime(shift.end_time)}</td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-bold">{shift.total_km != null ? `${shift.total_km} km` : '—'}</td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                             <span className={`${statusBadge(shift.status)} capitalize`}>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Bus, Navigation, Clock, MapPin, Users, X, UserPlus, Loader2, Check } from 'lucide-react';
+import { Bus, Navigation, Clock, MapPin, Users, X, UserPlus, Loader2, Check, WifiOff } from 'lucide-react';
 import api from '@/lib/api';
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
@@ -36,11 +36,8 @@ interface Trip {
     driver?: { user?: { name: string } };
 }
 
-interface ActiveBus {
+interface LocationEntry {
     bus_id: string;
-    bus_number: string;
-    driver_name: string;
-    route_name: string;
     latitude: number;
     longitude: number;
     timestamp: string;
@@ -76,8 +73,8 @@ function timeAgo(ts: string): string {
 }
 
 export default function TrackingPage() {
-    const [activeBuses, setActiveBuses] = useState<ActiveBus[]>([]);
     const [trips, setTrips] = useState<Trip[]>([]);
+    const [locations, setLocations] = useState<LocationEntry[]>([]);
     const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
     const [routeStops, setRouteStops] = useState<StopPin[]>([]);
     const [selectedStop, setSelectedStop] = useState<SelectedStop | null>(null);
@@ -107,23 +104,13 @@ export default function TrackingPage() {
         try {
             const { data } = await api.get('/location/active');
             const raw: any[] = data || [];
-            const merged: ActiveBus[] = raw.map(item => {
-                const busId = item.bus_id || item.busId || item.location?.bus_id;
-                const lat = item.latitude ?? item.location?.latitude;
-                const lng = item.longitude ?? item.location?.longitude;
-                const ts = item.timestamp || item.location?.timestamp || '';
-                const trip = tripsRef.current.find(t => t.bus_id === busId);
-                return {
-                    bus_id: busId,
-                    bus_number: trip?.bus?.bus_number || busId,
-                    driver_name: trip?.driver?.user?.name || 'Unknown Driver',
-                    route_name: trip?.route?.name || 'Unknown Route',
-                    latitude: lat,
-                    longitude: lng,
-                    timestamp: ts,
-                };
-            }).filter(b => b.latitude != null && b.longitude != null);
-            setActiveBuses(merged);
+            const parsed: LocationEntry[] = raw.map(item => ({
+                bus_id: item.bus_id || item.busId || item.location?.bus_id,
+                latitude: item.latitude ?? item.location?.latitude,
+                longitude: item.longitude ?? item.location?.longitude,
+                timestamp: item.timestamp || item.location?.timestamp || '',
+            })).filter(l => l.bus_id && l.latitude != null && l.longitude != null);
+            setLocations(parsed);
             setError('');
         } catch {
             setError('Unable to fetch live positions. Retrying...');
@@ -154,15 +141,14 @@ export default function TrackingPage() {
         }
         const trip = trips.find(t => t.bus_id === selectedBusId);
         if (trip?.route?.stops?.length) {
-            const pins: StopPin[] = trip.route.stops.map(s => ({
+            setRouteStops(trip.route.stops.map(s => ({
                 id: s.id,
                 name: s.name,
                 lat: s.latitude,
                 lng: s.longitude,
                 sequence: s.sequence,
                 student_count: trip.route!.students?.filter(st => st.stop_id === s.id).length ?? 0,
-            }));
-            setRouteStops(pins);
+            })));
         } else {
             setRouteStops([]);
         }
@@ -195,16 +181,15 @@ export default function TrackingPage() {
             });
             setAssignSuccess(true);
             setAssignStudentId('');
-            // Refresh trips to update student list
             await fetchTrips();
         } catch {
-            // silent — user can retry
+            // silent
         } finally {
             setAssignLoading(false);
         }
     };
 
-    // After trips refresh, update selectedStop students
+    // Refresh stop students after trips reload
     useEffect(() => {
         if (!selectedStop) return;
         const trip = trips.find(t => t.bus_id === selectedBusId);
@@ -213,21 +198,42 @@ export default function TrackingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [trips]);
 
-    const mapCenter: [number, number] | undefined =
-        activeBuses.length > 0 ? [activeBuses[0].latitude, activeBuses[0].longitude] : undefined;
+    // Bus list = all active trips; GPS data merged by bus_id
+    const busListItems = trips.map(trip => {
+        const loc = locations.find(l => l.bus_id === trip.bus_id);
+        return {
+            bus_id: trip.bus_id,
+            bus_number: trip.bus?.bus_number || trip.bus_id,
+            driver_name: trip.driver?.user?.name || 'Unknown Driver',
+            route_name: trip.route?.name || 'Unknown Route',
+            hasGps: !!loc,
+            latitude: loc?.latitude,
+            longitude: loc?.longitude,
+            timestamp: loc?.timestamp || '',
+        };
+    });
 
-    const mapBuses = activeBuses.map(b => ({
-        bus_id: b.bus_id,
-        bus_number: b.bus_number,
-        latitude: b.latitude,
-        longitude: b.longitude,
-        timestamp: b.timestamp,
-    }));
+    // Only buses with GPS go on the map
+    const mapBuses = busListItems
+        .filter(b => b.hasGps)
+        .map(b => ({
+            bus_id: b.bus_id,
+            bus_number: b.bus_number,
+            latitude: b.latitude!,
+            longitude: b.longitude!,
+            timestamp: b.timestamp,
+        }));
 
-    // Students not already at this stop (for assign dropdown)
+    const mapCenter: [number, number] | undefined = mapBuses.length > 0
+        ? [mapBuses[0].latitude, mapBuses[0].longitude]
+        : undefined;
+
     const assignableStudents = allStudents.filter(
         s => !selectedStop?.students.some(ss => ss.id === s.id)
     );
+
+    const activeCount = busListItems.length;
+    const gpsCount = mapBuses.length;
 
     return (
         <div className="space-y-6 animate-in">
@@ -235,13 +241,13 @@ export default function TrackingPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Live Tracking</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Real-time GPS positions — click a stop pin to see students
+                        Real-time GPS — click a stop pin to see students
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
-                        {activeBuses.length} Active
+                        {activeCount} Trip{activeCount !== 1 ? 's' : ''} · {gpsCount} GPS
                     </span>
                 </div>
             </div>
@@ -251,20 +257,20 @@ export default function TrackingPage() {
             )}
 
             <div className="flex h-[calc(100vh-200px)] gap-4">
-                {/* Bus list */}
+                {/* Bus list — derived from trips, always shows active trips */}
                 <div className="w-72 shrink-0 overflow-y-auto space-y-3 pr-1">
                     {loading ? (
                         <div className="flex justify-center py-16">
                             <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                         </div>
-                    ) : activeBuses.length === 0 ? (
+                    ) : busListItems.length === 0 ? (
                         <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
                             <Bus className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                            <p className="font-semibold">No Active Buses</p>
-                            <p className="text-xs mt-1">Positions appear when trips begin</p>
+                            <p className="font-semibold">No Active Trips</p>
+                            <p className="text-xs mt-1">Buses appear when trips are started</p>
                         </div>
                     ) : (
-                        activeBuses.map(bus => (
+                        busListItems.map(bus => (
                             <button
                                 key={bus.bus_id}
                                 onClick={() => setSelectedBusId(bus.bus_id === selectedBusId ? null : bus.bus_id)}
@@ -281,7 +287,13 @@ export default function TrackingPage() {
                                         </div>
                                         <span className="font-bold text-sm text-slate-900 dark:text-white">{bus.bus_number}</span>
                                     </div>
-                                    <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">Live</span>
+                                    {bus.hasGps ? (
+                                        <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">Live</span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                                            <WifiOff className="w-3 h-3" /> No GPS
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5 pl-1">
                                     <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
@@ -292,12 +304,12 @@ export default function TrackingPage() {
                                         <MapPin className="w-3 h-3 text-purple-400" />
                                         <span>{bus.driver_name}</span>
                                     </div>
-                                    <div className="flex items-center justify-between text-xs text-slate-400 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                                        <span className="flex items-center gap-1">
+                                    {bus.hasGps && bus.timestamp && (
+                                        <div className="flex items-center gap-1 text-xs text-slate-400 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
                                             <Clock className="w-3 h-3" />
                                             {timeAgo(bus.timestamp)}
-                                        </span>
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                                 {selectedBusId === bus.bus_id && routeStops.length > 0 && (
                                     <p className="text-xs text-[var(--brand)] mt-2 font-medium">
@@ -323,7 +335,6 @@ export default function TrackingPage() {
                 {/* Stop panel */}
                 {selectedStop && (
                     <div className="w-80 shrink-0 flex flex-col bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-                        {/* Header */}
                         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
                             <div className="flex items-center gap-2 min-w-0">
                                 <div className="w-7 h-7 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center shrink-0">
@@ -342,7 +353,6 @@ export default function TrackingPage() {
                             </button>
                         </div>
 
-                        {/* Student list */}
                         <div className="flex-1 overflow-y-auto">
                             {selectedStop.students.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-10 text-slate-400 dark:text-slate-500">
@@ -372,7 +382,6 @@ export default function TrackingPage() {
                             )}
                         </div>
 
-                        {/* Assign student */}
                         <div className="border-t border-slate-100 dark:border-slate-700 p-4 space-y-3">
                             <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                                 <UserPlus className="w-3.5 h-3.5" />

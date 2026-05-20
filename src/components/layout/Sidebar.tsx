@@ -69,15 +69,15 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
         // Admin
         return [
             { section: 'MENU', items: [
-                { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard' },
-                { icon: Users, label: 'Students', href: '/admin/students' },
+                { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard', tourId: 'dashboard' },
+                { icon: Users, label: 'Students', href: '/admin/students', tourId: 'students' },
                 { icon: Truck, label: 'Drivers', href: '/admin/drivers' },
-                { icon: Map, label: 'Routes', href: '/admin/routes' },
-                { icon: Bus, label: 'Buses', href: '/admin/buses' },
+                { icon: Map, label: 'Routes', href: '/admin/routes', tourId: 'routes' },
+                { icon: Bus, label: 'Buses', href: '/admin/buses', tourId: 'buses' },
                 { icon: MapPin, label: 'Stops', href: '/admin/stops' },
                 { icon: Locate, label: 'Tracking', href: '/admin/tracking' },
                 { icon: CheckSquare, label: 'Attendance', href: '/admin/attendance' },
-                { icon: CreditCard, label: 'Fees', href: '/admin/fees' },
+                { icon: CreditCard, label: 'Fees', href: '/admin/fees', tourId: 'fees' },
             ]},
             { section: 'GENERAL', items: [
                 { icon: Fuel, label: 'Fuel Requests', href: '/admin/fuel-requests' },
@@ -85,7 +85,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 { icon: ArrowLeftRight, label: 'Bus Switches', href: '/admin/bus-switches' },
                 { icon: Bell, label: 'Notifications', href: '/admin/notifications' },
                 { icon: BarChart2, label: 'Reports', href: '/admin/reports' },
-                { icon: Settings, label: 'Settings', href: '/admin/settings' },
+                { icon: Settings, label: 'Settings', href: '/admin/settings', tourId: 'settings' },
             ]},
         ];
     };
@@ -135,6 +135,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                                             href={item.href}
                                             onClick={onClose}
                                             className={cn('nav-item', isActive && 'nav-item-active')}
+                                            {...((item as any).tourId ? { 'data-tour': (item as any).tourId } : {})}
                                         >
                                             <item.icon className="w-4 h-4 shrink-0" />
                                             <span>{item.label}</span>

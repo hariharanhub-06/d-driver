@@ -41,6 +41,7 @@ export default function StudentsPage() {
     const [step, setStep] = useState(0);
     const [formData, setFormData] = useState({ ...EMPTY_FORM });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [parentSearch, setParentSearch] = useState('');
@@ -92,6 +93,7 @@ export default function StudentsPage() {
         setPhotoFile(null);
         setParents([]);
         setParentSearch('');
+        setSubmitError('');
         setIsModalOpen(true);
     };
 
@@ -113,12 +115,14 @@ export default function StudentsPage() {
         setPhotoFile(null);
         setParents([]);
         setParentSearch('');
+        setSubmitError('');
         setIsModalOpen(true);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setSubmitError('');
         try {
             // Let the backend handle parent lookup/creation — avoids silent 409 failures
             const payload: any = {
@@ -155,8 +159,9 @@ export default function StudentsPage() {
 
             setIsModalOpen(false);
             fetchStudents();
-        } catch {
-            setIsModalOpen(false);
+        } catch (err: any) {
+            const msg = err?.response?.data?.error || err?.message || 'Something went wrong. Please try again.';
+            setSubmitError(msg);
         } finally {
             setIsSubmitting(false);
         }
@@ -482,6 +487,13 @@ export default function StudentsPage() {
                                             </div>
                                         </div>
                                         <p className="text-xs text-slate-400">Leave fee amount blank to skip fee setup now.</p>
+                                    </div>
+                                )}
+
+                                {/* Error banner */}
+                                {submitError && (
+                                    <div className="mt-4 px-4 py-2.5 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl text-sm text-red-700 dark:text-red-400">
+                                        {submitError}
                                     </div>
                                 )}
 

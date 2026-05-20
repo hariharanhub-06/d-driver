@@ -10,13 +10,13 @@ const Joyride = dynamic<any>(() => import('react-joyride').then((m: any) => ({ d
 const steps: any[] = [
   {
     target: '[data-tour="dashboard"]',
-    content: "This shows live routes, active buses, and today's attendance at a glance.",
+    content: "The dashboard shows live routes, active buses, and today's attendance at a glance.",
     disableBeacon: true,
-    placement: 'bottom',
+    placement: 'right',
   },
   {
-    target: '[data-tour="buses"]',
-    content: 'Add buses here. Set mileage so fuel alerts fire automatically.',
+    target: '[data-tour="students"]',
+    content: 'Add students, assign their route and stop, and set the fee structure.',
     placement: 'right',
   },
   {
@@ -25,8 +25,8 @@ const steps: any[] = [
     placement: 'right',
   },
   {
-    target: '[data-tour="students"]',
-    content: 'Add students, assign their route and stop, and set the fee structure.',
+    target: '[data-tour="buses"]',
+    content: 'Add buses here. Set mileage so fuel alerts fire automatically.',
     placement: 'right',
   },
   {

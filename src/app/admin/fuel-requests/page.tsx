@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Droplets, X, Loader2, CheckCircle2, XCircle, Fuel, Banknote, CreditCard } from 'lucide-react';
+import { Droplets, X, Loader2, CheckCircle2, XCircle, Fuel, Banknote, CreditCard, Clock, Gauge } from 'lucide-react';
 import api from '@/lib/api';
 
 type FuelRequest = {
     id: string;
+    bus_id?: string;
     driver?: { user: { name: string } };
-    bus?: { bus_number: string };
+    bus?: { bus_number: string; fuel_liters?: number | null };
     amount_requested?: number;
     current_km?: number;
     reason?: string;
@@ -16,6 +17,16 @@ type FuelRequest = {
     payment_method?: string;
     transfer_id?: string;
     created_at?: string;
+};
+
+type FillEntry = {
+    id: string;
+    bus_id?: string;
+    bus?: { bus_number: string };
+    liters_filled: number;
+    filled_at?: string;
+    km_at_fill?: number | null;
+    driver?: { user: { name: string } };
 };
 
 const STATUS_TABS = ['All', 'pending', 'approved', 'rejected', 'disbursed'] as const;
@@ -27,12 +38,22 @@ const statusBadge = (s: string) => {
     return 'inline-flex items-center bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
 };
 
+const fmtDateTime = (s?: string) => {
+    if (!s) return '—';
+    try {
+        return new Date(s).toLocaleString('en-IN', {
+            day: 'numeric', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: true,
+        });
+    } catch { return '—'; }
+};
+
 export default function FuelRequestsPage() {
     const [requests, setRequests] = useState<FuelRequest[]>([]);
-    const [fillEntries, setFillEntries] = useState<{ liters_filled: number }[]>([]);
+    const [fillEntries, setFillEntries] = useState<FillEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState<typeof STATUS_TABS[number]>('All');
-    const [actionModal, setActionModal] = useState<{ req: FuelRequest; action: 'approve' | 'reject' | 'disburse' } | null>(null);
+    const [actionModal, setActionModal] = useState<{ req: FuelRequest; action: 'approve' | 'reject' } | null>(null);
     const [adminNote, setAdminNote] = useState('');
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'account_transfer'>('cash');
     const [transferId, setTransferId] = useState('');
@@ -63,7 +84,7 @@ export default function FuelRequestsPage() {
         }
     };
 
-    const openModal = (req: FuelRequest, action: 'approve' | 'reject' | 'disburse') => {
+    const openModal = (req: FuelRequest, action: 'approve' | 'reject') => {
         setActionModal({ req, action });
         setAdminNote('');
         setPaymentMethod('cash');
@@ -80,7 +101,7 @@ export default function FuelRequestsPage() {
         }
 
         setIsSubmitting(true);
-        const statusMap = { approve: 'approved', reject: 'rejected', disburse: 'disbursed' };
+        const statusMap = { approve: 'approved', reject: 'rejected' };
         try {
             const payload: Record<string, string | undefined> = {
                 status: statusMap[actionModal.action],
@@ -92,7 +113,7 @@ export default function FuelRequestsPage() {
             }
             await api.put(`/fuel/requests/${actionModal.req.id}`, payload);
             setRequests(prev => prev.map(r => r.id === actionModal.req.id
-                ? { ...r, status: statusMap[actionModal.action] as FuelRequest['status'], admin_note: adminNote, payment_method: payload.payment_method, transfer_id: payload.transfer_id }
+                ? { ...r, status: statusMap[actionModal.action] as FuelRequest['status'], admin_note: adminNote }
                 : r
             ));
             setActionModal(null);
@@ -102,7 +123,6 @@ export default function FuelRequestsPage() {
 
     const filtered = requests.filter(r => tab === 'All' || r.status === tab);
 
-    // Summary calculations
     const totalDisbursed = requests
         .filter(r => r.status === 'disbursed')
         .reduce((sum, r) => sum + (r.amount_requested || 0), 0);
@@ -114,22 +134,29 @@ export default function FuelRequestsPage() {
         .reduce((sum, r) => sum + (r.amount_requested || 0), 0);
     const totalLitersLogged = fillEntries.reduce((sum, f) => sum + (f.liters_filled || 0), 0);
 
+    // Find most recent fill for a given bus_id
+    const lastFillFor = (busId?: string): FillEntry | undefined => {
+        if (!busId) return undefined;
+        return fillEntries
+            .filter(f => f.bus_id === busId)
+            .sort((a, b) => new Date(b.filled_at || '').getTime() - new Date(a.filled_at || '').getTime())[0];
+    };
+
     return (
         <div className="space-y-6 animate-in">
-            {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Fuel Requests</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Review and process driver fuel reimbursement requests.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Review driver fuel requests. Drivers log fills themselves.</p>
                 </div>
             </div>
 
             {/* Summary Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Funds Disbursed</p>
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Disbursed</p>
                     <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">₹{totalDisbursed.toLocaleString('en-IN')}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Cash given to drivers</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Funds given out</p>
                 </div>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm">
                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Fuel Logged</p>
@@ -137,9 +164,9 @@ export default function FuelRequestsPage() {
                     <p className="text-xs text-slate-400 mt-0.5">{fillEntries.length} fill{fillEntries.length !== 1 ? 's' : ''} recorded</p>
                 </div>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Approved (To Give)</p>
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Approved</p>
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">₹{totalApproved.toLocaleString('en-IN')}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Approved, not yet given</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Awaiting fuel fill</p>
                 </div>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm">
                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Awaiting Approval</p>
@@ -150,7 +177,6 @@ export default function FuelRequestsPage() {
 
             {/* Table Card */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-                {/* Status Tabs */}
                 <div className="flex gap-1 p-3 border-b border-slate-100 dark:border-slate-700 flex-wrap">
                     {STATUS_TABS.map(t => (
                         <button
@@ -172,10 +198,10 @@ export default function FuelRequestsPage() {
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Driver</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Bus</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Current KM</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reason</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Requested</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Fill Info</th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -193,46 +219,65 @@ export default function FuelRequestsPage() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filtered.map(req => (
-                                <tr key={req.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-medium">{req.driver?.user?.name || '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{req.bus?.bus_number || '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-bold">₹{req.amount_requested?.toLocaleString() || '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{req.current_km ? `${req.current_km} km` : '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 max-w-[200px] truncate">{req.reason || '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                        <span className={`${statusBadge(req.status)} capitalize`}>
-                                            {req.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{req.created_at ? new Date(req.created_at).toLocaleDateString('en-IN') : '—'}</td>
-                                    <td className="px-4 py-3 text-right">
-                                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {req.status === 'pending' && (
-                                                <>
-                                                    <button onClick={() => openModal(req, 'approve')} className="text-xs bg-[var(--brand)] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1">
-                                                        <CheckCircle2 className="w-3 h-3" /> Approve
-                                                    </button>
-                                                    <button onClick={() => openModal(req, 'reject')} className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white rounded-lg px-3 py-1.5 font-semibold text-xs">
-                                                        <XCircle className="w-3 h-3" /> Reject
-                                                    </button>
-                                                </>
+                            ) : filtered.map(req => {
+                                const fill = lastFillFor(req.bus_id);
+                                return (
+                                    <tr key={req.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-medium">{req.driver?.user?.name || '—'}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{req.bus?.bus_number || '—'}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-bold">₹{req.amount_requested?.toLocaleString() || '—'}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 max-w-[180px] truncate">{req.reason || '—'}</td>
+                                        <td className="px-4 py-3 text-sm">
+                                            <span className={`${statusBadge(req.status)} capitalize`}>{req.status}</span>
+                                        </td>
+                                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                            {fmtDateTime(req.created_at)}
+                                        </td>
+                                        {/* Fill info — shows when driver filled + current balance */}
+                                        <td className="px-4 py-3">
+                                            {fill ? (
+                                                <div className="space-y-0.5">
+                                                    <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                                        <Clock className="w-3 h-3 shrink-0" />
+                                                        {fmtDateTime(fill.filled_at)}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                                        <span className="font-semibold text-slate-700 dark:text-slate-300">{fill.liters_filled}L filled</span>
+                                                        {req.bus?.fuel_liters != null && (
+                                                            <span className="flex items-center gap-1">
+                                                                <Gauge className="w-3 h-3 text-blue-400" />
+                                                                {req.bus.fuel_liters.toFixed(1)}L bal
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-slate-400 italic">No fill yet</span>
                                             )}
-                                            {req.status === 'approved' && (
-                                                <button onClick={() => openModal(req, 'disburse')} className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1">
-                                                    <Droplets className="w-3 h-3" /> Disburse
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {req.status === 'pending' && (
+                                                    <>
+                                                        <button onClick={() => openModal(req, 'approve')} className="text-xs bg-[var(--brand)] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1">
+                                                            <CheckCircle2 className="w-3 h-3" /> Approve
+                                                        </button>
+                                                        <button onClick={() => openModal(req, 'reject')} className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white rounded-lg px-3 py-1.5 font-semibold text-xs">
+                                                            <XCircle className="w-3 h-3" /> Reject
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {/* Action Modal */}
+            {/* Action Modal — approve or reject only */}
             {actionModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
@@ -241,7 +286,6 @@ export default function FuelRequestsPage() {
                             <button onClick={() => setActionModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
                         </div>
                         <div className="p-6 space-y-4">
-                            {/* Request summary */}
                             <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-sm space-y-1.5">
                                 <p className="text-slate-500 dark:text-slate-400">Driver: <span className="font-bold text-slate-800 dark:text-white">{actionModal.req.driver?.user?.name}</span></p>
                                 <p className="text-slate-500 dark:text-slate-400">Bus: <span className="font-semibold text-slate-700 dark:text-slate-200">{actionModal.req.bus?.bus_number || '—'}</span></p>
@@ -249,7 +293,6 @@ export default function FuelRequestsPage() {
                                 {actionModal.req.reason && <p className="text-slate-500 dark:text-slate-400">Reason: <span className="text-slate-700 dark:text-slate-300">{actionModal.req.reason}</span></p>}
                             </div>
 
-                            {/* Payment method — only for approve */}
                             {actionModal.action === 'approve' && (
                                 <div className="space-y-3">
                                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Payment Method</label>
@@ -281,7 +324,7 @@ export default function FuelRequestsPage() {
                                             <CreditCard className="w-5 h-5 shrink-0" />
                                             <div>
                                                 <p className="text-sm font-semibold">Account Transfer</p>
-                                                <p className="text-xs opacity-70">Bank / UPI transfer</p>
+                                                <p className="text-xs opacity-70">Bank / UPI</p>
                                             </div>
                                         </button>
                                     </div>
@@ -289,15 +332,13 @@ export default function FuelRequestsPage() {
                                     {paymentMethod === 'account_transfer' && (
                                         <div>
                                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                                                Transfer ID / Reference Number <span className="text-red-500">*</span>
+                                                Transfer ID <span className="text-red-500">*</span>
                                             </label>
                                             <input
                                                 type="text"
-                                                placeholder="e.g. UTR123456789 or UPI ref ID"
+                                                placeholder="e.g. UTR123456789"
                                                 className={`w-full bg-slate-50 dark:bg-slate-700/50 border rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-colors ${
-                                                    transferIdError
-                                                        ? 'border-red-400 focus:border-red-500'
-                                                        : 'border-slate-200 dark:border-slate-600 focus:border-[var(--brand)]'
+                                                    transferIdError ? 'border-red-400' : 'border-slate-200 dark:border-slate-600 focus:border-[var(--brand)]'
                                                 }`}
                                                 value={transferId}
                                                 onChange={e => { setTransferId(e.target.value); if (e.target.value.trim()) setTransferIdError(''); }}
@@ -308,9 +349,8 @@ export default function FuelRequestsPage() {
                                 </div>
                             )}
 
-                            {/* Admin note */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Admin Note (optional)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Note (optional)</label>
                                 <textarea
                                     rows={3}
                                     placeholder="Add a note for the driver..."
@@ -326,11 +366,7 @@ export default function FuelRequestsPage() {
                                     onClick={handleAction}
                                     disabled={isSubmitting}
                                     className={`flex-1 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${
-                                        actionModal.action === 'reject'
-                                            ? 'bg-red-600 hover:bg-red-500'
-                                            : actionModal.action === 'disburse'
-                                            ? 'bg-emerald-600 hover:bg-emerald-700'
-                                            : 'bg-[var(--brand)] hover:opacity-90'
+                                        actionModal.action === 'reject' ? 'bg-red-600 hover:bg-red-500' : 'bg-[var(--brand)] hover:opacity-90'
                                     }`}
                                 >
                                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : `Confirm ${actionModal.action}`}
