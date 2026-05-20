@@ -414,8 +414,8 @@ export default function ActiveRide() {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col w-full relative overflow-hidden">
-            {/* Map */}
-            <div className="flex-1 bg-slate-200 dark:bg-slate-800 relative z-0" style={{ minHeight: '60vh' }}>
+            {/* Map — explicit height so Leaflet container has non-zero size */}
+            <div className="bg-slate-200 dark:bg-slate-800 relative z-0" style={{ height: '60vh' }}>
                 <DriverMap
                     userPosition={currentPos || fallbackPos}
                     userHeading={heading}

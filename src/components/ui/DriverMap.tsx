@@ -93,6 +93,8 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             zoomDiv.querySelector('#dm-zoom-out')!.addEventListener('click', () => { map.zoomOut(); userDraggedRef.current = true; });
 
             mapRef.current = map;
+            // Force Leaflet to recalculate container size after layout settles
+            setTimeout(() => map.invalidateSize(), 100);
         });
 
         return () => {
@@ -261,5 +263,5 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         });
     }, [userPosition, stops, nextStopIndex]);
 
-    return <div ref={containerRef} className="w-full h-full" style={{ minHeight: '100%' }} />;
+    return <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />;
 }
