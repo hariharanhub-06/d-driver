@@ -96,11 +96,10 @@ const kmEntrySchema = z.object({
 });
 
 const busSwitchSchema = z.object({
-  original_bus_id: z.string().uuid(),
-  new_bus_id: z.string().uuid(),
+  original_bus_id: z.string().uuid().optional(),
   reason: z.enum(['breakdown', 'accident', 'maintenance', 'other']),
   notes: z.string().optional(),
-  km_at_switch: z.number().nonnegative(),
+  km_at_switch: z.number().nonnegative().optional(),
 });
 
 const absenceReportSchema = z.object({

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Bus, Navigation, Clock, MapPin, Users, X, UserPlus, Loader2, Check } from 'lucide-react';
+import { Bus, Navigation, Clock, MapPin, Users, X, UserPlus, Loader2, Check, Building2 } from 'lucide-react';
 import api from '@/lib/api';
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
@@ -27,6 +27,7 @@ interface Trip {
     id: string;
     bus_id: string;
     route_id: string;
+    school_id?: string;
     route?: {
         name: string;
         stops?: StopFromTrip[];
@@ -41,6 +42,7 @@ interface ActiveBus {
     bus_number: string;
     driver_name: string;
     route_name: string;
+    school_name: string;
     latitude: number;
     longitude: number;
     timestamp: string;
@@ -68,6 +70,11 @@ interface AllStudent {
     stop?: { id: string; name: string } | null;
 }
 
+interface School {
+    id: string;
+    name: string;
+}
+
 function timeAgo(ts: string): string {
     const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
     if (diff < 60) return `${diff}s ago`;
@@ -75,7 +82,9 @@ function timeAgo(ts: string): string {
     return `${Math.floor(diff / 3600)}h ago`;
 }
 
-export default function TrackingPage() {
+export default function SATrackingPage() {
+    const [schools, setSchools] = useState<School[]>([]);
+    const [selectedSchoolId, setSelectedSchoolId] = useState<string>('');
     const [activeBuses, setActiveBuses] = useState<ActiveBus[]>([]);
     const [trips, setTrips] = useState<Trip[]>([]);
     const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
@@ -92,20 +101,30 @@ export default function TrackingPage() {
     const tripsRef = useRef<Trip[]>([]);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    // Fetch available schools for the filter dropdown
+    useEffect(() => {
+        api.get('/schools').then(res => {
+            const list: School[] = (res.data || []).map((s: any) => ({ id: s.id, name: s.name }));
+            setSchools(list);
+        }).catch(() => {});
+    }, []);
+
     const fetchTrips = useCallback(async () => {
         try {
-            const { data } = await api.get('/trips/active');
+            const url = selectedSchoolId ? `/trips/active?school_id=${selectedSchoolId}` : '/trips/active';
+            const { data } = await api.get(url);
             const list: Trip[] = data || [];
             tripsRef.current = list;
             setTrips(list);
         } catch {
             tripsRef.current = [];
         }
-    }, []);
+    }, [selectedSchoolId]);
 
     const fetchLocations = useCallback(async () => {
         try {
-            const { data } = await api.get('/location/active');
+            const url = selectedSchoolId ? `/location/active?school_id=${selectedSchoolId}` : '/location/active';
+            const { data } = await api.get(url);
             const raw: any[] = data || [];
             const merged: ActiveBus[] = raw.map(item => {
                 const busId = item.bus_id || item.busId || item.location?.bus_id;
@@ -118,6 +137,7 @@ export default function TrackingPage() {
                     bus_number: trip?.bus?.bus_number || busId,
                     driver_name: trip?.driver?.user?.name || 'Unknown Driver',
                     route_name: trip?.route?.name || 'Unknown Route',
+                    school_name: '',
                     latitude: lat,
                     longitude: lng,
                     timestamp: ts,
@@ -130,22 +150,32 @@ export default function TrackingPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [selectedSchoolId]);
 
     useEffect(() => {
+        setLoading(true);
+        setActiveBuses([]);
+        setSelectedBusId(null);
+        setRouteStops([]);
+        setSelectedStop(null);
+        setStudentsLoaded(false);
+
         const init = async () => {
             await fetchTrips();
             await fetchLocations();
         };
         init();
+
+        if (intervalRef.current) clearInterval(intervalRef.current);
         intervalRef.current = setInterval(async () => {
             await fetchTrips();
             await fetchLocations();
         }, 5000);
+
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, [fetchTrips, fetchLocations]);
 
-    // Derive stops whenever selected bus or trips change
+    // Derive stops when selected bus or trips change
     useEffect(() => {
         if (!selectedBusId) {
             setRouteStops([]);
@@ -177,12 +207,14 @@ export default function TrackingPage() {
         setAssignSuccess(false);
 
         if (!studentsLoaded) {
-            api.get('/students').then(res => {
+            const schoolId = trip?.school_id || selectedSchoolId;
+            const url = schoolId ? `/students?school_id=${schoolId}` : '/students';
+            api.get(url).then(res => {
                 setAllStudents(res.data || []);
                 setStudentsLoaded(true);
             }).catch(() => {});
         }
-    }, [trips, selectedBusId, studentsLoaded]);
+    }, [trips, selectedBusId, studentsLoaded, selectedSchoolId]);
 
     const handleAssignStudent = async () => {
         if (!assignStudentId || !selectedStop) return;
@@ -195,16 +227,15 @@ export default function TrackingPage() {
             });
             setAssignSuccess(true);
             setAssignStudentId('');
-            // Refresh trips to update student list
             await fetchTrips();
         } catch {
-            // silent — user can retry
+            // silent
         } finally {
             setAssignLoading(false);
         }
     };
 
-    // After trips refresh, update selectedStop students
+    // Refresh stop students after trips reload
     useEffect(() => {
         if (!selectedStop) return;
         const trip = trips.find(t => t.bus_id === selectedBusId);
@@ -224,25 +255,41 @@ export default function TrackingPage() {
         timestamp: b.timestamp,
     }));
 
-    // Students not already at this stop (for assign dropdown)
     const assignableStudents = allStudents.filter(
         s => !selectedStop?.students.some(ss => ss.id === s.id)
     );
 
     return (
-        <div className="space-y-6 animate-in">
+        <div className="space-y-4 animate-in">
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Live Tracking</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Real-time GPS positions — click a stop pin to see students
+                        Real-time GPS — select a bus then click a stop pin to manage students
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
-                        {activeBuses.length} Active
-                    </span>
+                <div className="flex items-center gap-3">
+                    {schools.length > 0 && (
+                        <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-slate-400" />
+                            <select
+                                value={selectedSchoolId}
+                                onChange={e => { setSelectedSchoolId(e.target.value); setSelectedBusId(null); }}
+                                className="text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/40"
+                            >
+                                <option value="">All Schools</option>
+                                {schools.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                            {activeBuses.length} Active
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -250,7 +297,7 @@ export default function TrackingPage() {
                 <div className="bg-red-50 text-red-600 border border-red-200 rounded-xl p-3 text-sm">{error}</div>
             )}
 
-            <div className="flex h-[calc(100vh-200px)] gap-4">
+            <div className="flex h-[calc(100vh-210px)] gap-4">
                 {/* Bus list */}
                 <div className="w-72 shrink-0 overflow-y-auto space-y-3 pr-1">
                     {loading ? (
@@ -323,7 +370,6 @@ export default function TrackingPage() {
                 {/* Stop panel */}
                 {selectedStop && (
                     <div className="w-80 shrink-0 flex flex-col bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
-                        {/* Header */}
                         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
                             <div className="flex items-center gap-2 min-w-0">
                                 <div className="w-7 h-7 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center shrink-0">
@@ -342,7 +388,6 @@ export default function TrackingPage() {
                             </button>
                         </div>
 
-                        {/* Student list */}
                         <div className="flex-1 overflow-y-auto">
                             {selectedStop.students.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-10 text-slate-400 dark:text-slate-500">
@@ -372,7 +417,6 @@ export default function TrackingPage() {
                             )}
                         </div>
 
-                        {/* Assign student */}
                         <div className="border-t border-slate-100 dark:border-slate-700 p-4 space-y-3">
                             <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                                 <UserPlus className="w-3.5 h-3.5" />

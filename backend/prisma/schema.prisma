@@ -30,9 +30,11 @@ model School {
   razorpay_key_secret  String?   // AES-256-GCM encrypted
   razorpay_configured  Boolean   @default(false)
   plan_id              String?
+  assigned_sa_id       String?
   created_at           DateTime  @default(now())
 
   pricingPlan         PricingPlan?        @relation(fields: [plan_id], references: [id])
+  assignedSA          User?               @relation("AssignedSA", fields: [assigned_sa_id], references: [id], onDelete: SetNull)
   users               User[]
   buses               Bus[]
   drivers             Driver[]
@@ -75,6 +77,7 @@ model User {
   driver              Driver?
   children            Student[]            @relation("ParentStudents")
   passwordResetTokens PasswordResetToken[]
+  assignedSchools     School[]             @relation("AssignedSA")
 }
 
 // ─── FLEET ───────────────────────────────────────────────────────────────────
@@ -313,17 +316,17 @@ model BusSwitchLog {
   shift_id        String
   driver_id       String
   original_bus_id String
-  new_bus_id      String
+  new_bus_id      String?
   reason          String   // breakdown | accident | maintenance | other
   notes           String?
-  km_at_switch    Float
+  km_at_switch    Float?
   switched_at     DateTime @default(now())
   school_id       String
 
   shift       DriverShift @relation(fields: [shift_id], references: [id])
   driver      Driver      @relation(fields: [driver_id], references: [id])
   originalBus Bus         @relation("OriginalBus", fields: [original_bus_id], references: [id])
-  newBus      Bus         @relation("NewBus", fields: [new_bus_id], references: [id])
+  newBus      Bus?        @relation("NewBus", fields: [new_bus_id], references: [id])
   school      School      @relation(fields: [school_id], references: [id])
 }
 

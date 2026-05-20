@@ -14,6 +14,7 @@ interface SAUser {
   is_active: boolean;
   is_dev_sa: boolean;
   created_at: string;
+  assigned_schools_count?: number;
 }
 
 const inputCls = "w-full bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/40 focus:border-[var(--brand)] transition-all";
@@ -231,7 +232,7 @@ export default function SAUsersPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-700">
-                  {['User', 'Email', 'Phone', 'Status', 'Created', 'Actions'].map(h => (
+                  {['User', 'Email', 'Phone', 'Schools', 'Status', 'Created', 'Actions'].map(h => (
                     <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">
                       {h}
                     </th>
@@ -263,6 +264,13 @@ export default function SAUsersPage() {
                       </td>
                       <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300 font-mono">{u.email}</td>
                       <td className="px-5 py-4 text-sm text-slate-500 dark:text-slate-400">{u.phone || '—'}</td>
+                      <td className="px-5 py-4 text-sm">
+                        {u.is_dev_sa ? (
+                          <span className="text-slate-400 dark:text-slate-500 text-xs">All</span>
+                        ) : (
+                          <span className="font-semibold text-slate-900 dark:text-white">{u.assigned_schools_count ?? 0}</span>
+                        )}
+                      </td>
                       <td className="px-5 py-4">
                         <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
                           u.is_active

@@ -20,14 +20,18 @@ const getPublicSchool = async (req, res) => {
   }
 };
 
-// GET /schools — SA gets all schools
+// GET /schools — SA gets all schools; non-dev SA sees only assigned schools
 const getAllSchools = async (req, res) => {
   try {
+    const where = req.user.is_dev_sa ? {} : { assigned_sa_id: req.user.id };
     const schools = await prisma.school.findMany({
+      where,
       select: {
         id: true, name: true, slug: true, status: true, logo_url: true,
         primary_color: true, address: true, phone: true, email_contact: true,
         permissions: true, plan_id: true, created_at: true, razorpay_configured: true,
+        assigned_sa_id: true,
+        assignedSA: { select: { id: true, name: true, email: true } },
         _count: { select: { buses: true, students: true, drivers: true } },
       },
       orderBy: { created_at: 'desc' },
@@ -38,7 +42,7 @@ const getAllSchools = async (req, res) => {
   }
 };
 
-// GET /schools/:id — SA drill-in view
+// GET /schools/:id — SA drill-in view; non-dev SA must own the school
 const getSchoolById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -54,11 +58,15 @@ const getSchoolById = async (req, res) => {
         primary_color: true, address: true, phone: true, email_contact: true,
         permissions: true, plan_id: true, created_at: true, notification_email: true,
         razorpay_configured: true, onboarding_dismissed: true, tour_completed: true,
-        suspended_at: true, suspension_reason: true,
+        suspended_at: true, suspension_reason: true, assigned_sa_id: true,
+        assignedSA: { select: { id: true, name: true, email: true } },
         _count: { select: { buses: true, students: true, drivers: true, routes: true } },
       },
     });
     if (!school) return res.status(404).json({ error: 'School not found' });
+    if (!req.user.is_dev_sa && school.assigned_sa_id && school.assigned_sa_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied to this school' });
+    }
     res.json(school);
   } catch (err) {
     res.status(500).json({ error: 'Error fetching school' });
@@ -238,9 +246,37 @@ const dismissOnboarding = async (req, res) => {
   }
 };
 
+// PUT /schools/:id/assign-sa — Dev SA assigns a school to a specific SA
+const assignSAToSchool = async (req, res) => {
+  try {
+    if (!req.user.is_dev_sa) return res.status(403).json({ error: 'Only Dev SA can assign schools' });
+    const { id } = req.params;
+    const { sa_id } = req.body;
+
+    // Verify the target user is a super_admin
+    if (sa_id) {
+      const saUser = await prisma.user.findUnique({ where: { id: sa_id }, select: { role: true } });
+      if (!saUser || saUser.role !== 'super_admin') {
+        return res.status(400).json({ error: 'Target user must be a super_admin' });
+      }
+    }
+
+    const school = await prisma.school.update({
+      where: { id },
+      data: { assigned_sa_id: sa_id || null },
+      select: { id: true, name: true, assigned_sa_id: true, assignedSA: { select: { id: true, name: true, email: true } } },
+    });
+    await logAction({ req, action: 'assign_sa_to_school', targetType: 'school', targetId: id, schoolId: id });
+    res.json(school);
+  } catch (err) {
+    res.status(500).json({ error: 'Error assigning SA to school' });
+  }
+};
+
 module.exports = {
   getPublicSchool, getAllSchools, getSchoolById,
   registerSchool, updateSchool, deleteSchool,
   toggleSchoolStatus, updatePermissions,
   updateSchoolRazorpay, getMySchool, dismissOnboarding,
+  assignSAToSchool,
 };

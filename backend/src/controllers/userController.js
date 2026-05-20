@@ -40,7 +40,8 @@ const listSchoolUsers = async (req, res) => {
         if (role) where.role = role;
         // Admin only sees drivers and parents (not other admins/SAs)
         if (req.user.role === 'admin') {
-            where.role = role && ['driver', 'parent'].includes(role) ? role : { in: ['driver', 'parent'] };
+            const adminRoles = ['driver', 'parent', 'bus_staff'];
+            where.role = role && adminRoles.includes(role) ? role : { in: adminRoles };
         }
 
         const users = await prisma.user.findMany({
@@ -82,10 +83,16 @@ const listSAUsers = async (req, res) => {
                 is_active: true,
                 is_dev_sa: true,
                 created_at: true,
+                _count: { select: { assignedSchools: true } },
             },
             orderBy: { created_at: 'asc' },
         });
-        res.json(users);
+        const mapped = users.map(u => ({
+            ...u,
+            assigned_schools_count: u._count.assignedSchools,
+            _count: undefined,
+        }));
+        res.json(mapped);
     } catch (error) {
         res.status(500).json({ error: 'Error fetching SA users', details: error.message });
     }
@@ -142,8 +149,8 @@ const toggleUserActive = async (req, res) => {
             if (target.school_id !== req.user.school_id) {
                 return res.status(403).json({ error: 'Access denied' });
             }
-            if (!['driver', 'parent'].includes(target.role)) {
-                return res.status(403).json({ error: 'Admins can only toggle drivers and parents' });
+            if (!['driver', 'parent', 'bus_staff'].includes(target.role)) {
+                return res.status(403).json({ error: 'Admins can only toggle drivers, parents and bus staff' });
             }
         }
 

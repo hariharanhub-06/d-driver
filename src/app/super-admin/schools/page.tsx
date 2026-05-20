@@ -8,8 +8,9 @@ import {
     Building2, Search, Plus, Loader2, ShieldCheck, Edit, Trash2,
     Globe, ExternalLink, Copy, Truck, Users, GraduationCap,
     X, MapPin, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight,
-    UserPlus, Settings2, Route,
+    UserPlus, Settings2, Route, UserCheck,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface School {
     id: string;
@@ -21,7 +22,16 @@ interface School {
     status: string;
     plan_id?: string;
     permissions?: Record<string, boolean>;
+    assigned_sa_id?: string | null;
+    assignedSA?: { id: string; name: string; email: string } | null;
     _count?: { buses: number; students: number; drivers: number };
+}
+
+interface SAUserBasic {
+    id: string;
+    name: string;
+    email: string;
+    is_dev_sa: boolean;
 }
 
 // ── Real feature permission keys ────────────────────────────────────────────
@@ -56,9 +66,17 @@ function Backdrop({ onClick }: { onClick: () => void }) {
 
 export default function SchoolsManagement() {
     const router = useRouter();
+    const { user: currentUser } = useAuth();
     const [schools, setSchools] = useState<School[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // ── Assign SA modal ──────────────────────────────────────────────────────
+    const [assignSASchool, setAssignSASchool] = useState<School | null>(null);
+    const [saUsers, setSAUsers] = useState<SAUserBasic[]>([]);
+    const [selectedSAId, setSelectedSAId] = useState<string>('');
+    const [assignSubmitting, setAssignSubmitting] = useState(false);
+    const [assignError, setAssignError] = useState('');
 
     // ── Create/Edit modal ────────────────────────────────────────────────────
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -222,6 +240,31 @@ export default function SchoolsManagement() {
         }
     };
 
+    const openAssignSA = async (school: School) => {
+        setAssignSASchool(school);
+        setSelectedSAId(school.assigned_sa_id || '');
+        setAssignError('');
+        try {
+            const { data } = await api.get('/users/sa');
+            setSAUsers((Array.isArray(data) ? data : []).filter((u: SAUserBasic) => !u.is_dev_sa));
+        } catch { setSAUsers([]); }
+    };
+
+    const handleAssignSA = async () => {
+        if (!assignSASchool) return;
+        setAssignSubmitting(true);
+        setAssignError('');
+        try {
+            await api.put(`/schools/${assignSASchool.id}/assign-sa`, { sa_id: selectedSAId || null });
+            setAssignSASchool(null);
+            fetchSchools();
+        } catch (err: any) {
+            setAssignError(err.response?.data?.error || 'Failed to assign SA');
+        } finally {
+            setAssignSubmitting(false);
+        }
+    };
+
     const handleDelete = async (id: string) => {
         if (!confirm('Permanently delete this school and all its data? This cannot be undone.')) return;
         try {
@@ -364,6 +407,9 @@ export default function SchoolsManagement() {
                                         <button onClick={() => router.push(`/super-admin/schools/${school.id}`)} title="Manage School" className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Settings2 className="w-4 h-4" /></button>
                                         <button onClick={() => openAdminModal(school)} title="Manage Admins" className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all"><ShieldCheck className="w-4 h-4" /></button>
                                         <button onClick={() => openEdit(school)} title="Edit School" className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Edit className="w-4 h-4" /></button>
+                                        {currentUser?.is_dev_sa && (
+                                            <button onClick={() => openAssignSA(school)} title="Assign SA" className="p-1.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-900/30 text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-all"><UserCheck className="w-4 h-4" /></button>
+                                        )}
                                         <button
                                             onClick={() => handleToggleStatus(school)}
                                             title={school.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -389,7 +435,14 @@ export default function SchoolsManagement() {
                                             {school.status}
                                         </span>
                                     </div>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mb-3">{school.slug}.ddriver365.com</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mb-2">{school.slug}.ddriver365.com</p>
+                                    {school.assignedSA ? (
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 px-2 py-0.5 rounded-full mb-1">
+                                            <UserCheck className="w-2.5 h-2.5" /> {school.assignedSA.name}
+                                        </span>
+                                    ) : currentUser?.is_dev_sa ? (
+                                        <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">Unassigned</span>
+                                    ) : null}
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
@@ -408,6 +461,53 @@ export default function SchoolsManagement() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* ── ASSIGN SA MODAL ────────────────────────────────────────────────── */}
+            {assignSASchool && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm">
+                        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                                    <UserCheck className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Assign SA</h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[180px]">{assignSASchool.name}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setAssignSASchool(null)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-colors">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Assign to SA</label>
+                                <select
+                                    value={selectedSAId}
+                                    onChange={e => setSelectedSAId(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
+                                >
+                                    <option value="">— Unassigned —</option>
+                                    {saUsers.map(sa => (
+                                        <option key={sa.id} value={sa.id}>{sa.name} ({sa.email})</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {assignError && <p className="text-xs text-red-500">{assignError}</p>}
+                            <div className="flex gap-3 pt-1">
+                                <button onClick={() => setAssignSASchool(null)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                    Cancel
+                                </button>
+                                <button onClick={handleAssignSA} disabled={assignSubmitting} className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                                    {assignSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                    Save
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 

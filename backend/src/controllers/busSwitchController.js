@@ -2,7 +2,8 @@ const prisma = require('../prisma');
 
 // POST /api/v1/bus-switch
 const requestSwitch = async (req, res) => {
-  const { original_bus_id, new_bus_id, reason, notes, km_at_switch } = req.body;
+  const { reason, notes, km_at_switch } = req.body;
+  let { original_bus_id } = req.body;
   const driverId = req.user.id;
   const schoolId = req.user.school_id;
   const io = req.app.get('io');
@@ -13,19 +14,31 @@ const requestSwitch = async (req, res) => {
   });
   if (!driver) return res.status(404).json({ error: 'Driver profile not found' });
 
+  // Auto-fill from driver's currently assigned bus if not provided
+  if (!original_bus_id) original_bus_id = driver.assigned_bus_id;
+  if (!original_bus_id) return res.status(400).json({ error: 'No bus assigned to this driver' });
+
   const activeShift = await prisma.driverShift.findFirst({
     where: { driver_id: driver.id, status: 'active', school_id: schoolId },
   });
   if (!activeShift) return res.status(400).json({ error: 'No active shift — start a shift first' });
 
-  const [switchLog] = await prisma.$transaction([
+  const ops = [
     prisma.busSwitchLog.create({
-      data: { shift_id: activeShift.id, driver_id: driver.id, original_bus_id, new_bus_id, reason, notes, km_at_switch, school_id: schoolId },
+      data: { shift_id: activeShift.id, driver_id: driver.id, original_bus_id, new_bus_id: null, reason, notes, km_at_switch: km_at_switch ?? null, school_id: schoolId },
     }),
-    prisma.shiftKmEntry.create({
-      data: { shift_id: activeShift.id, bus_id: original_bus_id, km_reading: km_at_switch, entry_type: 'bus_switch', note: `Switched to new bus — reason: ${reason}` },
-    }),
-  ]);
+  ];
+
+  // Only create km entry if km_at_switch was provided
+  if (km_at_switch != null) {
+    ops.push(
+      prisma.shiftKmEntry.create({
+        data: { shift_id: activeShift.id, bus_id: original_bus_id, km_reading: km_at_switch, entry_type: 'bus_switch', note: `Switched bus — reason: ${reason}` },
+      })
+    );
+  }
+
+  const [switchLog] = await prisma.$transaction(ops);
 
   // Notify all admins in this school
   io?.to(`admin-${schoolId}`).emit('bus-switch-requested', {

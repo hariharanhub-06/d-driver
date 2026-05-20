@@ -23,6 +23,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
             { section: 'MENU', items: [
                 { icon: LayoutDashboard, label: 'Dashboard', href: '/super-admin/dashboard' },
                 { icon: Building2, label: 'Schools', href: '/super-admin/schools' },
+                { icon: Locate, label: 'Tracking', href: '/super-admin/tracking' },
                 { icon: DollarSign, label: 'Billing', href: '/super-admin/billing' },
                 { icon: BarChart2, label: 'Revenue', href: '/super-admin/revenue' },
                 { icon: Activity, label: 'Expenses', href: '/super-admin/expenses' },
@@ -43,6 +44,14 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
             ]},
             { section: 'GENERAL', items: [
                 { icon: User, label: 'Profile', href: '/driver/profile' },
+            ]},
+        ];
+        if (role === 'bus_staff') return [
+            { section: 'MENU', items: [
+                { icon: CheckSquare, label: 'Attendance', href: '/bus-staff/attendance' },
+            ]},
+            { section: 'GENERAL', items: [
+                { icon: User, label: 'Profile', href: '/bus-staff/profile' },
             ]},
         ];
         if (role === 'parent') return [

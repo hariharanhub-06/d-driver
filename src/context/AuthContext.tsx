@@ -65,6 +65,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             router.push('/driver/dashboard');
         } else if (userData.role === 'parent') {
             router.push('/parent/dashboard');
+        } else if (userData.role === 'bus_staff') {
+            router.push('/bus-staff/attendance');
         } else {
             router.push('/admin/dashboard');
         }

@@ -7,7 +7,7 @@ import { connectSocket, getSocket } from '@/lib/socket';
 import api from '@/lib/api';
 import dynamic from 'next/dynamic';
 
-const FreeMap = dynamic(() => import('@/components/ui/FreeMap'), { ssr: false });
+const DriverMap = dynamic(() => import('@/components/ui/DriverMap'), { ssr: false });
 
 interface Student {
     id: string;
@@ -39,10 +39,13 @@ interface TripData {
 export default function ActiveRide() {
     const { user } = useAuth();
     const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
+    const [heading, setHeading] = useState<number | null>(null);
+    const [accuracy, setAccuracy] = useState<number | null>(null);
     const [tripData, setTripData] = useState<TripData | null>(null);
     const [busId, setBusId] = useState<string>('');
     const [busNumber, setBusNumber] = useState<string>('');
     const busIdRef = useRef<string>('');
+    const headingRef = useRef<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [noTrip, setNoTrip] = useState(false);
     const [geoError, setGeoError] = useState('');
@@ -61,13 +64,12 @@ export default function ActiveRide() {
     const [showFuelRequest, setShowFuelRequest] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
-    const [switchForm, setSwitchForm] = useState({ reason: 'breakdown', notes: '', current_km: '' });
+    const [switchForm, setSwitchForm] = useState({ reason: 'breakdown', notes: '', km_at_switch: '' });
     const [fuelFillForm, setFuelFillForm] = useState({ liters_filled: '', current_km: '' });
     const [fuelReqForm, setFuelReqForm] = useState({ amount_requested: '', reason: '' });
 
     const fetchTripData = useCallback(async () => {
         try {
-            // Load driver profile first to get bus_id
             let bid = '';
             try {
                 const driverRes = await api.get('/drivers/me');
@@ -77,7 +79,6 @@ export default function ActiveRide() {
                     setBusNumber(driverRes.data?.bus?.bus_number || '');
                     busIdRef.current = bid;
                     connectSocket(bid);
-                    // Don't use stale DB location — GPS watchPosition sets real position
                 }
             } catch { /* driver profile unavailable */ }
 
@@ -98,6 +99,46 @@ export default function ActiveRide() {
         }
     }, []);
 
+    // Device orientation for compass heading (mobile)
+    useEffect(() => {
+        const handleOrientation = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
+            if ((e as any).absolute && e.alpha != null) {
+                // Android absolute compass
+                const h = (360 - e.alpha) % 360;
+                headingRef.current = h;
+                setHeading(h);
+            } else if (e.webkitCompassHeading != null) {
+                // iOS compass
+                headingRef.current = e.webkitCompassHeading;
+                setHeading(e.webkitCompassHeading);
+            }
+        };
+
+        const tryAbsolute = () => {
+            window.addEventListener('deviceorientationabsolute', handleOrientation as any, true);
+        };
+        const tryRelative = () => {
+            window.addEventListener('deviceorientation', handleOrientation as any, true);
+        };
+
+        if (typeof DeviceOrientationEvent !== 'undefined') {
+            // @ts-ignore — iOS 13+ requires permission
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                // Permission will be requested on first user interaction; register listeners now
+                tryAbsolute();
+                tryRelative();
+            } else {
+                tryAbsolute();
+                tryRelative();
+            }
+        }
+
+        return () => {
+            window.removeEventListener('deviceorientationabsolute', handleOrientation as any, true);
+            window.removeEventListener('deviceorientation', handleOrientation as any, true);
+        };
+    }, []);
+
     useEffect(() => {
         let watchId: number | null = null;
 
@@ -105,6 +146,11 @@ export default function ActiveRide() {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     setCurrentPos([pos.coords.latitude, pos.coords.longitude]);
+                    setAccuracy(pos.coords.accuracy ?? null);
+                    if (pos.coords.heading != null) {
+                        headingRef.current = pos.coords.heading;
+                        setHeading(pos.coords.heading);
+                    }
                     setGeoError('');
                     setLocationDenied(false);
                 },
@@ -116,21 +162,32 @@ export default function ActiveRide() {
             );
             watchId = navigator.geolocation.watchPosition(
                 (pos) => {
-                    const { latitude, longitude } = pos.coords;
+                    const { latitude, longitude, accuracy: acc, heading: gpsHeading } = pos.coords;
                     setCurrentPos([latitude, longitude]);
+                    setAccuracy(acc ?? null);
+                    // Use GPS heading if device orientation isn't available
+                    if (gpsHeading != null && headingRef.current == null) {
+                        headingRef.current = gpsHeading;
+                        setHeading(gpsHeading);
+                    }
                     setGeoError('');
                     setLocationDenied(false);
                     const currentBusId = busIdRef.current;
                     if (currentBusId) {
                         try {
-                            getSocket().emit('update-location', { busId: currentBusId, lat: latitude, lng: longitude });
+                            getSocket().emit('update-location', {
+                                busId: currentBusId,
+                                lat: latitude,
+                                lng: longitude,
+                                heading: headingRef.current,
+                            });
                         } catch { /* socket unavailable */ }
                     }
                 },
                 (err) => {
                     if (err.code === 1) setLocationDenied(true);
                 },
-                { enableHighAccuracy: true, timeout: 30000, maximumAge: 5000 }
+                { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
             );
         };
 
@@ -139,7 +196,6 @@ export default function ActiveRide() {
                 setGeoError('Geolocation is not supported by this browser.');
                 return;
             }
-            // Check permission state first
             if ('permissions' in navigator) {
                 navigator.permissions.query({ name: 'geolocation' as PermissionName }).then((result) => {
                     if (result.state === 'denied') {
@@ -177,13 +233,11 @@ export default function ActiveRide() {
 
     const handleArrivedAtStop = async () => {
         if (!tripData || !currentStop) return;
-        // Show attendance popup for students at this stop
         const studentsHere = getStudentsAtStop(currentStop.id);
         if (studentsHere.length > 0) {
             setPopupStudents(studentsHere);
             setShowAttendancePopup(true);
         } else {
-            // No students at this stop, just advance
             await advanceStop();
         }
     };
@@ -239,9 +293,10 @@ export default function ActiveRide() {
         setSubmitting(true);
         try {
             await api.post('/bus-switch', {
+                original_bus_id: busId || undefined,
                 reason: switchForm.reason,
                 notes: switchForm.notes,
-                current_km: parseFloat(switchForm.current_km) || 0,
+                km_at_switch: switchForm.km_at_switch ? parseFloat(switchForm.km_at_switch) : undefined,
             });
             setShowBusSwitch(false);
             alert('Bus switch request submitted.');
@@ -275,7 +330,9 @@ export default function ActiveRide() {
         setSubmitting(true);
         try {
             await api.post('/fuel/request', {
+                bus_id: busId || undefined,
                 amount_requested: parseFloat(fuelReqForm.amount_requested),
+                current_km: 0,
                 reason: fuelReqForm.reason,
             });
             setShowFuelRequest(false);
@@ -288,13 +345,11 @@ export default function ActiveRide() {
         }
     };
 
-    const mapCenter: [number, number] = currentPos || [20.5937, 78.9629]; // India center as fallback
-    const mapMarkers = [
-        ...(currentPos ? [{ position: currentPos, title: busNumber || `Bus ${busId.slice(0, 6)}`, isBus: true }] : []),
-        ...stops
-            .filter(s => s.lat && s.lng)
-            .map(s => ({ position: [s.lat!, s.lng!] as [number, number], title: s.name, stopNumber: s.sequence })),
-    ];
+    const mapStops = stops
+        .filter(s => s.lat && s.lng)
+        .map(s => ({ id: s.id, name: s.name, sequence: s.sequence, lat: s.lat!, lng: s.lng! }));
+
+    const fallbackPos: [number, number] = [20.5937, 78.9629];
 
     if (loading) {
         return (
@@ -361,7 +416,13 @@ export default function ActiveRide() {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col w-full relative overflow-hidden">
             {/* Map */}
             <div className="flex-1 bg-slate-200 dark:bg-slate-800 relative z-0" style={{ minHeight: '60vh' }}>
-                <FreeMap center={mapCenter} zoom={currentPos ? 15 : 5} markers={mapMarkers} followCenter={!!currentPos} />
+                <DriverMap
+                    userPosition={currentPos || fallbackPos}
+                    userHeading={heading}
+                    userAccuracy={accuracy}
+                    stops={mapStops}
+                    nextStopIndex={currentStopIndex}
+                />
 
                 <button
                     onClick={() => setShowSosConfirm(true)}
@@ -386,7 +447,6 @@ export default function ActiveRide() {
                 </div>
             </div>
 
-            {/* Geo error banner (non-permission errors only) */}
             {geoError && !locationDenied && (
                 <div className="fixed top-16 left-4 right-4 z-[300] bg-red-500 text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -398,7 +458,6 @@ export default function ActiveRide() {
             <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl border-t border-slate-100 dark:border-slate-700 p-5 z-20">
                 <div className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-4" />
 
-                {/* Trip complete state — all stops done */}
                 {!currentStop ? (
                     <div className="text-center py-2 mb-4">
                         <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -443,9 +502,17 @@ export default function ActiveRide() {
 
                         <button
                             onClick={handleArrivedAtStop}
-                            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center mb-3"
+                            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center mb-2"
                         >
                             {getStudentsAtStop(currentStop.id).length > 0 ? 'Arrived — Mark Attendance' : 'Arrived at Stop'}
+                        </button>
+
+                        {/* Skip attendance — always available */}
+                        <button
+                            onClick={advanceStop}
+                            className="w-full text-center text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 py-1 mb-2 transition-colors"
+                        >
+                            Skip Attendance → Move to Next Stop
                         </button>
                     </>
                 )}
@@ -466,7 +533,7 @@ export default function ActiveRide() {
                 </div>
             </div>
 
-            {/* Attendance Popup — students at current stop */}
+            {/* Attendance Popup */}
             {showAttendancePopup && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center">
                     <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
@@ -499,7 +566,6 @@ export default function ActiveRide() {
                                             'border-slate-200 dark:border-slate-600'
                                         }`}
                                     >
-                                        {/* Avatar */}
                                         <div className="w-12 h-12 rounded-2xl bg-[var(--brand)]/10 flex items-center justify-center shrink-0 overflow-hidden">
                                             {student.photo_url ? (
                                                 <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
@@ -515,7 +581,6 @@ export default function ActiveRide() {
                                             <p className="text-xs text-slate-500 dark:text-slate-400">{student.grade || 'Student'}</p>
                                         </div>
 
-                                        {/* Mark buttons or status badge */}
                                         {marked ? (
                                             <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold flex items-center gap-1 ${
                                                 marked === 'present'
@@ -548,12 +613,18 @@ export default function ActiveRide() {
                             })}
                         </div>
 
-                        <div className="p-4 border-t border-slate-100 dark:border-slate-700 shrink-0">
+                        <div className="p-4 border-t border-slate-100 dark:border-slate-700 shrink-0 space-y-2">
                             <button
                                 onClick={handleDoneWithStop}
                                 className="w-full bg-[var(--brand)] hover:opacity-90 text-white rounded-xl py-3 font-bold text-sm active:scale-95 transition-all"
                             >
                                 Done — Move to Next Stop
+                            </button>
+                            <button
+                                onClick={() => { setShowAttendancePopup(false); advanceStop(); }}
+                                className="w-full text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 py-1 transition-colors"
+                            >
+                                Skip Attendance → Move to Next Stop
                             </button>
                         </div>
                     </div>
@@ -598,6 +669,12 @@ export default function ActiveRide() {
                                 <X className="w-5 h-5 text-slate-400" />
                             </button>
                         </div>
+                        {busNumber && (
+                            <div className="mb-4 px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                                <p className="text-xs text-slate-500 dark:text-slate-400">Current Bus</p>
+                                <p className="text-sm font-bold text-slate-900 dark:text-white">{busNumber}</p>
+                            </div>
+                        )}
                         <div className="space-y-4 mb-5">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Reason</label>
@@ -613,8 +690,8 @@ export default function ActiveRide() {
                                 <textarea value={switchForm.notes} onChange={e => setSwitchForm({ ...switchForm, notes: e.target.value })} placeholder="Describe the issue..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none h-20" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km)</label>
-                                <input type="number" value={switchForm.current_km} onChange={e => setSwitchForm({ ...switchForm, current_km: e.target.value })} placeholder="e.g. 45230" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" />
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km) — optional</label>
+                                <input type="number" value={switchForm.km_at_switch} onChange={e => setSwitchForm({ ...switchForm, km_at_switch: e.target.value })} placeholder="e.g. 45230" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" />
                             </div>
                         </div>
                         <button onClick={handleBusSwitch} disabled={submitting} className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center disabled:opacity-50">
