@@ -20,6 +20,7 @@ interface StopPin {
     lng: number;
     sequence: number;
     student_count?: number;
+    color?: string;
 }
 
 interface Props {
@@ -90,33 +91,36 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
             buses.forEach(bus => {
                 const h = bus.heading ?? 0;
                 const c = bus.color || '#3B82F6';
-                const bd = bus.color ? bus.color : '#1D4ED8';
-                // Short bus number for windshield (last 4 chars or full if short)
-                const shortNum = bus.bus_number.length > 6 ? bus.bus_number.slice(-4) : bus.bus_number;
+                // Side-view 3D bus icon with school color
                 const busIcon = L.divIcon({
                     className: '',
                     html: `
-                    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 10px rgba(0,0,0,0.45));">
-                      <div style="background:${c};color:white;font-size:9px;font-weight:800;padding:2px 8px;border-radius:8px;white-space:nowrap;letter-spacing:0.3px;box-shadow:0 2px 6px rgba(0,0,0,0.25);margin-bottom:2px;border:1px solid rgba(255,255,255,0.2);">
+                    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.45));">
+                      <div style="transform:rotate(${h}deg);transform-origin:center bottom;display:flex;flex-direction:column;align-items:center;">
+                        <svg width="52" height="28" viewBox="0 0 52 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <rect x="1" y="4" width="50" height="20" rx="4" fill="${c}" stroke="rgba(0,0,0,0.18)" stroke-width="1"/>
+                          <rect x="1" y="4" width="50" height="5" rx="3" fill="rgba(255,255,255,0.3)"/>
+                          <rect x="1" y="19" width="50" height="5" rx="2" fill="rgba(0,0,0,0.25)"/>
+                          <rect x="5"  y="9" width="8" height="8" rx="1.5" fill="rgba(255,255,255,0.85)"/>
+                          <rect x="15" y="9" width="8" height="8" rx="1.5" fill="rgba(255,255,255,0.85)"/>
+                          <rect x="25" y="9" width="8" height="8" rx="1.5" fill="rgba(255,255,255,0.85)"/>
+                          <rect x="35" y="9" width="7" height="8" rx="1.5" fill="rgba(255,255,255,0.85)"/>
+                          <rect x="44" y="10" width="5" height="9" rx="2" fill="rgba(255,255,255,0.4)"/>
+                          <rect x="48" y="13" width="3" height="5" rx="1" fill="rgba(255,255,255,0.9)"/>
+                          <rect x="1"  y="13" width="3" height="5" rx="1" fill="rgba(255,0,0,0.7)"/>
+                          <circle cx="11" cy="25" r="3.5" fill="#1e293b"/>
+                          <circle cx="11" cy="25" r="1.8" fill="#475569"/>
+                          <circle cx="41" cy="25" r="3.5" fill="#1e293b"/>
+                          <circle cx="41" cy="25" r="1.8" fill="#475569"/>
+                        </svg>
+                        <div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:8px solid ${c};margin-top:-1px;"></div>
+                      </div>
+                      <div style="background:rgba(10,10,20,0.85);backdrop-filter:blur(4px);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;margin-top:3px;white-space:nowrap;border:1px solid rgba(255,255,255,0.15);">
                         ${bus.bus_number}
                       </div>
-                      <div style="transform:rotate(${h}deg);transform-origin:center bottom;">
-                        <svg width="34" height="40" viewBox="0 0 24 30" xmlns="http://www.w3.org/2000/svg">
-                          <rect x="1" y="1" width="22" height="22" rx="4" fill="${c}" stroke="${bd}" stroke-width="1.5"/>
-                          <rect x="3" y="3" width="18" height="9" rx="2" fill="rgba(255,255,255,.88)"/>
-                          <text x="12" y="7.5" text-anchor="middle" dominant-baseline="middle"
-                                fill="${c}" font-size="6" font-weight="800" font-family="sans-serif">${shortNum}</text>
-                          <rect x="3"  y="14" width="7" height="5" rx="1.5" fill="rgba(255,255,255,.6)"/>
-                          <rect x="14" y="14" width="7" height="5" rx="1.5" fill="rgba(255,255,255,.6)"/>
-                          <rect x="4"  y="22" width="16" height="2" rx="1" fill="rgba(0,0,0,.22)"/>
-                          <ellipse cx="6"  cy="28" rx="3.5" ry="2.5" fill="#1e293b"/>
-                          <ellipse cx="18" cy="28" rx="3.5" ry="2.5" fill="#1e293b"/>
-                          <circle cx="12" cy="7.5" r="2" fill="${c}" opacity="0.4"/>
-                        </svg>
-                      </div>
                     </div>`,
-                    iconSize: [50, 70],
-                    iconAnchor: [25, 65],
+                    iconSize: [52, 78],
+                    iconAnchor: [26, 58],
                 });
 
                 if (markersRef.current[bus.bus_id]) {
@@ -148,24 +152,33 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
             if (stops && stops.length > 0) {
                 stops.forEach((stop, idx) => {
                     const isLast = idx === stops.length - 1;
-                    const bg = isLast ? '#059669' : '#7C3AED';
+                    const bg = stop.color || (isLast ? '#059669' : '#7C3AED');
+                    const dark = bg + 'cc';
                     const countBadge = stop.student_count !== undefined
-                        ? `<div style="position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;background:#F59E0B;border:1.5px solid white;border-radius:8px;font-size:9px;font-weight:700;color:white;display:flex;align-items:center;justify-content:center;padding:0 3px;">${stop.student_count}</div>`
+                        ? `<div style="position:absolute;top:-5px;right:-5px;min-width:14px;height:14px;background:#F59E0B;border:1.5px solid white;border-radius:7px;font-size:8px;font-weight:700;color:white;display:flex;align-items:center;justify-content:center;padding:0 2px;">${stop.student_count}</div>`
                         : '';
+                    // Small front-view 2D bus SVG (20×24) with sequence number in windshield
                     const stopIcon = L.divIcon({
                         className: '',
-                        html: `<div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;">
+                        html: `<div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.4));">
                             <div style="position:relative;">
-                                <div style="width:30px;height:30px;border-radius:50%;background:${bg};border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;">
-                                    ${stop.sequence}
-                                </div>
-                                ${countBadge}
+                              <svg width="20" height="24" viewBox="0 0 24 30" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="1" y="1" width="22" height="22" rx="4" fill="${bg}" stroke="rgba(0,0,0,0.2)" stroke-width="1.5"/>
+                                <rect x="3" y="3" width="18" height="9" rx="2" fill="rgba(255,255,255,.9)"/>
+                                <text x="12" y="7.5" text-anchor="middle" dominant-baseline="middle"
+                                      fill="${bg}" font-size="7" font-weight="800" font-family="sans-serif">${stop.sequence}</text>
+                                <rect x="3"  y="14" width="7" height="5" rx="1.5" fill="rgba(255,255,255,.6)"/>
+                                <rect x="14" y="14" width="7" height="5" rx="1.5" fill="rgba(255,255,255,.6)"/>
+                                <rect x="4"  y="22" width="16" height="2" rx="1" fill="rgba(0,0,0,.2)"/>
+                                <ellipse cx="6"  cy="28" rx="3" ry="2" fill="#1e293b"/>
+                                <ellipse cx="18" cy="28" rx="3" ry="2" fill="#1e293b"/>
+                              </svg>
+                              ${countBadge}
                             </div>
-                            <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${bg};margin-top:-1px;"></div>
-                            <div style="background:rgba(10,10,20,0.82);backdrop-filter:blur(3px);color:white;font-size:9px;font-weight:600;padding:2px 7px;border-radius:4px;margin-top:2px;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;border:1px solid rgba(255,255,255,0.12);">${stop.name}</div>
+                            <div style="background:rgba(10,10,20,0.82);backdrop-filter:blur(3px);color:white;font-size:8px;font-weight:600;padding:1px 5px;border-radius:3px;margin-top:1px;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;">${stop.name}</div>
                         </div>`,
-                        iconSize: [30, 58],
-                        iconAnchor: [15, 30],
+                        iconSize: [20, 46],
+                        iconAnchor: [10, 24],
                     });
 
                     const tooltip = stop.student_count !== undefined

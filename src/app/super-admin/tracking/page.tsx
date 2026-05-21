@@ -186,6 +186,7 @@ export default function SATrackingPage() {
             return;
         }
         const trip = trips.find(t => t.bus_id === selectedBusId);
+        const schoolColor = activeBuses.find(b => b.bus_id === selectedBusId)?.school_color || undefined;
         if (trip?.route?.stops?.length) {
             const pins: StopPin[] = trip.route.stops.map(s => ({
                 id: s.id,
@@ -194,6 +195,7 @@ export default function SATrackingPage() {
                 lng: s.longitude,
                 sequence: s.sequence,
                 student_count: trip.route!.students?.filter(st => st.stop_id === s.id).length ?? 0,
+                color: schoolColor,
             }));
             setRouteStops(pins);
         } else {

@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Plus, Loader2, X, Shield, UserX, Trash2, AlertTriangle, Pencil, KeyRound, Check } from 'lucide-react';
+import { Users, Plus, Loader2, X, Shield, UserX, Trash2, AlertTriangle, Pencil, KeyRound, Check, Truck, HardHat } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+
+interface School { id: string; name: string; }
 
 interface SAUser {
   id: string;
@@ -67,16 +69,25 @@ function FieldError({ msg }: { msg: string }) {
   );
 }
 
+const emptyStaffForm = { name: '', email: '', phone: '', password: '', role: 'bus_staff' as 'bus_staff' | 'driver', school_id: '' };
+
 export default function SAUsersPage() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<SAUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [schools, setSchools] = useState<School[]>([]);
 
-  // Create modal
+  // Create SA modal
   const [showCreate, setShowCreate] = useState(false);
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createForm, setCreateForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
   const [createError, setCreateError] = useState('');
+
+  // Create school staff modal
+  const [showStaff, setShowStaff] = useState(false);
+  const [staffForm, setStaffForm] = useState(emptyStaffForm);
+  const [staffSubmitting, setStaffSubmitting] = useState(false);
+  const [staffError, setStaffError] = useState('');
 
   // Edit modal
   const [editUser, setEditUser] = useState<SAUser | null>(null);
@@ -99,7 +110,10 @@ export default function SAUsersPage() {
   // Toggle loading per-row
   const [toggleLoading, setToggleLoading] = useState<string | null>(null);
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => {
+    fetchUsers();
+    api.get('/schools').then(r => setSchools((r.data || []).map((s: any) => ({ id: s.id, name: s.name })))).catch(() => {});
+  }, []);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -110,6 +124,31 @@ export default function SAUsersPage() {
       setUsers([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStaffError('');
+    if (!staffForm.name.trim() || !staffForm.password || !staffForm.school_id) {
+      return setStaffError('Name, password and school are required.');
+    }
+    setStaffSubmitting(true);
+    try {
+      await api.post('/users', {
+        name: staffForm.name.trim(),
+        email: staffForm.email.trim() || undefined,
+        phone: staffForm.phone.trim() || undefined,
+        password: staffForm.password,
+        role: staffForm.role,
+        school_id: staffForm.school_id,
+      });
+      setShowStaff(false);
+      setStaffForm(emptyStaffForm);
+    } catch (err: any) {
+      setStaffError(err.response?.data?.error || 'Failed to create staff user.');
+    } finally {
+      setStaffSubmitting(false);
     }
   };
 
@@ -211,12 +250,20 @@ export default function SAUsersPage() {
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Manage super admin platform accounts</p>
         </div>
-        <button
-          onClick={() => { setShowCreate(true); setCreateError(''); setCreateForm({ name: '', email: '', phone: '', password: '', confirmPassword: '' }); }}
-          className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-5 py-2.5 font-semibold text-sm transition-all active:scale-95 shadow-sm"
-        >
-          <Plus className="w-4 h-4" /> Create SA
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setStaffForm(emptyStaffForm); setStaffError(''); setShowStaff(true); }}
+            className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
+          >
+            <HardHat className="w-4 h-4" /> Add School Staff
+          </button>
+          <button
+            onClick={() => { setShowCreate(true); setCreateError(''); setCreateForm({ name: '', email: '', phone: '', password: '', confirmPassword: '' }); }}
+            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-5 py-2.5 font-semibold text-sm transition-all active:scale-95 shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Create SA
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -321,6 +368,55 @@ export default function SAUsersPage() {
           </div>
         )}
       </div>
+
+      {/* ── ADD SCHOOL STAFF MODAL ───────────────────────────────────────────── */}
+      <Modal open={showStaff} onClose={() => setShowStaff(false)}>
+        <ModalHeader icon={<HardHat className="w-5 h-5" />} title="Add School Staff" subtitle="Create a driver or bus staff account for a school" onClose={() => setShowStaff(false)} />
+        <form onSubmit={handleCreateStaff} className="p-6 space-y-4 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-3">
+            <button type="button" onClick={() => setStaffForm(f => ({ ...f, role: 'bus_staff' }))}
+              className={cn('flex items-center gap-2 p-3 rounded-xl border-2 text-sm font-semibold transition-all', staffForm.role === 'bus_staff' ? 'border-[var(--brand)] bg-[var(--brand)]/5 text-[var(--brand)]' : 'border-slate-200 dark:border-slate-600 text-slate-500')}>
+              <HardHat className="w-4 h-4" /> Bus Staff
+            </button>
+            <button type="button" onClick={() => setStaffForm(f => ({ ...f, role: 'driver' }))}
+              className={cn('flex items-center gap-2 p-3 rounded-xl border-2 text-sm font-semibold transition-all', staffForm.role === 'driver' ? 'border-[var(--brand)] bg-[var(--brand)]/5 text-[var(--brand)]' : 'border-slate-200 dark:border-slate-600 text-slate-500')}>
+              <Truck className="w-4 h-4" /> Driver
+            </button>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">School *</label>
+            <select value={staffForm.school_id} onChange={e => setStaffForm(f => ({ ...f, school_id: e.target.value }))}
+              className={inputCls} required>
+              <option value="">Select school...</option>
+              {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          {[
+            { label: 'Full Name', key: 'name', type: 'text', required: true },
+            { label: 'Email', key: 'email', type: 'email', required: false },
+            { label: 'Phone', key: 'phone', type: 'tel', required: false },
+            { label: 'Password', key: 'password', type: 'password', required: true },
+          ].map(({ label, key, type, required }) => (
+            <div key={key}>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">{label}{required && ' *'}</label>
+              <input type={type} required={required} value={(staffForm as any)[key]}
+                onChange={e => setStaffForm(f => ({ ...f, [key]: e.target.value }))}
+                className={inputCls} />
+            </div>
+          ))}
+          {staffError && <FieldError msg={staffError} />}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={() => setShowStaff(false)}
+              className="flex-1 py-2.5 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-semibold text-sm">
+              Cancel
+            </button>
+            <button type="submit" disabled={staffSubmitting}
+              className="flex-1 py-2.5 bg-[var(--brand)] text-white rounded-xl font-semibold text-sm disabled:opacity-60 flex items-center justify-center gap-2">
+              {staffSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Staff'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* ── CREATE SA MODAL ──────────────────────────────────────────────────── */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)}>
