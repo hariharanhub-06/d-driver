@@ -29,7 +29,6 @@ const getRouteById = async (req, res) => {
                 bus: { select: { id: true, bus_number: true, registration_no: true } },
                 students: {
                     select: { id: true, name: true, photo_url: true, grade: true, stop_id: true },
-                    where: { is_active: true },
                 },
             },
         });

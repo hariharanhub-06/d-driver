@@ -7,7 +7,7 @@ const router = Router();
 router.use(authenticateToken, requirePasswordChanged);
 
 router.get('/', requireRole('admin', 'super_admin', 'driver'), requireSchoolScope, getAllBuses);
-router.get('/:id', requireRole('admin', 'super_admin', 'driver'), getBusById);
+router.get('/:id', requireRole('admin', 'super_admin', 'driver'), requireSchoolScope, getBusById);
 router.post('/bulk', requireRole('admin', 'super_admin'), bulkCreateBuses);
 router.post('/', requireRole('admin', 'super_admin'), validate(busSchema), createBus);
 router.put('/:id', requireRole('admin', 'super_admin'), updateBus);

@@ -65,6 +65,16 @@ const startTrip = async (req, res) => {
 // PATCH /api/v1/trips/:id/stop-index
 const updateStopIndex = async (req, res) => {
   const { stop_index } = req.body;
+  // Fetch trip with stop count to validate bounds
+  const existing = await prisma.activeTrip.findUnique({
+    where: { id: req.params.id },
+    include: { route: { include: { stops: { select: { id: true } } } } },
+  });
+  if (!existing) return res.status(404).json({ error: 'Trip not found' });
+  const stopCount = existing.route?.stops?.length ?? 0;
+  if (typeof stop_index !== 'number' || stop_index < 0 || stop_index > stopCount) {
+    return res.status(400).json({ error: `stop_index must be between 0 and ${stopCount}` });
+  }
   const trip = await prisma.activeTrip.update({
     where: { id: req.params.id },
     data: { current_stop_index: stop_index },

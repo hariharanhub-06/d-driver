@@ -158,6 +158,7 @@ export default function SchoolsManagement() {
         setActiveTab('profile');
         setModalError('');
         setModalSuccess('');
+        setTempPassword('');
         setIsModalOpen(true);
     };
 

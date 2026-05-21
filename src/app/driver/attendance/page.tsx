@@ -99,9 +99,14 @@ export default function DriverAttendancePage() {
                 note: markingNote || undefined,
             });
         } catch {
-            // continue with local state even if API fails
+            alert('Failed to mark attendance. Please try again.');
+            return;
         }
         setAttendance(prev => ({ ...prev, [student.id]: status }));
+        // Remove from pre-absent list once the driver has actively marked them
+        if (status === 'present') {
+            setAbsences(prev => prev.filter(a => a.student_id !== student.id));
+        }
         setActiveStudentId(null);
         setMarkingNote('');
     };

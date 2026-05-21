@@ -12,7 +12,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
         if (!loading && !user) router.push('/login');
     }, [user, loading, router]);
 
-    if (loading || !user) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex justify-center items-center"><div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div></div>;
+    if (loading || !user) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex justify-center items-center"><div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin"></div></div>;
 
     return (
         <div className="bg-slate-50 dark:bg-slate-900">

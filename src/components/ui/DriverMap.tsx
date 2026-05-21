@@ -118,9 +118,11 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 compassInnerRef.current.style.transform = `rotate(${heading}deg)`;
             }
 
-            // Arrow always points "up" on screen (map rotation handles direction)
+            // Arrow rotates with heading so it points in direction of travel on screen.
+            // The map also rotates by -heading, so net visual = arrow always points "up" (forward).
+            // Embedding rotate(+heading) here makes the arrow and map animate as one coupled unit.
             const arrowHtml = `
-                <div style="display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.55));">
+                <div style="transform:rotate(${heading}deg);display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.55));">
                   <svg width="26" height="32" viewBox="0 0 44 52" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22 2 L42 48 L22 36 L2 48 Z" fill="white" opacity="0.92"/>
                     <path d="M22 5 L40 46 L22 34 L4 46 Z" fill="#1A1A2E"/>
@@ -310,39 +312,36 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             {/* ── UI overlay (never rotates) ── */}
             <div style={{ position: 'absolute', inset: 0, zIndex: 900, pointerEvents: 'none' }}>
 
-                {/* North compass — top right */}
-                <button
-                    onClick={handleNorthReset}
-                    title="Tap to reset north"
-                    style={{
-                        ...BTN,
-                        position: 'absolute', top: 16, right: 16,
-                        pointerEvents: 'all',
-                        flexDirection: 'column', gap: 0,
-                    }}
-                >
-                    <div
-                        ref={compassInnerRef}
-                        style={{ transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
-                        {/* Compass needle: red = north, gray = south */}
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                            <polygon points="12,2 14.5,12 12,10.5 9.5,12" fill="#E74C3C" />
-                            <polygon points="12,22 14.5,12 12,13.5 9.5,12" fill="#94A3B8" />
-                            <circle cx="12" cy="12" r="1.8" fill="#1e293b" />
-                        </svg>
-                    </div>
-                    <span style={{ fontSize: 8, fontWeight: 800, color: '#E74C3C', letterSpacing: 0.5, marginTop: 1 }}>N</span>
-                </button>
-
-                {/* Zoom + Recenter — right side, above bottom sheet */}
+                {/* All map controls — right side, above bottom sheet */}
+                {/* Order top→bottom: North compass, Zoom+, Zoom−, Recenter */}
                 <div style={{
                     position: 'absolute', right: 16, bottom: 120,
                     display: 'flex', flexDirection: 'column', gap: 8,
                     pointerEvents: 'all',
                 }}>
+                    {/* North compass — tap to reset heading to north */}
+                    <button
+                        onClick={handleNorthReset}
+                        title="Tap to reset north"
+                        style={{ ...BTN, flexDirection: 'column', gap: 0 }}
+                    >
+                        <div
+                            ref={compassInnerRef}
+                            style={{ transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                            {/* Compass needle: red = north, gray = south */}
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                                <polygon points="12,2 14.5,12 12,10.5 9.5,12" fill="#E74C3C" />
+                                <polygon points="12,22 14.5,12 12,13.5 9.5,12" fill="#94A3B8" />
+                                <circle cx="12" cy="12" r="1.8" fill="#1e293b" />
+                            </svg>
+                        </div>
+                        <span style={{ fontSize: 8, fontWeight: 800, color: '#E74C3C', letterSpacing: 0.5, marginTop: 1 }}>N</span>
+                    </button>
+
                     <button style={BTN} onClick={() => { mapRef.current?.zoomIn(); userDraggedRef.current = true; if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#94a3b8'; }} title="Zoom in">+</button>
                     <button style={BTN} onClick={() => { mapRef.current?.zoomOut(); userDraggedRef.current = true; if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#94a3b8'; }} title="Zoom out">−</button>
+
                     {/* Recenter — Google Maps location icon */}
                     <button
                         ref={recentreBtnRef}

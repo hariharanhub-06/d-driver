@@ -62,7 +62,7 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
                 mapRef.current = L.map(containerRef.current!, {
                     center: defaultCenter,
                     zoom: center ? 13 : 10,
-                    minZoom: 8,
+                    minZoom: 5,
                     zoomControl: true,
                     attributionControl: false,
                 });

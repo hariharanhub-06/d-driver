@@ -176,6 +176,10 @@ export default function ActiveRide() {
     const advanceStopRef = useRef<() => Promise<void>>(async () => {});
     const triggerProximityPopupRef = useRef<() => void>(() => {});
     const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    // Mirrors of state for use inside countdown closure and watchPosition
+    const attendanceRef = useRef<Record<string, 'present' | 'absent'>>({});
+    const popupStudentsRef = useRef<Student[]>([]);
+    const showAttendancePopupRef = useRef(false);
 
     const fetchTripData = useCallback(async () => {
         try {
@@ -275,7 +279,7 @@ export default function ActiveRide() {
                         if (dist <= 50 && !proximityTriggeredRef.current) {
                             proximityTriggeredRef.current = true;
                             triggerProximityPopupRef.current();
-                        } else if (dist > 1000 && !proximityTriggeredRef.current && skipAlertedStopRef.current !== stop.id) {
+                        } else if (dist > 1000 && !proximityTriggeredRef.current && skipAlertedStopRef.current !== stop.id && !showAttendancePopupRef.current) {
                             skipAlertedStopRef.current = stop.id;
                             setSkipToast(stop.name);
                             setTimeout(() => setSkipToast(null), 3000);
@@ -352,6 +356,9 @@ export default function ActiveRide() {
     // Keep refs in sync so watchPosition and countdown can read latest values
     useEffect(() => { currentStopRef.current = currentStop ?? null; });
     useEffect(() => { allStudentsRef.current = allStudents; });
+    useEffect(() => { attendanceRef.current = attendance; }, [attendance]);
+    useEffect(() => { popupStudentsRef.current = popupStudents; }, [popupStudents]);
+    useEffect(() => { showAttendancePopupRef.current = showAttendancePopup; }, [showAttendancePopup]);
 
     // Reset proximity + skip triggers whenever stop advances so next stop can trigger again
     useEffect(() => {
@@ -374,7 +381,7 @@ export default function ActiveRide() {
     useEffect(() => { triggerProximityPopupRef.current = triggerProximityPopup; });
     useEffect(() => { advanceStopRef.current = advanceStop; });
 
-    // Countdown — auto-close popup and advance stop after 10 seconds
+    // Countdown — auto-advance only when ALL students are marked; otherwise reset timer
     useEffect(() => {
         if (!showAttendancePopup) return;
         if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
@@ -382,6 +389,13 @@ export default function ActiveRide() {
         countdownTimerRef.current = setInterval(() => {
             setPopupCountdown(prev => {
                 if (prev <= 1) {
+                    const students = popupStudentsRef.current;
+                    const marked = attendanceRef.current;
+                    const allMarked = students.every(s => marked[s.id]);
+                    if (!allMarked) {
+                        // Reset timer — don't advance until driver marks everyone
+                        return 10;
+                    }
                     clearInterval(countdownTimerRef.current!);
                     setShowAttendancePopup(false);
                     setPopupStudents([]);

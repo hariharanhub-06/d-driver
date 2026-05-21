@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, Check, X, Search, MapPin, ChevronRight, Home } from 'lucide-react';
+import { User, Check, X, Search, MapPin, ChevronRight, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
@@ -96,8 +96,14 @@ export default function BusStaffAttendancePage() {
                 trip_id: tripId || undefined,
                 note: markingNote || undefined,
             });
-        } catch { /* update local state regardless */ }
+        } catch {
+            alert('Failed to mark attendance. Please try again.');
+            return;
+        }
         setAttendance(prev => ({ ...prev, [student.id]: status }));
+        if (status === 'present') {
+            setAbsences(prev => prev.filter(a => a.student_id !== student.id));
+        }
         setActiveStudentId(null);
         setMarkingNote('');
     };
@@ -197,7 +203,7 @@ export default function BusStaffAttendancePage() {
 
             {stops.length === 0 && !loading && (
                 <div className="mx-4 mt-6 bg-white dark:bg-slate-800 rounded-2xl p-8 text-center border border-slate-100 dark:border-slate-700">
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">No active trip found. Ask the driver to start a trip first.</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm">No active trip. Waiting for trip to begin.</p>
                 </div>
             )}
 
@@ -269,7 +275,7 @@ export default function BusStaffAttendancePage() {
                     <span className="text-[10px] font-medium mt-1">Attendance</span>
                 </div>
                 <button onClick={logout} className="flex flex-col items-center text-slate-400 dark:text-slate-500 hover:text-red-500 transition-colors">
-                    <Home className="w-5 h-5" />
+                    <LogOut className="w-5 h-5" />
                     <span className="text-[10px] font-medium mt-1">Logout</span>
                 </button>
             </div>

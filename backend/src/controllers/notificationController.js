@@ -20,6 +20,13 @@ const getNotifications = async (req, res) => {
 const markRead = async (req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.id;
+
+        // Only allow the owner to mark their own notification as read
+        const notification = await prisma.notification.findFirst({
+            where: { id, user_id: userId },
+        });
+        if (!notification) return res.status(404).json({ error: 'Notification not found' });
 
         const updated = await prisma.notification.update({
             where: { id },

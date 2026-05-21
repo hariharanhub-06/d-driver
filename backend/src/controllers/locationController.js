@@ -1,8 +1,11 @@
 const prisma = require('../prisma');
 const { distanceMeters } = require('../utils/haversine');
 
-// In-memory set tracking which (tripId:stopId) pairs have already triggered a proximity alert
-const alertedStops = new Set();
+// In-memory map tracking which (tripId:stopId) pairs have triggered proximity alerts.
+// Keyed by `tripId:stopId`, value is the timestamp of the alert.
+// Entries older than 2 hours are purged so alerts can re-fire on the next trip the same day.
+const alertedStops = new Map();
+const ALERT_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 const updateLocation = async (req, res) => {
     try {
@@ -73,7 +76,8 @@ const updateLocation = async (req, res) => {
 
             for (const stop of remainingStops) {
                 const alertKey = `${activeTrip.id}:${stop.id}`;
-                if (alertedStops.has(alertKey)) continue;
+                const alertedAt = alertedStops.get(alertKey);
+                if (alertedAt && Date.now() - alertedAt < ALERT_TTL_MS) continue;
 
                 const dist = distanceMeters(
                     parseFloat(latitude),
@@ -83,7 +87,7 @@ const updateLocation = async (req, res) => {
                 );
 
                 if (dist <= 1000) {
-                    alertedStops.add(alertKey);
+                    alertedStops.set(alertKey, Date.now());
 
                     // Find all students at this stop and notify their parents
                     const students = await prisma.student.findMany({
