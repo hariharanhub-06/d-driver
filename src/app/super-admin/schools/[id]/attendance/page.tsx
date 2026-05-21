@@ -7,10 +7,9 @@ import api from '@/lib/api';
 
 interface AttendanceRecord {
     id: string;
-    student: { name: string };
+    student: { name: string; route?: { name: string } };
     status: 'present' | 'absent';
     marked_at?: string;
-    route?: { name: string };
 }
 
 const inputCls = "bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors";
@@ -119,7 +118,7 @@ export default function SchoolAttendancePage() {
                                 {records.map(record => (
                                     <tr key={record.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                         <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">{record.student.name}</td>
-                                        <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{record.route?.name || '—'}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{record.student.route?.name || '—'}</td>
                                         <td className="px-4 py-3">
                                             {record.status === 'present' ? (
                                                 <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800">

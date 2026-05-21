@@ -9,12 +9,14 @@ interface Student {
     id: string;
     name: string;
     grade?: string;
+    section?: string;
+    gr_no?: string;
     photo_url?: string;
     route_id?: string;
     stop_id?: string;
     route?: { id: string; name: string } | null;
     stop?: { id: string; name: string } | null;
-    parent?: { name: string; phone?: string } | null;
+    parent?: { name: string; phone?: string; email?: string } | null;
 }
 
 interface Route {
@@ -52,7 +54,11 @@ export default function SchoolStudentsPage() {
     const [search, setSearch] = useState('');
 
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-    const [editForm, setEditForm] = useState({ route_id: '', stop_id: '' });
+    const [editForm, setEditForm] = useState({
+        name: '', grade: '', section: '', gr_no: '',
+        parent_name: '', parent_phone: '',
+        route_id: '', stop_id: '',
+    });
     const [saving, setSaving] = useState(false);
     const [editError, setEditError] = useState('');
 
@@ -101,7 +107,16 @@ export default function SchoolStudentsPage() {
         setEditingStudent(student);
         const routeId = student.route_id || student.route?.id || '';
         const stopId = student.stop_id || student.stop?.id || '';
-        setEditForm({ route_id: routeId, stop_id: stopId });
+        setEditForm({
+            name: student.name || '',
+            grade: student.grade || '',
+            section: student.section || '',
+            gr_no: student.gr_no || '',
+            parent_name: student.parent?.name || '',
+            parent_phone: student.parent?.phone || '',
+            route_id: routeId,
+            stop_id: stopId,
+        });
         setEditError('');
         if (routeId) fetchStopsForRoute(routeId);
     };
@@ -113,10 +128,17 @@ export default function SchoolStudentsPage() {
 
     const handleSave = async () => {
         if (!editingStudent) return;
+        if (!editForm.name.trim()) { setEditError('Student name is required.'); return; }
         setSaving(true);
         setEditError('');
         try {
             await api.put(`/students/${editingStudent.id}`, {
+                name: editForm.name.trim(),
+                grade: editForm.grade || undefined,
+                section: editForm.section || undefined,
+                gr_no: editForm.gr_no || undefined,
+                parent_name: editForm.parent_name || undefined,
+                parent_phone: editForm.parent_phone || undefined,
                 route_id: editForm.route_id || null,
                 stop_id: editForm.stop_id || null,
             });
@@ -409,12 +431,9 @@ export default function SchoolStudentsPage() {
             {/* Edit modal */}
             {editingStudent && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <div>
-                                <h2 className="text-slate-900 dark:text-white font-bold text-base">Edit Assignment</h2>
-                                <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{editingStudent.name}</p>
-                            </div>
+                            <h2 className="text-slate-900 dark:text-white font-bold text-base">Edit Student</h2>
                             <button
                                 onClick={() => setEditingStudent(null)}
                                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"
@@ -424,6 +443,37 @@ export default function SchoolStudentsPage() {
                         </div>
 
                         <div className="p-6 space-y-4">
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student Details</p>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Name <span className="text-red-500">*</span></label>
+                                <input className={inputCls} placeholder="Full name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Grade</label>
+                                    <input className={inputCls} placeholder="e.g. 5" value={editForm.grade} onChange={e => setEditForm(f => ({ ...f, grade: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Section</label>
+                                    <input className={inputCls} placeholder="e.g. A" value={editForm.section} onChange={e => setEditForm(f => ({ ...f, section: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">GR No.</label>
+                                    <input className={inputCls} placeholder="e.g. 1023" value={editForm.gr_no} onChange={e => setEditForm(f => ({ ...f, gr_no: e.target.value }))} />
+                                </div>
+                            </div>
+
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Parent / Guardian</p>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Name</label>
+                                <input className={inputCls} placeholder="Full name" value={editForm.parent_name} onChange={e => setEditForm(f => ({ ...f, parent_name: e.target.value }))} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Phone</label>
+                                <input type="tel" className={inputCls} placeholder="+91 9876543210" value={editForm.parent_phone} onChange={e => setEditForm(f => ({ ...f, parent_phone: e.target.value }))} />
+                            </div>
+
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Transport Assignment</p>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Route</label>
                                 <select
@@ -437,7 +487,6 @@ export default function SchoolStudentsPage() {
                                     ))}
                                 </select>
                             </div>
-
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Stop</label>
                                 <select
@@ -473,7 +522,7 @@ export default function SchoolStudentsPage() {
                                 className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
                             >
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                Save
+                                Save Changes
                             </button>
                         </div>
                     </div>

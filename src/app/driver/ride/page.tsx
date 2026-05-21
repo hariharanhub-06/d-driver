@@ -146,9 +146,10 @@ export default function ActiveRide() {
     const [geoError, setGeoError] = useState('');
     const [locationDenied, setLocationDenied] = useState(false);
 
-    // Stop arrival attendance popup
+    // Auto-triggered attendance popup (proximity-based)
     const [showAttendancePopup, setShowAttendancePopup] = useState(false);
     const [popupStudents, setPopupStudents] = useState<Student[]>([]);
+    const [popupCountdown, setPopupCountdown] = useState(10);
     const [attendance, setAttendance] = useState<Record<string, 'present' | 'absent'>>({});
     const [markingStudentId, setMarkingStudentId] = useState<string | null>(null);
 
@@ -160,6 +161,14 @@ export default function ActiveRide() {
     const [endingTrip, setEndingTrip] = useState(false);
 
     const [switchForm, setSwitchForm] = useState({ reason: 'breakdown', notes: '', km_at_switch: '' });
+
+    // Refs to avoid stale closures in watchPosition and countdown timer
+    const currentStopRef = useRef<Stop | null>(null);
+    const allStudentsRef = useRef<Student[]>([]);
+    const proximityTriggeredRef = useRef(false);
+    const advanceStopRef = useRef<() => Promise<void>>(async () => {});
+    const triggerProximityPopupRef = useRef<() => void>(() => {});
+    const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const fetchTripData = useCallback(async () => {
         try {
@@ -276,6 +285,21 @@ export default function ActiveRide() {
                             });
                         } catch { /* socket unavailable */ }
                     }
+                    // Proximity check — auto-trigger attendance popup within 50 m of current stop
+                    const stop = currentStopRef.current;
+                    if (stop?.lat && stop?.lng && !proximityTriggeredRef.current) {
+                        const R = 6371000;
+                        const dLat = (stop.lat - latitude) * Math.PI / 180;
+                        const dLng = (stop.lng - longitude) * Math.PI / 180;
+                        const a = Math.sin(dLat / 2) ** 2 +
+                            Math.cos(latitude * Math.PI / 180) * Math.cos(stop.lat * Math.PI / 180) *
+                            Math.sin(dLng / 2) ** 2;
+                        const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                        if (dist <= 50) {
+                            proximityTriggeredRef.current = true;
+                            triggerProximityPopupRef.current();
+                        }
+                    }
                 },
                 (err) => {
                     if (err.code === 1) setLocationDenied(true);
@@ -324,16 +348,48 @@ export default function ActiveRide() {
     const getStudentsAtStop = (stopId: string) =>
         allStudents.filter(s => s.stop_id === stopId);
 
-    const handleArrivedAtStop = async () => {
-        if (!tripData || !currentStop) return;
-        const studentsHere = getStudentsAtStop(currentStop.id);
-        if (studentsHere.length > 0) {
-            setPopupStudents(studentsHere);
-            setShowAttendancePopup(true);
-        } else {
-            await advanceStop();
-        }
+    // Keep refs in sync so watchPosition and countdown can read latest values
+    useEffect(() => { currentStopRef.current = currentStop ?? null; });
+    useEffect(() => { allStudentsRef.current = allStudents; });
+
+    // Reset proximity trigger whenever stop advances so next stop can trigger again
+    useEffect(() => { proximityTriggeredRef.current = false; }, [currentStopIndex]);
+
+    // Auto-trigger attendance popup when driver is within 50 m of the current stop
+    const triggerProximityPopup = () => {
+        const stop = currentStopRef.current;
+        if (!stop) return;
+        const students = allStudentsRef.current.filter(s => s.stop_id === stop.id);
+        setPopupStudents(students);
+        setAttendance({});
+        setPopupCountdown(10);
+        setShowAttendancePopup(true);
     };
+
+    // Keep function refs in sync so closures in watchPosition see latest versions
+    useEffect(() => { triggerProximityPopupRef.current = triggerProximityPopup; });
+    useEffect(() => { advanceStopRef.current = advanceStop; });
+
+    // Countdown — auto-close popup and advance stop after 10 seconds
+    useEffect(() => {
+        if (!showAttendancePopup) return;
+        if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+
+        countdownTimerRef.current = setInterval(() => {
+            setPopupCountdown(prev => {
+                if (prev <= 1) {
+                    clearInterval(countdownTimerRef.current!);
+                    setShowAttendancePopup(false);
+                    setPopupStudents([]);
+                    advanceStopRef.current();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => { if (countdownTimerRef.current) clearInterval(countdownTimerRef.current); };
+    }, [showAttendancePopup]);
 
     const advanceStop = async () => {
         if (!tripData) return;
@@ -546,7 +602,7 @@ export default function ActiveRide() {
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-0.5">
-                                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Current Stop</p>
+                                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Heading to</p>
                                     <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 rounded-full px-2 py-0.5">
                                         {currentStopIndex + 1} / {stops.length}
                                     </span>
@@ -556,38 +612,17 @@ export default function ActiveRide() {
                                     {currentStop.name}
                                 </h2>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                                    {getStudentsAtStop(currentStop.id).length} students at this stop
+                                    {getStudentsAtStop(currentStop.id).length} student{getStudentsAtStop(currentStop.id).length !== 1 ? 's' : ''}{nextStop ? ` · Next: ${nextStop.name}` : ' · Last stop'}
                                 </p>
                             </div>
-                            {nextStop && (
-                                <div className="text-right shrink-0 ml-3">
-                                    <p className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Next</p>
-                                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">{nextStop.name}</p>
-                                </div>
-                            )}
                         </div>
 
                         <button
-                            onClick={handleArrivedAtStop}
-                            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center mb-2"
+                            onClick={() => setShowEndTrip(true)}
+                            className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-all active:scale-95"
                         >
-                            {getStudentsAtStop(currentStop.id).length > 0 ? 'Arrived — Mark Attendance' : 'Arrived at Stop'}
+                            End Trip
                         </button>
-
-                        <div className="flex items-center justify-between">
-                            <button
-                                onClick={advanceStop}
-                                className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 py-1 transition-colors"
-                            >
-                                Skip Attendance → Next Stop
-                            </button>
-                            <button
-                                onClick={() => setShowEndTrip(true)}
-                                className="text-xs text-red-400 hover:text-red-600 py-1 transition-colors"
-                            >
-                                End Trip
-                            </button>
-                        </div>
                     </>
                 )}
             </div>
@@ -596,17 +631,24 @@ export default function ActiveRide() {
             {showAttendancePopup && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center">
                     <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+                        {/* Countdown progress bar */}
+                        <div className="h-1 bg-slate-100 dark:bg-slate-700 rounded-t-2xl overflow-hidden shrink-0">
+                            <div
+                                className="h-full bg-[var(--brand)] transition-all duration-1000 ease-linear"
+                                style={{ width: `${(popupCountdown / 10) * 100}%` }}
+                            />
+                        </div>
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 shrink-0">
                             <div>
                                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
                                     Students at {currentStop?.name}
                                 </h3>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                    {popupStudents.length} student{popupStudents.length !== 1 ? 's' : ''}
+                                    {popupStudents.length} student{popupStudents.length !== 1 ? 's' : ''} · auto-advancing in {popupCountdown}s
                                 </p>
                             </div>
                             <button
-                                onClick={() => setShowAttendancePopup(false)}
+                                onClick={handleDoneWithStop}
                                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"
                             >
                                 <X className="w-5 h-5" />
@@ -672,18 +714,12 @@ export default function ActiveRide() {
                             })}
                         </div>
 
-                        <div className="p-4 border-t border-slate-100 dark:border-slate-700 shrink-0 space-y-2">
+                        <div className="p-4 border-t border-slate-100 dark:border-slate-700 shrink-0">
                             <button
                                 onClick={handleDoneWithStop}
                                 className="w-full bg-[var(--brand)] hover:opacity-90 text-white rounded-xl py-3 font-bold text-sm active:scale-95 transition-all"
                             >
-                                Done — Move to Next Stop
-                            </button>
-                            <button
-                                onClick={() => { setShowAttendancePopup(false); advanceStop(); }}
-                                className="w-full text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 py-1 transition-colors"
-                            >
-                                Skip Attendance → Move to Next Stop
+                                Done — Next Stop
                             </button>
                         </div>
                     </div>

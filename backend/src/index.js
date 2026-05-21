@@ -88,6 +88,9 @@ io.use(async (socket, next) => {
   }
 });
 
+// Throttle map: { [busId]: lastWriteTimestamp } — prevents flooding the DB with location rows
+const lastLocationWrite = {};
+
 io.on('connection', (socket) => {
   socket.on('join-parent-room',  (userId)   => socket.join(`parent-${userId}`));
   socket.on('join-driver-room',  (driverId) => socket.join(`driver-${driverId}`));
@@ -96,15 +99,33 @@ io.on('connection', (socket) => {
 
   // Relay driver location to the school room — driver emits 'update-location',
   // parents and admin listen for 'location-updated'
-  socket.on('update-location', ({ busId, lat, lng }) => {
+  socket.on('update-location', ({ busId, lat, lng, heading }) => {
     const schoolId = socket.user?.school_id;
     if (!schoolId || !busId) return;
+
+    // Broadcast immediately for real-time tracking
     io.to(`school-${schoolId}`).emit('location-updated', {
       busId,
       latitude: lat,
       longitude: lng,
+      heading: heading ?? null,
       timestamp: new Date(),
     });
+
+    // Persist to DB (throttled — max once per 10 s per bus) so polling-based
+    // admin/SA tracking pages can pick up the latest position
+    const now = Date.now();
+    if (!lastLocationWrite[busId] || now - lastLocationWrite[busId] > 10000) {
+      lastLocationWrite[busId] = now;
+      prisma.location.create({
+        data: {
+          bus_id: busId,
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lng),
+          school_id: schoolId,
+        },
+      }).catch(() => {}); // fire-and-forget, non-critical
+    }
   });
 
   socket.on('disconnect', () => {});
