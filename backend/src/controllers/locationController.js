@@ -203,7 +203,12 @@ const getAllActiveBusLocations = async (req, res) => {
             : req.user.school_id;
 
         const whereClause = { status: 'running' };
-        if (schoolId) whereClause.school_id = schoolId;
+        if (schoolId) {
+            whereClause.school_id = schoolId;
+        } else if (req.user.role === 'super_admin' && !req.user.is_dev_sa) {
+            // Regular SA: scope to schools they are assigned to
+            whereClause.school = { assigned_sa_id: req.user.id };
+        }
 
         const activeTrips = await prisma.activeTrip.findMany({
             where: whereClause,

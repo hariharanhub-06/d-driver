@@ -127,8 +127,10 @@ const getActiveTrips = async (req, res) => {
   } else if (req.schoolId) {
     // Admin or SA filtered to a specific school
     where.school_id = req.schoolId;
+  } else if (req.user.role === 'super_admin' && !req.user.is_dev_sa) {
+    // Regular SA with no explicit school filter: scope to their assigned schools
+    where.school = { assigned_sa_id: req.user.id };
   }
-  // Super admin with no school filter: no school_id constraint → returns all running trips
 
   const trips = await prisma.activeTrip.findMany({
     where,
