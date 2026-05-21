@@ -387,35 +387,32 @@ export default function SAUsersPage() {
                         {isSelf || u.is_dev_sa ? (
                           <span className="text-xs text-slate-400 dark:text-slate-500 italic">{isSelf ? 'Current session' : 'Protected'}</span>
                         ) : (
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <button onClick={() => openEdit(u)} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 transition-all flex items-center gap-1.5">
-                              <Pencil className="w-3 h-3" /> Edit
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => openEdit(u)} title="Edit" className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-300 hover:text-[var(--brand)] hover:border-[var(--brand)]/40 hover:bg-[var(--brand)]/5 transition-all flex items-center justify-center">
+                              <Pencil className="w-3.5 h-3.5" />
                             </button>
                             {currentUser?.is_dev_sa && (
-                              <button
-                                onClick={() => openManageSchools(u)}
-                                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center gap-1.5"
-                              >
-                                <Building2 className="w-3 h-3" /> Schools
+                              <button onClick={() => openManageSchools(u)} title="Manage Schools" className="w-8 h-8 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center justify-center">
+                                <Building2 className="w-3.5 h-3.5" />
                               </button>
                             )}
-                            <button onClick={() => openReset(u)} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all flex items-center gap-1.5">
-                              <KeyRound className="w-3 h-3" /> Reset PW
+                            <button onClick={() => openReset(u)} title="Reset Password" className="w-8 h-8 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all flex items-center justify-center">
+                              <KeyRound className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleToggleActive(u)}
                               disabled={toggleLoading === u.id}
-                              className={cn('px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 disabled:opacity-50',
+                              title={u.is_active ? 'Deactivate' : 'Activate'}
+                              className={cn('w-8 h-8 rounded-lg border transition-all flex items-center justify-center disabled:opacity-50',
                                 u.is_active
-                                  ? 'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/40'
-                                  : 'border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
+                                  ? 'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/40'
+                                  : 'border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
                               )}
                             >
-                              {toggleLoading === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserX className="w-3 h-3" />}
-                              {u.is_active ? 'Deactivate' : 'Activate'}
+                              {toggleLoading === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserX className="w-3.5 h-3.5" />}
                             </button>
-                            <button onClick={() => setDeleteUser(u)} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all flex items-center gap-1.5">
-                              <Trash2 className="w-3 h-3" /> Delete
+                            <button onClick={() => setDeleteUser(u)} title="Delete" className="w-8 h-8 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all flex items-center justify-center">
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         )}
