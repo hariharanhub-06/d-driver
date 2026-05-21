@@ -228,33 +228,28 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
 
                 const bg  = isNext ? '#F59E0B' : isPast ? '#94A3B8' : '#3B82F6';
                 const bd  = isNext ? '#D97706' : isPast ? '#64748B' : '#1D4ED8';
-                const num = idx + 1; // sequence displayed as journey order (1-based)
-                // Larger for next stop, small for rest
-                const W = isNext ? 34 : 24;
-                const H = isNext ? 40 : 28;
+                const num = idx + 1;
+                const S = isNext ? 22 : 16; // diameter in px
                 const fs = isNext ? 9 : 7;
 
-                // 2-D bus-front SVG with stop number in windshield
-                const busSvg = `
-                <svg width="${W}" height="${H}" viewBox="0 0 24 30" xmlns="http://www.w3.org/2000/svg"
-                     style="${isNext ? 'animation:gps-ping 2s ease-out infinite;' : ''}filter:drop-shadow(0 2px 4px rgba(0,0,0,.35));">
-                  <rect x="1" y="1" width="22" height="22" rx="4" fill="${bg}" stroke="${bd}" stroke-width="1.5"/>
-                  <rect x="3" y="3" width="18" height="9" rx="2" fill="rgba(255,255,255,.88)"/>
-                  <text x="12" y="7.5" text-anchor="middle" dominant-baseline="middle"
-                        fill="${bg}" font-size="${fs}" font-weight="800" font-family="sans-serif">${num}</text>
-                  <rect x="3"  y="14" width="7" height="5" rx="1.5" fill="rgba(255,255,255,.6)"/>
-                  <rect x="14" y="14" width="7" height="5" rx="1.5" fill="rgba(255,255,255,.6)"/>
-                  <rect x="4"  y="22" width="16" height="2" rx="1" fill="rgba(0,0,0,.22)"/>
-                  <ellipse cx="6"  cy="28" rx="3.5" ry="2.5" fill="#1e293b"/>
-                  <ellipse cx="18" cy="28" rx="3.5" ry="2.5" fill="#1e293b"/>
-                </svg>`;
+                const pinHtml = `
+                <div style="display:flex;flex-direction:column;align-items:center;">
+                  <div style="width:${S}px;height:${S}px;border-radius:50%;background:${bg};border:2px solid ${bd};
+                       box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;
+                       font-size:${fs}px;font-weight:800;color:white;font-family:sans-serif;
+                       ${isNext ? 'box-shadow:0 0 0 3px rgba(245,158,11,0.35),0 1px 4px rgba(0,0,0,.4);' : ''}">
+                    ${num}
+                  </div>
+                  <div style="width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;
+                       border-top:5px solid ${bd};margin-top:-1px;"></div>
+                </div>`;
 
                 const icon = L.divIcon({
                     className: '',
-                    html: busSvg,
-                    iconSize: [W, H],
-                    iconAnchor: [W / 2, H],
-                    popupAnchor: [0, -H - 2],
+                    html: pinHtml,
+                    iconSize: [S, S + 6],
+                    iconAnchor: [S / 2, S + 6],
+                    popupAnchor: [0, -S - 8],
                 });
 
                 const marker = L.marker([stop.lat, stop.lng], { icon })

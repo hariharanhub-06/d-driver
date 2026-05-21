@@ -11,6 +11,8 @@ interface MarkerData {
     isBus?: boolean;
     stopNumber?: number;
     heading?: number;
+    isMyStop?: boolean;
+    id?: string;
 }
 
 interface MapConfigProps {
@@ -18,6 +20,7 @@ interface MapConfigProps {
     zoom?: number;
     markers?: MarkerData[];
     followCenter?: boolean;
+    onStopClick?: (id: string, name: string) => void;
 }
 
 function SmoothRecenter({ center, follow }: { center: [number, number]; follow: boolean }) {
@@ -86,22 +89,33 @@ function BusMarkerIcon(L: any, busNumber?: string, heading?: number) {
     });
 }
 
-function StopIcon(L: any, num: number) {
+function StopIcon(L: any, num: number, isMyStop = false) {
+    const bg  = isMyStop ? '#F59E0B' : '#3B82F6';
+    const bd  = isMyStop ? '#D97706' : '#1D4ED8';
+    const S   = isMyStop ? 28 : 20;
+    const fs  = isMyStop ? 11 : 9;
+    const shadow = isMyStop
+        ? '0 0 0 4px rgba(245,158,11,0.25),0 2px 8px rgba(0,0,0,0.35)'
+        : '0 1px 5px rgba(0,0,0,0.35)';
     return L.divIcon({
         className: '',
-        html: `<div style="
-            background:#3B82F6;border:2.5px solid white;border-radius:50%;
-            width:26px;height:26px;display:flex;align-items:center;justify-content:center;
-            color:white;font-size:11px;font-weight:700;font-family:sans-serif;
-            box-shadow:0 2px 8px rgba(0,0,0,0.35);
-        ">${num}</div>`,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13],
-        popupAnchor: [0, -16],
+        html: `<div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="background:${bg};border:2px solid ${bd};border-radius:50%;
+                width:${S}px;height:${S}px;display:flex;align-items:center;justify-content:center;
+                color:white;font-size:${fs}px;font-weight:800;font-family:sans-serif;
+                box-shadow:${shadow};">
+                ${num}
+            </div>
+            <div style="width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;
+                border-top:5px solid ${bd};margin-top:-1px;"></div>
+        </div>`,
+        iconSize: [S, S + 6],
+        iconAnchor: [S / 2, S + 6],
+        popupAnchor: [0, -S - 4],
     });
 }
 
-export default function FreeMap({ center, zoom = 15, markers = [], followCenter = false }: MapConfigProps) {
+export default function FreeMap({ center, zoom = 15, markers = [], followCenter = false, onStopClick }: MapConfigProps) {
     const [L, setL] = useState<any>(null);
     const [ready, setReady] = useState(false);
 
@@ -147,15 +161,30 @@ export default function FreeMap({ center, zoom = 15, markers = [], followCenter 
                 const icon = marker.isBus
                     ? BusMarkerIcon(L, marker.title, marker.heading)
                     : marker.stopNumber !== undefined
-                        ? StopIcon(L, marker.stopNumber)
+                        ? StopIcon(L, marker.stopNumber, marker.isMyStop)
                         : undefined;
 
+                const isClickableStop = !marker.isBus && marker.stopNumber !== undefined && marker.id && onStopClick;
+
                 return (
-                    <Marker key={idx} position={marker.position} icon={icon}>
+                    <Marker
+                        key={idx}
+                        position={marker.position}
+                        icon={icon}
+                        eventHandlers={isClickableStop ? {
+                            click: () => onStopClick!(marker.id!, marker.title),
+                        } : undefined}
+                    >
                         <Popup>
                             <div className="font-sans text-sm">
                                 <p className="font-bold text-slate-800">{marker.title}</p>
                                 {marker.description && <p className="text-slate-500 text-xs mt-0.5">{marker.description}</p>}
+                                {isClickableStop && !marker.isMyStop && (
+                                    <p className="text-blue-600 text-xs mt-1 font-medium">Tap to request stop change</p>
+                                )}
+                                {marker.isMyStop && (
+                                    <p className="text-amber-600 text-xs mt-1 font-medium">Your current stop</p>
+                                )}
                             </div>
                         </Popup>
                     </Marker>

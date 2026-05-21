@@ -132,7 +132,7 @@ export default function SchoolDetailPage() {
             const formData = new FormData();
             formData.append('logo', file);
             formData.append('schoolId', id);
-            const res = await api.post('/upload/school-logo', formData);
+            const res = await api.post('/upload/school-logo', formData, { headers: { 'Content-Type': undefined } });
             setEditForm(f => ({ ...f, logo_url: res.data.url }));
         } catch (e: any) {
             alert(e.response?.data?.error || 'Logo upload failed');

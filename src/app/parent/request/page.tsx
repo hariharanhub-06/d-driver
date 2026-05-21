@@ -126,9 +126,11 @@ export default function StopChangeRequest() {
         setError('');
         setSubmitting(true);
         try {
+            const selectedStudent = students.find(s => s.id === selectedStudentId);
             await api.post('/stop-change', {
                 student_id: selectedStudentId,
-                new_stop_id: newStopId,
+                current_stop_id: selectedStudent?.stop?.id || selectedStudent?.stop_id || undefined,
+                requested_stop_id: newStopId,
                 change_type: changeType,
                 effective_date: effectiveDate,
                 reason: reason || undefined,

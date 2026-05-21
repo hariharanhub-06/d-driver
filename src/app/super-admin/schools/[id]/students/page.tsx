@@ -118,7 +118,7 @@ export default function SchoolStudentsPage() {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('folder', 'student-photos');
-            const res = await api.post('/upload/file', formData);
+            const res = await api.post('/upload/file', formData, { headers: { 'Content-Type': undefined } });
             onSuccess(res.data.url);
         } catch (e: any) {
             alert(e.response?.data?.error || 'Photo upload failed');

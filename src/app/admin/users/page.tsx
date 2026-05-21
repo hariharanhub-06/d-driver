@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Truck, Search, ToggleLeft, ToggleRight, AlertCircle } from 'lucide-react';
+import { Users, Truck, Search, ToggleLeft, ToggleRight, AlertCircle, Plus, X, Loader2, HardHat } from 'lucide-react';
 import api from '@/lib/api';
 
 interface UserRecord {
@@ -13,35 +13,58 @@ interface UserRecord {
     students?: { name: string }[];
 }
 
-type Tab = 'drivers' | 'parents';
+type Tab = 'drivers' | 'parents' | 'bus_staff';
+
+const emptyForm = { name: '', email: '', phone: '', password: '', role: 'driver' as 'driver' | 'bus_staff' };
 
 export default function AdminUsersPage() {
     const [activeTab, setActiveTab] = useState<Tab>('drivers');
     const [drivers, setDrivers] = useState<UserRecord[]>([]);
     const [parents, setParents] = useState<UserRecord[]>([]);
+    const [busStaff, setBusStaff] = useState<UserRecord[]>([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(false);
     const [toggling, setToggling] = useState<string | null>(null);
     const [error, setError] = useState('');
+    const [showCreate, setShowCreate] = useState(false);
+    const [form, setForm] = useState(emptyForm);
+    const [creating, setCreating] = useState(false);
+    const [createError, setCreateError] = useState('');
 
     const fetchUsers = async () => {
         setLoading(true);
         setError('');
         try {
-            const [driversRes, parentsRes] = await Promise.allSettled([
+            const [driversRes, parentsRes, staffRes] = await Promise.allSettled([
                 api.get('/users?role=driver'),
                 api.get('/users?role=parent'),
+                api.get('/users?role=bus_staff'),
             ]);
-            if (driversRes.status === 'fulfilled') {
-                setDrivers(driversRes.value.data || []);
-            }
-            if (parentsRes.status === 'fulfilled') {
-                setParents(parentsRes.value.data || []);
-            }
+            if (driversRes.status === 'fulfilled') setDrivers(driversRes.value.data || []);
+            if (parentsRes.status === 'fulfilled') setParents(parentsRes.value.data || []);
+            if (staffRes.status === 'fulfilled') setBusStaff(staffRes.value.data || []);
         } catch {
             setError('Failed to load users. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!form.name || !form.password) { setCreateError('Name and password are required.'); return; }
+        setCreating(true);
+        setCreateError('');
+        try {
+            await api.post('/users', form);
+            setShowCreate(false);
+            setForm(emptyForm);
+            await fetchUsers();
+            setActiveTab(form.role === 'bus_staff' ? 'bus_staff' : 'drivers');
+        } catch (err: any) {
+            setCreateError(err?.response?.data?.error || 'Failed to create user.');
+        } finally {
+            setCreating(false);
         }
     };
 
@@ -53,15 +76,11 @@ export default function AdminUsersPage() {
         setToggling(userId);
         try {
             await api.patch(`/users/${userId}/active`, { is_active: !currentStatus });
-            if (role === 'drivers') {
-                setDrivers(prev =>
-                    prev.map(u => u.id === userId ? { ...u, is_active: !currentStatus } : u)
-                );
-            } else {
-                setParents(prev =>
-                    prev.map(u => u.id === userId ? { ...u, is_active: !currentStatus } : u)
-                );
-            }
+            const updater = (prev: UserRecord[]) =>
+                prev.map(u => u.id === userId ? { ...u, is_active: !currentStatus } : u);
+            if (role === 'drivers') setDrivers(updater);
+            else if (role === 'parents') setParents(updater);
+            else setBusStaff(updater);
         } catch {
             setError('Failed to update user status.');
         } finally {
@@ -69,7 +88,7 @@ export default function AdminUsersPage() {
         }
     };
 
-    const currentList = activeTab === 'drivers' ? drivers : parents;
+    const currentList = activeTab === 'drivers' ? drivers : activeTab === 'parents' ? parents : busStaff;
     const filtered = currentList.filter(u =>
         u.name?.toLowerCase().includes(search.toLowerCase()) ||
         u.phone?.includes(search)
@@ -82,12 +101,21 @@ export default function AdminUsersPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Users</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Manage drivers and parents in your school
+                        Manage drivers, bus staff and parents in your school
                     </p>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/30 rounded-xl px-3 py-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span className="font-semibold">Only Super Admin can reset passwords.</span>
+                <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/30 rounded-xl px-3 py-2">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span className="font-semibold">Only Super Admin can reset passwords.</span>
+                    </div>
+                    <button
+                        onClick={() => { setForm(emptyForm); setCreateError(''); setShowCreate(true); }}
+                        className="flex items-center gap-2 bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white rounded-xl px-4 py-2 text-sm font-semibold transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add User
+                    </button>
                 </div>
             </div>
 
@@ -128,6 +156,20 @@ export default function AdminUsersPage() {
                             Parents
                             <span className="ml-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full px-1.5 py-0.5 text-xs">
                                 {parents.length}
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('bus_staff')}
+                            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-all rounded-t-lg ${
+                                activeTab === 'bus_staff'
+                                    ? 'text-[var(--brand)] border-b-2 border-[var(--brand)]'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border-b-2 border-transparent'
+                            }`}
+                        >
+                            <HardHat className="w-3.5 h-3.5" />
+                            Bus Staff
+                            <span className="ml-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full px-1.5 py-0.5 text-xs">
+                                {busStaff.length}
                             </span>
                         </button>
                     </div>
@@ -223,6 +265,69 @@ export default function AdminUsersPage() {
                     )}
                 </div>
             </div>
+            {/* Create user modal */}
+            {showCreate && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Add User</h2>
+                            <button onClick={() => setShowCreate(false)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleCreate} className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setForm(f => ({ ...f, role: 'driver' }))}
+                                    className={`flex items-center gap-2 p-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.role === 'driver' ? 'border-[var(--brand)] bg-[var(--brand)]/5 text-[var(--brand)]' : 'border-slate-200 dark:border-slate-600 text-slate-500'}`}
+                                >
+                                    <Truck className="w-4 h-4" /> Driver
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setForm(f => ({ ...f, role: 'bus_staff' }))}
+                                    className={`flex items-center gap-2 p-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.role === 'bus_staff' ? 'border-[var(--brand)] bg-[var(--brand)]/5 text-[var(--brand)]' : 'border-slate-200 dark:border-slate-600 text-slate-500'}`}
+                                >
+                                    <HardHat className="w-4 h-4" /> Bus Staff
+                                </button>
+                            </div>
+                            {[
+                                { label: 'Full Name', key: 'name', type: 'text', required: true },
+                                { label: 'Email', key: 'email', type: 'email', required: false },
+                                { label: 'Phone', key: 'phone', type: 'tel', required: false },
+                                { label: 'Password', key: 'password', type: 'password', required: true },
+                            ].map(({ label, key, type, required }) => (
+                                <div key={key}>
+                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+                                        {label}{required && ' *'}
+                                    </label>
+                                    <input
+                                        type={type}
+                                        required={required}
+                                        value={(form as any)[key]}
+                                        onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                                        className="w-full border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/40"
+                                    />
+                                </div>
+                            ))}
+                            {createError && (
+                                <p className="text-sm text-red-600 dark:text-red-400">{createError}</p>
+                            )}
+                            <div className="flex gap-3 pt-1">
+                                <button type="button" onClick={() => setShowCreate(false)}
+                                    className="flex-1 py-2.5 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-semibold text-sm">
+                                    Cancel
+                                </button>
+                                <button type="submit" disabled={creating}
+                                    className="flex-1 py-2.5 bg-[var(--brand)] text-white rounded-xl font-semibold text-sm disabled:opacity-60 flex items-center justify-center gap-2">
+                                    {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create User'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

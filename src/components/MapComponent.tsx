@@ -89,34 +89,34 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
             // Add / update bus markers
             buses.forEach(bus => {
                 const h = bus.heading ?? 0;
-                // Use per-bus school color if provided, otherwise fall back to CSS variable / blue
-                const c = bus.color || 'var(--brand,#3B82F6)';
+                const c = bus.color || '#3B82F6';
+                const bd = bus.color ? bus.color : '#1D4ED8';
+                // Short bus number for windshield (last 4 chars or full if short)
+                const shortNum = bus.bus_number.length > 6 ? bus.bus_number.slice(-4) : bus.bus_number;
                 const busIcon = L.divIcon({
                     className: '',
                     html: `
-                    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 10px rgba(0,0,0,0.4))">
-                      <div style="position:relative;background:${c};color:white;font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;white-space:nowrap;letter-spacing:0.3px;box-shadow:0 2px 6px rgba(0,0,0,0.2);margin-bottom:2px;">
+                    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 10px rgba(0,0,0,0.45));">
+                      <div style="background:${c};color:white;font-size:9px;font-weight:800;padding:2px 8px;border-radius:8px;white-space:nowrap;letter-spacing:0.3px;box-shadow:0 2px 6px rgba(0,0,0,0.25);margin-bottom:2px;border:1px solid rgba(255,255,255,0.2);">
                         ${bus.bus_number}
-                        <div style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${c};"></div>
                       </div>
-                      <div style="transform:rotate(${h}deg);transform-origin:center center;margin-top:4px;">
-                        <svg width="44" height="24" viewBox="0 0 44 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <rect x="1" y="2" width="42" height="18" rx="4" fill="${c}" stroke="rgba(0,0,0,0.2)" stroke-width="1.2"/>
-                          <rect x="1" y="2" width="42" height="5" rx="3" fill="rgba(255,255,255,0.25)"/>
-                          <rect x="1" y="16" width="42" height="4" rx="2" fill="rgba(0,0,0,0.28)"/>
-                          <rect x="4" y="7" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.88)"/>
-                          <rect x="13" y="7" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.88)"/>
-                          <rect x="22" y="7" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.88)"/>
-                          <rect x="31" y="7" width="6" height="6" rx="1.5" fill="rgba(255,255,255,0.88)"/>
-                          <rect x="1" y="9" width="2.5" height="4" rx="1" fill="#FF4444"/>
-                          <rect x="40.5" y="9" width="2.5" height="4" rx="1" fill="#FFFDE7"/>
-                          <circle cx="10" cy="22" r="2.5" fill="#111"/>
-                          <circle cx="34" cy="22" r="2.5" fill="#111"/>
+                      <div style="transform:rotate(${h}deg);transform-origin:center bottom;">
+                        <svg width="34" height="40" viewBox="0 0 24 30" xmlns="http://www.w3.org/2000/svg">
+                          <rect x="1" y="1" width="22" height="22" rx="4" fill="${c}" stroke="${bd}" stroke-width="1.5"/>
+                          <rect x="3" y="3" width="18" height="9" rx="2" fill="rgba(255,255,255,.88)"/>
+                          <text x="12" y="7.5" text-anchor="middle" dominant-baseline="middle"
+                                fill="${c}" font-size="6" font-weight="800" font-family="sans-serif">${shortNum}</text>
+                          <rect x="3"  y="14" width="7" height="5" rx="1.5" fill="rgba(255,255,255,.6)"/>
+                          <rect x="14" y="14" width="7" height="5" rx="1.5" fill="rgba(255,255,255,.6)"/>
+                          <rect x="4"  y="22" width="16" height="2" rx="1" fill="rgba(0,0,0,.22)"/>
+                          <ellipse cx="6"  cy="28" rx="3.5" ry="2.5" fill="#1e293b"/>
+                          <ellipse cx="18" cy="28" rx="3.5" ry="2.5" fill="#1e293b"/>
+                          <circle cx="12" cy="7.5" r="2" fill="${c}" opacity="0.4"/>
                         </svg>
                       </div>
                     </div>`,
-                    iconSize: [60, 68],
-                    iconAnchor: [30, 60],
+                    iconSize: [50, 70],
+                    iconAnchor: [25, 65],
                 });
 
                 if (markersRef.current[bus.bus_id]) {
