@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Building2, Loader2, Save, ChevronLeft, ExternalLink, Copy } from 'lucide-react';
+import { Building2, Loader2, Save, ChevronLeft, ExternalLink, Copy, Upload } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -66,6 +66,8 @@ export default function SchoolDetailPage() {
     const [editForm, setEditForm] = useState<Partial<School>>({});
     const [permissions, setPermissions] = useState<Record<string, boolean>>({});
     const [selectedPlan, setSelectedPlan] = useState('');
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+    const logoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         fetchAll();
@@ -121,6 +123,21 @@ export default function SchoolDetailPage() {
             alert(e.response?.data?.error || e.response?.data?.message || 'Failed to update');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleLogoUpload = async (file: File) => {
+        setUploadingLogo(true);
+        try {
+            const formData = new FormData();
+            formData.append('logo', file);
+            formData.append('schoolId', id);
+            const res = await api.post('/upload/school-logo', formData);
+            setEditForm(f => ({ ...f, logo_url: res.data.url }));
+        } catch (e: any) {
+            alert(e.response?.data?.error || 'Logo upload failed');
+        } finally {
+            setUploadingLogo(false);
         }
     };
 
@@ -280,7 +297,6 @@ export default function SchoolDetailPage() {
                             { label: 'Address', key: 'address' as const },
                             { label: 'Phone', key: 'phone' as const },
                             { label: 'Email', key: 'email' as const },
-                            { label: 'Logo URL', key: 'logo_url' as const },
                         ].map(field => (
                             <div key={field.key}>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{field.label}</label>
@@ -292,6 +308,40 @@ export default function SchoolDetailPage() {
                                 />
                             </div>
                         ))}
+                        {/* Logo upload */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">School Logo</label>
+                            <div className="flex items-center gap-3">
+                                {editForm.logo_url ? (
+                                    <img src={editForm.logo_url} alt="Logo" className="w-12 h-12 rounded-xl object-contain bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-1 shrink-0" />
+                                ) : (
+                                    <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center shrink-0">
+                                        <Building2 className="w-5 h-5 text-slate-400" />
+                                    </div>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => logoInputRef.current?.click()}
+                                    disabled={uploadingLogo}
+                                    className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                                >
+                                    {uploadingLogo
+                                        ? <><div className="w-4 h-4 border-2 border-[var(--brand)] border-t-transparent rounded-full animate-spin" /> Uploading…</>
+                                        : <><Upload className="w-4 h-4" /> Upload Logo</>}
+                                </button>
+                                <input
+                                    ref={logoInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={e => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleLogoUpload(file);
+                                        e.target.value = '';
+                                    }}
+                                />
+                            </div>
+                        </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Primary Color</label>
                             <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5">

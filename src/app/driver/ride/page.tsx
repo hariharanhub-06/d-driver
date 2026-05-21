@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { AlertTriangle, Navigation, ChevronRight, X, Bus, Wrench, Check, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { connectSocket, getSocket } from '@/lib/socket';
@@ -31,6 +31,7 @@ interface TripData {
     current_stop_index: number;
     route?: {
         name: string;
+        route_type?: string;
         stops: Stop[];
         students: Student[];
     };
@@ -160,7 +161,7 @@ export default function ActiveRide() {
     const [submitting, setSubmitting] = useState(false);
     const [endingTrip, setEndingTrip] = useState(false);
 
-    const [switchForm, setSwitchForm] = useState({ reason: 'breakdown', notes: '', km_at_switch: '' });
+    const [switchForm, setSwitchForm] = useState({ reason: 'breakdown', notes: '', km_at_switch: '', new_bus_number: '' });
 
     // Refs to avoid stale closures in watchPosition and countdown timer
     const currentStopRef = useRef<Stop | null>(null);
@@ -340,10 +341,27 @@ export default function ActiveRide() {
     }, [fetchTripData]);
 
     const currentStopIndex = tripData?.current_stop_index ?? 0;
-    const stops = tripData?.route?.stops || [];
+    const rawStops = tripData?.route?.stops || [];
+    // For afternoon routes, driver goes from school area back to homes — reverse stop order
+    const isAfternoon = tripData?.route?.route_type === 'afternoon';
+    const stops = isAfternoon ? [...rawStops].reverse() : rawStops;
     const allStudents = tripData?.route?.students || [];
     const currentStop = stops[currentStopIndex];
     const nextStop = stops[currentStopIndex + 1];
+
+    // Straight-line distance to the current (next) stop
+    const nextStopDistanceKm = useMemo(() => {
+        if (!currentPos || !currentStop?.latitude || !currentStop?.longitude) return null;
+        const [lat, lng] = currentPos;
+        const R = 6371;
+        const dLat = (currentStop.latitude - lat) * Math.PI / 180;
+        const dLng = (currentStop.longitude - lng) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat * Math.PI / 180) * Math.cos(currentStop.latitude * Math.PI / 180) *
+            Math.sin(dLng / 2) ** 2;
+        const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return dist;
+    }, [currentPos, currentStop]);
 
     const getStudentsAtStop = (stopId: string) =>
         allStudents.filter(s => s.stop_id === stopId);
@@ -439,6 +457,10 @@ export default function ActiveRide() {
     };
 
     const handleBusSwitch = async () => {
+        if (!switchForm.new_bus_number.trim()) {
+            alert('Please enter the new bus number.');
+            return;
+        }
         setSubmitting(true);
         try {
             await api.post('/bus-switch', {
@@ -446,6 +468,7 @@ export default function ActiveRide() {
                 reason: switchForm.reason,
                 notes: switchForm.notes,
                 km_at_switch: switchForm.km_at_switch ? parseFloat(switchForm.km_at_switch) : undefined,
+                new_bus_number: switchForm.new_bus_number.trim(),
             });
             setShowBusSwitch(false);
             alert('Bus switch request submitted.');
@@ -613,6 +636,11 @@ export default function ActiveRide() {
                                 </h2>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                                     {getStudentsAtStop(currentStop.id).length} student{getStudentsAtStop(currentStop.id).length !== 1 ? 's' : ''}{nextStop ? ` · Next: ${nextStop.name}` : ' · Last stop'}
+                                    {nextStopDistanceKm !== null && (
+                                        <span className="ml-2 font-semibold text-[var(--brand)]">
+                                            · {nextStopDistanceKm < 1 ? `${Math.round(nextStopDistanceKm * 1000)} m` : `${nextStopDistanceKm.toFixed(1)} km`}
+                                        </span>
+                                    )}
                                 </p>
                             </div>
                         </div>
@@ -783,6 +811,10 @@ export default function ActiveRide() {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Notes</label>
                                 <textarea value={switchForm.notes} onChange={e => setSwitchForm({ ...switchForm, notes: e.target.value })} placeholder="Describe the issue..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none h-20" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">New Bus Number <span className="text-red-500">*</span></label>
+                                <input type="text" value={switchForm.new_bus_number} onChange={e => setSwitchForm({ ...switchForm, new_bus_number: e.target.value })} placeholder="e.g. KA-01-5678" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km) — optional</label>

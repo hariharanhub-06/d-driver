@@ -99,7 +99,7 @@ io.on('connection', (socket) => {
 
   // Relay driver location to the school room — driver emits 'update-location',
   // parents and admin listen for 'location-updated'
-  socket.on('update-location', ({ busId, lat, lng, heading }) => {
+  socket.on('update-location', async ({ busId, lat, lng, heading }) => {
     const schoolId = socket.user?.school_id;
     if (!schoolId || !busId) return;
 
@@ -112,19 +112,48 @@ io.on('connection', (socket) => {
       timestamp: new Date(),
     });
 
-    // Persist to DB (throttled — max once per 10 s per bus) so polling-based
-    // admin/SA tracking pages can pick up the latest position
+    // Persist to DB (throttled — max once per 3 s per bus) and deduct fuel
     const now = Date.now();
     if (!lastLocationWrite[busId] || now - lastLocationWrite[busId] > 3000) {
       lastLocationWrite[busId] = now;
-      prisma.location.create({
-        data: {
-          bus_id: busId,
-          latitude: parseFloat(lat),
-          longitude: parseFloat(lng),
-          school_id: schoolId,
-        },
-      }).catch(() => {}); // fire-and-forget, non-critical
+      try {
+        const { distanceMeters } = require('./utils/haversine');
+        // Get previous location for fuel deduction
+        const prevLocation = await prisma.location.findFirst({
+          where: { bus_id: busId },
+          orderBy: { timestamp: 'desc' },
+        });
+
+        await prisma.location.create({
+          data: {
+            bus_id: busId,
+            latitude: parseFloat(lat),
+            longitude: parseFloat(lng),
+            school_id: schoolId,
+          },
+        });
+
+        // Deduct fuel based on distance since last recorded location
+        if (prevLocation) {
+          const bus = await prisma.bus.findUnique({
+            where: { id: busId },
+            select: { mileage: true, fuel_liters: true },
+          });
+          if (bus?.mileage && bus.mileage > 0 && bus.fuel_liters !== null) {
+            const distKm = distanceMeters(
+              parseFloat(lat), parseFloat(lng),
+              prevLocation.latitude, prevLocation.longitude
+            ) / 1000;
+            if (distKm > 0.01) {
+              const fuelUsed = distKm / bus.mileage;
+              const newFuel = Math.max(0, bus.fuel_liters - fuelUsed);
+              await prisma.bus.update({ where: { id: busId }, data: { fuel_liters: newFuel } });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[socket] location/fuel error:', err.message);
+      }
     }
   });
 

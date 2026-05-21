@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, LogOut, X, Moon, Sun, DollarSign } from 'lucide-react';
+import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, LogOut, X, Moon, Sun, DollarSign, Hash } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from 'next-themes';
 import api from '@/lib/api';
@@ -34,28 +34,16 @@ interface ActiveTrip {
     current_stop_index: number;
 }
 
-interface Shift {
-    id: string;
-    start_km: number;
-    status: string;
-}
-
 export default function DriverDashboard() {
     const { user, logout } = useAuth();
     const { theme, setTheme } = useTheme();
     const router = useRouter();
     const [currentTime, setCurrentTime] = useState(new Date());
     const [driverInfo, setDriverInfo] = useState<DriverInfo | null>(null);
-    const [activeShift, setActiveShift] = useState<Shift | null>(null);
     const [activeTrips, setActiveTrips] = useState<ActiveTrip[]>([]);
     const [absenceCount, setAbsenceCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-
-    const [showKmDialog, setShowKmDialog] = useState(false);
-    const [kmDialogMode, setKmDialogMode] = useState<'start' | 'end'>('start');
-    const [kmValue, setKmValue] = useState('');
-    const [kmSubmitting, setKmSubmitting] = useState(false);
 
     const [showFuelModal, setShowFuelModal] = useState(false);
     const [fuelAmount, setFuelAmount] = useState('');
@@ -106,45 +94,10 @@ export default function DriverDashboard() {
                 const data = tripsRes.value.data;
                 setActiveTrips(Array.isArray(data) ? data : []);
             }
-
-            try {
-                const shiftRes = await api.get('/shifts/active');
-                setActiveShift(shiftRes.data || null);
-            } catch {
-                setActiveShift(null);
-            }
         } catch {
             setError('Failed to load dashboard data');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const openShiftDialog = (mode: 'start' | 'end') => {
-        setKmDialogMode(mode);
-        setKmValue('');
-        setShowKmDialog(true);
-    };
-
-    const handleShiftAction = async () => {
-        if (!kmValue) return;
-        setKmSubmitting(true);
-        try {
-            if (kmDialogMode === 'start') {
-                const res = await api.post('/shifts/start', {
-                    bus_id: driverInfo?.bus?.id,
-                    start_km: parseFloat(kmValue),
-                });
-                setActiveShift(res.data);
-            } else {
-                await api.post('/shifts/end', { end_km: parseFloat(kmValue) });
-                setActiveShift(null);
-            }
-            setShowKmDialog(false);
-        } catch (e: any) {
-            alert(e.response?.data?.error || e.response?.data?.message || 'Action failed');
-        } finally {
-            setKmSubmitting(false);
         }
     };
 
@@ -278,60 +231,25 @@ export default function DriverDashboard() {
                     </div>
                 )}
 
-                {/* Shift Status */}
-                {activeShift ? (
-                    <div className="bg-[var(--brand)] text-white rounded-2xl p-6 shadow-lg">
-                        <div className="flex justify-between items-start mb-5">
-                            <div>
-                                <p className="text-white/70 text-xs font-medium uppercase tracking-widest mb-2">Shift Status</p>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                                    <span className="text-white text-sm font-bold uppercase tracking-widest">Shift Active</span>
-                                </div>
+                {/* Bus Info Card */}
+                {driverInfo?.bus && (
+                    <div className="bg-[var(--brand)] text-white rounded-2xl p-5 shadow-lg flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                <Bus className="w-6 h-6 text-white" />
                             </div>
-                            {driverInfo?.bus && (
-                                <div className="text-right">
-                                    <p className="text-white/70 text-xs font-medium uppercase tracking-widest">Assigned Bus</p>
-                                    <p className="text-2xl font-bold text-white mt-1">{driverInfo.bus.bus_number}</p>
-                                </div>
-                            )}
-                        </div>
-                        {driverInfo?.license_no && (
-                            <p className="text-white/70 text-xs font-medium mb-5">License: {driverInfo.license_no}</p>
-                        )}
-                        <button
-                            onClick={() => openShiftDialog('end')}
-                            className="w-full py-2.5 bg-white text-[var(--brand)] hover:bg-white/90 rounded-xl font-bold text-sm active:scale-95 transition-all"
-                        >
-                            End Shift
-                        </button>
-                    </div>
-                ) : (
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
-                        <div className="flex justify-between items-start mb-5">
                             <div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest mb-2">Shift Status</p>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                                    <span className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest">No Active Shift</span>
-                                </div>
+                                <p className="text-white/70 text-xs font-medium uppercase tracking-widest">Assigned Bus</p>
+                                <p className="text-2xl font-bold text-white leading-tight">{driverInfo.bus.bus_number}</p>
+                                {driverInfo.license_no && (
+                                    <p className="text-white/70 text-xs mt-0.5">License: {driverInfo.license_no}</p>
+                                )}
                             </div>
-                            {driverInfo?.bus && (
-                                <div className="text-right">
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest">Assigned Bus</p>
-                                    <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{driverInfo.bus.bus_number}</p>
-                                </div>
-                            )}
                         </div>
-                        {driverInfo?.license_no && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-5">License: {driverInfo.license_no}</p>
-                        )}
-                        <button
-                            onClick={() => openShiftDialog('start')}
-                            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center"
-                        >
-                            Start Shift
-                        </button>
+                        <div className="text-right">
+                            <p className="text-white/70 text-xs font-medium uppercase tracking-widest">Routes</p>
+                            <p className="text-2xl font-bold text-white">{driverInfo.bus.routes?.length ?? 0}</p>
+                        </div>
                     </div>
                 )}
 
@@ -571,55 +489,6 @@ export default function DriverDashboard() {
                                     </div>
                                 </>
                             )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* KM Input Dialog */}
-            {showKmDialog && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
-                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                                {kmDialogMode === 'start' ? 'Start Shift' : 'End Shift'}
-                            </h3>
-                            <button onClick={() => setShowKmDialog(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">Enter current odometer reading</p>
-                            <div className="mb-5">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                                    Current Odometer Reading (km)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={kmValue}
-                                    onChange={(e) => setKmValue(e.target.value)}
-                                    placeholder="e.g. 45230"
-                                    className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowKmDialog(false)}
-                                    className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleShiftAction}
-                                    disabled={!kmValue || kmSubmitting}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm disabled:opacity-50"
-                                >
-                                    {kmSubmitting
-                                        ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        : kmDialogMode === 'start' ? 'Start Shift' : 'End Shift'}
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>

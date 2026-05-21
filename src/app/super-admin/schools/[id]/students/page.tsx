@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { Search, Loader2, X, Save, UserCircle2, Plus, Copy, Check } from 'lucide-react';
+import { Search, Loader2, X, Save, UserCircle2, Plus, Copy, Check, Camera } from 'lucide-react';
 import api from '@/lib/api';
 
 interface Student {
@@ -57,10 +57,12 @@ export default function SchoolStudentsPage() {
     const [editForm, setEditForm] = useState({
         name: '', grade: '', section: '', gr_no: '',
         parent_name: '', parent_phone: '',
-        route_id: '', stop_id: '',
+        route_id: '', stop_id: '', photo_url: '',
     });
     const [saving, setSaving] = useState(false);
     const [editError, setEditError] = useState('');
+    const [uploadingEditPhoto, setUploadingEditPhoto] = useState(false);
+    const editPhotoInputRef = useRef<HTMLInputElement>(null);
 
     // Add student modal state
     const [addModalOpen, setAddModalOpen] = useState(false);
@@ -70,6 +72,9 @@ export default function SchoolStudentsPage() {
     const [addError, setAddError] = useState('');
     const [tempPassword, setTempPassword] = useState('');
     const [copied, setCopied] = useState(false);
+    const [addPhotoUrl, setAddPhotoUrl] = useState('');
+    const [uploadingAddPhoto, setUploadingAddPhoto] = useState(false);
+    const addPhotoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         fetchAll();
@@ -103,6 +108,25 @@ export default function SchoolStudentsPage() {
         }
     };
 
+    const uploadPhoto = async (
+        file: File,
+        setUploading: (v: boolean) => void,
+        onSuccess: (url: string) => void,
+    ) => {
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder', 'student-photos');
+            const res = await api.post('/upload/file', formData);
+            onSuccess(res.data.url);
+        } catch (e: any) {
+            alert(e.response?.data?.error || 'Photo upload failed');
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const openEdit = (student: Student) => {
         setEditingStudent(student);
         const routeId = student.route_id || student.route?.id || '';
@@ -116,6 +140,7 @@ export default function SchoolStudentsPage() {
             parent_phone: student.parent?.phone || '',
             route_id: routeId,
             stop_id: stopId,
+            photo_url: student.photo_url || '',
         });
         setEditError('');
         if (routeId) fetchStopsForRoute(routeId);
@@ -141,6 +166,7 @@ export default function SchoolStudentsPage() {
                 parent_phone: editForm.parent_phone || undefined,
                 route_id: editForm.route_id || null,
                 stop_id: editForm.stop_id || null,
+                photo_url: editForm.photo_url || undefined,
             });
             setEditingStudent(null);
             fetchAll();
@@ -172,6 +198,7 @@ export default function SchoolStudentsPage() {
         setAddError('');
         setTempPassword('');
         setCopied(false);
+        setAddPhotoUrl('');
         setAddModalOpen(true);
     };
 
@@ -192,6 +219,7 @@ export default function SchoolStudentsPage() {
                 route_id: addForm.route_id || undefined,
                 stop_id: addForm.stop_id || undefined,
                 school_id: id,
+                photo_url: addPhotoUrl || undefined,
             });
             const pwd = res.data?.temp_password || res.data?.parent?.temp_password || '';
             if (pwd) {
@@ -347,6 +375,41 @@ export default function SchoolStudentsPage() {
                         ) : (
                             <>
                                 <div className="p-6 space-y-4">
+                                    {/* Photo upload */}
+                                    <div className="flex flex-col items-center gap-3 pb-2">
+                                        <div className="relative">
+                                            {addPhotoUrl ? (
+                                                <img src={addPhotoUrl} alt="Student" className="w-20 h-20 rounded-full object-cover border-2 border-[var(--brand)]" />
+                                            ) : (
+                                                <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600">
+                                                    <UserCircle2 className="w-10 h-10 text-slate-400" />
+                                                </div>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => addPhotoInputRef.current?.click()}
+                                                disabled={uploadingAddPhoto}
+                                                className="absolute -bottom-1 -right-1 w-7 h-7 bg-[var(--brand)] text-white rounded-full flex items-center justify-center shadow-md hover:opacity-90 transition-opacity disabled:opacity-50"
+                                            >
+                                                {uploadingAddPhoto
+                                                    ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                    : <Camera className="w-3.5 h-3.5" />}
+                                            </button>
+                                            <input
+                                                ref={addPhotoInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) uploadPhoto(file, setUploadingAddPhoto, setAddPhotoUrl);
+                                                    e.target.value = '';
+                                                }}
+                                            />
+                                        </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Tap camera to upload photo</p>
+                                    </div>
+
                                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student Details</p>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Name <span className="text-red-500">*</span></label>
@@ -443,6 +506,41 @@ export default function SchoolStudentsPage() {
                         </div>
 
                         <div className="p-6 space-y-4">
+                            {/* Photo upload */}
+                            <div className="flex flex-col items-center gap-3 pb-2">
+                                <div className="relative">
+                                    {editForm.photo_url ? (
+                                        <img src={editForm.photo_url} alt={editForm.name} className="w-20 h-20 rounded-full object-cover border-2 border-[var(--brand)]" />
+                                    ) : (
+                                        <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600">
+                                            <UserCircle2 className="w-10 h-10 text-slate-400" />
+                                        </div>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => editPhotoInputRef.current?.click()}
+                                        disabled={uploadingEditPhoto}
+                                        className="absolute -bottom-1 -right-1 w-7 h-7 bg-[var(--brand)] text-white rounded-full flex items-center justify-center shadow-md hover:opacity-90 transition-opacity disabled:opacity-50"
+                                    >
+                                        {uploadingEditPhoto
+                                            ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            : <Camera className="w-3.5 h-3.5" />}
+                                    </button>
+                                    <input
+                                        ref={editPhotoInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={e => {
+                                            const file = e.target.files?.[0];
+                                            if (file) uploadPhoto(file, setUploadingEditPhoto, (url) => setEditForm(f => ({ ...f, photo_url: url })));
+                                            e.target.value = '';
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">Tap camera to change photo</p>
+                            </div>
+
                             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student Details</p>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Name <span className="text-red-500">*</span></label>
