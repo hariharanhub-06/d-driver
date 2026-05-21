@@ -327,8 +327,6 @@ export default function TrackingPage() {
                         buses={mapBuses}
                         center={mapCenter}
                         selectedBusId={selectedBusId}
-                        stops={routeStops}
-                        onStopClick={handleStopClick}
                     />
                 </div>
 

@@ -21,8 +21,8 @@ interface Stop {
     id: string;
     name: string;
     sequence: number;
-    lat?: number;
-    lng?: number;
+    latitude?: number;
+    longitude?: number;
 }
 
 interface TripData {
@@ -287,12 +287,12 @@ export default function ActiveRide() {
                     }
                     // Proximity check — auto-trigger attendance popup within 50 m of current stop
                     const stop = currentStopRef.current;
-                    if (stop?.lat && stop?.lng && !proximityTriggeredRef.current) {
+                    if (stop?.latitude && stop?.longitude && !proximityTriggeredRef.current) {
                         const R = 6371000;
-                        const dLat = (stop.lat - latitude) * Math.PI / 180;
-                        const dLng = (stop.lng - longitude) * Math.PI / 180;
+                        const dLat = (stop.latitude - latitude) * Math.PI / 180;
+                        const dLng = (stop.longitude - longitude) * Math.PI / 180;
                         const a = Math.sin(dLat / 2) ** 2 +
-                            Math.cos(latitude * Math.PI / 180) * Math.cos(stop.lat * Math.PI / 180) *
+                            Math.cos(latitude * Math.PI / 180) * Math.cos(stop.latitude * Math.PI / 180) *
                             Math.sin(dLng / 2) ** 2;
                         const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
                         if (dist <= 50) {
@@ -471,8 +471,8 @@ export default function ActiveRide() {
     };
 
     const mapStops = stops
-        .filter(s => s.lat && s.lng)
-        .map(s => ({ id: s.id, name: s.name, sequence: s.sequence, lat: s.lat!, lng: s.lng! }));
+        .filter(s => s.latitude && s.longitude)
+        .map(s => ({ id: s.id, name: s.name, sequence: s.sequence, lat: s.latitude!, lng: s.longitude! }));
 
     const fallbackPos: [number, number] = [20.5937, 78.9629];
 

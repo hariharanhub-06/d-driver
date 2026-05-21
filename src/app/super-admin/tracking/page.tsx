@@ -372,8 +372,6 @@ export default function SATrackingPage() {
                         buses={mapBuses}
                         center={mapCenter}
                         selectedBusId={selectedBusId}
-                        stops={routeStops}
-                        onStopClick={handleStopClick}
                     />
                 </div>
 

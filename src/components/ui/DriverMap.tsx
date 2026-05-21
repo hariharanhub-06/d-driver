@@ -318,5 +318,22 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         });
     }, [userPosition, stops, nextStopIndex, mapReady]);
 
-    return <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />;
+    return (
+        <div style={{ position: 'absolute', inset: 0 }}>
+            <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+            {!mapReady && (
+                <div style={{
+                    position: 'absolute', inset: 0, background: '#e2e8f0',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
+                }}>
+                    <div style={{
+                        width: 36, height: 36, border: '4px solid #3B82F6',
+                        borderTopColor: 'transparent', borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite',
+                    }} />
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                </div>
+            )}
+        </div>
+    );
 }
