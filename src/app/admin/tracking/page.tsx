@@ -50,6 +50,7 @@ interface StopPin {
     lng: number;
     sequence: number;
     student_count: number;
+    color?: string;
 }
 
 interface SelectedStop {
@@ -175,6 +176,7 @@ export default function TrackingPage() {
                         lng: parseFloat(s.longitude),
                         sequence: s.sequence ?? 0,
                         student_count: 0,
+                        color: s.school?.primary_color || undefined,
                     }));
                 return extra.length ? [...prev, ...extra] : prev;
             });

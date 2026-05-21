@@ -142,6 +142,7 @@ export default function ActiveRide() {
     const [busNumber, setBusNumber] = useState<string>('');
     const busIdRef = useRef<string>('');
     const headingRef = useRef<number | null>(null);
+    const prevPosRef = useRef<[number, number] | null>(null);
     const [loading, setLoading] = useState(true);
     const [noTrip, setNoTrip] = useState(false);
     const [geoError, setGeoError] = useState('');
@@ -207,45 +208,7 @@ export default function ActiveRide() {
         }
     }, []);
 
-    // Device orientation for compass heading (mobile)
-    useEffect(() => {
-        const handleOrientation = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
-            if ((e as any).absolute && e.alpha != null) {
-                // Android absolute compass
-                const h = (360 - e.alpha) % 360;
-                headingRef.current = h;
-                setHeading(h);
-            } else if (e.webkitCompassHeading != null) {
-                // iOS compass
-                headingRef.current = e.webkitCompassHeading;
-                setHeading(e.webkitCompassHeading);
-            }
-        };
-
-        const tryAbsolute = () => {
-            window.addEventListener('deviceorientationabsolute', handleOrientation as any, true);
-        };
-        const tryRelative = () => {
-            window.addEventListener('deviceorientation', handleOrientation as any, true);
-        };
-
-        if (typeof DeviceOrientationEvent !== 'undefined') {
-            // @ts-ignore — iOS 13+ requires permission
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                // Permission will be requested on first user interaction; register listeners now
-                tryAbsolute();
-                tryRelative();
-            } else {
-                tryAbsolute();
-                tryRelative();
-            }
-        }
-
-        return () => {
-            window.removeEventListener('deviceorientationabsolute', handleOrientation as any, true);
-            window.removeEventListener('deviceorientation', handleOrientation as any, true);
-        };
-    }, []);
+    // GPS bearing from position changes (stable direction, not compass-based)
 
     useEffect(() => {
         let watchId: number | null = null;
@@ -270,14 +233,22 @@ export default function ActiveRide() {
             );
             watchId = navigator.geolocation.watchPosition(
                 (pos) => {
-                    const { latitude, longitude, accuracy: acc, heading: gpsHeading } = pos.coords;
+                    const { latitude, longitude, accuracy: acc, speed } = pos.coords;
                     setCurrentPos([latitude, longitude]);
                     setAccuracy(acc ?? null);
-                    // Use GPS heading if device orientation isn't available
-                    if (gpsHeading != null && headingRef.current == null) {
-                        headingRef.current = gpsHeading;
-                        setHeading(gpsHeading);
+                    // Calculate bearing from position delta — stable direction, no compass spin
+                    if (prevPosRef.current && (speed == null || speed > 1)) {
+                        const [pLat, pLng] = prevPosRef.current;
+                        const dLng = (longitude - pLng) * Math.PI / 180;
+                        const lat1R = pLat * Math.PI / 180;
+                        const lat2R = latitude * Math.PI / 180;
+                        const y = Math.sin(dLng) * Math.cos(lat2R);
+                        const x = Math.cos(lat1R) * Math.sin(lat2R) - Math.sin(lat1R) * Math.cos(lat2R) * Math.cos(dLng);
+                        const bearing = ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
+                        headingRef.current = bearing;
+                        setHeading(bearing);
                     }
+                    prevPosRef.current = [latitude, longitude];
                     setGeoError('');
                     setLocationDenied(false);
                     const currentBusId = busIdRef.current;

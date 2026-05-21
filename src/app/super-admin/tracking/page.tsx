@@ -56,6 +56,7 @@ interface StopPin {
     lng: number;
     sequence: number;
     student_count: number;
+    color?: string;
 }
 
 interface SelectedStop {
@@ -74,6 +75,7 @@ interface AllStudent {
 interface School {
     id: string;
     name: string;
+    primary_color?: string;
 }
 
 function timeAgo(ts: string): string {
@@ -105,7 +107,7 @@ export default function SATrackingPage() {
     // Fetch available schools for the filter dropdown
     useEffect(() => {
         api.get('/schools').then(res => {
-            const list: School[] = (res.data || []).map((s: any) => ({ id: s.id, name: s.name }));
+            const list: School[] = (res.data || []).map((s: any) => ({ id: s.id, name: s.name, primary_color: s.primary_color }));
             setSchools(list);
         }).catch(() => {});
     }, []);
@@ -223,6 +225,7 @@ export default function SATrackingPage() {
                         lng: parseFloat(s.longitude),
                         sequence: s.sequence ?? 0,
                         student_count: 0,
+                        color: s.school?.primary_color || undefined,
                     }));
                 return extra.length ? [...prev, ...extra] : prev;
             });

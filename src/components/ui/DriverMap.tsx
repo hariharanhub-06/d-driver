@@ -19,66 +19,45 @@ interface Props {
     nextStopIndex?: number;
 }
 
-let cssInjected = false;
-function injectCSS() {
-    if (cssInjected || typeof document === 'undefined') return;
-    cssInjected = true;
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes gps-pulse {
-            0% { transform: translate(-50%,-50%) scale(1); opacity: 0.7; }
-            100% { transform: translate(-50%,-50%) scale(2.8); opacity: 0; }
-        }
-        @keyframes gps-ping {
-            0% { transform: translate(-50%,-50%) scale(1); opacity: 0.5; }
-            70% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; }
-            100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; }
-        }
-        .dm-controls {
-            position: absolute; right: 12px; bottom: 110px; z-index: 800;
-            display: flex; flex-direction: column; gap: 6px;
-        }
-        .dm-controls button {
-            width: 40px; height: 40px; border-radius: 12px;
-            background: white; border: 1px solid rgba(0,0,0,0.12);
-            font-size: 20px; font-weight: 600; line-height: 1;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            color: #333; transition: background 0.15s, color 0.15s;
-            user-select: none; -webkit-user-select: none;
-        }
-        .dm-controls button:active { background: #e2e8f0; }
-        .dm-recentre { font-size: 18px !important; }
-        .dm-recentre-active { color: #2563EB !important; box-shadow: 0 2px 8px rgba(37,99,235,0.35) !important; }
-        .leaflet-container { font-family: inherit; }
-    `;
-    document.head.appendChild(style);
-}
+const BTN: React.CSSProperties = {
+    width: 44, height: 44, borderRadius: 12,
+    background: 'white', border: 'none',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: '#1e293b', fontSize: 22, fontWeight: 700, lineHeight: 1,
+    WebkitTapHighlightColor: 'transparent',
+    userSelect: 'none',
+    flexShrink: 0,
+};
 
 export default function DriverMap({ userPosition, userHeading, userAccuracy, stops = [], nextStopIndex = 0 }: Props) {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<any>(null);
-    const userMarkerRef = useRef<any>(null);
-    const accuracyCircleRef = useRef<any>(null);
-    const routeLineRef = useRef<any>(null);
-    const stopMarkersRef = useRef<any[]>([]);
-    const userDraggedRef = useRef(false);
-    const lastRouteStopsKeyRef = useRef('');
-    const lastRoutedPosRef = useRef<[number, number] | null>(null);
-    const currentPosRef = useRef(userPosition);
-    const recentreBtnRef = useRef<HTMLButtonElement | null>(null);
+    // The mapWrapRef div is 142% × 142% and receives CSS rotation — prevents black corners
+    const mapWrapRef    = useRef<HTMLDivElement>(null);
+    // Leaflet renders inside this div (100% of the 142% wrapper)
+    const containerRef  = useRef<HTMLDivElement>(null);
+    // Compass needle inner element — rotated by heading so N always points north on screen
+    const compassInnerRef = useRef<HTMLDivElement>(null);
+    const recentreBtnRef  = useRef<HTMLButtonElement | null>(null);
 
-    // mapReady gates the position/route/stop effects so they don't run before
-    // the async Leaflet import finishes setting mapRef.current
+    const mapRef              = useRef<any>(null);
+    const userMarkerRef       = useRef<any>(null);
+    const accuracyCircleRef   = useRef<any>(null);
+    const routeLineRef        = useRef<any>(null);
+    const stopMarkersRef      = useRef<any[]>([]);
+    const userDraggedRef      = useRef(false);
+    const lastRouteStopsKeyRef = useRef('');
+    const lastRoutedPosRef    = useRef<[number, number] | null>(null);
+    const currentPosRef       = useRef(userPosition);
+    // Accumulated (unwrapped) heading — avoids CSS transition going the long way round 0↔360
+    const accHeadingRef       = useRef<number>(0);
+
     const [mapReady, setMapReady] = useState(false);
 
-    // Keep currentPosRef in sync so the re-centre click handler gets latest position
     useEffect(() => { currentPosRef.current = userPosition; });
 
-    // ── Initialize map once ──────────────────────────────────────────────────
+    // ── Init Leaflet (runs once) ─────────────────────────────────────────────
     useEffect(() => {
         if (!containerRef.current || mapRef.current) return;
-        injectCSS();
 
         import('leaflet').then(L => {
             if (!containerRef.current) return;
@@ -91,55 +70,15 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             });
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO',
-                maxZoom: 20,
-                subdomains: 'abcd',
+                maxZoom: 20, subdomains: 'abcd',
             }).addTo(map);
 
-            L.control.attribution({ prefix: '&copy; OSM &copy; CARTO', position: 'bottomright' }).addTo(map);
-
-            // Pause auto-follow when user manually pans
             map.on('dragstart', () => {
                 userDraggedRef.current = true;
-                if (recentreBtnRef.current) recentreBtnRef.current.classList.remove('dm-recentre-active');
-            });
-
-            // Controls: zoom in / zoom out / re-centre
-            const controls = document.createElement('div');
-            controls.className = 'dm-controls';
-            controls.innerHTML = `
-                <button id="dm-zoom-in" title="Zoom in">+</button>
-                <button id="dm-zoom-out" title="Zoom out">−</button>
-                <button id="dm-recentre" class="dm-recentre dm-recentre-active" title="Re-centre">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
-                    <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
-                  </svg>
-                </button>`;
-            containerRef.current.appendChild(controls);
-
-            const recentreBtn = controls.querySelector('#dm-recentre') as HTMLButtonElement;
-            recentreBtnRef.current = recentreBtn;
-
-            (controls.querySelector('#dm-zoom-in') as HTMLElement).addEventListener('click', () => {
-                map.zoomIn();
-                userDraggedRef.current = true;
-                recentreBtn.classList.remove('dm-recentre-active');
-            });
-            (controls.querySelector('#dm-zoom-out') as HTMLElement).addEventListener('click', () => {
-                map.zoomOut();
-                userDraggedRef.current = true;
-                recentreBtn.classList.remove('dm-recentre-active');
-            });
-            recentreBtn.addEventListener('click', () => {
-                userDraggedRef.current = false;
-                recentreBtn.classList.add('dm-recentre-active');
-                const [lat, lng] = currentPosRef.current;
-                map.flyTo([lat, lng], Math.max(map.getZoom(), 16), { animate: true, duration: 0.6 });
+                if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#94a3b8';
             });
 
             mapRef.current = map;
-            // Signal other effects that the map is ready
             setMapReady(true);
             setTimeout(() => map.invalidateSize(), 150);
         });
@@ -150,7 +89,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ── Update user position + map rotation ──────────────────────────────────
+    // ── Update position + heading ────────────────────────────────────────────
     useEffect(() => {
         if (!mapReady) return;
         import('leaflet').then(L => {
@@ -158,35 +97,38 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             if (!map) return;
 
             const [lat, lng] = userPosition;
-            const heading = userHeading ?? 0;
 
-            // Rotate the whole map canvas so heading points "up" (Google Maps style)
-            const container = containerRef.current;
-            if (container) {
-                container.style.transition = 'transform 0.3s ease-out';
-                container.style.transform = userHeading != null ? `rotate(${-heading}deg)` : '';
-                container.style.transformOrigin = 'center center';
+            // Smooth accumulated heading (no wrap-around flicker)
+            if (userHeading != null) {
+                let diff = userHeading - ((accHeadingRef.current % 360) + 360) % 360;
+                if (diff > 180) diff -= 360;
+                if (diff < -180) diff += 360;
+                accHeadingRef.current += diff;
+            }
+            const heading = userHeading != null ? accHeadingRef.current : 0;
+
+            // Rotate the map wrapper so travel direction faces "up"
+            if (mapWrapRef.current) {
+                mapWrapRef.current.style.transform = userHeading != null
+                    ? `rotate(${-heading}deg)`
+                    : '';
+            }
+            // Rotate compass needle so N always shows real north
+            if (compassInnerRef.current) {
+                compassInnerRef.current.style.transform = `rotate(${heading}deg)`;
             }
 
-            // Counter-rotate controls so they stay upright
-            const controlsEl = container?.querySelector('.dm-controls') as HTMLElement | null;
-            if (controlsEl && userHeading != null) {
-                controlsEl.style.transition = 'transform 0.3s ease-out';
-                controlsEl.style.transform = `rotate(${heading}deg)`;
-            }
-
-            // Navigation arrow — always points "up" on screen (map handles direction)
+            // Arrow always points "up" on screen (map rotation handles direction)
             const arrowHtml = `
-                <div style="display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5));">
-                  <svg width="28" height="34" viewBox="0 0 44 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22 2 L42 48 L22 36 L2 48 Z" fill="white" opacity="0.9"/>
+                <div style="display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.55));">
+                  <svg width="26" height="32" viewBox="0 0 44 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 2 L42 48 L22 36 L2 48 Z" fill="white" opacity="0.92"/>
                     <path d="M22 5 L40 46 L22 34 L4 46 Z" fill="#1A1A2E"/>
-                    <path d="M22 5 L4 46 L22 34 Z" fill="rgba(255,255,255,0.12)"/>
-                    <line x1="22" y1="8" x2="22" y2="34" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M22 5 L4 46 L22 34 Z" fill="rgba(255,255,255,0.15)"/>
+                    <line x1="22" y1="8" x2="22" y2="34" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round"/>
                   </svg>
                 </div>`;
-
-            const icon = L.divIcon({ className: '', html: arrowHtml, iconSize: [28, 34], iconAnchor: [14, 17] });
+            const icon = L.divIcon({ className: '', html: arrowHtml, iconSize: [26, 32], iconAnchor: [13, 16] });
 
             if (userMarkerRef.current) {
                 userMarkerRef.current.setLatLng([lat, lng]);
@@ -195,7 +137,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 userMarkerRef.current = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
             }
 
-            // Accuracy circle
+            // Accuracy ring
             const acc = userAccuracy ?? 0;
             if (acc > 0) {
                 if (accuracyCircleRef.current) {
@@ -203,19 +145,19 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 } else {
                     accuracyCircleRef.current = L.circle([lat, lng], {
                         radius: acc, color: '#2563EB', fillColor: '#2563EB',
-                        fillOpacity: 0.06, weight: 1.5, opacity: 0.4,
+                        fillOpacity: 0.06, weight: 1.5, opacity: 0.35,
                     }).addTo(map);
                 }
             }
 
-            // Auto-follow
+            // Auto-follow driver
             if (!userDraggedRef.current) {
                 map.panTo([lat, lng], { animate: true, duration: 0.4, easeLinearity: 0.5, noMoveStart: true });
             }
         });
     }, [userPosition, userHeading, userAccuracy, mapReady]);
 
-    // ── Update stop markers ──────────────────────────────────────────────────
+    // ── Stop markers ─────────────────────────────────────────────────────────
     useEffect(() => {
         if (!mapReady || stops.length === 0) return;
         import('leaflet').then(L => {
@@ -233,8 +175,8 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 const bg  = isNext ? '#F59E0B' : isPast ? '#94A3B8' : '#3B82F6';
                 const bd  = isNext ? '#D97706' : isPast ? '#64748B' : '#1D4ED8';
                 const num = idx + 1;
-                const S = isNext ? 22 : 16; // diameter in px
-                const fs = isNext ? 9 : 7;
+                const S   = isNext ? 22 : 16;
+                const fs  = isNext ? 9 : 7;
 
                 const pinHtml = `
                 <div style="display:flex;flex-direction:column;align-items:center;">
@@ -249,11 +191,8 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 </div>`;
 
                 const icon = L.divIcon({
-                    className: '',
-                    html: pinHtml,
-                    iconSize: [S, S + 6],
-                    iconAnchor: [S / 2, S + 6],
-                    popupAnchor: [0, -S - 8],
+                    className: '', html: pinHtml,
+                    iconSize: [S, S + 6], iconAnchor: [S / 2, S + 6],
                 });
 
                 const marker = L.marker([stop.lat, stop.lng], { icon })
@@ -265,9 +204,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         });
     }, [stops, nextStopIndex, mapReady]);
 
-    // ── Draw OSRM route: driver → all remaining stops ────────────────────────
-    // Re-routes only when stop list changes (driver passed a stop) OR driver moved >500m
-    // from the position where the route was last fetched. Avoids hitting OSRM on every GPS tick.
+    // ── OSRM route line ──────────────────────────────────────────────────────
     useEffect(() => {
         if (!mapReady) return;
 
@@ -286,8 +223,6 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             }
 
             const [uLat, uLng] = userPosition;
-
-            // Decide whether to re-fetch: stops changed OR driver moved >500m
             const stopsChanged = stopsKey !== lastRouteStopsKeyRef.current;
             let positionMoved = !lastRoutedPosRef.current;
             if (!positionMoved && lastRoutedPosRef.current) {
@@ -312,13 +247,8 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             const drawFallback = () => {
                 if (!mapRef.current) return;
                 if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
-                const fallback: [number, number][] = [
-                    [uLat, uLng],
-                    ...remainingStops.map(s => [s.lat, s.lng] as [number, number]),
-                ];
-                routeLineRef.current = L.polyline(fallback, {
-                    color: '#2563EB', weight: 4, opacity: 0.55, dashArray: '10 6',
-                }).addTo(mapRef.current);
+                const pts: [number, number][] = [[uLat, uLng], ...remainingStops.map(s => [s.lat, s.lng] as [number, number])];
+                routeLineRef.current = L.polyline(pts, { color: '#2563EB', weight: 4, opacity: 0.55, dashArray: '10 6' }).addTo(mapRef.current);
             };
 
             try {
@@ -326,16 +256,14 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 const timeout = setTimeout(() => controller.abort(), 8000);
                 const res = await fetch(
                     `https://router.project-osrm.org/route/v1/driving/${waypoints}?geometries=geojson&overview=full`,
-                    { signal: controller.signal }
+                    { signal: controller.signal },
                 );
                 clearTimeout(timeout);
-
                 if (!res.ok) throw new Error('OSRM error');
                 const data = await res.json();
                 const coords: [number, number][] = (data.routes?.[0]?.geometry?.coordinates ?? []).map(
-                    ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
+                    ([lng, lat]: [number, number]) => [lat, lng] as [number, number],
                 );
-
                 if (!mapRef.current || coords.length === 0) { drawFallback(); return; }
                 if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
                 routeLineRef.current = L.polyline(coords, {
@@ -348,20 +276,101 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         });
     }, [userPosition, stops, nextStopIndex, mapReady]);
 
+    const handleRecenter = () => {
+        userDraggedRef.current = false;
+        if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#2563EB';
+        const [lat, lng] = currentPosRef.current;
+        if (mapRef.current) mapRef.current.flyTo([lat, lng], Math.max(mapRef.current.getZoom(), 16), { animate: true, duration: 0.6 });
+    };
+
+    const handleNorthReset = () => {
+        accHeadingRef.current = 0;
+        if (mapWrapRef.current) mapWrapRef.current.style.transform = '';
+        if (compassInnerRef.current) compassInnerRef.current.style.transform = 'rotate(0deg)';
+    };
+
     return (
-        <div style={{ position: 'absolute', inset: 0 }}>
-            <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+
+            {/* ── Map wrapper (rotates with heading) ── */}
+            {/* 142% × 142% ensures no black corners at any rotation angle */}
+            <div
+                ref={mapWrapRef}
+                style={{
+                    position: 'absolute',
+                    width: '142%', height: '142%',
+                    top: '-21%', left: '-21%',
+                    transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+                    willChange: 'transform',
+                }}
+            >
+                <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+            </div>
+
+            {/* ── UI overlay (never rotates) ── */}
+            <div style={{ position: 'absolute', inset: 0, zIndex: 900, pointerEvents: 'none' }}>
+
+                {/* North compass — top right */}
+                <button
+                    onClick={handleNorthReset}
+                    title="Tap to reset north"
+                    style={{
+                        ...BTN,
+                        position: 'absolute', top: 16, right: 16,
+                        pointerEvents: 'all',
+                        flexDirection: 'column', gap: 0,
+                    }}
+                >
+                    <div
+                        ref={compassInnerRef}
+                        style={{ transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                        {/* Compass needle: red = north, gray = south */}
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <polygon points="12,2 14.5,12 12,10.5 9.5,12" fill="#E74C3C" />
+                            <polygon points="12,22 14.5,12 12,13.5 9.5,12" fill="#94A3B8" />
+                            <circle cx="12" cy="12" r="1.8" fill="#1e293b" />
+                        </svg>
+                    </div>
+                    <span style={{ fontSize: 8, fontWeight: 800, color: '#E74C3C', letterSpacing: 0.5, marginTop: 1 }}>N</span>
+                </button>
+
+                {/* Zoom + Recenter — right side, above bottom sheet */}
+                <div style={{
+                    position: 'absolute', right: 16, bottom: 120,
+                    display: 'flex', flexDirection: 'column', gap: 8,
+                    pointerEvents: 'all',
+                }}>
+                    <button style={BTN} onClick={() => { mapRef.current?.zoomIn(); userDraggedRef.current = true; if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#94a3b8'; }} title="Zoom in">+</button>
+                    <button style={BTN} onClick={() => { mapRef.current?.zoomOut(); userDraggedRef.current = true; if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#94a3b8'; }} title="Zoom out">−</button>
+                    {/* Recenter — Google Maps location icon */}
+                    <button
+                        ref={recentreBtnRef}
+                        onClick={handleRecenter}
+                        title="Re-centre on my location"
+                        style={{ ...BTN, color: '#2563EB' }}
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="3" fill="currentColor" />
+                            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                            <circle cx="12" cy="12" r="7.5" stroke="currentColor" strokeWidth="1.8" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {/* Loading spinner */}
             {!mapReady && (
                 <div style={{
                     position: 'absolute', inset: 0, background: '#e2e8f0',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
                 }}>
                     <div style={{
-                        width: 36, height: 36, border: '4px solid #3B82F6',
-                        borderTopColor: 'transparent', borderRadius: '50%',
-                        animation: 'spin 0.8s linear infinite',
+                        width: 36, height: 36,
+                        border: '4px solid #3B82F6', borderTopColor: 'transparent',
+                        borderRadius: '50%', animation: 'dm-spin 0.8s linear infinite',
                     }} />
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                    <style>{`@keyframes dm-spin { to { transform: rotate(360deg); } }`}</style>
                 </div>
             )}
         </div>

@@ -10,7 +10,10 @@ const getAllStops = async (req, res) => {
         if (routeId) where.route_id = routeId;
         const stops = await prisma.stop.findMany({
             where,
-            include: { route: { select: { id: true, name: true, route_type: true } } },
+            include: {
+                route: { select: { id: true, name: true, route_type: true } },
+                school: { select: { primary_color: true } },
+            },
             orderBy: [{ route_id: 'asc' }, { sequence: 'asc' }],
         });
         res.json(stops);

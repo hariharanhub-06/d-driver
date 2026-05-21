@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
+import dynamic from 'next/dynamic';
+
+const LogoCropModal = dynamic(() => import('@/components/ui/LogoCropModal'), { ssr: false });
 import {
     Building2, Search, Plus, Loader2, ShieldCheck, Edit, Trash2,
     Globe, ExternalLink, Copy, Truck, Users, GraduationCap,
@@ -94,6 +97,8 @@ export default function SchoolsManagement() {
     });
     const [permissions, setPermissions] = useState<Record<string, boolean>>(DEFAULT_PERMISSIONS);
     const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [cropSrc, setCropSrc] = useState<string | null>(null);
+    const logoInputRef = useRef<HTMLInputElement>(null);
 
     // ── Admin modal (for existing schools) ───────────────────────────────────
     const [adminSchool, setAdminSchool] = useState<School | null>(null);
@@ -517,6 +522,15 @@ export default function SchoolsManagement() {
                 </div>
             )}
 
+            {/* ── LOGO CROP MODAL ─────────────────────────────────────────────────── */}
+            {cropSrc && (
+                <LogoCropModal
+                    src={cropSrc}
+                    onConfirm={file => { setLogoFile(file); setCropSrc(null); }}
+                    onCancel={() => { setCropSrc(null); if (logoInputRef.current) logoInputRef.current.value = ''; }}
+                />
+            )}
+
             {/* ── CREATE / EDIT MODAL ────────────────────────────────────────────── */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-[9999] overflow-y-auto">
@@ -598,8 +612,21 @@ export default function SchoolsManagement() {
                                                 <div>
                                                     <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Logo</label>
                                                     <label className="flex items-center justify-center w-full h-11 bg-slate-50 dark:bg-slate-700/50 border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl cursor-pointer hover:border-[var(--brand)] hover:bg-[var(--brand)]/5 transition-all group">
-                                                        <span className="text-xs font-medium text-slate-400 group-hover:text-[var(--brand)] truncate px-4">{logoFile?.name || '+ Upload logo'}</span>
-                                                        <input type="file" accept="image/*" className="hidden" onChange={e => setLogoFile(e.target.files?.[0] || null)} />
+                                                        <span className="text-xs font-medium text-slate-400 group-hover:text-[var(--brand)] truncate px-4">{logoFile?.name || '+ Upload & crop logo'}</span>
+                                                        <input
+                                                            ref={logoInputRef}
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={e => {
+                                                                const file = e.target.files?.[0];
+                                                                if (!file) return;
+                                                                const reader = new FileReader();
+                                                                reader.onload = ev => setCropSrc(ev.target?.result as string);
+                                                                reader.readAsDataURL(file);
+                                                                e.target.value = '';
+                                                            }}
+                                                        />
                                                     </label>
                                                 </div>
                                                 <div>
