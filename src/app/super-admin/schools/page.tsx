@@ -408,9 +408,9 @@ export default function SchoolsManagement() {
                             <div className="h-1.5 w-full" style={{ backgroundColor: school.primary_color || '#3B82F6' }} />
                             <div className="p-5 flex flex-col flex-1">
                                 <div className="flex items-start justify-between mb-4">
-                                    <div className="w-11 h-11 rounded-xl border border-slate-100 dark:border-slate-600 flex items-center justify-center p-2 shrink-0" style={{ background: school.primary_color ? school.primary_color + '22' : '#f8fafc' }}>
+                                    <div className="w-11 h-11 rounded-xl border border-slate-100 dark:border-slate-600 flex items-center justify-center overflow-hidden shrink-0" style={{ background: school.primary_color ? school.primary_color + '22' : '#f8fafc' }}>
                                         {school.logo_url
-                                            ? <img src={school.logo_url} alt={school.name} className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.removeAttribute('style'); }} />
+                                            ? <img src={school.logo_url} alt={school.name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.removeAttribute('style'); }} />
                                             : null
                                         }
                                         <Building2 className="w-5 h-5 text-slate-300 dark:text-slate-500" style={school.logo_url ? { display: 'none' } : {}} />

@@ -180,11 +180,13 @@ export default function SATrackingPage() {
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, [fetchTrips, fetchLocations]);
 
-    // Always show stops from ALL active trips (all schools, colored per school)
+    // Show stops from active trips — filtered to selectedSchoolId when a school is chosen
     useEffect(() => {
         if (trips.length === 0) return; // don't clear fallback stops when no trips are active
         const seen = new Set<string>();
         const pins: StopPin[] = trips.flatMap(trip => {
+            // Skip trips from other schools when a specific school is selected
+            if (selectedSchoolId && trip.school_id !== selectedSchoolId) return [];
             const schoolColor = activeBuses.find(b => b.bus_id === trip.bus_id)?.school_color || undefined;
             return (trip.route?.stops || [])
                 .filter(s => {
@@ -207,26 +209,30 @@ export default function SATrackingPage() {
             const fallbackOnly = prev.filter(p => !tripIds.has(p.id));
             return [...pins, ...fallbackOnly];
         });
-    }, [trips, activeBuses]);
+    }, [trips, activeBuses, selectedSchoolId]);
 
-    // Fetch all stops directly so pins always show even when no trips are running
+    // Fetch all stops directly so pins always show even when no trips are running.
+    // When selectedSchoolId changes, the init effect already cleared routeStops — we
+    // replace with fresh data for the new school rather than merging with stale state.
     useEffect(() => {
         const url = selectedSchoolId ? `/stops?school_id=${selectedSchoolId}` : '/stops';
         api.get(url).then(res => {
             const all: any[] = Array.isArray(res.data) ? res.data : [];
+            const fetched: StopPin[] = all
+                .filter((s: any) => s.latitude && s.longitude)
+                .map((s: any) => ({
+                    id: s.id,
+                    name: s.name,
+                    lat: parseFloat(s.latitude),
+                    lng: parseFloat(s.longitude),
+                    sequence: s.sequence ?? 0,
+                    student_count: 0,
+                    color: s.school?.primary_color || undefined,
+                }));
+            // Merge: keep trip-derived stops (they carry student_count), add any not yet present
             setRouteStops(prev => {
                 const seen = new Set(prev.map(p => p.id));
-                const extra: StopPin[] = all
-                    .filter((s: any) => !seen.has(s.id) && s.latitude && s.longitude)
-                    .map((s: any) => ({
-                        id: s.id,
-                        name: s.name,
-                        lat: parseFloat(s.latitude),
-                        lng: parseFloat(s.longitude),
-                        sequence: s.sequence ?? 0,
-                        student_count: 0,
-                        color: s.school?.primary_color || undefined,
-                    }));
+                const extra = fetched.filter(s => !seen.has(s.id));
                 return extra.length ? [...prev, ...extra] : prev;
             });
         }).catch(() => {});

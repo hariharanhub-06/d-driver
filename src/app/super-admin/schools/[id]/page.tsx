@@ -199,7 +199,7 @@ export default function SchoolDetailPage() {
                 </button>
                 <div className="flex items-center gap-3">
                     {school.logo_url ? (
-                        <img src={school.logo_url} alt={school.name} className="w-10 h-10 rounded-xl object-contain bg-white dark:bg-slate-700 p-1 border border-slate-100 dark:border-slate-600" />
+                        <img src={school.logo_url} alt={school.name} className="w-10 h-10 rounded-xl object-cover border border-slate-100 dark:border-slate-600 overflow-hidden" />
                     ) : (
                         <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center">
                             <Building2 className="w-5 h-5 text-slate-400" />
@@ -317,7 +317,7 @@ export default function SchoolDetailPage() {
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">School Logo</label>
                             <div className="flex items-center gap-3">
                                 {editForm.logo_url ? (
-                                    <img src={editForm.logo_url} alt="Logo" className="w-12 h-12 rounded-xl object-contain bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-1 shrink-0" />
+                                    <img src={editForm.logo_url} alt="Logo" className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-600 overflow-hidden shrink-0" />
                                 ) : (
                                     <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center shrink-0">
                                         <Building2 className="w-5 h-5 text-slate-400" />

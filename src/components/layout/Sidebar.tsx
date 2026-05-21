@@ -108,7 +108,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 <div className="flex items-center justify-between h-16 px-5 border-b border-slate-100 dark:border-slate-700 shrink-0">
                     <div className="flex items-center gap-2.5 min-w-0">
                         {logoUrl ? (
-                            <img src={logoUrl} alt={schoolName} className="h-8 w-8 rounded-lg object-cover shrink-0" />
+                            <img src={logoUrl} alt={schoolName} className="h-8 w-8 rounded-lg object-cover overflow-hidden shrink-0" />
                         ) : (
                             <div className="w-8 h-8 rounded-lg bg-[var(--brand)] flex items-center justify-center shrink-0">
                                 <Bus className="w-4 h-4 text-white" />

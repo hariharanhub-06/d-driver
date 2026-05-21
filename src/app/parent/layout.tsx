@@ -60,7 +60,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
             <header className="bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 h-14 flex items-center justify-between sticky top-0 z-40">
                 <div className="flex items-center gap-3">
                     {branding.logo_url ? (
-                        <img src={branding.logo_url} alt={branding.name} className="h-8 w-8 object-contain rounded-lg" />
+                        <img src={branding.logo_url} alt={branding.name} className="h-8 w-8 object-cover rounded-lg overflow-hidden" />
                     ) : (
                         <div className="w-8 h-8 rounded-lg bg-[var(--brand)] flex items-center justify-center">
                             <span className="text-white font-black text-sm">{branding.name.charAt(0)}</span>

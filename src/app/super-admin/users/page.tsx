@@ -628,7 +628,7 @@ export default function SAUsersPage() {
                       style={{ background: school.primary_color ? school.primary_color + '22' : '#f1f5f9' }}
                     >
                       {school.logo_url
-                        ? <img src={school.logo_url} alt="" className="w-full h-full object-contain" />
+                        ? <img src={school.logo_url} alt="" className="w-full h-full object-cover" />
                         : <span className="text-xs font-bold" style={{ color: school.primary_color || '#64748b' }}>
                             {school.name.charAt(0)}
                           </span>
