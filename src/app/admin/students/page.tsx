@@ -45,6 +45,8 @@ export default function StudentsPage() {
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [parentSearch, setParentSearch] = useState('');
+    const [resetEmailLoading, setResetEmailLoading] = useState(false);
+    const [resetEmailSent, setResetEmailSent] = useState(false);
     const importRef = useRef<HTMLInputElement>(null);
     const photoRef = useRef<HTMLInputElement>(null);
 
@@ -117,6 +119,20 @@ export default function StudentsPage() {
         setParentSearch('');
         setSubmitError('');
         setIsModalOpen(true);
+        setResetEmailSent(false);
+    };
+
+    const handleSendResetEmail = async () => {
+        if (!formData.parent_id) return;
+        setResetEmailLoading(true);
+        try {
+            await api.post(`/users/${formData.parent_id}/send-reset-email`);
+            setResetEmailSent(true);
+        } catch {
+            // silent
+        } finally {
+            setResetEmailLoading(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -389,21 +405,54 @@ export default function StudentsPage() {
                                             ))}
                                         </div>
                                         {formData.parent_mode === 'existing' ? (
-                                            <div>
-                                                <label className={labelCls}>Search Parent</label>
-                                                <input type="text" placeholder="Type name or email..." className={`${inputCls} mb-2`} value={parentSearch} onChange={e => searchParents(e.target.value)} />
-                                                {parents.length > 0 && (
-                                                    <div className="border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden">
-                                                        {parents.map(p => (
-                                                            <button key={p.id} type="button" onClick={() => { setFormData({ ...formData, parent_id: p.id }); setParentSearch(p.name); setParents([]); }}
-                                                                className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--brand)]/5 transition-all ${formData.parent_id === p.id ? 'bg-[var(--brand)]/10 text-[var(--brand)]' : ''}`}>
-                                                                <p className="font-semibold">{p.name}</p>
-                                                                <p className="text-xs text-slate-400">{p.email}</p>
+                                            <div className="space-y-3">
+                                                {/* When editing: show current parent info + reset; when adding: show search */}
+                                                {editingId && formData.parent_id ? (
+                                                    <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 space-y-3">
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Parent Name</p>
+                                                            <p className="text-sm font-medium text-slate-900 dark:text-white">{formData.parent_name || '—'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Email (Login ID)</p>
+                                                            <p className="text-sm font-medium text-slate-900 dark:text-white">{formData.parent_email || '—'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Phone</p>
+                                                            <p className="text-sm font-medium text-slate-900 dark:text-white">{formData.parent_phone || '—'}</p>
+                                                        </div>
+                                                        <div className="pt-1 border-t border-slate-200 dark:border-slate-600">
+                                                            <p className="text-xs text-slate-400 mb-2">Send a password reset link to the parent's email.</p>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleSendResetEmail}
+                                                                disabled={resetEmailLoading || resetEmailSent}
+                                                                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border transition-all disabled:opacity-60
+                                                                    border-[var(--brand)] text-[var(--brand)] hover:bg-[var(--brand)]/10"
+                                                            >
+                                                                {resetEmailLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                                                                {resetEmailSent ? '✓ Reset Email Sent' : resetEmailLoading ? 'Sending...' : 'Send Password Reset Email'}
                                                             </button>
-                                                        ))}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <label className={labelCls}>Search Parent</label>
+                                                        <input type="text" placeholder="Type name or email..." className={`${inputCls} mb-2`} value={parentSearch} onChange={e => searchParents(e.target.value)} />
+                                                        {parents.length > 0 && (
+                                                            <div className="border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden">
+                                                                {parents.map(p => (
+                                                                    <button key={p.id} type="button" onClick={() => { setFormData({ ...formData, parent_id: p.id, parent_name: p.name, parent_email: p.email }); setParentSearch(p.name); setParents([]); }}
+                                                                        className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--brand)]/5 transition-all ${formData.parent_id === p.id ? 'bg-[var(--brand)]/10 text-[var(--brand)]' : ''}`}>
+                                                                        <p className="font-semibold">{p.name}</p>
+                                                                        <p className="text-xs text-slate-400">{p.email}</p>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        {formData.parent_id && <p className="text-xs text-emerald-600 font-medium mt-1">Selected: {formData.parent_name}</p>}
                                                     </div>
                                                 )}
-                                                {formData.parent_id && <p className="text-xs text-emerald-600 font-medium mt-1">Selected parent ID: {formData.parent_id}</p>}
                                             </div>
                                         ) : (
                                             <>

@@ -9,6 +9,7 @@ const {
     createSAUser,
     toggleUserActive,
     resetUserPassword,
+    sendResetEmail,
 } = require('../controllers/userController');
 const {
     authenticateToken,
@@ -36,8 +37,9 @@ router.post('/',            requireRole('admin', 'super_admin'), createUser);
 router.put('/:id',          requireRole('admin', 'super_admin'), updateUser);
 
 // Toggle active / delete / reset password
-router.patch('/:id/active',          requireRole('admin', 'super_admin'), toggleUserActive);
-router.patch('/:id/reset-password',  requireRole('super_admin'), resetUserPassword);
-router.delete('/:id',                requireRole('super_admin'), deleteUser);
+router.patch('/:id/active',           requireRole('admin', 'super_admin'), toggleUserActive);
+router.patch('/:id/reset-password',   requireRole('super_admin'), resetUserPassword);
+router.post('/:id/send-reset-email',  requireRole('admin', 'super_admin'), sendResetEmail);
+router.delete('/:id',                 requireRole('super_admin'), deleteUser);
 
 module.exports = router;

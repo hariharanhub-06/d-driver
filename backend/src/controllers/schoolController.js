@@ -11,7 +11,7 @@ const getPublicSchool = async (req, res) => {
     const { slug } = req.params;
     const school = await prisma.school.findUnique({
       where: { slug },
-      select: { name: true, logo_url: true, primary_color: true, slug: true, status: true },
+      select: { name: true, logo_url: true, primary_color: true, slug: true, status: true, permissions: true },
     });
     if (!school) return res.status(404).json({ error: 'School not found' });
     res.json(school);

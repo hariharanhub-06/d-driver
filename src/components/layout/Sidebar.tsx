@@ -19,6 +19,11 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
 
     const getNavItems = () => {
         const role = user?.role || 'admin';
+        const p = branding.permissions;
+
+        // Helper: when permissions are null (not yet loaded or no restrictions), show everything
+        const allow = (key: keyof typeof p) => !p || p[key] !== false;
+
         if (role === 'super_admin') return [
             { section: 'MENU', items: [
                 { icon: LayoutDashboard, label: 'Dashboard', href: '/super-admin/dashboard' },
@@ -39,8 +44,8 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
         if (role === 'driver') return [
             { section: 'MENU', items: [
                 { icon: LayoutDashboard, label: 'Dashboard', href: '/driver/dashboard' },
-                { icon: CheckSquare, label: 'Attendance', href: '/driver/attendance' },
-                { icon: Map, label: 'Ride', href: '/driver/ride' },
+                ...(allow('attendance') ? [{ icon: CheckSquare, label: 'Attendance', href: '/driver/attendance' }] : []),
+                ...(allow('gps_tracking') ? [{ icon: Map, label: 'Ride', href: '/driver/ride' }] : []),
             ]},
             { section: 'GENERAL', items: [
                 { icon: User, label: 'Profile', href: '/driver/profile' },
@@ -57,12 +62,12 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
         if (role === 'parent') return [
             { section: 'MENU', items: [
                 { icon: LayoutDashboard, label: 'Home', href: '/parent/dashboard' },
-                { icon: Locate, label: 'Track Bus', href: '/parent/tracking' },
-                { icon: CheckSquare, label: 'Attendance', href: '/parent/attendance' },
-                { icon: CreditCard, label: 'Fees', href: '/parent/fees' },
+                ...(allow('gps_tracking') ? [{ icon: Locate, label: 'Track Bus', href: '/parent/tracking' }] : []),
+                ...(allow('attendance') ? [{ icon: CheckSquare, label: 'Attendance', href: '/parent/attendance' }] : []),
+                ...(allow('fee_management') ? [{ icon: CreditCard, label: 'Fees', href: '/parent/fees' }] : []),
             ]},
             { section: 'GENERAL', items: [
-                { icon: MapPin, label: 'Change Stop', href: '/parent/request' },
+                ...(allow('stop_change_requests') ? [{ icon: MapPin, label: 'Change Stop', href: '/parent/request' }] : []),
                 { icon: User, label: 'Profile', href: '/parent/profile' },
             ]},
         ];
@@ -72,16 +77,16 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard', tourId: 'dashboard' },
                 { icon: Users, label: 'Students', href: '/admin/students', tourId: 'students' },
                 { icon: Truck, label: 'Drivers', href: '/admin/drivers' },
-                { icon: Map, label: 'Routes', href: '/admin/routes', tourId: 'routes' },
+                ...(allow('route_management') ? [{ icon: Map, label: 'Routes', href: '/admin/routes', tourId: 'routes' }] : []),
                 { icon: Bus, label: 'Buses', href: '/admin/buses', tourId: 'buses' },
-                { icon: MapPin, label: 'Stops', href: '/admin/stops' },
-                { icon: Locate, label: 'Tracking', href: '/admin/tracking' },
-                { icon: CheckSquare, label: 'Attendance', href: '/admin/attendance' },
-                { icon: CreditCard, label: 'Fees', href: '/admin/fees', tourId: 'fees' },
+                ...(allow('route_management') ? [{ icon: MapPin, label: 'Stops', href: '/admin/stops' }] : []),
+                ...(allow('gps_tracking') ? [{ icon: Locate, label: 'Tracking', href: '/admin/tracking' }] : []),
+                ...(allow('attendance') ? [{ icon: CheckSquare, label: 'Attendance', href: '/admin/attendance' }] : []),
+                ...(allow('fee_management') ? [{ icon: CreditCard, label: 'Fees', href: '/admin/fees', tourId: 'fees' }] : []),
             ]},
             { section: 'GENERAL', items: [
-                { icon: Fuel, label: 'Fuel Requests', href: '/admin/fuel-requests' },
-                { icon: GitMerge, label: 'Shift Logs', href: '/admin/shift-logs' },
+                ...(allow('fuel_management') ? [{ icon: Fuel, label: 'Fuel Requests', href: '/admin/fuel-requests' }] : []),
+                ...(allow('shift_tracking') ? [{ icon: GitMerge, label: 'Shift Logs', href: '/admin/shift-logs' }] : []),
                 { icon: ArrowLeftRight, label: 'Bus Switches', href: '/admin/bus-switches' },
                 { icon: Bell, label: 'Notifications', href: '/admin/notifications' },
                 { icon: BarChart2, label: 'Reports', href: '/admin/reports' },

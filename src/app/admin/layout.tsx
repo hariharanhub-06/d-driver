@@ -2,6 +2,7 @@
 
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/context/AuthContext';
+import { useSetSchoolBranding } from '@/context/SchoolBrandingContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { TourProvider } from '@/components/tour/TourProvider';
@@ -11,6 +12,7 @@ import api from '@/lib/api';
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
     const router = useRouter();
+    const setSchoolBranding = useSetSchoolBranding();
 
     useEffect(() => {
         if (!loading && !user) {
@@ -22,11 +24,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (!user || user.role !== 'admin') return;
         api.get('/schools/my')
             .then(({ data }) => {
-                const color = data?.primary_color;
-                if (color) document.documentElement.style.setProperty('--brand', color);
+                if (!data) return;
+                setSchoolBranding({
+                    name: data.name || '',
+                    logo_url: data.logo_url || '',
+                    primary_color: data.primary_color || '#3B82F6',
+                    permissions: data.permissions || null,
+                });
+                if (data.primary_color) {
+                    document.documentElement.style.setProperty('--brand', data.primary_color);
+                }
             })
             .catch(() => {});
-    }, [user]);
+    }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (loading || !user) {
         return (

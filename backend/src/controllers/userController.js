@@ -305,6 +305,51 @@ const resetUserPassword = async (req, res) => {
     }
 };
 
+// POST /users/:id/send-reset-email — admin triggers password reset email for a parent
+const sendResetEmail = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const target = await prisma.user.findUnique({
+            where: { id },
+            select: { id: true, email: true, school_id: true, role: true, is_active: true },
+        });
+        if (!target) return res.status(404).json({ error: 'User not found' });
+        if (target.school_id !== req.user.school_id && req.user.role !== 'super_admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        // Invalidate any existing tokens
+        await prisma.passwordResetToken.updateMany({
+            where: { user_id: target.id, used: false },
+            data: { used: true },
+        });
+
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+        await prisma.passwordResetToken.create({
+            data: { user_id: target.id, token: hashedToken, expires_at: new Date(Date.now() + 60 * 60 * 1000) },
+        });
+
+        let school = null;
+        if (target.school_id) {
+            school = await prisma.school.findUnique({ where: { id: target.school_id } });
+        }
+        const baseDomain = process.env.BASE_DOMAIN || 'localhost:3000';
+        const slug = school?.slug;
+        const baseUrl = slug ? `https://${slug}.${baseDomain}` : `https://${baseDomain}`;
+        const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;
+
+        const { sendPasswordReset } = require('../utils/resend');
+        await sendPasswordReset({ to: target.email, resetUrl, school });
+
+        await logAction({ req, action: 'send_reset_email', targetType: 'user', targetId: target.id });
+        res.json({ message: 'Password reset email sent.' });
+    } catch (error) {
+        console.error('sendResetEmail error:', error.message);
+        res.status(500).json({ error: 'Error sending reset email' });
+    }
+};
+
 module.exports = {
     getMe,
     listSchoolUsers,
@@ -316,4 +361,5 @@ module.exports = {
     createSAUser,
     toggleUserActive,
     resetUserPassword,
+    sendResetEmail,
 };
