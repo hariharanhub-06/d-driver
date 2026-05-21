@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Map as MapIcon, X, Loader2, ExternalLink, ToggleLeft, ToggleRight } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { Plus, Edit, Trash2, Map as MapIcon, X, Loader2, ToggleLeft, ToggleRight, MapPin, ChevronDown } from 'lucide-react';
 import api from '@/lib/api';
-import { useRouter } from 'next/navigation';
+import type { StopPoint } from '@/components/StopMap';
+
+const StopMap = dynamic(() => import('@/components/StopMap'), { ssr: false });
 
 type Route = {
     id: string;
@@ -13,9 +16,11 @@ type Route = {
     bus?: { bus_number: string };
     bus_id?: string;
     stops?: any[];
+    stop_count?: number;
 };
 
 type Bus = { id: string; bus_number: string };
+type Stop = StopPoint;
 
 const routeTypeBadge = (t?: string) => {
     if (t === 'morning') return 'inline-flex items-center bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
@@ -26,7 +31,6 @@ const routeTypeBadge = (t?: string) => {
 const EMPTY_FORM = { name: '', route_type: 'both' as Route['route_type'], bus_id: '' };
 
 export default function RoutesPage() {
-    const router = useRouter();
     const [routes, setRoutes] = useState<Route[]>([]);
     const [buses, setBuses] = useState<Bus[]>([]);
     const [loading, setLoading] = useState(true);
@@ -37,6 +41,14 @@ export default function RoutesPage() {
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [togglingId, setTogglingId] = useState<string | null>(null);
     const [fetchError, setFetchError] = useState('');
+
+    // Stops state
+    const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+    const [stops, setStops] = useState<Stop[]>([]);
+    const [stopsLoading, setStopsLoading] = useState(false);
+    const [addingStop, setAddingStop] = useState(false);
+    const [stopTab, setStopTab] = useState<'morning' | 'evening'>('morning');
+    const [copyingStops, setCopyingStops] = useState(false);
 
     useEffect(() => { fetchRoutes(); fetchBuses(); }, []);
 
@@ -59,6 +71,79 @@ export default function RoutesPage() {
             const { data } = await api.get('/buses');
             setBuses(Array.isArray(data) ? data : []);
         } catch { setBuses([]); }
+    };
+
+    const fetchStops = async (routeId: string) => {
+        const { data } = await api.get(`/stops?route_id=${routeId}`);
+        setStops(Array.isArray(data) ? data : []);
+    };
+
+    const openStops = async (routeId: string) => {
+        if (selectedRouteId === routeId) { setSelectedRouteId(null); return; }
+        setSelectedRouteId(routeId);
+        setStopTab('morning');
+        setStopsLoading(true);
+        try {
+            await fetchStops(routeId);
+        } catch {
+            setStops([]);
+        } finally {
+            setStopsLoading(false);
+        }
+    };
+
+    const handleAddStop = async (data: { name: string; lat: number; lng: number; sequence: number; pickup_time: string }) => {
+        setAddingStop(true);
+        try {
+            await api.post('/stops', {
+                name: data.name,
+                latitude: data.lat,
+                longitude: data.lng,
+                sequence: data.sequence,
+                pickup_time: data.pickup_time || undefined,
+                route_id: selectedRouteId,
+                trip_type: stopTab,
+            });
+            await fetchStops(selectedRouteId!);
+        } catch (e: any) {
+            alert(e.response?.data?.message || 'Failed to add stop.');
+        } finally {
+            setAddingStop(false);
+        }
+    };
+
+    const handleDeleteStop = async (stopId: string) => {
+        if (!window.confirm('Delete this stop? This cannot be undone.')) return;
+        try {
+            await api.delete(`/stops/${stopId}`);
+            setStops(prev => prev.filter(s => s.id !== stopId));
+        } catch (e: any) {
+            alert(e.response?.data?.message || 'Failed to delete stop.');
+        }
+    };
+
+    const handleCopyMorningToEvening = async () => {
+        const morningStops = stops.filter(s => !s.trip_type || s.trip_type === 'morning');
+        if (morningStops.length === 0) { alert('No morning stops to copy.'); return; }
+        setCopyingStops(true);
+        try {
+            for (const s of morningStops) {
+                await api.post('/stops', {
+                    name: s.name,
+                    latitude: s.latitude,
+                    longitude: s.longitude,
+                    sequence: s.sequence,
+                    pickup_time: s.pickup_time || undefined,
+                    route_id: selectedRouteId,
+                    trip_type: 'evening',
+                });
+            }
+            await fetchStops(selectedRouteId!);
+        } catch (e: any) {
+            alert(e.response?.data?.message || 'Failed to copy stops.');
+        } finally {
+            setCopyingStops(false);
+        }
     };
 
     const openCreate = () => {
@@ -95,6 +180,7 @@ export default function RoutesPage() {
 
     const handleDelete = async (id: string) => {
         try { await api.delete(`/routes/${id}`); } catch { /* ignore */ }
+        if (selectedRouteId === id) setSelectedRouteId(null);
         setRoutes(prev => prev.filter(r => r.id !== id));
         setDeleteId(null);
     };
@@ -108,6 +194,7 @@ export default function RoutesPage() {
         setTogglingId(null);
     };
 
+    const selectedRoute = routes.find(r => r.id === selectedRouteId);
     const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
     const labelCls = "block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5";
 
@@ -119,11 +206,12 @@ export default function RoutesPage() {
                     <button onClick={fetchRoutes} className="font-medium underline ml-3">Retry</button>
                 </div>
             )}
+
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Routes</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage transport routes, bus assignments and active status.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Routes & Stops</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage transport routes, bus assignments, and stops.</p>
                 </div>
                 <button
                     onClick={openCreate}
@@ -133,7 +221,7 @@ export default function RoutesPage() {
                 </button>
             </div>
 
-            {/* Table */}
+            {/* Routes Table */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -142,15 +230,14 @@ export default function RoutesPage() {
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Route Name</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assigned Bus</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stops</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-3">
+                                    <td colSpan={5} className="px-4 py-3">
                                         <div className="flex justify-center py-16">
                                             <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin"></div>
                                         </div>
@@ -158,7 +245,7 @@ export default function RoutesPage() {
                                 </tr>
                             ) : routes.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
+                                    <td colSpan={5} className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
                                         <MapIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                         <p className="font-medium">No routes defined</p>
                                         <p className="text-xs mt-1">Create your first route to get started</p>
@@ -166,7 +253,7 @@ export default function RoutesPage() {
                                 </tr>
                             ) : routes.map(route => (
                                 <tr key={route.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                    <td className="px-4 py-3">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-lg bg-[var(--brand)]/10 flex items-center justify-center">
                                                 <MapIcon className="w-4 h-4 text-[var(--brand)]" />
@@ -174,7 +261,7 @@ export default function RoutesPage() {
                                             <span className="font-semibold text-slate-800 dark:text-white">{route.name}</span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                    <td className="px-4 py-3">
                                         <span className={routeTypeBadge(route.route_type)}>
                                             {route.route_type === 'afternoon' ? 'Evening' : route.route_type === 'morning' ? 'Morning' : 'Both'}
                                         </span>
@@ -184,15 +271,7 @@ export default function RoutesPage() {
                                             ? <span className="font-medium">{route.bus.bus_number}</span>
                                             : <span className="text-slate-400 text-xs italic">Unassigned</span>}
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                        <button
-                                            onClick={() => router.push(`/admin/stops?route_id=${route.id}`)}
-                                            className="flex items-center gap-1 text-[var(--brand)] hover:opacity-80 text-xs font-semibold transition-all"
-                                        >
-                                            {route.stops?.length ?? 0} stops <ExternalLink className="w-3 h-3" />
-                                        </button>
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                    <td className="px-4 py-3">
                                         <button
                                             onClick={() => toggleActive(route)}
                                             disabled={togglingId === route.id}
@@ -203,10 +282,21 @@ export default function RoutesPage() {
                                                 : <ToggleLeft className="w-7 h-7 text-slate-400" />}
                                         </button>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 text-right">
-                                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => openEdit(route)} className="p-2 text-slate-400 hover:text-[var(--brand)] hover:bg-[var(--brand)]/10 rounded-lg transition-all"><Edit className="w-4 h-4" /></button>
-                                            <button onClick={() => setDeleteId(route.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
+                                    <td className="px-4 py-3">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <button
+                                                onClick={() => openStops(route.id)}
+                                                className={`flex items-center gap-1.5 border rounded-xl px-3 py-1.5 font-semibold text-xs transition-colors ${selectedRouteId === route.id ? 'bg-[var(--brand)] border-[var(--brand)] text-white' : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-600'}`}
+                                            >
+                                                <ChevronDown className="w-3 h-3" />
+                                                Stops ({route.stops?.length ?? route.stop_count ?? 0})
+                                            </button>
+                                            <button onClick={() => openEdit(route)} className="flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-3 py-1.5 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
+                                                <Edit className="w-3 h-3" /> Edit
+                                            </button>
+                                            <button onClick={() => setDeleteId(route.id)} className="flex items-center gap-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl px-3 py-1.5 font-semibold text-xs hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
+                                                <Trash2 className="w-3 h-3" /> Delete
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -215,6 +305,68 @@ export default function RoutesPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Stops Panel */}
+            {selectedRouteId && selectedRoute && (
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center gap-2.5">
+                            <MapPin className="w-4 h-4 text-[var(--brand)]" />
+                            <span className="font-bold text-sm text-slate-900 dark:text-white">
+                                Stops — <span className="text-[var(--brand)]">{selectedRoute.name}</span>
+                            </span>
+                            <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-full px-2.5 py-0.5 font-medium">{stops.length}</span>
+                        </div>
+                        <button
+                            onClick={() => setSelectedRouteId(null)}
+                            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-slate-400 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {/* Morning / Evening tabs */}
+                    <div className="flex items-center gap-1 px-5 pt-4 pb-2 border-b border-slate-100 dark:border-slate-700">
+                        {(['morning', 'evening'] as const).map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setStopTab(tab)}
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all capitalize ${stopTab === tab ? 'bg-[var(--brand)] text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
+                            >
+                                {tab === 'morning' ? '🌅 Morning' : '🌆 Evening'}
+                                <span className="ml-1.5 opacity-70">
+                                    ({stops.filter(s => (s as any).trip_type === tab || (tab === 'morning' && !(s as any).trip_type)).length})
+                                </span>
+                            </button>
+                        ))}
+                        {stopTab === 'evening' && (
+                            <button
+                                onClick={handleCopyMorningToEvening}
+                                disabled={copyingStops}
+                                className="ml-auto flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 rounded-xl px-3 py-1.5 text-xs font-semibold hover:bg-amber-100 transition-colors disabled:opacity-50"
+                            >
+                                {copyingStops ? <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /> : '📋'}
+                                Copy from Morning
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="p-5">
+                        {stopsLoading ? (
+                            <div className="flex justify-center py-16">
+                                <div className="w-7 h-7 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                            </div>
+                        ) : (
+                            <StopMap
+                                stops={stops.filter(s => (s as any).trip_type === stopTab || (stopTab === 'morning' && !(s as any).trip_type))}
+                                saving={addingStop}
+                                onAddStop={handleAddStop}
+                                onDeleteStop={handleDeleteStop}
+                            />
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Add/Edit Modal */}
             {isModalOpen && (
@@ -268,10 +420,10 @@ export default function RoutesPage() {
             {/* Delete Confirm */}
             {deleteId && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Delete this route?</h3>
-                            <button onClick={() => setDeleteId(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                            <button onClick={() => setDeleteId(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>

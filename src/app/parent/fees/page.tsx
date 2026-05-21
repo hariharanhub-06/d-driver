@@ -37,6 +37,7 @@ export default function ParentFees() {
     const [fees, setFees] = useState<Fee[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [permissionDenied, setPermissionDenied] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>('pending');
     const [schoolConfig, setSchoolConfig] = useState<SchoolConfig>({});
     const [payingId, setPayingId] = useState<string | null>(null);
@@ -52,7 +53,11 @@ export default function ParentFees() {
             const res = await api.get('/finance/my-fees');
             setFees(Array.isArray(res.data) ? res.data : []);
         } catch (e: any) {
-            setError('Failed to load fees');
+            if (e.response?.status === 403) {
+                setPermissionDenied(true);
+            } else {
+                setError('Failed to load fees');
+            }
         } finally {
             setLoading(false);
         }
@@ -60,7 +65,7 @@ export default function ParentFees() {
 
     const fetchSchoolConfig = async () => {
         try {
-            const res = await api.get('/schools/my-school');
+            const res = await api.get('/schools/branding');
             setSchoolConfig({
                 razorpay_configured: res.data?.razorpay_configured ?? false,
                 razorpay_key_id: res.data?.razorpay_key_id,
@@ -168,6 +173,12 @@ export default function ParentFees() {
             {loading ? (
                 <div className="flex justify-center py-12">
                     <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                </div>
+            ) : permissionDenied ? (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl p-6 text-center">
+                    <CreditCard className="w-10 h-10 text-amber-400 mx-auto mb-3" />
+                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Fee management is not enabled for your school.</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">Please contact your school administrator.</p>
                 </div>
             ) : error ? (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl p-5 text-sm font-semibold text-center flex flex-col items-center gap-3">

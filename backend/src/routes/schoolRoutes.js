@@ -4,7 +4,7 @@ const {
   registerSchool, updateSchool, deleteSchool,
   toggleSchoolStatus, updatePermissions,
   updateSchoolRazorpay, getMySchool, dismissOnboarding,
-  assignSAToSchool,
+  assignSAToSchool, getSchoolBranding,
 } = require('../controllers/schoolController');
 const { authenticateToken, requireRole, requirePasswordChanged } = require('../middleware/authMiddleware');
 const { validate } = require('../validators');
@@ -14,6 +14,9 @@ const router = Router();
 
 // Public — no auth
 router.get('/public/:slug', getPublicSchool);
+
+// All authenticated roles — branding + permissions for their school
+router.get('/branding', authenticateToken, requirePasswordChanged, getSchoolBranding);
 
 // Admin — own school
 router.get('/my', authenticateToken, requirePasswordChanged, requireRole('admin'), getMySchool);

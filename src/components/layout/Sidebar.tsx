@@ -79,7 +79,6 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 { icon: Truck, label: 'Drivers', href: '/admin/drivers' },
                 ...(allow('route_management') ? [{ icon: Map, label: 'Routes', href: '/admin/routes', tourId: 'routes' }] : []),
                 { icon: Bus, label: 'Buses', href: '/admin/buses', tourId: 'buses' },
-                ...(allow('route_management') ? [{ icon: MapPin, label: 'Stops', href: '/admin/stops' }] : []),
                 ...(allow('gps_tracking') ? [{ icon: Locate, label: 'Tracking', href: '/admin/tracking' }] : []),
                 ...(allow('attendance') ? [{ icon: CheckSquare, label: 'Attendance', href: '/admin/attendance' }] : []),
                 ...(allow('fee_management') ? [{ icon: CreditCard, label: 'Fees', href: '/admin/fees', tourId: 'fees' }] : []),

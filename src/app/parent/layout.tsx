@@ -1,29 +1,27 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Home, Map, IndianRupee, User, Bell, CalendarDays } from 'lucide-react';
+import {
+    Home, Locate, CalendarDays, CreditCard, MapPin, Bell,
+    User, Bus, LogOut, X, Menu,
+} from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { useSchoolBranding } from '@/context/SchoolBrandingContext';
+import { useSchoolBranding, useSetSchoolBranding } from '@/context/SchoolBrandingContext';
+import type { SchoolPermissions } from '@/context/SchoolBrandingContext';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import AccountSwitcher from '@/components/AccountSwitcher';
 
-const tabs = [
-    { label: 'Home', icon: Home, path: '/parent/dashboard', tourId: 'parent-dashboard' },
-    { label: 'Track', icon: Map, path: '/parent/tracking', tourId: 'parent-track' },
-    { label: 'Attendance', icon: CalendarDays, path: '/parent/attendance', tourId: 'parent-attendance' },
-    { label: 'Fees', icon: IndianRupee, path: '/parent/fees', tourId: 'parent-fees' },
-    { label: 'Profile', icon: User, path: '/parent/profile' },
-];
-
 export default function ParentLayout({ children }: { children: React.ReactNode }) {
-    const { user, loading } = useAuth();
+    const { user, loading, logout } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const branding = useSchoolBranding();
+    const setSchoolBranding = useSetSchoolBranding();
     const [unreadCount, setUnreadCount] = useState(0);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     useEffect(() => {
         if (!loading && !user) router.push('/login');
@@ -31,18 +29,22 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
     useEffect(() => {
         if (!user) return;
-        api.get('/notifications/unread-count')
-            .then(res => setUnreadCount(res.data?.count ?? res.data?.unread_count ?? 0))
-            .catch(() => {});
+        api.get('/schools/branding').then(({ data }) => {
+            if (!data || !data.name) return;
+            setSchoolBranding({
+                name: data.name,
+                logo_url: data.logo_url || '',
+                primary_color: data.primary_color || '#3B82F6',
+                permissions: data.permissions || null,
+            });
+            if (data.primary_color) document.documentElement.style.setProperty('--brand', data.primary_color);
+        }).catch(() => {});
     }, [user]);
 
-    // Apply school brand color so --brand CSS var reflects the school's primary_color
     useEffect(() => {
         if (!user) return;
-        api.get('/schools/my')
-            .then(({ data }) => {
-                if (data?.primary_color) document.documentElement.style.setProperty('--brand', data.primary_color);
-            })
+        api.get('/notifications/unread-count')
+            .then(res => setUnreadCount(res.data?.count ?? res.data?.unread_count ?? 0))
             .catch(() => {});
     }, [user]);
 
@@ -54,65 +56,132 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
         );
     }
 
+    const p = branding.permissions as SchoolPermissions | null;
+    const allow = (key: keyof SchoolPermissions) => !p || p[key] !== false;
+
+    const navItems = [
+        { icon: Home, label: 'Home', href: '/parent/dashboard' },
+        ...(allow('gps_tracking') ? [{ icon: Locate, label: 'Track Bus', href: '/parent/tracking' }] : []),
+        ...(allow('attendance') ? [{ icon: CalendarDays, label: 'Attendance', href: '/parent/attendance' }] : []),
+        ...(allow('fee_management') ? [{ icon: CreditCard, label: 'Fees', href: '/parent/fees' }] : []),
+        ...(allow('stop_change_requests') ? [{ icon: MapPin, label: 'Change Stop', href: '/parent/request' }] : []),
+        { icon: Bell, label: 'Notifications', href: '/parent/notifications' },
+        { icon: User, label: 'Profile', href: '/parent/profile' },
+    ];
+
+    const closeSidebar = () => setSidebarOpen(false);
+
     return (
-        <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-900">
-            {/* Header */}
-            <header className="bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 h-14 flex items-center justify-between sticky top-0 z-40">
-                <div className="flex items-center gap-3">
-                    {branding.logo_url ? (
-                        <img src={branding.logo_url} alt={branding.name} className="h-8 w-8 object-cover rounded-lg overflow-hidden" />
-                    ) : (
-                        <div className="w-8 h-8 rounded-lg bg-[var(--brand)] flex items-center justify-center">
-                            <span className="text-white font-black text-sm">{branding.name.charAt(0)}</span>
-                        </div>
-                    )}
-                    <span className="font-black text-slate-900 dark:text-white text-sm">{branding.name}</span>
+        <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden">
+            {/* Sidebar overlay (mobile) */}
+            {sidebarOpen && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden" onClick={closeSidebar} />
+            )}
+
+            {/* Sidebar */}
+            <aside className={cn(
+                'fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-white dark:bg-slate-800 border-r border-slate-100 dark:border-slate-700 transition-transform duration-300 ease-in-out',
+                'lg:relative lg:translate-x-0 lg:flex',
+                sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+            )}>
+                {/* Logo */}
+                <div className="flex items-center justify-between h-16 px-5 border-b border-slate-100 dark:border-slate-700 shrink-0">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        {branding.logo_url ? (
+                            <img src={branding.logo_url} alt={branding.name} className="h-8 w-8 rounded-lg object-cover overflow-hidden shrink-0" />
+                        ) : (
+                            <div className="w-8 h-8 rounded-lg bg-[var(--brand)] flex items-center justify-center shrink-0">
+                                <Bus className="w-4 h-4 text-white" />
+                            </div>
+                        )}
+                        <span className="font-bold text-slate-900 dark:text-white text-sm truncate">{branding.name || 'D-Driver'}</span>
+                    </div>
+                    <button onClick={closeSidebar} className="lg:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
+                        <X className="w-4 h-4" />
+                    </button>
                 </div>
-                <button
-                    onClick={() => router.push('/parent/notifications')}
-                    className="relative w-10 h-10 flex items-center justify-center bg-slate-50 dark:bg-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-600 transition-all"
-                >
-                    <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                    {unreadCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
-                            {unreadCount > 9 ? '9+' : unreadCount}
-                        </span>
-                    )}
-                </button>
-            </header>
 
-            {/* Main content */}
-            <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 pb-20">
-                {children}
-            </main>
+                {/* Nav */}
+                <div className="flex-1 overflow-y-auto py-4">
+                    <nav className="space-y-0.5 px-2">
+                        {navItems.map(item => {
+                            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    onClick={closeSidebar}
+                                    className={cn(
+                                        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                                        isActive
+                                            ? 'bg-[var(--brand)]/10 text-[var(--brand)]'
+                                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white'
+                                    )}
+                                >
+                                    <item.icon className="w-4 h-4 shrink-0" />
+                                    <span>{item.label}</span>
+                                    {item.href === '/parent/notifications' && unreadCount > 0 && (
+                                        <span className="ml-auto w-5 h-5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                        </span>
+                                    )}
+                                </Link>
+                            );
+                        })}
+                    </nav>
+                </div>
 
-            {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 z-40 safe-area-bottom">
-                <div className="flex justify-around items-center px-2 py-1">
-                    {tabs.map(tab => {
-                        const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/');
-                        return (
-                            <Link
-                                key={tab.path}
-                                href={tab.path}
-                                data-tour={(tab as any).tourId}
-                                className={cn(
-                                    'flex flex-col items-center gap-1 py-2 px-3 text-xs font-medium transition-colors',
-                                    isActive
-                                        ? 'text-[var(--brand)]'
-                                        : 'text-slate-400 dark:text-slate-500'
-                                )}
-                            >
-                                <tab.icon className={cn('w-5 h-5', isActive && 'scale-110 transition-transform')} />
-                                <span className={cn('text-[10px] font-bold', isActive ? 'font-black' : '')}>{tab.label}</span>
-                            </Link>
-                        );
-                    })}
-                    <div className="flex flex-col items-center gap-1 py-2 px-3">
+                {/* User + Logout */}
+                <div className="border-t border-slate-100 dark:border-slate-700 p-4 shrink-0">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center shrink-0">
+                            <User className="w-4 h-4 text-[var(--brand)]" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{user?.name || 'Parent'}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email || ''}</p>
+                        </div>
                         <AccountSwitcher />
                     </div>
+                    <button
+                        onClick={logout}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                    </button>
                 </div>
-            </nav>
+            </aside>
+
+            {/* Main area */}
+            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+                {/* Top header */}
+                <header className="bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 h-14 flex items-center justify-between sticky top-0 z-30 shrink-0">
+                    <button
+                        onClick={() => setSidebarOpen(true)}
+                        className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    >
+                        <Menu className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                    </button>
+                    <span className="font-bold text-slate-900 dark:text-white text-sm lg:text-base truncate">{branding.name || 'Parent Portal'}</span>
+                    <button
+                        onClick={() => router.push('/parent/notifications')}
+                        className="relative w-9 h-9 flex items-center justify-center bg-slate-50 dark:bg-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-600 transition-all"
+                    >
+                        <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
+                    </button>
+                </header>
+
+                {/* Page content */}
+                <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
+                    {children}
+                </main>
+            </div>
         </div>
     );
 }

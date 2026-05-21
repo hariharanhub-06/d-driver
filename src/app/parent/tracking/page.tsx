@@ -91,7 +91,7 @@ export default function ParentTracking() {
                     stop: student.stop,
                     route_id: student.route_id,
                 });
-                const foundBusId = student.bus?.id || student.bus_id;
+                const foundBusId = student.bus?.id || student.bus_id || student.route?.bus_id;
                 if (foundBusId) {
                     setBusId(String(foundBusId));
                     connectSocket(String(foundBusId));

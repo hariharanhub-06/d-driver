@@ -273,10 +273,24 @@ const assignSAToSchool = async (req, res) => {
   }
 };
 
+// GET /schools/branding — any authenticated user fetches their school's branding + permissions
+const getSchoolBranding = async (req, res) => {
+  try {
+    if (!req.user.school_id) return res.json({});
+    const school = await prisma.school.findUnique({
+      where: { id: req.user.school_id },
+      select: { name: true, logo_url: true, primary_color: true, slug: true, permissions: true },
+    });
+    res.json(school || {});
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching school branding' });
+  }
+};
+
 module.exports = {
   getPublicSchool, getAllSchools, getSchoolById,
   registerSchool, updateSchool, deleteSchool,
   toggleSchoolStatus, updatePermissions,
   updateSchoolRazorpay, getMySchool, dismissOnboarding,
-  assignSAToSchool,
+  assignSAToSchool, getSchoolBranding,
 };

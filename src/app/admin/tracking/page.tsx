@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Bus, Navigation, Clock, MapPin, Users, X, UserPlus, Loader2, Check, WifiOff } from 'lucide-react';
 import api from '@/lib/api';
+import { useSchoolBranding } from '@/context/SchoolBrandingContext';
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
 
@@ -74,6 +75,7 @@ function timeAgo(ts: string): string {
 }
 
 export default function TrackingPage() {
+    const branding = useSchoolBranding();
     const [trips, setTrips] = useState<Trip[]>([]);
     const [locations, setLocations] = useState<LocationEntry[]>([]);
     const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
@@ -251,6 +253,7 @@ export default function TrackingPage() {
             latitude: b.latitude!,
             longitude: b.longitude!,
             timestamp: b.timestamp,
+            color: branding.primary_color || undefined,
         }));
 
     const mapCenter: [number, number] | undefined = mapBuses.length > 0

@@ -32,7 +32,8 @@ export default function ParentDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showAbsentModal, setShowAbsentModal] = useState(false);
-    const [absentForm, setAbsentForm] = useState({ student_id: '', date: new Date().toLocaleDateString('en-CA'), reason: '' });
+    const today = new Date().toLocaleDateString('en-CA');
+    const [absentForm, setAbsentForm] = useState({ student_id: '', from_date: today, to_date: today, reason: '' });
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
@@ -66,14 +67,18 @@ export default function ParentDashboard() {
         if (!absentForm.student_id || !absentForm.reason) return;
         setSubmitting(true);
         try {
-            await api.post('/absence', {
-                student_id: absentForm.student_id,
-                date: absentForm.date,
-                reason: absentForm.reason,
-            });
+            const start = new Date(absentForm.from_date);
+            const end = new Date(absentForm.to_date);
+            const dates: string[] = [];
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                dates.push(d.toLocaleDateString('en-CA'));
+            }
+            await Promise.all(dates.map(date =>
+                api.post('/absence', { student_id: absentForm.student_id, date, reason: absentForm.reason })
+            ));
             setShowAbsentModal(false);
-            setAbsentForm({ student_id: '', date: new Date().toLocaleDateString('en-CA'), reason: '' });
-            alert('Absence reported successfully.');
+            setAbsentForm({ student_id: '', from_date: today, to_date: today, reason: '' });
+            alert(`Absence reported for ${dates.length} day${dates.length > 1 ? 's' : ''}.`);
         } catch (e: any) {
             alert(e.response?.data?.message || 'Failed to report absence');
         } finally {
@@ -201,13 +206,6 @@ export default function ParentDashboard() {
                     <span className="text-sm font-semibold text-slate-700 dark:text-white">Change Stop</span>
                 </Link>
 
-                <Link href="/parent/tracking" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 text-left active:scale-95 transition-all block">
-                    <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-3">
-                        <Navigation className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-white">Track Bus</span>
-                </Link>
-
                 {driverPhone ? (
                     <a href={`tel:${driverPhone}`} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 text-left active:scale-95 transition-all block">
                         <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-3">
@@ -276,14 +274,26 @@ export default function ParentDashboard() {
                                         </select>
                                     </div>
                                 )}
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Date</label>
-                                    <input
-                                        type="date"
-                                        value={absentForm.date}
-                                        onChange={e => setAbsentForm({ ...absentForm, date: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
-                                    />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">From</label>
+                                        <input
+                                            type="date"
+                                            value={absentForm.from_date}
+                                            onChange={e => setAbsentForm({ ...absentForm, from_date: e.target.value, to_date: e.target.value > absentForm.to_date ? e.target.value : absentForm.to_date })}
+                                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">To</label>
+                                        <input
+                                            type="date"
+                                            value={absentForm.to_date}
+                                            min={absentForm.from_date}
+                                            onChange={e => setAbsentForm({ ...absentForm, to_date: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
+                                        />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Reason</label>
@@ -304,7 +314,7 @@ export default function ParentDashboard() {
                                 </button>
                                 <button
                                     onClick={handleReportAbsent}
-                                    disabled={submitting || !absentForm.reason || (!absentForm.student_id && children.length > 1)}
+                                    disabled={submitting || !absentForm.reason || !absentForm.from_date || !absentForm.to_date || (!absentForm.student_id && children.length > 1)}
                                     className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 flex-1 justify-center disabled:opacity-50"
                                 >
                                     {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Submit'}
