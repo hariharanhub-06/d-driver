@@ -162,27 +162,31 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             const heading = userHeading ?? 0;
             const hasHeading = userHeading != null;
 
-            const dotHtml = `
-                <div style="position:relative;width:60px;height:60px;">
-                    ${hasHeading ? `
-                    <div style="position:absolute;top:50%;left:50%;width:0;height:0;
-                        border-left:9px solid transparent;border-right:9px solid transparent;
-                        border-bottom:28px solid rgba(59,130,246,0.85);
-                        transform:translate(-50%,-100%) rotate(${heading}deg);
-                        transform-origin:bottom center;
-                        margin-top:-20px;
-                        filter:drop-shadow(0 0 4px rgba(59,130,246,0.5));"></div>
-                    ` : ''}
-                    <div style="position:absolute;top:50%;left:50%;width:50px;height:50px;border-radius:50%;
-                        background:rgba(59,130,246,0.18);
-                        animation:gps-pulse 2s ease-out infinite;"></div>
-                    <div style="position:absolute;top:50%;left:50%;width:22px;height:22px;border-radius:50%;
-                        background:#2563EB;border:3px solid white;
-                        box-shadow:0 2px 10px rgba(37,99,235,0.55);
-                        transform:translate(-50%,-50%);"></div>
+            // Navigation arrow — rotates with heading, anchored at centre of arrow
+            const arrowHtml = `
+                <div style="
+                    transform:rotate(${heading}deg);
+                    transform-origin:center center;
+                    display:flex;align-items:center;justify-content:center;
+                    filter:drop-shadow(0 3px 8px rgba(0,0,0,0.55));
+                ">
+                  <svg width="44" height="52" viewBox="0 0 44 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- outer white outline for contrast on any background -->
+                    <path d="M22 2 L42 48 L22 36 L2 48 Z"
+                          fill="white" opacity="0.9"/>
+                    <!-- coloured arrow body -->
+                    <path d="M22 5 L40 46 L22 34 L4 46 Z"
+                          fill="#1A1A2E"/>
+                    <!-- subtle highlight on left facet -->
+                    <path d="M22 5 L4 46 L22 34 Z"
+                          fill="rgba(255,255,255,0.12)"/>
+                    <!-- centre spine accent -->
+                    <line x1="22" y1="8" x2="22" y2="34"
+                          stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
                 </div>`;
 
-            const icon = L.divIcon({ className: '', html: dotHtml, iconSize: [60, 60], iconAnchor: [30, 30] });
+            const icon = L.divIcon({ className: '', html: arrowHtml, iconSize: [44, 52], iconAnchor: [22, 26] });
 
             if (userMarkerRef.current) {
                 userMarkerRef.current.setLatLng([lat, lng]);

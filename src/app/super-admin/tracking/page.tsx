@@ -202,21 +202,23 @@ export default function SATrackingPage() {
         setRouteStops(pins);
     }, [trips, activeBuses]);
 
-    // Also fetch all routes to show stops even when no trips are running
+    // Fetch all stops directly so pins always show even when no trips are running
     useEffect(() => {
-        const url = selectedSchoolId ? `/routes?school_id=${selectedSchoolId}` : '/routes';
+        const url = selectedSchoolId ? `/stops?school_id=${selectedSchoolId}` : '/stops';
         api.get(url).then(res => {
-            const routes: any[] = res.data || [];
+            const all: any[] = Array.isArray(res.data) ? res.data : [];
             setRouteStops(prev => {
                 const seen = new Set(prev.map(p => p.id));
-                const extra: StopPin[] = routes.flatMap((r: any) =>
-                    (r.stops || [])
-                        .filter((s: any) => !seen.has(s.id) && s.latitude && s.longitude)
-                        .map((s: any) => {
-                            seen.add(s.id);
-                            return { id: s.id, name: s.name, lat: s.latitude, lng: s.longitude, sequence: s.sequence, student_count: 0, color: r.school?.color || undefined };
-                        })
-                );
+                const extra: StopPin[] = all
+                    .filter((s: any) => !seen.has(s.id) && s.latitude && s.longitude)
+                    .map((s: any) => ({
+                        id: s.id,
+                        name: s.name,
+                        lat: parseFloat(s.latitude),
+                        lng: parseFloat(s.longitude),
+                        sequence: s.sequence ?? 0,
+                        student_count: 0,
+                    }));
                 return extra.length ? [...prev, ...extra] : prev;
             });
         }).catch(() => {});

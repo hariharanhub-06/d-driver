@@ -155,20 +155,22 @@ export default function TrackingPage() {
         setRouteStops(pins);
     }, [trips]);
 
-    // Also fetch all routes when no trips to always show stops
+    // Fetch ALL stops for the school — always visible regardless of active trips
     useEffect(() => {
-        api.get('/routes').then(res => {
-            const routes: any[] = res.data || [];
+        api.get('/stops').then(res => {
+            const all: any[] = Array.isArray(res.data) ? res.data : [];
             setRouteStops(prev => {
                 const seen = new Set(prev.map(p => p.id));
-                const extra: StopPin[] = routes.flatMap((r: any) =>
-                    (r.stops || [])
-                        .filter((s: any) => !seen.has(s.id) && s.latitude && s.longitude)
-                        .map((s: any) => {
-                            seen.add(s.id);
-                            return { id: s.id, name: s.name, lat: s.latitude, lng: s.longitude, sequence: s.sequence, student_count: 0 };
-                        })
-                );
+                const extra: StopPin[] = all
+                    .filter((s: any) => !seen.has(s.id) && s.latitude && s.longitude)
+                    .map((s: any) => ({
+                        id: s.id,
+                        name: s.name,
+                        lat: parseFloat(s.latitude),
+                        lng: parseFloat(s.longitude),
+                        sequence: s.sequence ?? 0,
+                        student_count: 0,
+                    }));
                 return extra.length ? [...prev, ...extra] : prev;
             });
         }).catch(() => {});
