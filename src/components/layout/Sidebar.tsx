@@ -77,6 +77,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard', tourId: 'dashboard' },
                 { icon: Users, label: 'Students', href: '/admin/students', tourId: 'students' },
                 { icon: Truck, label: 'Drivers', href: '/admin/drivers' },
+                { icon: Shield, label: 'Bus Staff', href: '/admin/bus-staff' },
                 ...(allow('route_management') ? [{ icon: Map, label: 'Routes', href: '/admin/routes', tourId: 'routes' }] : []),
                 { icon: Bus, label: 'Buses', href: '/admin/buses', tourId: 'buses' },
                 ...(allow('gps_tracking') ? [{ icon: Locate, label: 'Tracking', href: '/admin/tracking' }] : []),

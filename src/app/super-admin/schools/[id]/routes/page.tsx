@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
-import { MapPin, Plus, Edit, Trash2, X, ChevronDown } from 'lucide-react';
+import { MapPin, Plus, Edit, Trash2, X, ChevronDown, ArrowUpDown } from 'lucide-react';
 import api from '@/lib/api';
 import type { StopPoint } from '@/components/StopMap';
 
@@ -49,6 +49,7 @@ export default function SchoolRoutesPage() {
     const [addingStop, setAddingStop] = useState(false);
     const [stopTab, setStopTab] = useState<'morning' | 'evening'>('morning');
     const [copyingStops, setCopyingStops] = useState(false);
+    const [reversingStops, setReversingStops] = useState(false);
 
     useEffect(() => { fetchRoutes(); }, [id]);
 
@@ -164,6 +165,23 @@ export default function SchoolRoutesPage() {
             alert(e.response?.data?.message || 'Failed to add stop.');
         } finally {
             setAddingStop(false);
+        }
+    };
+
+    const handleReverseSequence = async () => {
+        const tabStops = stops.filter(s => (s as any).trip_type === stopTab || (stopTab === 'morning' && !(s as any).trip_type));
+        if (tabStops.length < 2) { alert('Need at least 2 stops to reverse.'); return; }
+        setReversingStops(true);
+        try {
+            const sorted = [...tabStops].sort((a, b) => a.sequence - b.sequence);
+            const sequences = sorted.map(s => s.sequence);
+            const reversed = [...sequences].reverse();
+            await Promise.all(sorted.map((s, i) => api.put(`/stops/${s.id}`, { sequence: reversed[i] })));
+            await fetchStops(selectedRouteId!);
+        } catch (e: any) {
+            alert(e.response?.data?.message || 'Failed to reverse sequence.');
+        } finally {
+            setReversingStops(false);
         }
     };
 
@@ -317,16 +335,26 @@ export default function SchoolRoutesPage() {
                                 </span>
                             </button>
                         ))}
-                        {stopTab === 'evening' && (
+                        <div className="ml-auto flex items-center gap-2">
                             <button
-                                onClick={handleCopyMorningToEvening}
-                                disabled={copyingStops}
-                                className="ml-auto flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 rounded-xl px-3 py-1.5 text-xs font-semibold hover:bg-amber-100 transition-colors disabled:opacity-50"
+                                onClick={handleReverseSequence}
+                                disabled={reversingStops}
+                                className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
                             >
-                                {copyingStops ? <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /> : '📋'}
-                                Copy from Morning
+                                {reversingStops ? <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> : <ArrowUpDown className="w-3 h-3" />}
+                                Reverse
                             </button>
-                        )}
+                            {stopTab === 'evening' && (
+                                <button
+                                    onClick={handleCopyMorningToEvening}
+                                    disabled={copyingStops}
+                                    className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 rounded-xl px-3 py-1.5 text-xs font-semibold hover:bg-amber-100 transition-colors disabled:opacity-50"
+                                >
+                                    {copyingStops ? <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /> : '📋'}
+                                    Copy from Morning
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     <div className="p-5">

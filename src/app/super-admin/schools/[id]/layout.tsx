@@ -11,6 +11,7 @@ const TABS = [
     { label: 'Buses',         path: '/buses' },
     { label: 'Routes',        path: '/routes' },
     { label: 'Drivers',       path: '/drivers' },
+    { label: 'Bus Staff',     path: '/staff' },
     { label: 'Students',      path: '/students' },
     { label: 'Fees',          path: '/fees' },
     { label: 'Attendance',    path: '/attendance' },
