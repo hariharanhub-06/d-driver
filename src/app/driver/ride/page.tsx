@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AlertTriangle, Navigation, ChevronRight, Fuel, DollarSign, X, Bus, Wrench, Check, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, Navigation, ChevronRight, X, Bus, Wrench, Check, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { connectSocket, getSocket } from '@/lib/socket';
 import api from '@/lib/api';
@@ -36,6 +36,101 @@ interface TripData {
     };
 }
 
+function EndTripSlider({ onConfirm, onCancel, isEnding }: { onConfirm: () => void; onCancel: () => void; isEnding: boolean }) {
+    const [filled, setFilled] = useState(0);
+    const filledRef = useRef(0);
+    const trackRef = useRef<HTMLDivElement>(null);
+    const dragging = useRef(false);
+    const done = useRef(false);
+
+    const toFilled = (clientX: number) => {
+        const track = trackRef.current;
+        if (!track) return filledRef.current;
+        const rect = track.getBoundingClientRect();
+        const usable = rect.width - 56;
+        const relX = clientX - rect.left - 28;
+        return Math.max(0, Math.min(100, (relX / usable) * 100));
+    };
+
+    const onStart = (e: React.PointerEvent) => {
+        if (done.current) return;
+        dragging.current = true;
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    };
+    const onMove = (e: React.PointerEvent) => {
+        if (!dragging.current || done.current) return;
+        const f = toFilled(e.clientX);
+        filledRef.current = f;
+        setFilled(f);
+    };
+    const onEnd = () => {
+        if (done.current) return;
+        dragging.current = false;
+        if (filledRef.current >= 90) {
+            done.current = true;
+            setFilled(100);
+            filledRef.current = 100;
+            setTimeout(onConfirm, 350);
+        } else {
+            setFilled(0);
+            filledRef.current = 0;
+        }
+    };
+
+    const thumbLeft = `calc(4px + ${filled}% * (100% - 56px) / 100)`;
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[500] flex items-center justify-center p-6">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6">
+                <div className="w-12 h-12 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white text-center mb-1">End Trip?</h3>
+                <p className="text-xs text-slate-400 dark:text-slate-500 text-center mb-5">Slide all the way to confirm</p>
+
+                <div
+                    ref={trackRef}
+                    className="relative h-14 bg-red-50 dark:bg-red-900/20 rounded-full select-none overflow-hidden"
+                    style={{ touchAction: 'none' }}
+                    onPointerDown={onStart}
+                    onPointerMove={onMove}
+                    onPointerUp={onEnd}
+                    onPointerCancel={onEnd}
+                >
+                    {/* Fill */}
+                    <div
+                        className="absolute inset-y-0 left-0 bg-red-200/60 dark:bg-red-800/40 rounded-full transition-none"
+                        style={{ width: `calc(4px + ${filled}% * (100% - 56px) / 100 + 28px)` }}
+                    />
+                    {/* Label */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-xs font-bold text-red-500 uppercase tracking-widest">
+                            {filled >= 98 ? 'Ending trip…' : 'Slide to End →'}
+                        </span>
+                    </div>
+                    {/* Thumb */}
+                    <div
+                        className="absolute top-1 bottom-1 w-12 bg-red-500 rounded-full shadow-lg flex items-center justify-center pointer-events-none"
+                        style={{ left: thumbLeft }}
+                    >
+                        {isEnding
+                            ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            : <ChevronRight className="w-5 h-5 text-white" />
+                        }
+                    </div>
+                </div>
+
+                <button
+                    onClick={onCancel}
+                    className="w-full mt-4 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 py-2 transition-colors text-center"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function ActiveRide() {
     const { user } = useAuth();
     const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
@@ -60,13 +155,11 @@ export default function ActiveRide() {
     // Modal states
     const [showSosConfirm, setShowSosConfirm] = useState(false);
     const [showBusSwitch, setShowBusSwitch] = useState(false);
-    const [showFuelFill, setShowFuelFill] = useState(false);
-    const [showFuelRequest, setShowFuelRequest] = useState(false);
+    const [showEndTrip, setShowEndTrip] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [endingTrip, setEndingTrip] = useState(false);
 
     const [switchForm, setSwitchForm] = useState({ reason: 'breakdown', notes: '', km_at_switch: '' });
-    const [fuelFillForm, setFuelFillForm] = useState({ liters_filled: '', current_km: '' });
-    const [fuelReqForm, setFuelReqForm] = useState({ amount_requested: '', reason: '' });
 
     const fetchTripData = useCallback(async () => {
         try {
@@ -307,41 +400,17 @@ export default function ActiveRide() {
         }
     };
 
-    const handleFuelFill = async () => {
-        if (!fuelFillForm.liters_filled) return;
-        setSubmitting(true);
+    const handleEndTrip = async () => {
+        setEndingTrip(true);
         try {
-            await api.post('/fuel/fill', {
-                bus_id: busId || undefined,
-                liters_filled: parseFloat(fuelFillForm.liters_filled),
-                km_at_fill: fuelFillForm.current_km ? parseFloat(fuelFillForm.current_km) : undefined,
-            });
-            setShowFuelFill(false);
-            setFuelFillForm({ liters_filled: '', current_km: '' });
-            alert(`Fuel logged: ${fuelFillForm.liters_filled}L added to bus.`);
-        } catch (e: any) {
-            alert(e.response?.data?.message || e.response?.data?.error || 'Failed to log fuel');
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleFuelRequest = async () => {
-        setSubmitting(true);
-        try {
-            await api.post('/fuel/request', {
-                bus_id: busId || undefined,
-                amount_requested: parseFloat(fuelReqForm.amount_requested),
-                current_km: 0,
-                reason: fuelReqForm.reason,
-            });
-            setShowFuelRequest(false);
-            setFuelReqForm({ amount_requested: '', reason: '' });
-            alert('Fund request submitted.');
-        } catch (e: any) {
-            alert(e.response?.data?.message || 'Failed to submit request');
-        } finally {
-            setSubmitting(false);
+            if (tripData?.id) {
+                await api.post(`/trips/${tripData.id}/complete`);
+            }
+            window.location.href = '/driver/dashboard';
+        } catch {
+            setEndingTrip(false);
+            setShowEndTrip(false);
+            alert('Failed to end trip. Please try again.');
         }
     };
 
@@ -459,43 +528,41 @@ export default function ActiveRide() {
                 <div className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-4" />
 
                 {!currentStop ? (
-                    <div className="text-center py-2 mb-4">
+                    <div className="text-center py-2">
                         <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
                             <Check className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">All Stops Completed!</h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">The route is complete. You can end the trip and return to your dashboard.</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">The route is complete. Slide below to end the trip.</p>
                         <button
-                            onClick={async () => {
-                                if (tripData?.id) {
-                                    try { await api.post(`/trips/${tripData.id}/complete`); } catch { /* best effort */ }
-                                }
-                                window.location.href = '/driver/dashboard';
-                            }}
-                            className="flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-3 font-bold text-sm transition-all active:scale-95 w-full"
+                            onClick={() => setShowEndTrip(true)}
+                            className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white rounded-xl px-4 py-3 font-bold text-sm transition-all active:scale-95 w-full"
                         >
-                            End Trip — Go to Dashboard
+                            End Trip
                         </button>
                     </div>
                 ) : (
                     <>
                         <div className="flex items-start justify-between mb-4">
-                            <div>
-                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Current Stop</p>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Current Stop</p>
+                                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 rounded-full px-2 py-0.5">
+                                        {currentStopIndex + 1} / {stops.length}
+                                    </span>
+                                </div>
                                 <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                     <Navigation className="w-5 h-5 text-[var(--brand)] shrink-0" />
                                     {currentStop.name}
                                 </h2>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                                     {getStudentsAtStop(currentStop.id).length} students at this stop
                                 </p>
                             </div>
                             {nextStop && (
-                                <div className="text-right">
+                                <div className="text-right shrink-0 ml-3">
                                     <p className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Next</p>
-                                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                                        {nextStop.name} <ChevronRight className="w-3 h-3" />
-                                    </p>
+                                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">{nextStop.name}</p>
                                 </div>
                             )}
                         </div>
@@ -507,30 +574,22 @@ export default function ActiveRide() {
                             {getStudentsAtStop(currentStop.id).length > 0 ? 'Arrived — Mark Attendance' : 'Arrived at Stop'}
                         </button>
 
-                        {/* Skip attendance — always available */}
-                        <button
-                            onClick={advanceStop}
-                            className="w-full text-center text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 py-1 mb-2 transition-colors"
-                        >
-                            Skip Attendance → Move to Next Stop
-                        </button>
+                        <div className="flex items-center justify-between">
+                            <button
+                                onClick={advanceStop}
+                                className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 py-1 transition-colors"
+                            >
+                                Skip Attendance → Next Stop
+                            </button>
+                            <button
+                                onClick={() => setShowEndTrip(true)}
+                                className="text-xs text-red-400 hover:text-red-600 py-1 transition-colors"
+                            >
+                                End Trip
+                            </button>
+                        </div>
                     </>
                 )}
-
-                <div className="grid grid-cols-2 gap-3">
-                    <button
-                        onClick={() => setShowFuelFill(true)}
-                        className="py-2.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm border border-amber-100 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all active:scale-95"
-                    >
-                        <Fuel className="w-4 h-4" /> Log Fuel Fill
-                    </button>
-                    <button
-                        onClick={() => setShowFuelRequest(true)}
-                        className="py-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all active:scale-95"
-                    >
-                        <DollarSign className="w-4 h-4" /> Request Funds
-                    </button>
-                </div>
             </div>
 
             {/* Attendance Popup */}
@@ -701,58 +760,13 @@ export default function ActiveRide() {
                 </div>
             )}
 
-            {/* Fuel Fill Modal */}
-            {showFuelFill && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-end justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-center mb-5">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <Fuel className="w-5 h-5 text-amber-500" /> Log Fuel Fill
-                            </h3>
-                            <button onClick={() => setShowFuelFill(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all"><X className="w-5 h-5 text-slate-400" /></button>
-                        </div>
-                        <div className="space-y-4 mb-5">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Litres Filled</label>
-                                <input type="number" value={fuelFillForm.liters_filled} onChange={e => setFuelFillForm({ ...fuelFillForm, liters_filled: e.target.value })} placeholder="e.g. 40" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km)</label>
-                                <input type="number" value={fuelFillForm.current_km} onChange={e => setFuelFillForm({ ...fuelFillForm, current_km: e.target.value })} placeholder="e.g. 45230" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" />
-                            </div>
-                        </div>
-                        <button onClick={handleFuelFill} disabled={submitting || !fuelFillForm.liters_filled} className="py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold disabled:opacity-50 active:scale-95 transition-all w-full text-sm">
-                            {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Log Fuel Fill'}
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Fuel Request Modal */}
-            {showFuelRequest && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-end justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-center mb-5">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <DollarSign className="w-5 h-5 text-emerald-500" /> Request Funds
-                            </h3>
-                            <button onClick={() => setShowFuelRequest(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all"><X className="w-5 h-5 text-slate-400" /></button>
-                        </div>
-                        <div className="space-y-4 mb-5">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount Requested (₹)</label>
-                                <input type="number" value={fuelReqForm.amount_requested} onChange={e => setFuelReqForm({ ...fuelReqForm, amount_requested: e.target.value })} placeholder="e.g. 2000" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Reason</label>
-                                <textarea value={fuelReqForm.reason} onChange={e => setFuelReqForm({ ...fuelReqForm, reason: e.target.value })} placeholder="Reason for fund request..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none h-20" />
-                            </div>
-                        </div>
-                        <button onClick={handleFuelRequest} disabled={submitting || !fuelReqForm.amount_requested} className="py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold disabled:opacity-50 active:scale-95 transition-all w-full text-sm">
-                            {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Submit Request'}
-                        </button>
-                    </div>
-                </div>
+            {/* End Trip Slider */}
+            {showEndTrip && (
+                <EndTripSlider
+                    onConfirm={handleEndTrip}
+                    onCancel={() => setShowEndTrip(false)}
+                    isEnding={endingTrip}
+                />
             )}
         </div>
     );

@@ -215,21 +215,29 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         });
     }, [stops, nextStopIndex]);
 
-    // Draw OSRM route from user position to next stop
+    // Draw OSRM route: driver position → all remaining stops in sequence
     useEffect(() => {
         if (!mapRef.current) return;
-        const nextStop = stops[nextStopIndex];
-        if (!nextStop?.lat || !nextStop?.lng) {
+
+        // Collect remaining stops that have coordinates
+        const remainingStops = stops.slice(nextStopIndex).filter(s => s.lat && s.lng);
+        if (remainingStops.length === 0) {
             if (routeLineRef.current) { mapRef.current.removeLayer(routeLineRef.current); routeLineRef.current = null; }
             return;
         }
 
         const [uLat, uLng] = userPosition;
-        const routeKey = `${uLat.toFixed(4)},${uLng.toFixed(4)}->${nextStop.lat.toFixed(4)},${nextStop.lng.toFixed(4)}`;
+        // Route key: driver pos + all remaining stop coords
+        const routeKey = `${uLat.toFixed(4)},${uLng.toFixed(4)}->${remainingStops.map(s => `${s.lat.toFixed(4)},${s.lng.toFixed(4)}`).join('|')}`;
         if (lastRouteKeyRef.current === routeKey) return;
         lastRouteKeyRef.current = routeKey;
 
-        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${uLng},${uLat};${nextStop.lng},${nextStop.lat}?geometries=geojson&overview=full`;
+        // Build OSRM multi-waypoint URL: driver;stop1;stop2;...;lastStop
+        const waypoints = [
+            `${uLng},${uLat}`,
+            ...remainingStops.map(s => `${s.lng},${s.lat}`),
+        ].join(';');
+        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${waypoints}?geometries=geojson&overview=full`;
 
         import('leaflet').then(async L => {
             try {
@@ -252,13 +260,16 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                     lineCap: 'round',
                 }).addTo(mapRef.current);
             } catch {
-                // OSRM unavailable — draw straight line fallback
+                // OSRM unavailable — draw straight lines through all remaining stops
                 if (!mapRef.current) return;
                 if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
-                routeLineRef.current = L.polyline(
-                    [[uLat, uLng], [nextStop.lat, nextStop.lng]],
-                    { color: '#2563EB', weight: 4, opacity: 0.6, dashArray: '8 6' }
-                ).addTo(mapRef.current);
+                const fallbackCoords: [number, number][] = [
+                    [uLat, uLng],
+                    ...remainingStops.map(s => [s.lat, s.lng] as [number, number]),
+                ];
+                routeLineRef.current = L.polyline(fallbackCoords, {
+                    color: '#2563EB', weight: 4, opacity: 0.6, dashArray: '8 6',
+                }).addTo(mapRef.current);
             }
         });
     }, [userPosition, stops, nextStopIndex]);
