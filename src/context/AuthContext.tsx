@@ -41,7 +41,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (token && storedUser) {
             try {
-                setUser(JSON.parse(storedUser));
+                const parsed = JSON.parse(storedUser);
+                setUser(parsed);
+                // Refresh from server to pick up any fields missing from old sessions (e.g. is_dev_sa)
+                api.get('/users/me')
+                    .then(({ data }) => {
+                        const refreshed: User = {
+                            ...parsed,
+                            name: data.name,
+                            email: data.email,
+                            is_dev_sa: data.is_dev_sa ?? false,
+                            is_first_login: data.is_first_login,
+                        };
+                        setUser(refreshed);
+                        localStorage.setItem('user', JSON.stringify(refreshed));
+                    })
+                    .catch(() => { /* keep cached user if /me fails */ })
+                    .finally(() => setLoading(false));
+                return;
             } catch {
                 localStorage.removeItem('access_token');
                 localStorage.removeItem('refresh_token');

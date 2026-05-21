@@ -211,8 +211,6 @@ export default function ActiveRide() {
         }
     }, []);
 
-    // GPS bearing from position changes (stable direction, not compass-based)
-
     useEffect(() => {
         let watchId: number | null = null;
 
@@ -221,10 +219,6 @@ export default function ActiveRide() {
                 (pos) => {
                     setCurrentPos([pos.coords.latitude, pos.coords.longitude]);
                     setAccuracy(pos.coords.accuracy ?? null);
-                    if (pos.coords.heading != null) {
-                        headingRef.current = pos.coords.heading;
-                        setHeading(pos.coords.heading);
-                    }
                     setGeoError('');
                     setLocationDenied(false);
                 },
@@ -236,14 +230,9 @@ export default function ActiveRide() {
             );
             watchId = navigator.geolocation.watchPosition(
                 (pos) => {
-                    const { latitude, longitude, accuracy: acc, heading: gpsHeading } = pos.coords;
+                    const { latitude, longitude, accuracy: acc } = pos.coords;
                     setCurrentPos([latitude, longitude]);
                     setAccuracy(acc ?? null);
-                    // Use native GPS heading — null when stationary, so no spurious rotation
-                    if (gpsHeading != null) {
-                        headingRef.current = gpsHeading;
-                        setHeading(gpsHeading);
-                    }
                     setGeoError('');
                     setLocationDenied(false);
                     const currentBusId = busIdRef.current;
@@ -314,6 +303,50 @@ export default function ActiveRide() {
             if (watchId !== null) navigator.geolocation.clearWatch(watchId);
         };
     }, [fetchTripData]);
+
+    // Device compass — rotates map as phone physically turns
+    useEffect(() => {
+        const handleOrientation = (e: DeviceOrientationEvent) => {
+            let compassHeading: number | null = null;
+            if ((e as any).webkitCompassHeading != null) {
+                // iOS: already 0-360 clockwise from magnetic North
+                compassHeading = (e as any).webkitCompassHeading;
+            } else if (e.alpha != null) {
+                // Android: alpha is counterclockwise, invert it
+                compassHeading = (360 - e.alpha) % 360;
+            }
+            if (compassHeading != null) {
+                headingRef.current = compassHeading;
+                setHeading(compassHeading);
+            }
+        };
+
+        const startListening = async () => {
+            if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+                // iOS 13+ — try to request permission (succeeds if page opened via user gesture)
+                try {
+                    const state = await (DeviceOrientationEvent as any).requestPermission();
+                    if (state === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation, true);
+                    }
+                } catch { /* permission denied or no gesture context */ }
+            } else {
+                // Android / desktop — no permission needed
+                if ('ondeviceorientationabsolute' in window) {
+                    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+                } else {
+                    window.addEventListener('deviceorientation', handleOrientation, true);
+                }
+            }
+        };
+
+        startListening();
+
+        return () => {
+            window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
+            window.removeEventListener('deviceorientation', handleOrientation, true);
+        };
+    }, []);
 
     const currentStopIndex = tripData?.current_stop_index ?? 0;
     const rawStops = tripData?.route?.stops || [];

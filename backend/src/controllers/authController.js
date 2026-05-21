@@ -14,7 +14,7 @@ const REFRESH_TTL_MS     = 7 * 24 * 60 * 60 * 1000;
 // ─── TOKEN HELPERS ───────────────────────────────────────────────────────────
 
 const signAccess = (user) =>
-  jwt.sign({ id: user.id, role: user.role, school_id: user.school_id }, JWT_SECRET, { expiresIn: ACCESS_TTL });
+  jwt.sign({ id: user.id, role: user.role, school_id: user.school_id, is_dev_sa: user.is_dev_sa ?? false }, JWT_SECRET, { expiresIn: ACCESS_TTL });
 
 const signRefresh = (user) =>
   jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: REFRESH_TTL });
@@ -57,6 +57,7 @@ const login = async (req, res) => {
       role: user.role,
       school_id: user.school_id,
       is_first_login: user.is_first_login,
+      is_dev_sa: user.is_dev_sa ?? false,
     },
   });
 };
