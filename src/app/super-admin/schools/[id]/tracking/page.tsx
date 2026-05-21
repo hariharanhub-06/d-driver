@@ -110,9 +110,9 @@ export default function SchoolTrackingPage() {
             const raw: any[] = Array.isArray(res.data) ? res.data : [];
             const mapped: BusPosition[] = raw.map(item => {
                 const busId = item.bus_id || item.busId || item.location?.bus_id;
-                const lat = item.latitude ?? item.location?.latitude;
-                const lng = item.longitude ?? item.location?.longitude;
-                const ts = item.timestamp || item.location?.timestamp || '';
+                const lat = item.location?.latitude ?? item.latitude;
+                const lng = item.location?.longitude ?? item.longitude;
+                const ts = item.location?.timestamp || item.timestamp || '';
                 const trip = tripsRef.current.find(t => t.bus_id === busId);
                 return {
                     bus_id: busId,
@@ -124,7 +124,8 @@ export default function SchoolTrackingPage() {
                     route_name: item.route_name || trip?.route?.name || trip?.route_name,
                     color: item.school_color || undefined,
                 };
-            }).filter(p => p.latitude != null && p.longitude != null);
+            // filter out null AND zero (invalid 0,0 GPS) positions
+            }).filter(p => p.bus_id && p.latitude && p.longitude && (p.latitude !== 0 || p.longitude !== 0));
             setPositions(mapped);
             setError('');
         } catch {
@@ -150,31 +151,49 @@ export default function SchoolTrackingPage() {
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, [fetchTrips, fetchPositions]);
 
-    // Derive stop pins when bus selection or trips change
+    // Always show stops from all active trips
     useEffect(() => {
-        if (!selectedBusId) {
-            setRouteStops([]);
-            setSelectedStop(null);
-            return;
-        }
-        const trip = trips.find(t => t.bus_id === selectedBusId);
-        if (trip?.route?.stops?.length) {
-            setRouteStops(trip.route.stops.map(s => ({
-                id: s.id,
-                name: s.name,
-                lat: s.latitude,
-                lng: s.longitude,
-                sequence: s.sequence,
-                student_count: trip.route!.students?.filter(st => st.stop_id === s.id).length ?? 0,
-            })));
-        } else {
-            setRouteStops([]);
-        }
-        setSelectedStop(null);
-    }, [selectedBusId, trips]);
+        const seen = new Set<string>();
+        const pins: StopPin[] = trips.flatMap(trip =>
+            (trip.route?.stops || [])
+                .filter(s => {
+                    if (seen.has(s.id) || !s.latitude || !s.longitude) return false;
+                    seen.add(s.id);
+                    return true;
+                })
+                .map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    lat: s.latitude,
+                    lng: s.longitude,
+                    sequence: s.sequence,
+                    student_count: trip.route?.students?.filter(st => st.stop_id === s.id).length ?? 0,
+                }))
+        );
+        setRouteStops(pins);
+    }, [trips]);
+
+    // Fetch all stops directly so pins show even when no trips are running
+    useEffect(() => {
+        api.get(`/stops?school_id=${id}`).then(res => {
+            const all: any[] = Array.isArray(res.data) ? res.data : [];
+            setRouteStops(prev => {
+                const seen = new Set(prev.map(p => p.id));
+                const extra: StopPin[] = all
+                    .filter((s: any) => !seen.has(s.id) && s.latitude && s.longitude)
+                    .map((s: any) => ({
+                        id: s.id, name: s.name,
+                        lat: parseFloat(s.latitude), lng: parseFloat(s.longitude),
+                        sequence: s.sequence ?? 0, student_count: 0,
+                    }));
+                return extra.length ? [...prev, ...extra] : prev;
+            });
+        }).catch(() => {});
+    }, [id]);
 
     const handleStopClick = useCallback((stopId: string, stopName: string) => {
-        const trip = trips.find(t => t.bus_id === selectedBusId);
+        const trip = trips.find(t => t.bus_id === selectedBusId) ||
+                     trips.find(t => t.route?.stops?.some(s => s.id === stopId));
         const students = trip?.route?.students?.filter(s => s.stop_id === stopId) ?? [];
         setSelectedStop({ id: stopId, name: stopName, students });
         setAssignStudentId('');
@@ -302,7 +321,10 @@ export default function SchoolTrackingPage() {
             <div className="flex-1 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm">
                 <MapComponent
                     buses={positions}
+                    center={positions.length > 0 ? [positions[0].latitude, positions[0].longitude] : undefined}
                     selectedBusId={selectedBusId}
+                    stops={routeStops}
+                    onStopClick={handleStopClick}
                 />
             </div>
 
