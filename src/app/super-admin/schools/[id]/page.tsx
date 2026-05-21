@@ -3,8 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Building2, Loader2, Save, ChevronLeft, ExternalLink, Copy, Upload } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
+
+const LogoCropModal = dynamic(() => import('@/components/ui/LogoCropModal'), { ssr: false });
 
 interface School {
     id: string;
@@ -67,6 +70,7 @@ export default function SchoolDetailPage() {
     const [permissions, setPermissions] = useState<Record<string, boolean>>({});
     const [selectedPlan, setSelectedPlan] = useState('');
     const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [cropSrc, setCropSrc] = useState<string | null>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -336,7 +340,10 @@ export default function SchoolDetailPage() {
                                     className="hidden"
                                     onChange={e => {
                                         const file = e.target.files?.[0];
-                                        if (file) handleLogoUpload(file);
+                                        if (!file) return;
+                                        const reader = new FileReader();
+                                        reader.onload = ev => setCropSrc(ev.target?.result as string);
+                                        reader.readAsDataURL(file);
                                         e.target.value = '';
                                     }}
                                 />
@@ -439,6 +446,14 @@ export default function SchoolDetailPage() {
                         </div>
                     )}
                 </div>
+            )}
+            {/* Crop modal */}
+            {cropSrc && (
+                <LogoCropModal
+                    src={cropSrc}
+                    onConfirm={file => { setCropSrc(null); handleLogoUpload(file); }}
+                    onCancel={() => { setCropSrc(null); if (logoInputRef.current) logoInputRef.current.value = ''; }}
+                />
             )}
         </div>
     );

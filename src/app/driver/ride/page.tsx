@@ -142,7 +142,6 @@ export default function ActiveRide() {
     const [busNumber, setBusNumber] = useState<string>('');
     const busIdRef = useRef<string>('');
     const headingRef = useRef<number | null>(null);
-    const prevPosRef = useRef<[number, number] | null>(null);
     const [loading, setLoading] = useState(true);
     const [noTrip, setNoTrip] = useState(false);
     const [geoError, setGeoError] = useState('');
@@ -237,22 +236,14 @@ export default function ActiveRide() {
             );
             watchId = navigator.geolocation.watchPosition(
                 (pos) => {
-                    const { latitude, longitude, accuracy: acc, speed } = pos.coords;
+                    const { latitude, longitude, accuracy: acc, heading: gpsHeading } = pos.coords;
                     setCurrentPos([latitude, longitude]);
                     setAccuracy(acc ?? null);
-                    // Calculate bearing from position delta — stable direction, no compass spin
-                    if (prevPosRef.current && (speed == null || speed > 1)) {
-                        const [pLat, pLng] = prevPosRef.current;
-                        const dLng = (longitude - pLng) * Math.PI / 180;
-                        const lat1R = pLat * Math.PI / 180;
-                        const lat2R = latitude * Math.PI / 180;
-                        const y = Math.sin(dLng) * Math.cos(lat2R);
-                        const x = Math.cos(lat1R) * Math.sin(lat2R) - Math.sin(lat1R) * Math.cos(lat2R) * Math.cos(dLng);
-                        const bearing = ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
-                        headingRef.current = bearing;
-                        setHeading(bearing);
+                    // Use native GPS heading — null when stationary, so no spurious rotation
+                    if (gpsHeading != null) {
+                        headingRef.current = gpsHeading;
+                        setHeading(gpsHeading);
                     }
-                    prevPosRef.current = [latitude, longitude];
                     setGeoError('');
                     setLocationDenied(false);
                     const currentBusId = busIdRef.current;

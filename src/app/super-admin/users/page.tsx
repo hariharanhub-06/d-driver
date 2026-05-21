@@ -1,12 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Plus, Loader2, X, Shield, UserX, Trash2, AlertTriangle, Pencil, KeyRound, Check, Truck, HardHat } from 'lucide-react';
+import { Users, Plus, Loader2, X, Shield, UserX, Trash2, AlertTriangle, Pencil, KeyRound, Check, Truck, HardHat, Building2 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 
 interface School { id: string; name: string; }
+
+interface ManageSchool {
+  id: string;
+  name: string;
+  logo_url?: string;
+  primary_color?: string;
+  status: string;
+  assigned_sa_id: string | null;
+}
 
 interface SAUser {
   id: string;
@@ -109,6 +118,12 @@ export default function SAUsersPage() {
 
   // Toggle loading per-row
   const [toggleLoading, setToggleLoading] = useState<string | null>(null);
+
+  // Manage Schools modal
+  const [manageSAUser, setManageSAUser] = useState<SAUser | null>(null);
+  const [manageSASchools, setManageSASchools] = useState<ManageSchool[]>([]);
+  const [manageSALoading, setManageSALoading] = useState(false);
+  const [schoolAssigning, setSchoolAssigning] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchUsers();
@@ -239,6 +254,36 @@ export default function SAUsersPage() {
     }
   };
 
+  const openManageSchools = async (sa: SAUser) => {
+    setManageSAUser(sa);
+    setManageSALoading(true);
+    setManageSASchools([]);
+    try {
+      const { data } = await api.get('/schools');
+      setManageSASchools(Array.isArray(data) ? data : []);
+    } catch { /* show empty list */ }
+    setManageSALoading(false);
+  };
+
+  const handleToggleSchool = async (schoolId: string, currentlyAssigned: boolean) => {
+    if (!manageSAUser) return;
+    setSchoolAssigning(prev => ({ ...prev, [schoolId]: true }));
+    try {
+      await api.put(`/schools/${schoolId}/assign-sa`, {
+        sa_id: currentlyAssigned ? null : manageSAUser.id,
+      });
+      setManageSASchools(prev => prev.map(s =>
+        s.id === schoolId ? { ...s, assigned_sa_id: currentlyAssigned ? null : manageSAUser.id } : s
+      ));
+      setUsers(prev => prev.map(u =>
+        u.id === manageSAUser.id
+          ? { ...u, assigned_schools_count: (u.assigned_schools_count ?? 0) + (currentlyAssigned ? -1 : 1) }
+          : u
+      ));
+    } catch { alert('Failed to update school assignment'); }
+    setSchoolAssigning(prev => ({ ...prev, [schoolId]: false }));
+  };
+
   return (
     <div className="space-y-6 animate-in">
       {/* Header */}
@@ -314,6 +359,13 @@ export default function SAUsersPage() {
                       <td className="px-5 py-4 text-sm">
                         {u.is_dev_sa ? (
                           <span className="text-slate-400 dark:text-slate-500 text-xs">All</span>
+                        ) : currentUser?.is_dev_sa ? (
+                          <button
+                            onClick={() => openManageSchools(u)}
+                            className="text-xs font-semibold text-[var(--brand)] hover:underline cursor-pointer"
+                          >
+                            {u.assigned_schools_count ?? 0} school{(u.assigned_schools_count ?? 0) !== 1 ? 's' : ''}
+                          </button>
                         ) : (
                           <span className="font-semibold text-slate-900 dark:text-white">{u.assigned_schools_count ?? 0}</span>
                         )}
@@ -339,6 +391,15 @@ export default function SAUsersPage() {
                             <button onClick={() => openEdit(u)} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 transition-all flex items-center gap-1.5">
                               <Pencil className="w-3 h-3" /> Edit
                             </button>
+                            {currentUser?.is_dev_sa && (
+                              <button
+                                onClick={() => openManageSchools(u)}
+                                title="Manage assigned schools"
+                                className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-400 hover:text-blue-500 transition-all"
+                              >
+                                <Building2 className="w-4 h-4" />
+                              </button>
+                            )}
                             <button onClick={() => openReset(u)} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all flex items-center gap-1.5">
                               <KeyRound className="w-3 h-3" /> Reset PW
                             </button>
@@ -524,6 +585,88 @@ export default function SAUsersPage() {
           )}
         </div>
       </Modal>
+
+      {/* ── MANAGE SCHOOLS MODAL ─────────────────────────────────────────────── */}
+      {manageSAUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700 shrink-0">
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+                  Manage Schools — {manageSAUser.name}
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {manageSASchools.filter(s => s.assigned_sa_id === manageSAUser.id).length} school(s) assigned
+                </p>
+              </div>
+              <button onClick={() => setManageSAUser(null)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-1">
+              {manageSALoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : manageSASchools.length === 0 ? (
+                <p className="text-center text-slate-400 text-sm py-8">No schools found</p>
+              ) : manageSASchools.map(school => {
+                const isAssigned = school.assigned_sa_id === manageSAUser.id;
+                const assigningThis = schoolAssigning[school.id];
+                return (
+                  <button
+                    key={school.id}
+                    onClick={() => !assigningThis && handleToggleSchool(school.id, isAssigned)}
+                    className={cn(
+                      'w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-left border',
+                      isAssigned
+                        ? 'bg-[var(--brand)]/5 border-[var(--brand)]/20'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 border-transparent'
+                    )}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center overflow-hidden"
+                      style={{ background: school.primary_color ? school.primary_color + '22' : '#f1f5f9' }}
+                    >
+                      {school.logo_url
+                        ? <img src={school.logo_url} alt="" className="w-full h-full object-contain" />
+                        : <span className="text-xs font-bold" style={{ color: school.primary_color || '#64748b' }}>
+                            {school.name.charAt(0)}
+                          </span>
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{school.name}</p>
+                      <span className={cn('text-[10px] font-medium', school.status === 'active' ? 'text-emerald-500' : 'text-slate-400')}>
+                        {school.status === 'active' ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <div className="shrink-0 w-5 h-5 flex items-center justify-center">
+                      {assigningThis
+                        ? <div className="w-4 h-4 border-2 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                        : <div className={cn(
+                            'w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors',
+                            isAssigned ? 'bg-[var(--brand)] border-[var(--brand)]' : 'border-slate-300 dark:border-slate-600'
+                          )}>
+                            {isAssigned && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                      }
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="px-5 py-4 border-t border-slate-100 dark:border-slate-700 shrink-0">
+              <button
+                onClick={() => setManageSAUser(null)}
+                className="w-full py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-white rounded-xl font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── DELETE CONFIRM MODAL ─────────────────────────────────────────────── */}
       <Modal open={!!deleteUser} onClose={() => setDeleteUser(null)}>

@@ -35,8 +35,6 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     const mapWrapRef    = useRef<HTMLDivElement>(null);
     // Leaflet renders inside this div (100% of the 142% wrapper)
     const containerRef  = useRef<HTMLDivElement>(null);
-    // Compass needle inner element — rotated by heading so N always points north on screen
-    const compassInnerRef = useRef<HTMLDivElement>(null);
     const recentreBtnRef  = useRef<HTMLButtonElement | null>(null);
 
     const mapRef              = useRef<any>(null);
@@ -113,11 +111,6 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                     ? `rotate(${-heading}deg)`
                     : '';
             }
-            // Rotate compass needle so N always shows real north
-            if (compassInnerRef.current) {
-                compassInnerRef.current.style.transform = `rotate(${heading}deg)`;
-            }
-
             // Arrow rotates with heading so it points in direction of travel on screen.
             // The map also rotates by -heading, so net visual = arrow always points "up" (forward).
             // Embedding rotate(+heading) here makes the arrow and map animate as one coupled unit.
@@ -285,12 +278,6 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         if (mapRef.current) mapRef.current.flyTo([lat, lng], Math.max(mapRef.current.getZoom(), 16), { animate: true, duration: 0.6 });
     };
 
-    const handleNorthReset = () => {
-        accHeadingRef.current = 0;
-        if (mapWrapRef.current) mapWrapRef.current.style.transform = '';
-        if (compassInnerRef.current) compassInnerRef.current.style.transform = 'rotate(0deg)';
-    };
-
     return (
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
 
@@ -312,33 +299,12 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             {/* ── UI overlay (never rotates) ── */}
             <div style={{ position: 'absolute', inset: 0, zIndex: 900, pointerEvents: 'none' }}>
 
-                {/* All map controls — right side, above bottom sheet */}
-                {/* Order top→bottom: North compass, Zoom+, Zoom−, Recenter */}
+                {/* Map controls — right side, above bottom sheet: Zoom+, Zoom−, Recenter */}
                 <div style={{
                     position: 'absolute', right: 16, bottom: 120,
                     display: 'flex', flexDirection: 'column', gap: 8,
                     pointerEvents: 'all',
                 }}>
-                    {/* North compass — tap to reset heading to north */}
-                    <button
-                        onClick={handleNorthReset}
-                        title="Tap to reset north"
-                        style={{ ...BTN, flexDirection: 'column', gap: 0 }}
-                    >
-                        <div
-                            ref={compassInnerRef}
-                            style={{ transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >
-                            {/* Compass needle: red = north, gray = south */}
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                                <polygon points="12,2 14.5,12 12,10.5 9.5,12" fill="#E74C3C" />
-                                <polygon points="12,22 14.5,12 12,13.5 9.5,12" fill="#94A3B8" />
-                                <circle cx="12" cy="12" r="1.8" fill="#1e293b" />
-                            </svg>
-                        </div>
-                        <span style={{ fontSize: 8, fontWeight: 800, color: '#E74C3C', letterSpacing: 0.5, marginTop: 1 }}>N</span>
-                    </button>
-
                     <button style={BTN} onClick={() => { mapRef.current?.zoomIn(); userDraggedRef.current = true; if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#94a3b8'; }} title="Zoom in">+</button>
                     <button style={BTN} onClick={() => { mapRef.current?.zoomOut(); userDraggedRef.current = true; if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#94a3b8'; }} title="Zoom out">−</button>
 
