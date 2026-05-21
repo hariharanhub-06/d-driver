@@ -56,9 +56,9 @@ const getSchoolById = async (req, res) => {
       select: {
         id: true, name: true, slug: true, status: true, logo_url: true,
         primary_color: true, address: true, phone: true, email_contact: true,
-        permissions: true, plan_id: true, created_at: true, notification_email: true,
-        razorpay_configured: true, onboarding_dismissed: true, tour_completed: true,
-        suspended_at: true, suspension_reason: true, assigned_sa_id: true,
+        permissions: true, plan_id: true, subscription_plan: true, created_at: true,
+        notification_email: true, razorpay_configured: true, onboarding_dismissed: true,
+        tour_completed: true, suspended_at: true, suspension_reason: true, assigned_sa_id: true,
         assignedSA: { select: { id: true, name: true, email: true } },
         _count: { select: { buses: true, students: true, drivers: true, routes: true } },
       },

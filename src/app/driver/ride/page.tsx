@@ -77,7 +77,7 @@ function EndTripSlider({ onConfirm, onCancel, isEnding }: { onConfirm: () => voi
         }
     };
 
-    const thumbLeft = `calc(4px + ${filled}% * (100% - 56px) / 100)`;
+    const thumbLeft = `calc(4px + ${filled / 100} * (100% - 56px))`;
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[500] flex items-center justify-center p-6">
@@ -100,7 +100,7 @@ function EndTripSlider({ onConfirm, onCancel, isEnding }: { onConfirm: () => voi
                     {/* Fill */}
                     <div
                         className="absolute inset-y-0 left-0 bg-red-200/60 dark:bg-red-800/40 rounded-full transition-none"
-                        style={{ width: `calc(4px + ${filled}% * (100% - 56px) / 100 + 28px)` }}
+                        style={{ width: `calc(4px + ${filled / 100} * (100% - 56px) + 28px)` }}
                     />
                     {/* Label */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

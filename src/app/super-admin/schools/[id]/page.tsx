@@ -13,15 +13,13 @@ interface School {
     address?: string;
     phone?: string;
     email?: string;
+    email_contact?: string;
     logo_url?: string;
     primary_color?: string;
     status: string;
     subscription_plan?: string;
-    buses?: any[];
-    students?: any[];
-    drivers?: any[];
-    routes?: any[];
     permissions?: Record<string, boolean>;
+    _count?: { buses: number; students: number; drivers: number; routes: number };
 }
 
 interface Plan {
@@ -89,7 +87,7 @@ export default function SchoolDetailPage() {
                     slug: s.slug,
                     address: s.address || '',
                     phone: s.phone || '',
-                    email: s.email || '',
+                    email: s.email_contact || s.email || '',
                     logo_url: s.logo_url || '',
                     primary_color: s.primary_color || '#2dbc75',
                 });
@@ -241,10 +239,10 @@ export default function SchoolDetailPage() {
             {/* Quick stats */}
             <div className="grid grid-cols-4 gap-3">
                 {[
-                    { label: 'Buses', value: school.buses?.length || 0 },
-                    { label: 'Students', value: school.students?.length || 0 },
-                    { label: 'Drivers', value: school.drivers?.length || 0 },
-                    { label: 'Routes', value: school.routes?.length || 0 },
+                    { label: 'Buses', value: school._count?.buses ?? 0 },
+                    { label: 'Students', value: school._count?.students ?? 0 },
+                    { label: 'Drivers', value: school._count?.drivers ?? 0 },
+                    { label: 'Routes', value: school._count?.routes ?? 0 },
                 ].map(s => (
                     <div key={s.label} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center">
                         <p className="text-2xl font-bold text-slate-900 dark:text-white">{s.value}</p>

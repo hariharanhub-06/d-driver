@@ -49,6 +49,7 @@ interface BusPosition {
     timestamp: string;
     driver_name?: string;
     route_name?: string;
+    color?: string;
 }
 
 interface StopPin {
@@ -115,12 +116,13 @@ export default function SchoolTrackingPage() {
                 const trip = tripsRef.current.find(t => t.bus_id === busId);
                 return {
                     bus_id: busId,
-                    bus_number: trip?.bus?.bus_number || trip?.bus_number || busId,
+                    bus_number: item.bus_number || trip?.bus?.bus_number || trip?.bus_number || busId,
                     latitude: lat,
                     longitude: lng,
                     timestamp: ts,
-                    driver_name: trip?.driver?.user?.name || trip?.driver_name,
-                    route_name: trip?.route?.name || trip?.route_name,
+                    driver_name: item.driver_name || trip?.driver?.user?.name || trip?.driver_name,
+                    route_name: item.route_name || trip?.route?.name || trip?.route_name,
+                    color: item.school_color || undefined,
                 };
             }).filter(p => p.latitude != null && p.longitude != null);
             setPositions(mapped);
@@ -144,7 +146,7 @@ export default function SchoolTrackingPage() {
         intervalRef.current = setInterval(async () => {
             await fetchTrips();
             await fetchPositions();
-        }, 5000);
+        }, 3000);
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, [fetchTrips, fetchPositions]);
 
@@ -290,11 +292,6 @@ export default function SchoolTrackingPage() {
                                         <span className="text-xs">Updated {formatTime(pos.timestamp)}</span>
                                     </div>
                                 </div>
-                                {isSelected && routeStops.length > 0 && (
-                                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 pl-11 font-medium">
-                                        {routeStops.length} stops — tap a pin
-                                    </p>
-                                )}
                             </button>
                         );
                     })
@@ -306,8 +303,6 @@ export default function SchoolTrackingPage() {
                 <MapComponent
                     buses={positions}
                     selectedBusId={selectedBusId}
-                    stops={routeStops}
-                    onStopClick={handleStopClick}
                 />
             </div>
 

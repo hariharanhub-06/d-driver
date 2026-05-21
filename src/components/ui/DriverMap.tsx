@@ -63,7 +63,8 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     const routeLineRef = useRef<any>(null);
     const stopMarkersRef = useRef<any[]>([]);
     const userDraggedRef = useRef(false);
-    const lastRouteKeyRef = useRef('');
+    const lastRouteStopsKeyRef = useRef('');
+    const lastRoutedPosRef = useRef<[number, number] | null>(null);
     const currentPosRef = useRef(userPosition);
     const recentreBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -255,10 +256,13 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     }, [stops, nextStopIndex, mapReady]);
 
     // ── Draw OSRM route: driver → all remaining stops ────────────────────────
+    // Re-routes only when stop list changes (driver passed a stop) OR driver moved >500m
+    // from the position where the route was last fetched. Avoids hitting OSRM on every GPS tick.
     useEffect(() => {
         if (!mapReady) return;
 
         const remainingStops = stops.slice(nextStopIndex).filter(s => s.lat && s.lng);
+        const stopsKey = remainingStops.map(s => s.id).join(',');
 
         import('leaflet').then(async L => {
             const map = mapRef.current;
@@ -266,13 +270,29 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
 
             if (remainingStops.length === 0) {
                 if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
+                lastRoutedPosRef.current = null;
+                lastRouteStopsKeyRef.current = '';
                 return;
             }
 
             const [uLat, uLng] = userPosition;
-            const routeKey = `${uLat.toFixed(4)},${uLng.toFixed(4)}->${remainingStops.map(s => `${s.lat.toFixed(4)},${s.lng.toFixed(4)}`).join('|')}`;
-            if (lastRouteKeyRef.current === routeKey) return;
-            lastRouteKeyRef.current = routeKey;
+
+            // Decide whether to re-fetch: stops changed OR driver moved >500m
+            const stopsChanged = stopsKey !== lastRouteStopsKeyRef.current;
+            let positionMoved = !lastRoutedPosRef.current;
+            if (!positionMoved && lastRoutedPosRef.current) {
+                const [rLat, rLng] = lastRoutedPosRef.current;
+                const dLat = (uLat - rLat) * Math.PI / 180;
+                const dLng = (uLng - rLng) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) ** 2 +
+                    Math.cos(rLat * Math.PI / 180) * Math.cos(uLat * Math.PI / 180) *
+                    Math.sin(dLng / 2) ** 2;
+                positionMoved = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) > 500;
+            }
+            if (!stopsChanged && !positionMoved) return;
+
+            lastRouteStopsKeyRef.current = stopsKey;
+            lastRoutedPosRef.current = [uLat, uLng];
 
             const waypoints = [
                 `${uLng},${uLat}`,

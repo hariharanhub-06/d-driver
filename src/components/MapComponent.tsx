@@ -123,9 +123,7 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
                     markersRef.current[bus.bus_id].setLatLng([bus.latitude, bus.longitude]);
                     markersRef.current[bus.bus_id].setIcon(busIcon);
                 } else {
-                    const marker = L.marker([bus.latitude, bus.longitude], { icon: busIcon })
-                        .addTo(map)
-                        .bindTooltip(bus.bus_number, { permanent: false, direction: 'top' });
+                    const marker = L.marker([bus.latitude, bus.longitude], { icon: busIcon }).addTo(map);
                     markersRef.current[bus.bus_id] = marker;
                 }
             });
@@ -137,7 +135,6 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
                     userInteractedRef.current = false;
                     const marker = markersRef.current[selectedBusId];
                     map.flyTo(marker.getLatLng(), 14, { animate: true, duration: 0.8 });
-                    marker.openTooltip();
                 }
             } else if (!selectedBusId) {
                 lastFlyBusIdRef.current = null;
