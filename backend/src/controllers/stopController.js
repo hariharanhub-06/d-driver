@@ -4,8 +4,12 @@ const xlsx = require('xlsx');
 const getAllStops = async (req, res) => {
     try {
         const schoolId = req.schoolId || (req.user.role === 'super_admin' ? req.query.school_id : req.user.school_id);
+        const routeId = req.query.route_id || null;
+        const where = {};
+        if (schoolId) where.school_id = schoolId;
+        if (routeId) where.route_id = routeId;
         const stops = await prisma.stop.findMany({
-            where: schoolId ? { school_id: schoolId } : {},
+            where,
             include: { route: { select: { id: true, name: true, route_type: true } } },
             orderBy: [{ route_id: 'asc' }, { sequence: 'asc' }],
         });
