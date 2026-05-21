@@ -203,7 +203,13 @@ const getAllActiveBusLocations = async (req, res) => {
 
         const activeTrips = await prisma.activeTrip.findMany({
             where: whereClause,
-            select: { bus_id: true, id: true, route_id: true },
+            select: {
+                bus_id: true, id: true, route_id: true, school_id: true,
+                bus: { select: { bus_number: true } },
+                route: { select: { name: true } },
+                driver: { include: { user: { select: { name: true } } } },
+                school: { select: { name: true, primary_color: true } },
+            },
         });
 
         const results = await Promise.all(
@@ -212,7 +218,18 @@ const getAllActiveBusLocations = async (req, res) => {
                     where: { bus_id: trip.bus_id },
                     orderBy: { timestamp: 'desc' },
                 });
-                return { tripId: trip.id, busId: trip.bus_id, routeId: trip.route_id, location };
+                return {
+                    tripId: trip.id,
+                    bus_id: trip.bus_id,
+                    bus_number: trip.bus?.bus_number || null,
+                    route_name: trip.route?.name || null,
+                    driver_name: trip.driver?.user?.name || null,
+                    school_id: trip.school_id,
+                    school_name: trip.school?.name || null,
+                    school_color: trip.school?.primary_color || null,
+                    routeId: trip.route_id,
+                    location,
+                };
             })
         );
 

@@ -128,7 +128,7 @@ export default function TrackingPage() {
         intervalRef.current = setInterval(async () => {
             await fetchTrips();
             await fetchLocations();
-        }, 5000);
+        }, 3000);
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, [fetchTrips, fetchLocations]);
 

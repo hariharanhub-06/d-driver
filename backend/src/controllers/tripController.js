@@ -107,14 +107,18 @@ const completeTrip = async (req, res) => {
 
 // GET /api/v1/trips/active
 const getActiveTrips = async (req, res) => {
-  const schoolId = req.user.role === 'driver' ? req.user.school_id : req.schoolId;
-  const where = { school_id: schoolId, status: 'running' };
+  const where = { status: 'running' };
 
-  // Drivers only see their own active trips
   if (req.user.role === 'driver') {
+    // Driver sees only their own trip for their school
+    where.school_id = req.user.school_id;
     const driver = await prisma.driver.findUnique({ where: { user_id: req.user.id }, select: { id: true } });
     if (driver) where.driver_id = driver.id;
+  } else if (req.schoolId) {
+    // Admin or SA filtered to a specific school
+    where.school_id = req.schoolId;
   }
+  // Super admin with no school filter: no school_id constraint → returns all running trips
 
   const trips = await prisma.activeTrip.findMany({
     where,

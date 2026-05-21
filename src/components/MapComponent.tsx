@@ -10,6 +10,7 @@ interface BusPosition {
     longitude: number;
     timestamp: string;
     heading?: number;
+    color?: string;
 }
 
 interface StopPin {
@@ -35,6 +36,8 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
     const markersRef = useRef<Record<string, any>>({});
     const stopMarkersRef = useRef<any[]>([]);
     const onStopClickRef = useRef(onStopClick);
+    const lastFlyBusIdRef = useRef<string | null>(null);
+    const userInteractedRef = useRef(false);
 
     // Keep callback ref in sync without adding it to the effect dep array
     useEffect(() => {
@@ -61,6 +64,7 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
                     zoomControl: true,
                     attributionControl: false,
                 });
+                mapRef.current.on('dragstart zoomstart', () => { userInteractedRef.current = true; });
 
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                     attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
@@ -85,19 +89,19 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
             // Add / update bus markers
             buses.forEach(bus => {
                 const h = bus.heading ?? 0;
-                // Brand color comes from the CSS variable set by the school's primary_color;
-                // falls back to blue so it always renders
+                // Use per-bus school color if provided, otherwise fall back to CSS variable / blue
+                const c = bus.color || 'var(--brand,#3B82F6)';
                 const busIcon = L.divIcon({
                     className: '',
                     html: `
                     <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 10px rgba(0,0,0,0.4))">
-                      <div style="position:relative;background:var(--brand,#3B82F6);color:white;font-size:11px;font-weight:800;padding:4px 10px;border-radius:10px;white-space:nowrap;letter-spacing:0.4px;box-shadow:0 2px 6px rgba(0,0,0,0.2);margin-bottom:2px;">
+                      <div style="position:relative;background:${c};color:white;font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;white-space:nowrap;letter-spacing:0.3px;box-shadow:0 2px 6px rgba(0,0,0,0.2);margin-bottom:2px;">
                         ${bus.bus_number}
-                        <div style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--brand,#3B82F6);"></div>
+                        <div style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${c};"></div>
                       </div>
                       <div style="transform:rotate(${h}deg);transform-origin:center center;margin-top:4px;">
                         <svg width="44" height="24" viewBox="0 0 44 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <rect x="1" y="2" width="42" height="18" rx="4" fill="var(--brand,#3B82F6)" stroke="rgba(0,0,0,0.2)" stroke-width="1.2"/>
+                          <rect x="1" y="2" width="42" height="18" rx="4" fill="${c}" stroke="rgba(0,0,0,0.2)" stroke-width="1.2"/>
                           <rect x="1" y="2" width="42" height="5" rx="3" fill="rgba(255,255,255,0.25)"/>
                           <rect x="1" y="16" width="42" height="4" rx="2" fill="rgba(0,0,0,0.28)"/>
                           <rect x="4" y="7" width="7" height="6" rx="1.5" fill="rgba(255,255,255,0.88)"/>
@@ -126,11 +130,17 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
                 }
             });
 
-            // Pan to selected bus
+            // Pan to selected bus only when selection changes (not on every location update)
             if (selectedBusId && markersRef.current[selectedBusId]) {
-                const marker = markersRef.current[selectedBusId];
-                map.flyTo(marker.getLatLng(), 14, { animate: true, duration: 0.8 });
-                marker.openTooltip();
+                if (lastFlyBusIdRef.current !== selectedBusId) {
+                    lastFlyBusIdRef.current = selectedBusId;
+                    userInteractedRef.current = false;
+                    const marker = markersRef.current[selectedBusId];
+                    map.flyTo(marker.getLatLng(), 14, { animate: true, duration: 0.8 });
+                    marker.openTooltip();
+                }
+            } else if (!selectedBusId) {
+                lastFlyBusIdRef.current = null;
             }
 
             // Clear old stop markers

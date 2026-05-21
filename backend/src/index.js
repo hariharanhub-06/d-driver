@@ -115,7 +115,7 @@ io.on('connection', (socket) => {
     // Persist to DB (throttled — max once per 10 s per bus) so polling-based
     // admin/SA tracking pages can pick up the latest position
     const now = Date.now();
-    if (!lastLocationWrite[busId] || now - lastLocationWrite[busId] > 10000) {
+    if (!lastLocationWrite[busId] || now - lastLocationWrite[busId] > 3000) {
       lastLocationWrite[busId] = now;
       prisma.location.create({
         data: {

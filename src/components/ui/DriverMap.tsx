@@ -1,7 +1,7 @@
 'use client';
 
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface StopMarker {
     id: string;
@@ -34,16 +34,22 @@ function injectCSS() {
             70% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; }
             100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; }
         }
-        .driver-map-zoom { position: absolute; right: 12px; bottom: 100px; z-index: 800; display: flex; flex-direction: column; gap: 4px; }
-        .driver-map-zoom button {
-            width: 36px; height: 36px; border-radius: 10px;
-            background: white; border: 1px solid rgba(0,0,0,0.12);
-            font-size: 18px; font-weight: 600; line-height: 1;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            color: #333; transition: background 0.15s;
+        .dm-controls {
+            position: absolute; right: 12px; bottom: 110px; z-index: 800;
+            display: flex; flex-direction: column; gap: 6px;
         }
-        .driver-map-zoom button:hover { background: #f5f5f5; }
+        .dm-controls button {
+            width: 40px; height: 40px; border-radius: 12px;
+            background: white; border: 1px solid rgba(0,0,0,0.12);
+            font-size: 20px; font-weight: 600; line-height: 1;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            color: #333; transition: background 0.15s, color 0.15s;
+            user-select: none; -webkit-user-select: none;
+        }
+        .dm-controls button:active { background: #e2e8f0; }
+        .dm-recentre { font-size: 18px !important; }
+        .dm-recentre-active { color: #2563EB !important; box-shadow: 0 2px 8px rgba(37,99,235,0.35) !important; }
         .leaflet-container { font-family: inherit; }
     `;
     document.head.appendChild(style);
@@ -58,14 +64,25 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     const stopMarkersRef = useRef<any[]>([]);
     const userDraggedRef = useRef(false);
     const lastRouteKeyRef = useRef('');
+    const currentPosRef = useRef(userPosition);
+    const recentreBtnRef = useRef<HTMLButtonElement | null>(null);
 
-    // Initialize map once
+    // mapReady gates the position/route/stop effects so they don't run before
+    // the async Leaflet import finishes setting mapRef.current
+    const [mapReady, setMapReady] = useState(false);
+
+    // Keep currentPosRef in sync so the re-centre click handler gets latest position
+    useEffect(() => { currentPosRef.current = userPosition; });
+
+    // ── Initialize map once ──────────────────────────────────────────────────
     useEffect(() => {
         if (!containerRef.current || mapRef.current) return;
         injectCSS();
 
         import('leaflet').then(L => {
-            const map = L.map(containerRef.current!, {
+            if (!containerRef.current) return;
+
+            const map = L.map(containerRef.current, {
                 center: userPosition,
                 zoom: 16,
                 zoomControl: false,
@@ -78,23 +95,52 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 subdomains: 'abcd',
             }).addTo(map);
 
-            // Small attribution bottom-right
             L.control.attribution({ prefix: '&copy; OSM &copy; CARTO', position: 'bottomright' }).addTo(map);
 
-            // Stop auto-follow if user drags
-            map.on('dragstart', () => { userDraggedRef.current = true; });
+            // Pause auto-follow when user manually pans
+            map.on('dragstart', () => {
+                userDraggedRef.current = true;
+                if (recentreBtnRef.current) recentreBtnRef.current.classList.remove('dm-recentre-active');
+            });
 
-            // Custom zoom buttons
-            const zoomDiv = document.createElement('div');
-            zoomDiv.className = 'driver-map-zoom';
-            zoomDiv.innerHTML = `<button id="dm-zoom-in" title="Zoom in">+</button><button id="dm-zoom-out" title="Zoom out">−</button>`;
-            containerRef.current!.appendChild(zoomDiv);
-            zoomDiv.querySelector('#dm-zoom-in')!.addEventListener('click', () => { map.zoomIn(); userDraggedRef.current = true; });
-            zoomDiv.querySelector('#dm-zoom-out')!.addEventListener('click', () => { map.zoomOut(); userDraggedRef.current = true; });
+            // Controls: zoom in / zoom out / re-centre
+            const controls = document.createElement('div');
+            controls.className = 'dm-controls';
+            controls.innerHTML = `
+                <button id="dm-zoom-in" title="Zoom in">+</button>
+                <button id="dm-zoom-out" title="Zoom out">−</button>
+                <button id="dm-recentre" class="dm-recentre dm-recentre-active" title="Re-centre">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+                    <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+                  </svg>
+                </button>`;
+            containerRef.current.appendChild(controls);
+
+            const recentreBtn = controls.querySelector('#dm-recentre') as HTMLButtonElement;
+            recentreBtnRef.current = recentreBtn;
+
+            (controls.querySelector('#dm-zoom-in') as HTMLElement).addEventListener('click', () => {
+                map.zoomIn();
+                userDraggedRef.current = true;
+                recentreBtn.classList.remove('dm-recentre-active');
+            });
+            (controls.querySelector('#dm-zoom-out') as HTMLElement).addEventListener('click', () => {
+                map.zoomOut();
+                userDraggedRef.current = true;
+                recentreBtn.classList.remove('dm-recentre-active');
+            });
+            recentreBtn.addEventListener('click', () => {
+                userDraggedRef.current = false;
+                recentreBtn.classList.add('dm-recentre-active');
+                const [lat, lng] = currentPosRef.current;
+                map.flyTo([lat, lng], Math.max(map.getZoom(), 16), { animate: true, duration: 0.6 });
+            });
 
             mapRef.current = map;
-            // Force Leaflet to recalculate container size after layout settles
-            setTimeout(() => map.invalidateSize(), 100);
+            // Signal other effects that the map is ready
+            setMapReady(true);
+            setTimeout(() => map.invalidateSize(), 150);
         });
 
         return () => {
@@ -103,11 +149,14 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Update user position marker
+    // ── Update user position marker ──────────────────────────────────────────
+    // mapReady is in the dep array so this re-fires once the map is ready
     useEffect(() => {
-        if (!mapRef.current) return;
+        if (!mapReady) return;
         import('leaflet').then(L => {
             const map = mapRef.current;
+            if (!map) return;
+
             const [lat, lng] = userPosition;
             const heading = userHeading ?? 0;
             const hasHeading = userHeading != null;
@@ -132,12 +181,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                         transform:translate(-50%,-50%);"></div>
                 </div>`;
 
-            const icon = L.divIcon({
-                className: '',
-                html: dotHtml,
-                iconSize: [60, 60],
-                iconAnchor: [30, 30],
-            });
+            const icon = L.divIcon({ className: '', html: dotHtml, iconSize: [60, 60], iconAnchor: [30, 30] });
 
             if (userMarkerRef.current) {
                 userMarkerRef.current.setLatLng([lat, lng]);
@@ -153,30 +197,26 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                     accuracyCircleRef.current.setLatLng([lat, lng]).setRadius(acc);
                 } else {
                     accuracyCircleRef.current = L.circle([lat, lng], {
-                        radius: acc,
-                        color: '#2563EB',
-                        fillColor: '#2563EB',
-                        fillOpacity: 0.06,
-                        weight: 1.5,
-                        opacity: 0.4,
+                        radius: acc, color: '#2563EB', fillColor: '#2563EB',
+                        fillOpacity: 0.06, weight: 1.5, opacity: 0.4,
                     }).addTo(map);
                 }
             }
 
-            // Auto-follow
+            // Auto-follow: panTo avoids zoom changes (no shaking); duration < GPS interval
             if (!userDraggedRef.current) {
-                map.flyTo([lat, lng], Math.max(map.getZoom(), 16), { animate: true, duration: 0.8, easeLinearity: 0.5 });
+                map.panTo([lat, lng], { animate: true, duration: 0.4, easeLinearity: 0.5, noMoveStart: true });
             }
         });
-    }, [userPosition, userHeading, userAccuracy]);
+    }, [userPosition, userHeading, userAccuracy, mapReady]);
 
-    // Update stop markers
+    // ── Update stop markers ──────────────────────────────────────────────────
     useEffect(() => {
-        if (!mapRef.current || stops.length === 0) return;
+        if (!mapReady || stops.length === 0) return;
         import('leaflet').then(L => {
             const map = mapRef.current;
+            if (!map) return;
 
-            // Remove old stop markers
             stopMarkersRef.current.forEach(m => map.removeLayer(m));
             stopMarkersRef.current = [];
 
@@ -187,7 +227,6 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
 
                 const bg = isNext ? '#F59E0B' : isPast ? '#94A3B8' : '#3B82F6';
                 const border = isNext ? '#D97706' : isPast ? '#64748B' : '#1D4ED8';
-                const textColor = 'white';
                 const size = isNext ? 32 : 24;
 
                 const icon = L.divIcon({
@@ -196,7 +235,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                         background:${bg};border:2.5px solid ${border};border-radius:50%;
                         width:${size}px;height:${size}px;
                         display:flex;align-items:center;justify-content:center;
-                        color:${textColor};font-size:${isNext ? 13 : 10}px;font-weight:700;
+                        color:white;font-size:${isNext ? 13 : 10}px;font-weight:700;
                         font-family:sans-serif;
                         box-shadow:0 2px 8px rgba(0,0,0,${isNext ? 0.35 : 0.2});
                         ${isNext ? 'animation:gps-ping 2s ease-out infinite;' : ''}
@@ -208,71 +247,76 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
 
                 const marker = L.marker([stop.lat, stop.lng], { icon })
                     .addTo(map)
-                    .bindPopup(`<b>${stop.name}</b>${isNext ? '<br><span style="color:#F59E0B">▶ Next stop</span>' : ''}`);
+                    .bindPopup(`<b>${stop.name}</b>${isNext ? '<br><span style="color:#F59E0B;font-size:11px">▶ Next stop</span>' : ''}`);
 
                 stopMarkersRef.current.push(marker);
             });
         });
-    }, [stops, nextStopIndex]);
+    }, [stops, nextStopIndex, mapReady]);
 
-    // Draw OSRM route: driver position → all remaining stops in sequence
+    // ── Draw OSRM route: driver → all remaining stops ────────────────────────
     useEffect(() => {
-        if (!mapRef.current) return;
+        if (!mapReady) return;
 
-        // Collect remaining stops that have coordinates
         const remainingStops = stops.slice(nextStopIndex).filter(s => s.lat && s.lng);
-        if (remainingStops.length === 0) {
-            if (routeLineRef.current) { mapRef.current.removeLayer(routeLineRef.current); routeLineRef.current = null; }
-            return;
-        }
-
-        const [uLat, uLng] = userPosition;
-        // Route key: driver pos + all remaining stop coords
-        const routeKey = `${uLat.toFixed(4)},${uLng.toFixed(4)}->${remainingStops.map(s => `${s.lat.toFixed(4)},${s.lng.toFixed(4)}`).join('|')}`;
-        if (lastRouteKeyRef.current === routeKey) return;
-        lastRouteKeyRef.current = routeKey;
-
-        // Build OSRM multi-waypoint URL: driver;stop1;stop2;...;lastStop
-        const waypoints = [
-            `${uLng},${uLat}`,
-            ...remainingStops.map(s => `${s.lng},${s.lat}`),
-        ].join(';');
-        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${waypoints}?geometries=geojson&overview=full`;
 
         import('leaflet').then(async L => {
-            try {
-                const res = await fetch(osrmUrl);
-                if (!res.ok) throw new Error('OSRM error');
-                const data = await res.json();
-                const coords: [number, number][] = data.routes?.[0]?.geometry?.coordinates?.map(
-                    ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
-                ) ?? [];
+            const map = mapRef.current;
+            if (!map) return;
 
-                if (!mapRef.current || coords.length === 0) return;
+            if (remainingStops.length === 0) {
+                if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
+                return;
+            }
 
-                if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
+            const [uLat, uLng] = userPosition;
+            const routeKey = `${uLat.toFixed(4)},${uLng.toFixed(4)}->${remainingStops.map(s => `${s.lat.toFixed(4)},${s.lng.toFixed(4)}`).join('|')}`;
+            if (lastRouteKeyRef.current === routeKey) return;
+            lastRouteKeyRef.current = routeKey;
 
-                routeLineRef.current = L.polyline(coords, {
-                    color: '#2563EB',
-                    weight: 5,
-                    opacity: 0.85,
-                    lineJoin: 'round',
-                    lineCap: 'round',
-                }).addTo(mapRef.current);
-            } catch {
-                // OSRM unavailable — draw straight lines through all remaining stops
+            const waypoints = [
+                `${uLng},${uLat}`,
+                ...remainingStops.map(s => `${s.lng},${s.lat}`),
+            ].join(';');
+
+            const drawFallback = () => {
                 if (!mapRef.current) return;
                 if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
-                const fallbackCoords: [number, number][] = [
+                const fallback: [number, number][] = [
                     [uLat, uLng],
                     ...remainingStops.map(s => [s.lat, s.lng] as [number, number]),
                 ];
-                routeLineRef.current = L.polyline(fallbackCoords, {
-                    color: '#2563EB', weight: 4, opacity: 0.6, dashArray: '8 6',
+                routeLineRef.current = L.polyline(fallback, {
+                    color: '#2563EB', weight: 4, opacity: 0.55, dashArray: '10 6',
                 }).addTo(mapRef.current);
+            };
+
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 8000);
+                const res = await fetch(
+                    `https://router.project-osrm.org/route/v1/driving/${waypoints}?geometries=geojson&overview=full`,
+                    { signal: controller.signal }
+                );
+                clearTimeout(timeout);
+
+                if (!res.ok) throw new Error('OSRM error');
+                const data = await res.json();
+                const coords: [number, number][] = (data.routes?.[0]?.geometry?.coordinates ?? []).map(
+                    ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
+                );
+
+                if (!mapRef.current || coords.length === 0) { drawFallback(); return; }
+                if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
+                routeLineRef.current = L.polyline(coords, {
+                    color: '#2563EB', weight: 5, opacity: 0.85,
+                    lineJoin: 'round', lineCap: 'round',
+                }).addTo(mapRef.current);
+            } catch {
+                drawFallback();
             }
         });
-    }, [userPosition, stops, nextStopIndex]);
+    }, [userPosition, stops, nextStopIndex, mapReady]);
 
     return <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />;
 }

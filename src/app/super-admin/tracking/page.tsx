@@ -43,6 +43,7 @@ interface ActiveBus {
     driver_name: string;
     route_name: string;
     school_name: string;
+    school_color: string;
     latitude: number;
     longitude: number;
     timestamp: string;
@@ -127,22 +128,24 @@ export default function SATrackingPage() {
             const { data } = await api.get(url);
             const raw: any[] = data || [];
             const merged: ActiveBus[] = raw.map(item => {
-                const busId = item.bus_id || item.busId || item.location?.bus_id;
-                const lat = item.latitude ?? item.location?.latitude;
-                const lng = item.longitude ?? item.location?.longitude;
-                const ts = item.timestamp || item.location?.timestamp || '';
-                const trip = tripsRef.current.find(t => t.bus_id === busId);
+                // Enriched response: bus_number, route_name, driver_name, school_name, school_color
+                // are now returned directly by the backend — no client-side trip join needed
+                const busId = item.bus_id || item.busId;
+                const lat = item.location?.latitude ?? item.latitude;
+                const lng = item.location?.longitude ?? item.longitude;
+                const ts = item.location?.timestamp || item.timestamp || '';
                 return {
                     bus_id: busId,
-                    bus_number: trip?.bus?.bus_number || busId,
-                    driver_name: trip?.driver?.user?.name || 'Unknown Driver',
-                    route_name: trip?.route?.name || 'Unknown Route',
-                    school_name: '',
+                    bus_number: item.bus_number || busId,
+                    driver_name: item.driver_name || 'Unknown Driver',
+                    route_name: item.route_name || 'Unknown Route',
+                    school_name: item.school_name || '',
+                    school_color: item.school_color || '',
                     latitude: lat,
                     longitude: lng,
                     timestamp: ts,
                 };
-            }).filter(b => b.latitude != null && b.longitude != null);
+            }).filter(b => b.bus_id && b.latitude != null && b.longitude != null);
             setActiveBuses(merged);
             setError('');
         } catch {
@@ -170,7 +173,7 @@ export default function SATrackingPage() {
         intervalRef.current = setInterval(async () => {
             await fetchTrips();
             await fetchLocations();
-        }, 5000);
+        }, 3000);
 
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, [fetchTrips, fetchLocations]);
@@ -253,6 +256,7 @@ export default function SATrackingPage() {
         latitude: b.latitude,
         longitude: b.longitude,
         timestamp: b.timestamp,
+        color: b.school_color || undefined,
     }));
 
     const assignableStudents = allStudents.filter(
@@ -331,6 +335,12 @@ export default function SATrackingPage() {
                                     <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">Live</span>
                                 </div>
                                 <div className="space-y-1.5 pl-1">
+                                    {bus.school_name && (
+                                        <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: bus.school_color || '#6366F1' }}>
+                                            <Building2 className="w-3 h-3 shrink-0" />
+                                            <span className="truncate">{bus.school_name}</span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                                         <Navigation className="w-3 h-3 text-blue-400" />
                                         <span className="truncate">{bus.route_name}</span>
