@@ -394,10 +394,9 @@ export default function SAUsersPage() {
                             {currentUser?.is_dev_sa && (
                               <button
                                 onClick={() => openManageSchools(u)}
-                                title="Manage assigned schools"
-                                className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-400 hover:text-blue-500 transition-all"
+                                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center gap-1.5"
                               >
-                                <Building2 className="w-4 h-4" />
+                                <Building2 className="w-3 h-3" /> Schools
                               </button>
                             )}
                             <button onClick={() => openReset(u)} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all flex items-center gap-1.5">

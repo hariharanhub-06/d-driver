@@ -419,9 +419,6 @@ export default function SchoolsManagement() {
                                         <button onClick={() => router.push(`/super-admin/schools/${school.id}`)} title="Manage School" className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Settings2 className="w-4 h-4" /></button>
                                         <button onClick={() => openAdminModal(school)} title="Manage Admins" className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all"><ShieldCheck className="w-4 h-4" /></button>
                                         <button onClick={() => openEdit(school)} title="Edit School" className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Edit className="w-4 h-4" /></button>
-                                        {currentUser?.is_dev_sa && (
-                                            <button onClick={() => openAssignSA(school)} title="Assign SA" className="p-1.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-900/30 text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-all"><UserCheck className="w-4 h-4" /></button>
-                                        )}
                                         <button
                                             onClick={() => handleToggleStatus(school)}
                                             title={school.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -448,14 +445,26 @@ export default function SchoolsManagement() {
                                         </span>
                                     </div>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mb-2">{school.slug}.ddriver365.com</p>
-                                    {school.assignedSA ? (
-                                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 px-2 py-0.5 rounded-full mb-1">
-                                            <UserCheck className="w-2.5 h-2.5" /> {school.assignedSA.name}
-                                        </span>
-                                    ) : currentUser?.is_dev_sa ? (
-                                        <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">Unassigned</span>
-                                    ) : null}
                                 </div>
+
+                                {currentUser?.is_dev_sa && (
+                                    <div
+                                        onClick={() => openAssignSA(school)}
+                                        className="flex items-center justify-between mb-3 px-3 py-2 rounded-xl border cursor-pointer transition-all bg-violet-50 dark:bg-violet-900/20 border-violet-100 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-900/40"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <UserCheck className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                                            {school.assignedSA ? (
+                                                <span className="text-xs font-semibold text-violet-700 dark:text-violet-300 truncate">{school.assignedSA.name}</span>
+                                            ) : (
+                                                <span className="text-xs font-medium text-violet-400 dark:text-violet-500">No SA assigned</span>
+                                            )}
+                                        </div>
+                                        <span className="text-[10px] font-semibold text-violet-400 dark:text-violet-500 uppercase tracking-wide shrink-0">
+                                            {school.assignedSA ? 'Change' : 'Assign →'}
+                                        </span>
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
                                     {[
