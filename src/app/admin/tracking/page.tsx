@@ -132,9 +132,9 @@ export default function TrackingPage() {
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, [fetchTrips, fetchLocations]);
 
-    // Always show stops from ALL active trips (not just selected bus)
-    // Also fetch all routes so stops show even when no trips are running
+    // Always show stops from ALL active trips — MERGE with existing fallback stops
     useEffect(() => {
+        if (trips.length === 0) return; // don't clear fallback stops when no trips
         const seen = new Set<string>();
         const pins: StopPin[] = trips.flatMap(trip =>
             (trip.route?.stops || [])
@@ -152,7 +152,12 @@ export default function TrackingPage() {
                     student_count: trip.route?.students?.filter(st => st.stop_id === s.id).length ?? 0,
                 }))
         );
-        setRouteStops(pins);
+        // Merge: keep fallback-only stops, update student_count for trip stops
+        setRouteStops(prev => {
+            const tripIds = new Set(pins.map(p => p.id));
+            const fallbackOnly = prev.filter(p => !tripIds.has(p.id));
+            return [...pins, ...fallbackOnly];
+        });
     }, [trips]);
 
     // Fetch ALL stops for the school — always visible regardless of active trips

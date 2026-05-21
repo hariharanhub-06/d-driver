@@ -152,6 +152,7 @@ model Stop {
   sequence    Int     @default(0)
   pickup_time String?
   drop_time   String?
+  trip_type   String  @default("morning") // morning | evening | both
 
   school                      School              @relation(fields: [school_id], references: [id], onDelete: Cascade)
   route                       Route               @relation(fields: [route_id], references: [id], onDelete: Cascade)

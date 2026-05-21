@@ -21,7 +21,7 @@ const getAllStops = async (req, res) => {
 
 const createStop = async (req, res) => {
     try {
-        const { name, latitude, longitude, lat, lng, route_id, school_id, sequence, pickup_time, drop_time } = req.body;
+        const { name, latitude, longitude, lat, lng, route_id, school_id, sequence, pickup_time, drop_time, trip_type } = req.body;
         const effectiveSchoolId = req.user.role === 'super_admin' ? school_id : req.user.school_id;
         const newStop = await prisma.stop.create({
             data: {
@@ -33,6 +33,7 @@ const createStop = async (req, res) => {
                 sequence: sequence !== undefined ? parseInt(sequence) : 0,
                 pickup_time: pickup_time || null,
                 drop_time: drop_time || null,
+                trip_type: trip_type || 'morning',
             },
         });
         res.status(201).json(newStop);
@@ -51,7 +52,7 @@ const updateStop = async (req, res) => {
             if (existing.school_id !== schoolId) return res.status(403).json({ error: 'Access denied' });
         }
 
-        const { name, latitude, longitude, lat, lng, route_id, sequence, pickup_time, drop_time } = req.body;
+        const { name, latitude, longitude, lat, lng, route_id, sequence, pickup_time, drop_time, trip_type } = req.body;
         const data = {};
         if (name !== undefined) data.name = name;
         if (latitude !== undefined || lat !== undefined) data.latitude = parseFloat(latitude || lat);
@@ -60,6 +61,7 @@ const updateStop = async (req, res) => {
         if (sequence !== undefined) data.sequence = parseInt(sequence);
         if (pickup_time !== undefined) data.pickup_time = pickup_time || null;
         if (drop_time !== undefined) data.drop_time = drop_time || null;
+        if (trip_type !== undefined) data.trip_type = trip_type;
 
         const updated = await prisma.stop.update({ where: { id }, data });
         res.json(updated);

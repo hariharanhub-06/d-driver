@@ -66,7 +66,12 @@ export default function DriverDashboard() {
         return () => clearInterval(timer);
     }, []);
 
-    useEffect(() => { fetchAll(); }, []);
+    useEffect(() => {
+        fetchAll();
+        // Auto-refresh fuel level every 30 seconds during a trip
+        const interval = setInterval(fetchAll, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     const fetchAll = async () => {
         setLoading(true);
@@ -345,21 +350,6 @@ export default function DriverDashboard() {
                     )}
                 </div>
 
-                {/* Quick Links */}
-                <div className="grid grid-cols-2 gap-3">
-                    <a href="/driver/attendance" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 flex flex-col items-start active:scale-95 transition-all">
-                        <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-3">
-                            <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <span className="text-sm font-semibold text-slate-700 dark:text-white">Attendance</span>
-                    </a>
-                    <a href="/driver/ride" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 flex flex-col items-start active:scale-95 transition-all">
-                        <div className="w-10 h-10 bg-[var(--brand)]/10 rounded-xl flex items-center justify-center mb-3">
-                            <Navigation className="w-5 h-5 text-[var(--brand)]" />
-                        </div>
-                        <span className="text-sm font-semibold text-slate-700 dark:text-white">Live Ride</span>
-                    </a>
-                </div>
             </div>
 
             {/* Fuel Request Modal */}
@@ -514,7 +504,7 @@ export default function DriverDashboard() {
                                 className="flex flex-col items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500 rounded-xl p-4 transition-all active:scale-95"
                             >
                                 <span className="text-2xl">🌆</span>
-                                <span className="text-sm font-bold text-blue-700 dark:text-blue-400">Afternoon</span>
+                                <span className="text-sm font-bold text-blue-700 dark:text-blue-400">Evening</span>
                                 <span className="text-xs text-slate-500 dark:text-slate-400">Drop route</span>
                             </button>
                         </div>

@@ -78,13 +78,13 @@ const registerSchool = async (req, res) => {
   try {
     const {
       name, slug, address, phone, email_contact, logo_url, primary_color,
-      plan_id, admin_name, admin_email, admin_phone,
+      plan_id, admin_name, admin_email, admin_phone, admin_password,
     } = req.body;
 
     const existing = await prisma.school.findUnique({ where: { slug } });
     if (existing) return res.status(409).json({ error: 'Slug already in use' });
 
-    const tempPassword = crypto.randomBytes(8).toString('base64url');
+    const tempPassword = admin_password || crypto.randomBytes(8).toString('base64url');
     const hash = await bcrypt.hash(tempPassword, 12);
 
     const school = await prisma.school.create({
@@ -102,7 +102,7 @@ const registerSchool = async (req, res) => {
         users: {
           create: {
             name: admin_name, email: admin_email, phone: admin_phone,
-            password: hash, role: 'admin', is_first_login: true, is_active: true,
+            password: hash, role: 'admin', is_first_login: !admin_password, is_active: true,
           },
         },
       },

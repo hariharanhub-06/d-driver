@@ -90,7 +90,7 @@ export default function SchoolsManagement() {
         name: '', slug: '', address: '', primary_color: '#3B82F6', logo_url: '',
         phone: '', email_contact: '',
         // First admin (only for new school)
-        admin_name: '', admin_email: '', admin_phone: '',
+        admin_name: '', admin_email: '', admin_phone: '', admin_password: '',
     });
     const [permissions, setPermissions] = useState<Record<string, boolean>>(DEFAULT_PERMISSIONS);
     const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -130,7 +130,7 @@ export default function SchoolsManagement() {
 
     const openCreate = () => {
         setEditingId(null);
-        setFormData({ name: '', slug: '', address: '', primary_color: '#3B82F6', logo_url: '', phone: '', email_contact: '', admin_name: '', admin_email: '', admin_phone: '' });
+        setFormData({ name: '', slug: '', address: '', primary_color: '#3B82F6', logo_url: '', phone: '', email_contact: '', admin_name: '', admin_email: '', admin_phone: '', admin_password: '' });
         setPermissions(DEFAULT_PERMISSIONS);
         setLogoFile(null);
         setActiveTab('profile');
@@ -146,7 +146,7 @@ export default function SchoolsManagement() {
             name: school.name || '', slug: school.slug || '',
             address: school.address || '', primary_color: school.primary_color || '#3B82F6',
             logo_url: school.logo_url || '', phone: '', email_contact: '',
-            admin_name: '', admin_email: '', admin_phone: '',
+            admin_name: '', admin_email: '', admin_phone: '', admin_password: '',
         });
         setPermissions({ ...DEFAULT_PERMISSIONS, ...(school.permissions || {}) });
         setLogoFile(null);
@@ -167,6 +167,11 @@ export default function SchoolsManagement() {
         }
         if (!editingId && (!formData.admin_name.trim() || !formData.admin_email.trim())) {
             setModalError('First admin name and email are required.');
+            setActiveTab('profile');
+            return;
+        }
+        if (!editingId && !formData.admin_password.trim()) {
+            setModalError('Admin password is required.');
             setActiveTab('profile');
             return;
         }
@@ -212,6 +217,7 @@ export default function SchoolsManagement() {
                     email_contact: formData.email_contact || undefined,
                     admin_name: formData.admin_name, admin_email: formData.admin_email,
                     admin_phone: formData.admin_phone || undefined,
+                    admin_password: formData.admin_password,
                 });
                 setTempPassword(created.temp_password || '');
                 setModalSuccess(`School created! Admin: ${formData.admin_email}`);
@@ -396,7 +402,7 @@ export default function SchoolsManagement() {
                             <div className="h-1.5 w-full" style={{ backgroundColor: school.primary_color || '#3B82F6' }} />
                             <div className="p-5 flex flex-col flex-1">
                                 <div className="flex items-start justify-between mb-4">
-                                    <div className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-100 dark:border-slate-600 flex items-center justify-center p-2 shrink-0">
+                                    <div className="w-11 h-11 rounded-xl border border-slate-100 dark:border-slate-600 flex items-center justify-center p-2 shrink-0" style={{ background: school.primary_color ? school.primary_color + '22' : '#f8fafc' }}>
                                         {school.logo_url
                                             ? <img src={school.logo_url} alt={school.name} className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.removeAttribute('style'); }} />
                                             : null
@@ -625,6 +631,11 @@ export default function SchoolsManagement() {
                                                             <input type="email" value={formData.admin_email} onChange={e => setFormData(p => ({ ...p, admin_email: e.target.value }))} placeholder="admin@school.com" required className={inputCls} />
                                                         </div>
                                                     </div>
+                                                    {/* Row 5: Admin password */}
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Admin Password *</label>
+                                                        <input type="password" value={formData.admin_password} onChange={e => setFormData(p => ({ ...p, admin_password: e.target.value }))} placeholder="Set admin login password" required className={inputCls} />
+                                                    </div>
                                                 </>
                                             )}
                                         </div>
@@ -669,7 +680,7 @@ export default function SchoolsManagement() {
                                             {tempPassword && (
                                                 <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-lg px-3 py-2 border border-emerald-200 dark:border-emerald-700">
                                                     <div>
-                                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold tracking-wide">Temp Password</p>
+                                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold tracking-wide">Admin Password</p>
                                                         <p className="text-sm font-mono font-bold text-slate-900 dark:text-white">{tempPassword}</p>
                                                     </div>
                                                     <button type="button" onClick={() => navigator.clipboard.writeText(tempPassword)} className="ml-3 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-[var(--brand)] transition-all" title="Copy password">

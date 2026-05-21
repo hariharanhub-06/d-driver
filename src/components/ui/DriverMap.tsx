@@ -150,8 +150,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ── Update user position marker ──────────────────────────────────────────
-    // mapReady is in the dep array so this re-fires once the map is ready
+    // ── Update user position + map rotation ──────────────────────────────────
     useEffect(() => {
         if (!mapReady) return;
         import('leaflet').then(L => {
@@ -160,33 +159,34 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
 
             const [lat, lng] = userPosition;
             const heading = userHeading ?? 0;
-            const hasHeading = userHeading != null;
 
-            // Navigation arrow — rotates with heading, anchored at centre of arrow
+            // Rotate the whole map canvas so heading points "up" (Google Maps style)
+            const container = containerRef.current;
+            if (container) {
+                container.style.transition = 'transform 0.3s ease-out';
+                container.style.transform = userHeading != null ? `rotate(${-heading}deg)` : '';
+                container.style.transformOrigin = 'center center';
+            }
+
+            // Counter-rotate controls so they stay upright
+            const controlsEl = container?.querySelector('.dm-controls') as HTMLElement | null;
+            if (controlsEl && userHeading != null) {
+                controlsEl.style.transition = 'transform 0.3s ease-out';
+                controlsEl.style.transform = `rotate(${heading}deg)`;
+            }
+
+            // Navigation arrow — always points "up" on screen (map handles direction)
             const arrowHtml = `
-                <div style="
-                    transform:rotate(${heading}deg);
-                    transform-origin:center center;
-                    display:flex;align-items:center;justify-content:center;
-                    filter:drop-shadow(0 3px 8px rgba(0,0,0,0.55));
-                ">
-                  <svg width="44" height="52" viewBox="0 0 44 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <!-- outer white outline for contrast on any background -->
-                    <path d="M22 2 L42 48 L22 36 L2 48 Z"
-                          fill="white" opacity="0.9"/>
-                    <!-- coloured arrow body -->
-                    <path d="M22 5 L40 46 L22 34 L4 46 Z"
-                          fill="#1A1A2E"/>
-                    <!-- subtle highlight on left facet -->
-                    <path d="M22 5 L4 46 L22 34 Z"
-                          fill="rgba(255,255,255,0.12)"/>
-                    <!-- centre spine accent -->
-                    <line x1="22" y1="8" x2="22" y2="34"
-                          stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round"/>
+                <div style="display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5));">
+                  <svg width="28" height="34" viewBox="0 0 44 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 2 L42 48 L22 36 L2 48 Z" fill="white" opacity="0.9"/>
+                    <path d="M22 5 L40 46 L22 34 L4 46 Z" fill="#1A1A2E"/>
+                    <path d="M22 5 L4 46 L22 34 Z" fill="rgba(255,255,255,0.12)"/>
+                    <line x1="22" y1="8" x2="22" y2="34" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round"/>
                   </svg>
                 </div>`;
 
-            const icon = L.divIcon({ className: '', html: arrowHtml, iconSize: [44, 52], iconAnchor: [22, 26] });
+            const icon = L.divIcon({ className: '', html: arrowHtml, iconSize: [28, 34], iconAnchor: [14, 17] });
 
             if (userMarkerRef.current) {
                 userMarkerRef.current.setLatLng([lat, lng]);
@@ -208,7 +208,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 }
             }
 
-            // Auto-follow: panTo avoids zoom changes (no shaking); duration < GPS interval
+            // Auto-follow
             if (!userDraggedRef.current) {
                 map.panTo([lat, lng], { animate: true, duration: 0.4, easeLinearity: 0.5, noMoveStart: true });
             }
@@ -297,7 +297,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 const a = Math.sin(dLat / 2) ** 2 +
                     Math.cos(rLat * Math.PI / 180) * Math.cos(uLat * Math.PI / 180) *
                     Math.sin(dLng / 2) ** 2;
-                positionMoved = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) > 500;
+                positionMoved = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) > 80;
             }
             if (!stopsChanged && !positionMoved) return;
 

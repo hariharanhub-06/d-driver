@@ -9,6 +9,6 @@ router.post('/',                requireRole('driver'),                          
 router.post('/start',           requireRole('driver'),                                   startTrip);
 router.patch('/:id/stop-index', requireRole('driver'),                                   updateStopIndex);
 router.post('/:id/complete',    requireRole('driver'),                                   completeTrip);
-router.get('/active',           requireRole('admin', 'driver', 'super_admin'), requireSchoolScope, getActiveTrips);
+router.get('/active',           requireRole('admin', 'driver', 'super_admin', 'bus_staff'), requireSchoolScope, getActiveTrips);
 
 module.exports = router;

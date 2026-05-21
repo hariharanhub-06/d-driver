@@ -7,7 +7,7 @@ const router = Router();
 router.use(authenticateToken, requirePasswordChanged);
 
 router.post('/',      requireRole('parent'),                              validate(absenceReportSchema), reportAbsence);
-router.get('/',       requireRole('admin', 'driver', 'super_admin'),     requireSchoolScope, getTodayAbsences);
+router.get('/',       requireRole('admin', 'driver', 'super_admin', 'bus_staff'), requireSchoolScope, getTodayAbsences);
 router.delete('/:id', requireRole('parent'),                             cancelAbsence);
 
 module.exports = router;

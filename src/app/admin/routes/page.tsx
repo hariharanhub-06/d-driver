@@ -175,8 +175,8 @@ export default function RoutesPage() {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                        <span className={`${routeTypeBadge(route.route_type)} capitalize`}>
-                                            {route.route_type || 'Both'}
+                                        <span className={routeTypeBadge(route.route_type)}>
+                                            {route.route_type === 'afternoon' ? 'Evening' : route.route_type === 'morning' ? 'Morning' : 'Both'}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
@@ -233,7 +233,7 @@ export default function RoutesPage() {
                                 <label className={labelCls}>Route Type</label>
                                 <select className={inputCls} value={formData.route_type} onChange={e => setFormData({ ...formData, route_type: e.target.value as Route['route_type'] })}>
                                     <option value="morning">Morning</option>
-                                    <option value="afternoon">Afternoon</option>
+                                    <option value="afternoon">Evening</option>
                                     <option value="both">Both</option>
                                 </select>
                             </div>

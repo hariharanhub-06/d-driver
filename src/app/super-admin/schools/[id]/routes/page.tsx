@@ -47,6 +47,8 @@ export default function SchoolRoutesPage() {
     const [stops, setStops] = useState<Stop[]>([]);
     const [stopsLoading, setStopsLoading] = useState(false);
     const [addingStop, setAddingStop] = useState(false);
+    const [stopTab, setStopTab] = useState<'morning' | 'evening'>('morning');
+    const [copyingStops, setCopyingStops] = useState(false);
 
     useEffect(() => { fetchRoutes(); }, [id]);
 
@@ -125,13 +127,18 @@ export default function SchoolRoutesPage() {
         }
     };
 
+    const fetchStops = async (routeId: string) => {
+        const res = await api.get(`/stops?route_id=${routeId}&school_id=${id}`);
+        setStops(Array.isArray(res.data) ? res.data : []);
+    };
+
     const openStops = async (routeId: string) => {
         if (selectedRouteId === routeId) { setSelectedRouteId(null); return; }
         setSelectedRouteId(routeId);
+        setStopTab('morning');
         setStopsLoading(true);
         try {
-            const res = await api.get(`/stops?route_id=${routeId}&school_id=${id}`);
-            setStops(Array.isArray(res.data) ? res.data : []);
+            await fetchStops(routeId);
         } catch {
             setStops([]);
         } finally {
@@ -150,13 +157,38 @@ export default function SchoolRoutesPage() {
                 pickup_time: data.pickup_time || undefined,
                 route_id: selectedRouteId,
                 school_id: id,
+                trip_type: stopTab,
             });
-            const res = await api.get(`/stops?route_id=${selectedRouteId}&school_id=${id}`);
-            setStops(Array.isArray(res.data) ? res.data : []);
+            await fetchStops(selectedRouteId!);
         } catch (e: any) {
             alert(e.response?.data?.message || 'Failed to add stop.');
         } finally {
             setAddingStop(false);
+        }
+    };
+
+    const handleCopyMorningToEvening = async () => {
+        const morningStops = stops.filter(s => !s.trip_type || s.trip_type === 'morning');
+        if (morningStops.length === 0) { alert('No morning stops to copy.'); return; }
+        setCopyingStops(true);
+        try {
+            for (const s of morningStops) {
+                await api.post('/stops', {
+                    name: s.name,
+                    latitude: s.latitude,
+                    longitude: s.longitude,
+                    sequence: s.sequence,
+                    pickup_time: s.pickup_time || undefined,
+                    route_id: selectedRouteId,
+                    school_id: id,
+                    trip_type: 'evening',
+                });
+            }
+            await fetchStops(selectedRouteId!);
+        } catch (e: any) {
+            alert(e.response?.data?.message || 'Failed to copy stops.');
+        } finally {
+            setCopyingStops(false);
         }
     };
 
@@ -214,8 +246,8 @@ export default function SchoolRoutesPage() {
                                     <tr key={route.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                         <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">{route.name}</td>
                                         <td className="px-4 py-3">
-                                            <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border capitalize ${typeBadge[route.route_type] ?? ''}`}>
-                                                {route.route_type}
+                                            <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border ${typeBadge[route.route_type] ?? ''}`}>
+                                                {route.route_type === 'afternoon' ? 'Evening' : route.route_type === 'morning' ? 'Morning' : 'Both'}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
@@ -271,6 +303,32 @@ export default function SchoolRoutesPage() {
                         </button>
                     </div>
 
+                    {/* Morning / Evening tabs */}
+                    <div className="flex items-center gap-1 px-5 pt-4 pb-2 border-b border-slate-100 dark:border-slate-700">
+                        {(['morning', 'evening'] as const).map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setStopTab(tab)}
+                                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all capitalize ${stopTab === tab ? 'bg-[var(--brand)] text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
+                            >
+                                {tab === 'morning' ? '🌅 Morning' : '🌆 Evening'}
+                                <span className="ml-1.5 opacity-70">
+                                    ({stops.filter(s => (s as any).trip_type === tab || (tab === 'morning' && !(s as any).trip_type)).length})
+                                </span>
+                            </button>
+                        ))}
+                        {stopTab === 'evening' && (
+                            <button
+                                onClick={handleCopyMorningToEvening}
+                                disabled={copyingStops}
+                                className="ml-auto flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 rounded-xl px-3 py-1.5 text-xs font-semibold hover:bg-amber-100 transition-colors disabled:opacity-50"
+                            >
+                                {copyingStops ? <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /> : '📋'}
+                                Copy from Morning
+                            </button>
+                        )}
+                    </div>
+
                     <div className="p-5">
                         {stopsLoading ? (
                             <div className="flex justify-center py-16">
@@ -278,7 +336,7 @@ export default function SchoolRoutesPage() {
                             </div>
                         ) : (
                             <StopMap
-                                stops={stops}
+                                stops={stops.filter(s => (s as any).trip_type === stopTab || (stopTab === 'morning' && !(s as any).trip_type))}
                                 saving={addingStop}
                                 onAddStop={handleAddStop}
                                 onDeleteStop={handleDeleteStop}
@@ -306,7 +364,7 @@ export default function SchoolRoutesPage() {
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Type</label>
                                 <select className={inputCls} value={form.route_type} onChange={e => setForm(p => ({ ...p, route_type: e.target.value }))}>
                                     <option value="morning">Morning</option>
-                                    <option value="afternoon">Afternoon</option>
+                                    <option value="afternoon">Evening</option>
                                     <option value="both">Both</option>
                                 </select>
                             </div>

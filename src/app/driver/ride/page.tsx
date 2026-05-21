@@ -161,12 +161,17 @@ export default function ActiveRide() {
     const [submitting, setSubmitting] = useState(false);
     const [endingTrip, setEndingTrip] = useState(false);
 
-    const [switchForm, setSwitchForm] = useState({ reason: 'breakdown', notes: '', km_at_switch: '', new_bus_number: '' });
+    const [switchForm, setSwitchForm] = useState({ reason: 'breakdown', notes: '', km_at_switch: '', new_bus_id: '' });
+    const [schoolBuses, setSchoolBuses] = useState<{ id: string; bus_number: string }[]>([]);
+
+    // 1km skip toast
+    const [skipToast, setSkipToast] = useState<string | null>(null);
 
     // Refs to avoid stale closures in watchPosition and countdown timer
     const currentStopRef = useRef<Stop | null>(null);
     const allStudentsRef = useRef<Student[]>([]);
     const proximityTriggeredRef = useRef(false);
+    const skipAlertedStopRef = useRef<string | null>(null);
     const advanceStopRef = useRef<() => Promise<void>>(async () => {});
     const triggerProximityPopupRef = useRef<() => void>(() => {});
     const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -288,7 +293,7 @@ export default function ActiveRide() {
                     }
                     // Proximity check — auto-trigger attendance popup within 50 m of current stop
                     const stop = currentStopRef.current;
-                    if (stop?.latitude && stop?.longitude && !proximityTriggeredRef.current) {
+                    if (stop?.latitude && stop?.longitude) {
                         const R = 6371000;
                         const dLat = (stop.latitude - latitude) * Math.PI / 180;
                         const dLng = (stop.longitude - longitude) * Math.PI / 180;
@@ -296,9 +301,13 @@ export default function ActiveRide() {
                             Math.cos(latitude * Math.PI / 180) * Math.cos(stop.latitude * Math.PI / 180) *
                             Math.sin(dLng / 2) ** 2;
                         const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                        if (dist <= 50) {
+                        if (dist <= 50 && !proximityTriggeredRef.current) {
                             proximityTriggeredRef.current = true;
                             triggerProximityPopupRef.current();
+                        } else if (dist > 1000 && !proximityTriggeredRef.current && skipAlertedStopRef.current !== stop.id) {
+                            skipAlertedStopRef.current = stop.id;
+                            setSkipToast(stop.name);
+                            setTimeout(() => setSkipToast(null), 3000);
                         }
                     }
                 },
@@ -342,9 +351,12 @@ export default function ActiveRide() {
 
     const currentStopIndex = tripData?.current_stop_index ?? 0;
     const rawStops = tripData?.route?.stops || [];
-    // For afternoon routes, driver goes from school area back to homes — reverse stop order
-    const isAfternoon = tripData?.route?.route_type === 'afternoon';
-    const stops = isAfternoon ? [...rawStops].reverse() : rawStops;
+    const isEvening = tripData?.route?.route_type === 'afternoon';
+    // Filter stops by trip_type for this route; fall back to all stops for legacy routes with no trip_type set
+    const hasTripTypeSplit = rawStops.some((s: any) => s.trip_type && s.trip_type !== 'morning');
+    const stops = hasTripTypeSplit
+        ? rawStops.filter((s: any) => s.trip_type === (isEvening ? 'evening' : 'morning') || s.trip_type === 'both')
+        : isEvening ? [...rawStops].reverse() : rawStops;
     const allStudents = tripData?.route?.students || [];
     const currentStop = stops[currentStopIndex];
     const nextStop = stops[currentStopIndex + 1];
@@ -370,8 +382,11 @@ export default function ActiveRide() {
     useEffect(() => { currentStopRef.current = currentStop ?? null; });
     useEffect(() => { allStudentsRef.current = allStudents; });
 
-    // Reset proximity trigger whenever stop advances so next stop can trigger again
-    useEffect(() => { proximityTriggeredRef.current = false; }, [currentStopIndex]);
+    // Reset proximity + skip triggers whenever stop advances so next stop can trigger again
+    useEffect(() => {
+        proximityTriggeredRef.current = false;
+        skipAlertedStopRef.current = null;
+    }, [currentStopIndex]);
 
     // Auto-trigger attendance popup when driver is within 50 m of the current stop
     const triggerProximityPopup = () => {
@@ -456,9 +471,18 @@ export default function ActiveRide() {
         }
     };
 
+    const openBusSwitch = () => {
+        setSwitchForm({ reason: 'breakdown', notes: '', km_at_switch: '', new_bus_id: '' });
+        setShowBusSwitch(true);
+        api.get('/buses').then(res => {
+            const list: { id: string; bus_number: string }[] = (res.data || []).filter((b: any) => b.id !== busId);
+            setSchoolBuses(list);
+        }).catch(() => {});
+    };
+
     const handleBusSwitch = async () => {
-        if (!switchForm.new_bus_number.trim()) {
-            alert('Please enter the new bus number.');
+        if (!switchForm.new_bus_id) {
+            alert('Please select the replacement bus.');
             return;
         }
         setSubmitting(true);
@@ -468,7 +492,7 @@ export default function ActiveRide() {
                 reason: switchForm.reason,
                 notes: switchForm.notes,
                 km_at_switch: switchForm.km_at_switch ? parseFloat(switchForm.km_at_switch) : undefined,
-                new_bus_number: switchForm.new_bus_number.trim(),
+                new_bus_id: switchForm.new_bus_id,
             });
             setShowBusSwitch(false);
             alert('Bus switch request submitted.');
@@ -587,7 +611,7 @@ export default function ActiveRide() {
                         <ArrowLeft className="w-4 h-4" /> Dashboard
                     </a>
                     <button
-                        onClick={() => setShowBusSwitch(true)}
+                        onClick={openBusSwitch}
                         className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white px-3 py-2 rounded-xl flex items-center gap-1.5 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 shadow-sm"
                     >
                         <Wrench className="w-4 h-4" /> Switch Bus
@@ -655,98 +679,68 @@ export default function ActiveRide() {
                 )}
             </div>
 
-            {/* Attendance Popup */}
+            {/* Skip Stop Toast */}
+            {skipToast && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[300] bg-amber-500 text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                    <span>⚠️ Skipping — {skipToast}</span>
+                </div>
+            )}
+
+            {/* Attendance Popup — compact circular layout */}
             {showAttendancePopup && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center">
-                    <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+                    <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl w-full max-w-lg flex flex-col">
                         {/* Countdown progress bar */}
                         <div className="h-1 bg-slate-100 dark:bg-slate-700 rounded-t-2xl overflow-hidden shrink-0">
-                            <div
-                                className="h-full bg-[var(--brand)] transition-all duration-1000 ease-linear"
-                                style={{ width: `${(popupCountdown / 10) * 100}%` }}
-                            />
+                            <div className="h-full bg-[var(--brand)] transition-all duration-1000 ease-linear" style={{ width: `${(popupCountdown / 10) * 100}%` }} />
                         </div>
-                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 shrink-0">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700 shrink-0">
                             <div>
-                                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                                    Students at {currentStop?.name}
-                                </h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                    {popupStudents.length} student{popupStudents.length !== 1 ? 's' : ''} · auto-advancing in {popupCountdown}s
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">{currentStop?.name}</h3>
+                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                                    Tap to mark · auto-advancing in {popupCountdown}s
                                 </p>
                             </div>
-                            <button
-                                onClick={handleDoneWithStop}
-                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"
-                            >
-                                <X className="w-5 h-5" />
+                            <button onClick={handleDoneWithStop} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <div className="overflow-y-auto flex-1 p-4 space-y-3">
+                        {/* Horizontal circle row */}
+                        <div className="px-4 py-4 flex gap-4 overflow-x-auto">
                             {popupStudents.map(student => {
                                 const marked = attendance[student.id];
+                                const ringColor = marked === 'present' ? 'ring-4 ring-emerald-400' : marked === 'absent' ? 'ring-4 ring-red-400' : 'ring-2 ring-slate-200 dark:ring-slate-600';
                                 return (
-                                    <div
+                                    <button
                                         key={student.id}
-                                        className={`bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-4 flex items-center gap-4 border transition-all ${
-                                            marked === 'present' ? 'border-emerald-300 dark:border-emerald-700' :
-                                            marked === 'absent' ? 'border-red-300 dark:border-red-700' :
-                                            'border-slate-200 dark:border-slate-600'
-                                        }`}
+                                        disabled={markingStudentId === student.id}
+                                        onClick={() => handleMarkAttendance(student, marked === 'present' ? 'absent' : 'present')}
+                                        className="flex flex-col items-center gap-1.5 shrink-0 w-16 active:scale-95 transition-all disabled:opacity-50"
                                     >
-                                        <div className="w-12 h-12 rounded-2xl bg-[var(--brand)]/10 flex items-center justify-center shrink-0 overflow-hidden">
+                                        <div className={`w-14 h-14 rounded-full overflow-hidden bg-[var(--brand)]/10 flex items-center justify-center ${ringColor} transition-all`}>
                                             {student.photo_url ? (
                                                 <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
                                             ) : (
-                                                <span className="text-lg font-bold text-[var(--brand)]">
-                                                    {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                                <span className="text-base font-bold text-[var(--brand)]">
+                                                    {student.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                                                 </span>
                                             )}
                                         </div>
-
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-slate-900 dark:text-white truncate">{student.name}</p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">{student.grade || 'Student'}</p>
-                                        </div>
-
-                                        {marked ? (
-                                            <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold flex items-center gap-1 ${
-                                                marked === 'present'
-                                                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
-                                                    : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400'
-                                            }`}>
-                                                {marked === 'present' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                                {marked === 'present' ? 'Present' : 'Absent'}
+                                        <p className="text-[10px] font-semibold text-slate-800 dark:text-white text-center leading-tight line-clamp-2 w-full">{student.name}</p>
+                                        {student.grade && <p className="text-[9px] text-slate-400 dark:text-slate-500">{student.grade}</p>}
+                                        {marked && (
+                                            <span className={`text-[9px] font-bold ${marked === 'present' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                {marked === 'present' ? '✓ Present' : '✗ Absent'}
                                             </span>
-                                        ) : (
-                                            <div className="flex gap-2 shrink-0">
-                                                <button
-                                                    disabled={markingStudentId === student.id}
-                                                    onClick={() => handleMarkAttendance(student, 'absent')}
-                                                    className="w-9 h-9 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl flex items-center justify-center hover:bg-red-100 transition-all active:scale-95 disabled:opacity-50"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    disabled={markingStudentId === student.id}
-                                                    onClick={() => handleMarkAttendance(student, 'present')}
-                                                    className="w-9 h-9 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center hover:bg-emerald-100 transition-all active:scale-95 disabled:opacity-50"
-                                                >
-                                                    <Check className="w-4 h-4" />
-                                                </button>
-                                            </div>
                                         )}
-                                    </div>
+                                    </button>
                                 );
                             })}
                         </div>
 
-                        <div className="p-4 border-t border-slate-100 dark:border-slate-700 shrink-0">
-                            <button
-                                onClick={handleDoneWithStop}
-                                className="w-full bg-[var(--brand)] hover:opacity-90 text-white rounded-xl py-3 font-bold text-sm active:scale-95 transition-all"
-                            >
+                        <div className="px-4 pb-4 shrink-0">
+                            <button onClick={handleDoneWithStop} className="w-full bg-[var(--brand)] hover:opacity-90 text-white rounded-xl py-2.5 font-bold text-sm active:scale-95 transition-all">
                                 Done — Next Stop
                             </button>
                         </div>
@@ -813,8 +807,13 @@ export default function ActiveRide() {
                                 <textarea value={switchForm.notes} onChange={e => setSwitchForm({ ...switchForm, notes: e.target.value })} placeholder="Describe the issue..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none h-20" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">New Bus Number <span className="text-red-500">*</span></label>
-                                <input type="text" value={switchForm.new_bus_number} onChange={e => setSwitchForm({ ...switchForm, new_bus_number: e.target.value })} placeholder="e.g. KA-01-5678" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" />
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Replacement Bus <span className="text-red-500">*</span></label>
+                                <select value={switchForm.new_bus_id} onChange={e => setSwitchForm({ ...switchForm, new_bus_id: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors">
+                                    <option value="">Select a bus…</option>
+                                    {schoolBuses.map(b => (
+                                        <option key={b.id} value={b.id}>{b.bus_number}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km) — optional</label>

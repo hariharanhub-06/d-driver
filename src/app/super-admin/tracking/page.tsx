@@ -180,6 +180,7 @@ export default function SATrackingPage() {
 
     // Always show stops from ALL active trips (all schools, colored per school)
     useEffect(() => {
+        if (trips.length === 0) return; // don't clear fallback stops when no trips are active
         const seen = new Set<string>();
         const pins: StopPin[] = trips.flatMap(trip => {
             const schoolColor = activeBuses.find(b => b.bus_id === trip.bus_id)?.school_color || undefined;
@@ -199,7 +200,11 @@ export default function SATrackingPage() {
                     color: schoolColor,
                 }));
         });
-        setRouteStops(pins);
+        setRouteStops(prev => {
+            const tripIds = new Set(pins.map(p => p.id));
+            const fallbackOnly = prev.filter(p => !tripIds.has(p.id));
+            return [...pins, ...fallbackOnly];
+        });
     }, [trips, activeBuses]);
 
     // Fetch all stops directly so pins always show even when no trips are running
