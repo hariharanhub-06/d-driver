@@ -157,28 +157,25 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
                     const countBadge = stop.student_count !== undefined
                         ? `<div style="position:absolute;top:-5px;right:-5px;min-width:14px;height:14px;background:#F59E0B;border:1.5px solid white;border-radius:7px;font-size:8px;font-weight:700;color:white;display:flex;align-items:center;justify-content:center;padding:0 2px;">${stop.student_count}</div>`
                         : '';
-                    // Small front-view 2D bus SVG (20×24) with sequence number in windshield
+                    // Tiny front-view bus SVG — road-text size (~13px wide)
                     const stopIcon = L.divIcon({
                         className: '',
-                        html: `<div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.4));">
-                            <div style="position:relative;">
-                              <svg width="20" height="24" viewBox="0 0 24 30" xmlns="http://www.w3.org/2000/svg">
-                                <rect x="1" y="1" width="22" height="22" rx="4" fill="${bg}" stroke="rgba(0,0,0,0.2)" stroke-width="1.5"/>
-                                <rect x="3" y="3" width="18" height="9" rx="2" fill="rgba(255,255,255,.9)"/>
-                                <text x="12" y="7.5" text-anchor="middle" dominant-baseline="middle"
-                                      fill="${bg}" font-size="7" font-weight="800" font-family="sans-serif">${stop.sequence}</text>
-                                <rect x="3"  y="14" width="7" height="5" rx="1.5" fill="rgba(255,255,255,.6)"/>
-                                <rect x="14" y="14" width="7" height="5" rx="1.5" fill="rgba(255,255,255,.6)"/>
-                                <rect x="4"  y="22" width="16" height="2" rx="1" fill="rgba(0,0,0,.2)"/>
-                                <ellipse cx="6"  cy="28" rx="3" ry="2" fill="#1e293b"/>
-                                <ellipse cx="18" cy="28" rx="3" ry="2" fill="#1e293b"/>
-                              </svg>
-                              ${countBadge}
-                            </div>
-                            <div style="background:rgba(10,10,20,0.82);backdrop-filter:blur(3px);color:white;font-size:8px;font-weight:600;padding:1px 5px;border-radius:3px;margin-top:1px;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;">${stop.name}</div>
+                        html: `<div style="position:relative;cursor:pointer;">
+                            <svg width="13" height="15" viewBox="0 0 24 28" xmlns="http://www.w3.org/2000/svg"
+                                 style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));">
+                              <rect x="1" y="1" width="22" height="20" rx="4" fill="${bg}" stroke="rgba(0,0,0,0.25)" stroke-width="1.5"/>
+                              <rect x="3" y="3" width="18" height="8" rx="2" fill="rgba(255,255,255,.92)"/>
+                              <text x="12" y="7" text-anchor="middle" dominant-baseline="middle"
+                                    fill="${bg}" font-size="7" font-weight="900" font-family="sans-serif">${stop.sequence}</text>
+                              <rect x="3"  y="13" width="7" height="4" rx="1" fill="rgba(255,255,255,.55)"/>
+                              <rect x="14" y="13" width="7" height="4" rx="1" fill="rgba(255,255,255,.55)"/>
+                              <ellipse cx="6"  cy="25" rx="2.5" ry="2" fill="#1e293b"/>
+                              <ellipse cx="18" cy="25" rx="2.5" ry="2" fill="#1e293b"/>
+                            </svg>
+                            ${countBadge}
                         </div>`,
-                        iconSize: [20, 46],
-                        iconAnchor: [10, 24],
+                        iconSize: [13, 15],
+                        iconAnchor: [6, 15],
                     });
 
                     const tooltip = stop.student_count !== undefined

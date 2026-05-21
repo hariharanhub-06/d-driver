@@ -178,34 +178,54 @@ export default function SATrackingPage() {
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, [fetchTrips, fetchLocations]);
 
-    // Derive stops when selected bus or trips change
+    // Always show stops from ALL active trips (all schools, colored per school)
     useEffect(() => {
-        if (!selectedBusId) {
-            setRouteStops([]);
-            setSelectedStop(null);
-            return;
-        }
-        const trip = trips.find(t => t.bus_id === selectedBusId);
-        const schoolColor = activeBuses.find(b => b.bus_id === selectedBusId)?.school_color || undefined;
-        if (trip?.route?.stops?.length) {
-            const pins: StopPin[] = trip.route.stops.map(s => ({
-                id: s.id,
-                name: s.name,
-                lat: s.latitude,
-                lng: s.longitude,
-                sequence: s.sequence,
-                student_count: trip.route!.students?.filter(st => st.stop_id === s.id).length ?? 0,
-                color: schoolColor,
-            }));
-            setRouteStops(pins);
-        } else {
-            setRouteStops([]);
-        }
-        setSelectedStop(null);
-    }, [selectedBusId, trips]);
+        const seen = new Set<string>();
+        const pins: StopPin[] = trips.flatMap(trip => {
+            const schoolColor = activeBuses.find(b => b.bus_id === trip.bus_id)?.school_color || undefined;
+            return (trip.route?.stops || [])
+                .filter(s => {
+                    if (seen.has(s.id) || !s.latitude || !s.longitude) return false;
+                    seen.add(s.id);
+                    return true;
+                })
+                .map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    lat: s.latitude,
+                    lng: s.longitude,
+                    sequence: s.sequence,
+                    student_count: trip.route?.students?.filter(st => st.stop_id === s.id).length ?? 0,
+                    color: schoolColor,
+                }));
+        });
+        setRouteStops(pins);
+    }, [trips, activeBuses]);
+
+    // Also fetch all routes to show stops even when no trips are running
+    useEffect(() => {
+        const url = selectedSchoolId ? `/routes?school_id=${selectedSchoolId}` : '/routes';
+        api.get(url).then(res => {
+            const routes: any[] = res.data || [];
+            setRouteStops(prev => {
+                const seen = new Set(prev.map(p => p.id));
+                const extra: StopPin[] = routes.flatMap((r: any) =>
+                    (r.stops || [])
+                        .filter((s: any) => !seen.has(s.id) && s.latitude && s.longitude)
+                        .map((s: any) => {
+                            seen.add(s.id);
+                            return { id: s.id, name: s.name, lat: s.latitude, lng: s.longitude, sequence: s.sequence, student_count: 0, color: r.school?.color || undefined };
+                        })
+                );
+                return extra.length ? [...prev, ...extra] : prev;
+            });
+        }).catch(() => {});
+    }, [selectedSchoolId]);
 
     const handleStopClick = useCallback((stopId: string, stopName: string) => {
-        const trip = trips.find(t => t.bus_id === selectedBusId);
+        // Find students from whichever trip serves this stop
+        const trip = trips.find(t => t.bus_id === selectedBusId) ||
+                     trips.find(t => t.route?.stops?.some(s => s.id === stopId));
         const students = trip?.route?.students?.filter(s => s.stop_id === stopId) ?? [];
         setSelectedStop({ id: stopId, name: stopName, students });
         setAssignStudentId('');
