@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Edit, Trash2, GraduationCap, Phone, MapPin, X, Loader2, FileUp, ChevronRight, ChevronLeft, Image } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, GraduationCap, Phone, MapPin, X, Loader2, FileUp, ChevronRight, ChevronLeft, Image, Download } from 'lucide-react';
 import api from '@/lib/api';
 
 type Student = {
@@ -14,7 +14,7 @@ type Student = {
     parent?: { id: string; name: string; email: string; phone: string };
     route?: { id: string; name: string };
     stop?: { id: string; name: string };
-    fees?: { due_amount: number }[];
+    feeStructure?: { amount: number; frequency: string; due_day: number; academic_year: string };
 };
 
 const STEPS = ['Student Info', 'Parent / Guardian', 'Route & Stop', 'Fee Setup'] as const;
@@ -108,7 +108,10 @@ export default function StudentsPage() {
             parent_name: s.parent?.name || '', parent_email: s.parent?.email || '',
             parent_phone: s.parent?.phone || '',
             route_id: s.route?.id || '', stop_id: s.stop?.id || '',
-            fee_amount: '', fee_frequency: 'monthly', fee_due_day: '5', academic_year: new Date().getFullYear().toString(),
+            fee_amount: s.feeStructure?.amount?.toString() || '',
+            fee_frequency: s.feeStructure?.frequency || 'monthly',
+            fee_due_day: s.feeStructure?.due_day?.toString() || '5',
+            academic_year: s.feeStructure?.academic_year || new Date().getFullYear().toString(),
         });
         // Pre-load stops for the existing route so the dropdown isn't empty
         if (s.route?.id) fetchStops(s.route.id);
@@ -137,6 +140,10 @@ export default function StudentsPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!editingId && !formData.fee_amount) {
+            setSubmitError('Please enter the fee amount before enrolling the student.');
+            return;
+        }
         setIsSubmitting(true);
         setSubmitError('');
         try {
@@ -170,7 +177,7 @@ export default function StudentsPage() {
             if (photoFile && studentId) {
                 const fd = new FormData();
                 fd.append('photo', photoFile);
-                try { await api.post(`/students/upload-photo`, fd, { params: { student_id: studentId } }); } catch { /* ignore */ }
+                await api.post(`/students/upload-photo`, fd, { params: { student_id: studentId } });
             }
 
             setIsModalOpen(false);
@@ -192,10 +199,40 @@ export default function StudentsPage() {
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        const fd = new FormData();
-        fd.append('file', file);
-        try { await api.post('/students/bulk', fd); fetchStudents(); } catch { /* ignore */ }
         if (importRef.current) importRef.current.value = '';
+
+        const text = await file.text();
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) { alert('CSV appears empty or has no data rows.'); return; }
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+        const students = lines.slice(1).map(line => {
+            const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+            const row: Record<string, string> = {};
+            headers.forEach((h, i) => { if (vals[i]) row[h] = vals[i]; });
+            return row;
+        }).filter(r => r.name);
+
+        if (students.length === 0) { alert('No valid student rows found.'); return; }
+
+        try {
+            const { data } = await api.post('/students/bulk', { students });
+            const errs = data?.errors?.length || 0;
+            alert(`Imported ${data?.created?.length || 0} student(s).${errs ? ` ${errs} row(s) failed.` : ''}`);
+            fetchStudents();
+        } catch (err: any) {
+            alert(err?.response?.data?.error || 'Import failed. Check your CSV format.');
+        }
+    };
+
+    const downloadTemplate = () => {
+        const headers = 'name,gr_no,grade,section,parent_name,parent_email,parent_phone';
+        const example = 'Arjun Kumar,GR-001,5,A,Suresh Kumar,suresh@example.com,9876543210';
+        const csv = `${headers}\n${example}`;
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'students_import_template.csv'; a.click();
+        URL.revokeObjectURL(url);
     };
 
     const filtered = students.filter(s => {
@@ -212,6 +249,11 @@ export default function StudentsPage() {
         return true;
     };
 
+    const canSubmit = () => {
+        if (!editingId && !formData.fee_amount) return false;
+        return true;
+    };
+
     const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
     const labelCls = "block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5";
 
@@ -224,12 +266,19 @@ export default function StudentsPage() {
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage student profiles, parents and bus assignments.</p>
                 </div>
                 <div className="flex gap-2">
-                    <input ref={importRef} type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleImport} />
+                    <input ref={importRef} type="file" className="hidden" accept=".csv" onChange={handleImport} />
+                    <button
+                        onClick={downloadTemplate}
+                        className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
+                        title="Download CSV template"
+                    >
+                        <Download className="w-4 h-4" /> Template
+                    </button>
                     <button
                         onClick={() => importRef.current?.click()}
                         className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
                     >
-                        <FileUp className="w-4 h-4" /> Import
+                        <FileUp className="w-4 h-4" /> Import CSV
                     </button>
                     <button
                         onClick={openCreate}
@@ -535,7 +584,7 @@ export default function StudentsPage() {
                                                 <input type="text" placeholder="2024" className={inputCls} value={formData.academic_year} onChange={e => setFormData({ ...formData, academic_year: e.target.value })} />
                                             </div>
                                         </div>
-                                        <p className="text-xs text-slate-400">Leave fee amount blank to skip fee setup now.</p>
+                                        <p className="text-xs text-slate-400">{editingId ? 'Leave fee amount blank to keep existing fee settings.' : 'Fee amount is required to enroll the student.'}</p>
                                     </div>
                                 )}
 
@@ -553,13 +602,19 @@ export default function StudentsPage() {
                                             <ChevronLeft className="w-4 h-4" /> Back
                                         </button>
                                     )}
+                                    {/* When editing: show Save Changes on every step; when creating: only on last step */}
+                                    {editingId && step < STEPS.length - 1 && (
+                                        <button type="submit" disabled={isSubmitting} className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all disabled:opacity-60 flex items-center gap-2">
+                                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+                                        </button>
+                                    )}
                                     {step < STEPS.length - 1 ? (
                                         <button type="button" disabled={!canProceed()} onClick={() => setStep(s => s + 1)} className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50">
                                             Next <ChevronRight className="w-4 h-4" />
                                         </button>
                                     ) : (
-                                        <button type="submit" disabled={isSubmitting} className="flex-1 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60">
-                                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : editingId ? 'Save Changes' : 'Enroll Student'}
+                                        <button type="submit" disabled={isSubmitting || !canSubmit()} className="flex-1 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2">
+                                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editingId ? 'Save Changes' : 'Enroll Student'}
                                         </button>
                                     )}
                                 </div>

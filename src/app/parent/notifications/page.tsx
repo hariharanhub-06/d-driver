@@ -40,14 +40,14 @@ export default function ParentNotificationsPage() {
 
     const markAllRead = async () => {
         try {
-            await api.patch('/notifications/mark-all-read');
+            await api.post('/notifications/mark-all-read');
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
         } catch { /* non-fatal */ }
     };
 
     const markRead = async (id: string) => {
         try {
-            await api.patch(`/notifications/${id}/read`);
+            await api.put(`/notifications/${id}/read`);
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
         } catch { /* non-fatal */ }
     };

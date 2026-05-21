@@ -32,12 +32,15 @@ export default function ParentDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showAbsentModal, setShowAbsentModal] = useState(false);
+    const [activeChildId, setActiveChildId] = useState<string | null>(null);
     const today = new Date().toLocaleDateString('en-CA');
     const [absentForm, setAbsentForm] = useState({ student_id: '', from_date: today, to_date: today, reason: '' });
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         fetchAll();
+        const stored = localStorage.getItem('active_child_id');
+        if (stored) setActiveChildId(stored);
     }, []);
 
     const fetchAll = async () => {
@@ -64,23 +67,29 @@ export default function ParentDashboard() {
     };
 
     const handleReportAbsent = async () => {
-        if (!absentForm.student_id || !absentForm.reason) return;
+        const sid = absentForm.student_id || (children.length === 1 ? children[0].id : '');
+        if (!sid || !absentForm.reason) return;
         setSubmitting(true);
         try {
-            const start = new Date(absentForm.from_date);
-            const end = new Date(absentForm.to_date);
+            const start = new Date(absentForm.from_date + 'T00:00:00');
+            const end = new Date(absentForm.to_date + 'T00:00:00');
             const dates: string[] = [];
-            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                dates.push(d.toLocaleDateString('en-CA'));
+            for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                dates.push(d.toISOString().slice(0, 10));
             }
-            await Promise.all(dates.map(date =>
-                api.post('/absence', { student_id: absentForm.student_id, date, reason: absentForm.reason })
-            ));
+            const results = await Promise.allSettled(
+                dates.map(date => api.post('/absence', { student_id: sid, date, reason: absentForm.reason }))
+            );
+            const succeeded = results.filter(r => r.status === 'fulfilled').length;
+            const firstFail = results.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
+            if (succeeded === 0 && firstFail) {
+                const err = (firstFail.reason as any);
+                alert(err?.response?.data?.error || err?.response?.data?.message || 'Failed to report absence');
+                return;
+            }
             setShowAbsentModal(false);
             setAbsentForm({ student_id: '', from_date: today, to_date: today, reason: '' });
-            alert(`Absence reported for ${dates.length} day${dates.length > 1 ? 's' : ''}.`);
-        } catch (e: any) {
-            alert(e.response?.data?.message || 'Failed to report absence');
+            alert(`Absence reported for ${succeeded} day${succeeded > 1 ? 's' : ''}${succeeded < dates.length ? ` (${dates.length - succeeded} already reported)` : ''}.`);
         } finally {
             setSubmitting(false);
         }
@@ -106,7 +115,7 @@ export default function ParentDashboard() {
         }
     };
 
-    const primaryChild = children[0];
+    const primaryChild = (activeChildId ? children.find(c => c.id === activeChildId) : null) || children[0];
     const driverPhone = primaryChild?.driver?.phone;
 
     return (
@@ -314,7 +323,7 @@ export default function ParentDashboard() {
                                 </button>
                                 <button
                                     onClick={handleReportAbsent}
-                                    disabled={submitting || !absentForm.reason || !absentForm.from_date || !absentForm.to_date || (!absentForm.student_id && children.length > 1)}
+                                    disabled={submitting || !absentForm.reason || !absentForm.from_date || !absentForm.to_date || (children.length > 1 && !absentForm.student_id)}
                                     className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 flex-1 justify-center disabled:opacity-50"
                                 >
                                     {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Submit'}

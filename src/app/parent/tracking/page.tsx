@@ -27,6 +27,8 @@ export default function ParentTracking() {
     const { user } = useAuth();
     const [busPosition, setBusPosition] = useState<[number, number]>([12.9716, 77.5946]);
     const [busId, setBusId] = useState<string | null>(null);
+    const [hasBusLive, setHasBusLive] = useState(false);
+    const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
     const [childData, setChildData] = useState<ChildData | null>(null);
     const [routeStops, setRouteStops] = useState<RouteStop[]>([]);
     const [loading, setLoading] = useState(true);
@@ -37,6 +39,12 @@ export default function ParentTracking() {
 
     useEffect(() => {
         fetchParentData();
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                pos => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
+                () => {}
+            );
+        }
     }, []);
 
     // Poll bus location every 5 seconds
@@ -47,6 +55,7 @@ export default function ParentTracking() {
                 const res = await api.get(`/location/bus/${busId}`);
                 if (res.data?.latitude) {
                     setBusPosition([res.data.latitude, res.data.longitude]);
+                    setHasBusLive(true);
                 }
             } catch {
                 // silently ignore polling errors
@@ -97,7 +106,10 @@ export default function ParentTracking() {
                     connectSocket(String(foundBusId));
                     try {
                         const { data: loc } = await api.get(`/location/bus/${foundBusId}`);
-                        if (loc?.latitude) setBusPosition([loc.latitude, loc.longitude]);
+                        if (loc?.latitude) {
+                            setBusPosition([loc.latitude, loc.longitude]);
+                            setHasBusLive(true);
+                        }
                     } catch { /* use default position */ }
                 }
                 if (student.route_id) {
@@ -115,9 +127,11 @@ export default function ParentTracking() {
     };
 
     const myStopId = childData?.stop?.id;
+    const mapCenter: [number, number] = hasBusLive ? busPosition : (userLocation || busPosition);
 
     const markers = [
-        { position: busPosition, title: `School Bus ${busId || ''}`, isBus: true },
+        ...(hasBusLive ? [{ position: busPosition, title: `Bus ${busId || ''}`, isBus: true }] : []),
+        ...(userLocation ? [{ position: userLocation, title: 'Your Location', isUserLocation: true }] : []),
         ...routeStops
             .filter(s => s.latitude && s.longitude)
             .sort((a, b) => a.sequence - b.sequence)
@@ -169,7 +183,7 @@ export default function ParentTracking() {
         <div className="flex flex-col h-screen relative bg-slate-50 dark:bg-slate-900 overflow-hidden">
             {/* Map fills the whole background */}
             <div className="absolute inset-0 z-0">
-                <FreeMap center={busPosition} zoom={15} markers={markers} onStopClick={handleStopClick} />
+                <FreeMap center={mapCenter} zoom={15} markers={markers} onStopClick={handleStopClick} />
             </div>
 
             {/* Bus approaching banner */}
@@ -189,14 +203,21 @@ export default function ParentTracking() {
                     </div>
                     <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate">
-                            Bus #{busId || '—'}{childData ? ` · ${childData.name}` : ''}
+                            {hasBusLive ? `Bus #${busId}` : (childData?.name || 'Tracking')}
+                            {hasBusLive && childData ? ` · ${childData.name}` : ''}
                         </h4>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-2 py-0.5 rounded-full uppercase tracking-widest">Live</span>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                <Clock size={10} />
-                                Tracking active
-                            </p>
+                            {hasBusLive ? (
+                                <>
+                                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full uppercase tracking-widest">Live</span>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><Clock size={10} /> Bus en route</p>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full uppercase tracking-widest">Waiting</span>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">Bus hasn't started yet</p>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

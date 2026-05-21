@@ -239,7 +239,7 @@ const getLinkedAccounts = async (req, res) => {
   if (!user.phone) return res.json({ accounts: [] });
 
   const linked = await prisma.user.findMany({
-    where: { phone: user.phone, role: 'parent', is_active: true },
+    where: { phone: user.phone, role: 'parent', is_active: true, NOT: { id: req.user.id } },
     select: {
       id: true, name: true, email: true,
       children: { select: { id: true, name: true, route: { select: { name: true } } } },

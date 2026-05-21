@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Calendar, Navigation, CheckCircle, AlertTriangle, Loader2, LocateFixed } from 'lucide-react';
+import { MapPin, Calendar, Navigation, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import dynamic from 'next/dynamic';
+
+const FreeMap = dynamic(() => import('@/components/ui/FreeMap'), { ssr: false });
 
 interface Student {
     id: string;
@@ -19,10 +22,17 @@ interface Stop {
     name: string;
     latitude?: number;
     longitude?: number;
-    distance?: number;
 }
 
 type ChangeType = 'temporary' | 'permanent';
+
+const today = new Date().toLocaleDateString('en-CA');
+
+function addDays(dateStr: string, n: number) {
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+}
 
 export default function StopChangeRequest() {
     const { user } = useAuth();
@@ -30,97 +40,79 @@ export default function StopChangeRequest() {
 
     const [students, setStudents] = useState<Student[]>([]);
     const [stops, setStops] = useState<Stop[]>([]);
-    const [nearbyStops, setNearbyStops] = useState<Stop[]>([]);
+    const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
     const [selectedStudentId, setSelectedStudentId] = useState('');
     const [changeType, setChangeType] = useState<ChangeType>('temporary');
     const [newStopId, setNewStopId] = useState('');
-    const [effectiveDate, setEffectiveDate] = useState(
-        new Date().toLocaleDateString('en-CA')
-    );
+    const [fromDate, setFromDate] = useState(today);
+    const [toDate, setToDate] = useState(today);
+    const [effectiveDate, setEffectiveDate] = useState(today);
     const [reason, setReason] = useState('');
 
     const [loadingStudents, setLoadingStudents] = useState(true);
-    const [loadingNearby, setLoadingNearby] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
 
     useEffect(() => {
         fetchStudents();
+        fetchStops();
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                pos => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
+                () => {}
+            );
+        }
     }, []);
 
     const fetchStudents = async () => {
         setLoadingStudents(true);
         try {
-            // Try dedicated endpoint first, fall back to finance/my-fees hint approach
             const { data } = await api.get('/students/my');
             const list: Student[] = Array.isArray(data) ? data : [data];
             setStudents(list);
-            if (list.length > 0) {
-                setSelectedStudentId(list[0].id);
-                fetchStopsForStudent(list[0]);
-            }
+            if (list.length > 0) setSelectedStudentId(list[0].id);
         } catch {
-            // Fallback: try parent's students via user context
             setStudents([]);
         } finally {
             setLoadingStudents(false);
         }
     };
 
-    const fetchStopsForStudent = async (student?: Student) => {
+    const fetchStops = async () => {
         try {
-            const params: Record<string, string> = {};
-            if (user?.school_id) params.school_id = user.school_id;
-            const { data } = await api.get('/stops', { params });
-            setStops(data || []);
+            const { data } = await api.get('/stops');
+            setStops(Array.isArray(data) ? data.filter((s: Stop) => s.latitude && s.longitude) : []);
         } catch {
             setStops([]);
         }
     };
 
-    const handleStudentChange = (id: string) => {
-        setSelectedStudentId(id);
-        setNewStopId('');
-        const student = students.find(s => s.id === id);
-        if (student) fetchStopsForStudent(student);
-    };
+    const handleStopSelect = (id: string) => setNewStopId(id);
 
-    const handleFindNearby = () => {
-        if (!navigator.geolocation) {
-            setError('Geolocation is not supported by your browser.');
-            return;
-        }
-        setLoadingNearby(true);
-        setError('');
-        navigator.geolocation.getCurrentPosition(
-            async ({ coords }) => {
-                try {
-                    const { data } = await api.get('/stops/nearby', {
-                        params: { lat: coords.latitude, lng: coords.longitude },
-                    });
-                    setNearbyStops(data || []);
-                    if (!data || data.length === 0) {
-                        setError('No stops found nearby. Try selecting from the full list.');
-                    }
-                } catch {
-                    setError('Failed to fetch nearby stops.');
-                } finally {
-                    setLoadingNearby(false);
-                }
-            },
-            () => {
-                setError('Location permission denied. Please allow location access and try again.');
-                setLoadingNearby(false);
-            }
-        );
-    };
+    const mapCenter: [number, number] = userLocation || [12.9716, 77.5946];
+
+    const mapMarkers = [
+        ...(userLocation ? [{ position: userLocation, title: 'Your Location', isUserLocation: true as const }] : []),
+        ...stops.map(s => ({
+            id: s.id,
+            position: [s.latitude!, s.longitude!] as [number, number],
+            title: s.name,
+            description: s.name,
+            isStopPin: true as const,
+            isSelected: s.id === newStopId,
+        })),
+    ];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedStudentId || !newStopId) {
-            setError('Please select a student and a new stop.');
+            setError('Please select a student and tap a stop on the map.');
+            return;
+        }
+        if (changeType === 'temporary' && toDate < fromDate) {
+            setError('"To" date must be on or after "From" date.');
             return;
         }
         setError('');
@@ -132,13 +124,15 @@ export default function StopChangeRequest() {
                 current_stop_id: selectedStudent?.stop?.id || selectedStudent?.stop_id || undefined,
                 requested_stop_id: newStopId,
                 change_type: changeType,
-                effective_date: effectiveDate,
+                effective_date: changeType === 'permanent' ? effectiveDate : fromDate,
+                from_date: changeType === 'temporary' ? fromDate : undefined,
+                to_date: changeType === 'temporary' ? toDate : undefined,
                 reason: reason || undefined,
             });
             setSubmitted(true);
         } catch (err: any) {
             setError(
-                err?.response?.data?.message || 'Failed to submit request. Please try again.'
+                err?.response?.data?.error || err?.response?.data?.message || 'Failed to submit request.'
             );
         } finally {
             setSubmitting(false);
@@ -146,10 +140,9 @@ export default function StopChangeRequest() {
     };
 
     const selectedStudent = students.find(s => s.id === selectedStudentId);
-    const currentStopName =
-        selectedStudent?.stop?.name || selectedStudent?.stop_name || 'Not assigned';
-
-    const displayStops = nearbyStops.length > 0 ? nearbyStops : stops;
+    const currentStopName = selectedStudent?.stop?.name || selectedStudent?.stop_name || 'Not assigned';
+    const selectedStop = stops.find(s => s.id === newStopId);
+    const maxToDate = addDays(fromDate, 10);
 
     if (submitted) {
         return (
@@ -173,13 +166,11 @@ export default function StopChangeRequest() {
 
     return (
         <div className="space-y-4 p-4">
-            {/* Header */}
             <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">Stop Change Request</h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Request a temporary or permanent stop modification for your child.</p>
             </div>
 
-            {/* Warning banner */}
             <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4">
                 <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-sm text-amber-700 dark:text-amber-400">
@@ -209,8 +200,8 @@ export default function StopChangeRequest() {
                     ) : (
                         <select
                             value={selectedStudentId}
-                            onChange={e => handleStudentChange(e.target.value)}
-                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
+                            onChange={e => setSelectedStudentId(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
                         >
                             {students.map(s => (
                                 <option key={s.id} value={s.id}>{s.name}</option>
@@ -219,7 +210,7 @@ export default function StopChangeRequest() {
                     )}
                 </div>
 
-                {/* 2. Current Stop (read-only) */}
+                {/* 2. Current Stop */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
                     <h3 className="font-semibold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
                         <span className="w-5 h-5 bg-[var(--brand)]/10 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold">2</span>
@@ -255,79 +246,111 @@ export default function StopChangeRequest() {
                     </div>
                 </div>
 
-                {/* 4. New Stop */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                            <span className="w-5 h-5 bg-[var(--brand)]/10 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold">4</span>
-                            New Stop
-                        </h3>
-                        <button
-                            type="button"
-                            onClick={handleFindNearby}
-                            disabled={loadingNearby}
-                            className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
-                        >
-                            {loadingNearby ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                                <LocateFixed className="w-3 h-3" />
-                            )}
-                            Find Nearby
-                        </button>
-                    </div>
-
-                    {nearbyStops.length > 0 && (
-                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wide mb-2">
-                            Showing {nearbyStops.length} nearby stops
-                        </p>
-                    )}
-
-                    <select
-                        value={newStopId}
-                        onChange={e => setNewStopId(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
-                        required
-                    >
-                        <option value="">Select a stop...</option>
-                        {displayStops.map(stop => (
-                            <option key={stop.id} value={stop.id}>
-                                {stop.name}
-                                {stop.distance != null
-                                    ? ` — ${(stop.distance / 1000).toFixed(1)} km`
-                                    : ''}
-                            </option>
-                        ))}
-                    </select>
-
-                    {newStopId && (
-                        <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                            <Navigation className="w-3 h-3 text-emerald-500" />
-                            {displayStops.find(s => s.id === newStopId)?.name}
-                        </div>
-                    )}
-                </div>
-
-                {/* 5. Effective Date */}
+                {/* 4. New Stop — map */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
                     <h3 className="font-semibold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
-                        <span className="w-5 h-5 bg-[var(--brand)]/10 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold">5</span>
-                        Effective Date
+                        <span className="w-5 h-5 bg-[var(--brand)]/10 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                        New Stop
+                        <span className="text-xs text-slate-400 font-normal ml-1">— tap a pin on the map</span>
                     </h3>
-                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5">
-                        <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                        <input
-                            type="date"
-                            value={effectiveDate}
-                            min={new Date().toLocaleDateString('en-CA')}
-                            onChange={e => setEffectiveDate(e.target.value)}
-                            className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white focus:outline-none"
-                            required
+
+                    <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700" style={{ height: 280 }}>
+                        <FreeMap
+                            center={mapCenter}
+                            zoom={13}
+                            markers={mapMarkers}
+                            onStopClick={handleStopSelect}
                         />
                     </div>
+
+                    {selectedStop ? (
+                        <div className="mt-3 flex items-center gap-2 bg-[var(--brand)]/5 border border-[var(--brand)]/20 rounded-xl px-3 py-2">
+                            <Navigation className="w-4 h-4 text-[var(--brand)] shrink-0" />
+                            <span className="text-sm font-semibold text-[var(--brand)]">{selectedStop.name}</span>
+                            <button
+                                type="button"
+                                onClick={() => setNewStopId('')}
+                                className="ml-auto text-xs text-slate-400 hover:text-red-500"
+                            >
+                                Clear
+                            </button>
+                        </div>
+                    ) : (
+                        <p className="mt-3 text-xs text-slate-400 text-center">No stop selected — tap a blue pin on the map</p>
+                    )}
                 </div>
 
-                {/* 6. Reason (optional) */}
+                {/* 5. Dates */}
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                    {changeType === 'temporary' ? (
+                        <>
+                            <h3 className="font-semibold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                                <span className="w-5 h-5 bg-[var(--brand)]/10 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold">5</span>
+                                Effective Period
+                                <span className="text-xs text-slate-400 font-normal ml-1">max 10 days</span>
+                            </h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">From</label>
+                                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2.5">
+                                        <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                                        <input
+                                            type="date"
+                                            value={fromDate}
+                                            min={today}
+                                            onChange={e => {
+                                                const v = e.target.value;
+                                                setFromDate(v);
+                                                if (toDate < v) setToDate(v);
+                                                if (toDate > addDays(v, 10)) setToDate(addDays(v, 10));
+                                            }}
+                                            className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white focus:outline-none"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+                                        To
+                                        <span className="text-slate-400 font-normal ml-1">(max 10 days)</span>
+                                    </label>
+                                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2.5">
+                                        <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                                        <input
+                                            type="date"
+                                            value={toDate}
+                                            min={fromDate}
+                                            max={maxToDate}
+                                            onChange={e => setToDate(e.target.value)}
+                                            className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white focus:outline-none"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <h3 className="font-semibold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                                <span className="w-5 h-5 bg-[var(--brand)]/10 text-[var(--brand)] rounded-full flex items-center justify-center text-xs font-bold">5</span>
+                                Effective Date
+                            </h3>
+                            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5">
+                                <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                                <input
+                                    type="date"
+                                    value={effectiveDate}
+                                    min={today}
+                                    onChange={e => setEffectiveDate(e.target.value)}
+                                    className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white focus:outline-none"
+                                    required
+                                />
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* 6. Reason */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
                     <h3 className="font-semibold text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
                         <span className="w-5 h-5 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-full flex items-center justify-center text-xs font-bold">6</span>
@@ -343,7 +366,6 @@ export default function StopChangeRequest() {
                     />
                 </div>
 
-                {/* Submit */}
                 <button
                     type="submit"
                     disabled={submitting || !selectedStudentId || !newStopId}

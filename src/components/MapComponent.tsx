@@ -56,12 +56,12 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
                 shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
             });
 
-            const defaultCenter: [number, number] = center || [20.5937, 78.9629];
+            const defaultCenter: [number, number] = center || [11.0, 78.0];
 
             if (!mapRef.current) {
                 mapRef.current = L.map(containerRef.current!, {
                     center: defaultCenter,
-                    zoom: center ? 13 : 10,
+                    zoom: center ? 13 : 7,
                     minZoom: 5,
                     zoomControl: true,
                     attributionControl: false,

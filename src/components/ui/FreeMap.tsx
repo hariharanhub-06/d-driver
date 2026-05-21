@@ -9,6 +9,9 @@ interface MarkerData {
     title: string;
     description?: string;
     isBus?: boolean;
+    isUserLocation?: boolean;
+    isStopPin?: boolean;
+    isSelected?: boolean;
     stopNumber?: number;
     heading?: number;
     isMyStop?: boolean;
@@ -50,9 +53,45 @@ function ensureCSS() {
             70% { box-shadow: 0 0 0 12px rgba(253,216,53,0); }
             100% { box-shadow: 0 0 0 0 rgba(253,216,53,0); }
         }
+        @keyframes user-loc-ring {
+            0% { transform: scale(0.6); opacity: 1; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
         .leaflet-container { font-family: inherit; }
     `;
     document.head.appendChild(style);
+}
+
+function UserLocationIcon(L: any) {
+    ensureCSS();
+    return L.divIcon({
+        className: '',
+        html: `<div style="position:relative;width:22px;height:22px;display:flex;align-items:center;justify-content:center;">
+            <div style="position:absolute;inset:0;border-radius:50%;background:rgba(59,130,246,0.3);animation:user-loc-ring 1.8s ease-out infinite;"></div>
+            <div style="position:relative;width:14px;height:14px;background:#3B82F6;border:2.5px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(59,130,246,0.55);"></div>
+        </div>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+        popupAnchor: [0, -13],
+    });
+}
+
+function StopPinIcon(L: any, isSelected = false) {
+    const color = isSelected ? '#F59E0B' : '#3B82F6';
+    const border = isSelected ? '#D97706' : '#1D4ED8';
+    const size = isSelected ? 18 : 14;
+    return L.divIcon({
+        className: '',
+        html: `<div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="background:${color};border:2.5px solid ${border};border-radius:50%;
+                width:${size}px;height:${size}px;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>
+            <div style="width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;
+                border-top:5px solid ${border};margin-top:-1px;"></div>
+        </div>`,
+        iconSize: [size, size + 6],
+        iconAnchor: [size / 2, size + 6],
+        popupAnchor: [0, -(size + 4)],
+    });
 }
 
 function BusMarkerIcon(L: any, busNumber?: string, heading?: number) {
@@ -158,13 +197,17 @@ export default function FreeMap({ center, zoom = 15, markers = [], followCenter 
             />
             <SmoothRecenter center={center} follow={followCenter} />
             {markers.map((marker, idx) => {
-                const icon = marker.isBus
-                    ? BusMarkerIcon(L, marker.title, marker.heading)
-                    : marker.stopNumber !== undefined
-                        ? StopIcon(L, marker.stopNumber, marker.isMyStop)
-                        : undefined;
+                const icon = marker.isUserLocation
+                    ? UserLocationIcon(L)
+                    : marker.isBus
+                        ? BusMarkerIcon(L, marker.title, marker.heading)
+                        : marker.stopNumber !== undefined
+                            ? StopIcon(L, marker.stopNumber, marker.isMyStop)
+                            : marker.isStopPin
+                                ? StopPinIcon(L, marker.isSelected)
+                                : undefined;
 
-                const isClickableStop = !marker.isBus && marker.stopNumber !== undefined && marker.id && onStopClick;
+                const isClickableStop = !marker.isBus && !marker.isUserLocation && marker.id && onStopClick;
 
                 return (
                     <Marker

@@ -21,7 +21,7 @@ interface SchoolConfig {
     razorpay_key_id?: string;
 }
 
-type Tab = 'pending' | 'paid' | 'all';
+type Tab = 'pending' | 'paid';
 
 const loadRazorpay = (): Promise<boolean> =>
     new Promise(resolve => {
@@ -120,11 +120,9 @@ export default function ParentFees() {
         }
     };
 
-    const filtered = fees.filter(f => {
-        if (activeTab === 'all') return true;
-        if (activeTab === 'pending') return f.status === 'pending' || f.status === 'overdue';
-        return f.status === 'paid';
-    });
+    const filtered = fees.filter(f =>
+        activeTab === 'pending' ? f.status === 'pending' || f.status === 'overdue' : f.status === 'paid'
+    );
 
     const pendingTotal = fees
         .filter(f => f.status === 'pending' || f.status === 'overdue')
@@ -153,7 +151,7 @@ export default function ParentFees() {
 
             {/* Tabs */}
             <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-                {(['pending', 'paid', 'all'] as Tab[]).map(tab => (
+                {(['pending', 'paid'] as Tab[]).map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -164,7 +162,7 @@ export default function ParentFees() {
                                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                         )}
                     >
-                        {tab === 'all' ? 'All' : tab === 'paid' ? 'Paid' : 'Pending'}
+                        {tab === 'paid' ? 'Paid' : 'Pending'}
                     </button>
                 ))}
             </div>

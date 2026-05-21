@@ -17,7 +17,7 @@ router.get('/', requireRole('admin', 'super_admin', 'driver'), requireSchoolScop
 router.get('/my', requireRole('parent'), getMyStudents);
 router.get('/my-children', requireRole('parent'), getMyStudents);
 router.get('/:id', requireRole('admin', 'super_admin', 'driver'), requireSchoolScope, getStudentById);
-router.post('/upload-photo', requireRole('admin', 'super_admin'), requirePermission('student_photos'), upload.single('photo'), uploadStudentPhoto);
+router.post('/upload-photo', requireRole('admin', 'super_admin'), upload.single('photo'), uploadStudentPhoto);
 router.post('/bulk', requireRole('admin', 'super_admin'), bulkCreateStudents);
 router.post('/', requireRole('admin', 'super_admin'), validate(studentSchema), createStudent);
 router.put('/:id', requireRole('admin', 'super_admin'), updateStudent);

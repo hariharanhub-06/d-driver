@@ -116,6 +116,7 @@ export default function DriverDashboard() {
         if (!pendingRouteId) return;
         try {
             await api.post('/trips/start', { route_id: pendingRouteId, route_type: routeType });
+            localStorage.setItem('driver_trip_type', routeType);
             router.push('/driver/ride');
         } catch (e: any) {
             alert(e.response?.data?.error || e.response?.data?.message || 'Failed to start trip');

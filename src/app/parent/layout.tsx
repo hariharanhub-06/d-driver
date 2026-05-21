@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import {
     Home, Locate, CalendarDays, CreditCard, MapPin, Bell,
-    User, Bus, LogOut, X, Menu,
+    User, Bus, LogOut, X, Menu, Sun, Moon,
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { useSchoolBranding, useSetSchoolBranding } from '@/context/SchoolBrandingContext';
 import type { SchoolPermissions } from '@/context/SchoolBrandingContext';
@@ -20,6 +21,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
     const pathname = usePathname();
     const branding = useSchoolBranding();
     const setSchoolBranding = useSetSchoolBranding();
+    const { theme, setTheme } = useTheme();
     const [unreadCount, setUnreadCount] = useState(0);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -164,6 +166,13 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                         <Menu className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                     </button>
                     <span className="font-bold text-slate-900 dark:text-white text-sm lg:text-base truncate">{branding.name || 'Parent Portal'}</span>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
+                        >
+                            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                        </button>
                     <button
                         onClick={() => router.push('/parent/notifications')}
                         className="relative w-9 h-9 flex items-center justify-center bg-slate-50 dark:bg-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-600 transition-all"
@@ -175,6 +184,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                             </span>
                         )}
                     </button>
+                    </div>
                 </header>
 
                 {/* Page content */}

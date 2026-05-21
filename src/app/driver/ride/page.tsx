@@ -350,12 +350,15 @@ export default function ActiveRide() {
 
     const currentStopIndex = tripData?.current_stop_index ?? 0;
     const rawStops = tripData?.route?.stops || [];
-    const isEvening = tripData?.route?.route_type === 'afternoon';
-    // Filter stops by trip_type for this route; fall back to all stops for legacy routes with no trip_type set
+    const selectedTripType = typeof window !== 'undefined' ? localStorage.getItem('driver_trip_type') : null;
+    const isEvening = selectedTripType === 'afternoon'
+        || tripData?.route?.route_type === 'afternoon'
+        || tripData?.route?.route_type === 'evening';
+    // Filter stops by trip_type; fall back to all stops for routes without split stops
     const hasTripTypeSplit = rawStops.some((s: any) => s.trip_type && s.trip_type !== 'morning');
     const stops = hasTripTypeSplit
         ? rawStops.filter((s: any) => s.trip_type === (isEvening ? 'evening' : 'morning') || s.trip_type === 'both')
-        : isEvening ? [...rawStops].reverse() : rawStops;
+        : rawStops;
     const allStudents = tripData?.route?.students || [];
     const currentStop = stops[currentStopIndex];
     const nextStop = stops[currentStopIndex + 1];
@@ -518,6 +521,7 @@ export default function ActiveRide() {
             if (tripData?.id) {
                 await api.post(`/trips/${tripData.id}/complete`);
             }
+            localStorage.removeItem('driver_trip_type');
             window.location.href = '/driver/dashboard';
         } catch {
             setEndingTrip(false);

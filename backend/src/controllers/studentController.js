@@ -169,7 +169,11 @@ const createStudent = async (req, res) => {
 const updateStudent = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, grade, section, gr_no, parent_id, parent_name, parent_email, parent_phone, route_id, stop_id, photo_url } = req.body;
+        const {
+            name, grade, section, gr_no, parent_id, parent_name, parent_email, parent_phone,
+            route_id, stop_id, photo_url,
+            fee_amount, fee_frequency, fee_due_day, academic_year,
+        } = req.body;
         const schoolId = req.user.school_id || null;
 
         const data = {};
@@ -201,6 +205,28 @@ const updateStudent = async (req, res) => {
             data,
         });
 
+        if (fee_amount) {
+            const resolvedSchoolId = schoolId || updatedStudent.school_id;
+            await prisma.feeStructure.upsert({
+                where: { student_id: id },
+                create: {
+                    student_id: id,
+                    school_id: resolvedSchoolId,
+                    amount: parseFloat(fee_amount),
+                    frequency: fee_frequency || 'monthly',
+                    due_day: fee_due_day ? parseInt(fee_due_day) : 5,
+                    academic_year: academic_year || String(new Date().getFullYear()),
+                    is_active: true,
+                },
+                update: {
+                    amount: parseFloat(fee_amount),
+                    frequency: fee_frequency || 'monthly',
+                    due_day: fee_due_day ? parseInt(fee_due_day) : 5,
+                    academic_year: academic_year || String(new Date().getFullYear()),
+                },
+            });
+        }
+
         await logAction({ req, action: 'update_student', targetType: 'student', targetId: id });
         res.json(updatedStudent);
     } catch (error) {
@@ -227,6 +253,14 @@ const uploadStudentPhoto = async (req, res) => {
 
         const { buffer, originalname } = req.file;
         const result = await uploadImage(buffer, originalname, 'student-photos');
+
+        const { student_id } = req.query;
+        if (student_id) {
+            await prisma.student.update({
+                where: { id: student_id },
+                data: { photo_url: result.url },
+            });
+        }
 
         res.json({ url: result.url, fileId: result.fileId });
     } catch (error) {

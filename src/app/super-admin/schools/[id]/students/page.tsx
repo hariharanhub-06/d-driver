@@ -17,6 +17,7 @@ interface Student {
     route?: { id: string; name: string } | null;
     stop?: { id: string; name: string } | null;
     parent?: { name: string; phone?: string; email?: string } | null;
+    feeStructure?: { amount: number; frequency: string; due_day: number; academic_year: string } | null;
 }
 
 interface Route {
@@ -42,6 +43,10 @@ const emptyAddForm = {
     parent_phone: '',
     route_id: '',
     stop_id: '',
+    fee_amount: '',
+    fee_frequency: 'monthly',
+    fee_due_day: '5',
+    academic_year: String(new Date().getFullYear()),
 };
 
 export default function SchoolStudentsPage() {
@@ -58,6 +63,7 @@ export default function SchoolStudentsPage() {
         name: '', grade: '', section: '', gr_no: '',
         parent_name: '', parent_phone: '',
         route_id: '', stop_id: '', photo_url: '',
+        fee_amount: '', fee_frequency: 'monthly', fee_due_day: '5', academic_year: String(new Date().getFullYear()),
     });
     const [saving, setSaving] = useState(false);
     const [editError, setEditError] = useState('');
@@ -141,6 +147,10 @@ export default function SchoolStudentsPage() {
             route_id: routeId,
             stop_id: stopId,
             photo_url: student.photo_url || '',
+            fee_amount: student.feeStructure?.amount?.toString() || '',
+            fee_frequency: student.feeStructure?.frequency || 'monthly',
+            fee_due_day: student.feeStructure?.due_day?.toString() || '5',
+            academic_year: student.feeStructure?.academic_year || String(new Date().getFullYear()),
         });
         setEditError('');
         if (routeId) fetchStopsForRoute(routeId);
@@ -167,6 +177,12 @@ export default function SchoolStudentsPage() {
                 route_id: editForm.route_id || null,
                 stop_id: editForm.stop_id || null,
                 photo_url: editForm.photo_url || undefined,
+                ...(editForm.fee_amount && {
+                    fee_amount: editForm.fee_amount,
+                    fee_frequency: editForm.fee_frequency,
+                    fee_due_day: editForm.fee_due_day,
+                    academic_year: editForm.academic_year,
+                }),
             });
             setEditingStudent(null);
             fetchAll();
@@ -205,6 +221,7 @@ export default function SchoolStudentsPage() {
     const handleAddStudent = async () => {
         if (!addForm.name.trim()) { setAddError('Student name is required.'); return; }
         if (!addForm.parent_email.trim()) { setAddError('Parent email is required.'); return; }
+        if (!addForm.fee_amount.trim()) { setAddError('Fee amount is required to enroll the student.'); return; }
         setAddSaving(true);
         setAddError('');
         try {
@@ -220,6 +237,12 @@ export default function SchoolStudentsPage() {
                 stop_id: addForm.stop_id || undefined,
                 school_id: id,
                 photo_url: addPhotoUrl || undefined,
+                ...(addForm.fee_amount && {
+                    fee_amount: addForm.fee_amount,
+                    fee_frequency: addForm.fee_frequency,
+                    fee_due_day: addForm.fee_due_day,
+                    academic_year: addForm.academic_year,
+                }),
             });
             const pwd = res.data?.temp_password || res.data?.parent?.temp_password || '';
             if (pwd) {
@@ -464,6 +487,34 @@ export default function SchoolStudentsPage() {
                                         </select>
                                     </div>
 
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Fee Setup</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Fee Amount (₹)</label>
+                                            <input type="number" min="0" className={inputCls} placeholder="e.g. 1500" value={addForm.fee_amount} onChange={e => setAddForm(f => ({ ...f, fee_amount: e.target.value }))} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Frequency</label>
+                                            <select className={inputCls} value={addForm.fee_frequency} onChange={e => setAddForm(f => ({ ...f, fee_frequency: e.target.value }))}>
+                                                <option value="monthly">Monthly</option>
+                                                <option value="quarterly">Quarterly</option>
+                                                <option value="half-yearly">Half-Yearly</option>
+                                                <option value="yearly">Yearly</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Due Day</label>
+                                            <input type="number" min="1" max="31" className={inputCls} placeholder="5" value={addForm.fee_due_day} onChange={e => setAddForm(f => ({ ...f, fee_due_day: e.target.value }))} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Academic Year</label>
+                                            <input type="text" className={inputCls} placeholder="2024" value={addForm.academic_year} onChange={e => setAddForm(f => ({ ...f, academic_year: e.target.value }))} />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-400">Fee amount is required to create the student.</p>
+
                                     {addError && (
                                         <p className="text-red-600 dark:text-red-400 text-xs font-medium bg-red-50 dark:bg-red-900/30 rounded-xl px-4 py-3 border border-red-200 dark:border-red-800">{addError}</p>
                                     )}
@@ -478,7 +529,7 @@ export default function SchoolStudentsPage() {
                                     </button>
                                     <button
                                         onClick={handleAddStudent}
-                                        disabled={addSaving}
+                                        disabled={addSaving || !addForm.fee_amount.trim()}
                                         className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
                                     >
                                         {addSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -599,6 +650,34 @@ export default function SchoolStudentsPage() {
                                     ))}
                                 </select>
                             </div>
+
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Fee Setup</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Fee Amount (₹)</label>
+                                    <input type="number" min="0" className={inputCls} placeholder="e.g. 1500" value={editForm.fee_amount} onChange={e => setEditForm(f => ({ ...f, fee_amount: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Frequency</label>
+                                    <select className={inputCls} value={editForm.fee_frequency} onChange={e => setEditForm(f => ({ ...f, fee_frequency: e.target.value }))}>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="quarterly">Quarterly</option>
+                                        <option value="half-yearly">Half-Yearly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Due Day</label>
+                                    <input type="number" min="1" max="31" className={inputCls} placeholder="5" value={editForm.fee_due_day} onChange={e => setEditForm(f => ({ ...f, fee_due_day: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Academic Year</label>
+                                    <input type="text" className={inputCls} placeholder="2024" value={editForm.academic_year} onChange={e => setEditForm(f => ({ ...f, academic_year: e.target.value }))} />
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-400">Leave fee amount blank to keep existing fee settings.</p>
 
                             {editError && (
                                 <p className="text-red-600 dark:text-red-400 text-xs font-medium bg-red-50 dark:bg-red-900/30 rounded-xl px-4 py-3 border border-red-200 dark:border-red-800">
