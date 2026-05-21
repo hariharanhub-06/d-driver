@@ -156,11 +156,6 @@ export default function DriverDashboard() {
     const confirmStartTrip = async (routeType: string) => {
         setShowRouteTypeModal(false);
         if (!pendingRouteId) return;
-        if ('geolocation' in navigator) {
-            await new Promise<void>((resolve) => {
-                navigator.geolocation.getCurrentPosition(() => resolve(), () => resolve(), { timeout: 5000 });
-            });
-        }
         try {
             await api.post('/trips/start', { route_id: pendingRouteId, route_type: routeType });
             router.push('/driver/ride');
