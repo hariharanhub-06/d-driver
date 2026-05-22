@@ -253,27 +253,44 @@ const getActiveTrips = async (req, res) => {
         if (d === today) todayOverrideMap.set(o.student_id, o.requested_stop_id);
       }
 
+      // Collect all stop IDs currently in these trips' routes
+      const validStopIds = new Set();
+      const stopNameToCurrentId = new Map(); // "stop name lowercase" → current stop id
+      for (const trip of trips) {
+        for (const stop of (trip.route?.stops || [])) {
+          validStopIds.add(stop.id);
+          stopNameToCurrentId.set(stop.name.toLowerCase(), stop.id);
+        }
+      }
+
+      // Find students whose stop_id points to a stop not in the current route (orphaned UUID).
+      // Look up the orphaned stop's name and remap to the matching stop in the current route.
+      const orphanedStopIds = [...new Set(
+        routeStudents.filter(s => s.stop_id && !validStopIds.has(s.stop_id)).map(s => s.stop_id)
+      )];
+      const remapStopId = new Map(); // orphaned stop_id → current stop_id
+      if (orphanedStopIds.length > 0) {
+        const orphanStops = await prisma.stop.findMany({
+          where: { id: { in: orphanedStopIds } },
+          select: { id: true, name: true },
+        });
+        for (const os of orphanStops) {
+          const currentId = stopNameToCurrentId.get(os.name.toLowerCase());
+          if (currentId) remapStopId.set(os.id, currentId);
+        }
+      }
+
       for (const trip of trips) {
         for (const stop of (trip.route?.stops || [])) {
           stop.students = routeStudents.filter(s => {
-            const effectiveStopId = todayOverrideMap.get(s.id) ?? s.stop_id;
+            const effectiveStopId = todayOverrideMap.get(s.id) ?? remapStopId.get(s.stop_id) ?? s.stop_id;
             return effectiveStopId === stop.id;
           });
         }
-        // Expose unassigned students (stop_id=null and no temp override)
-        trip.route.unassignedStudents = routeStudents.filter(s => !s.stop_id && !todayOverrideMap.has(s.id));
-      }
-
-      // DEBUG: remove after confirming students show correctly
-      console.log('[getActiveTrips] routeStudents found:', routeStudents.length,
-        routeStudents.map(s => ({ name: s.name, stop_id: s.stop_id })));
-      for (const trip of trips) {
-        for (const stop of (trip.route?.stops || [])) {
-          if (stop.students.length > 0)
-            console.log(`[getActiveTrips] stop "${stop.name}" (${stop.id}): ${stop.students.length} students`);
-          else
-            console.log(`[getActiveTrips] stop "${stop.name}" (${stop.id}): 0 — looking for stop_id match`);
-        }
+        trip.route.unassignedStudents = routeStudents.filter(s => {
+          const effectiveStopId = todayOverrideMap.get(s.id) ?? remapStopId.get(s.stop_id) ?? s.stop_id;
+          return !effectiveStopId || (!validStopIds.has(effectiveStopId));
+        });
       }
     }
 

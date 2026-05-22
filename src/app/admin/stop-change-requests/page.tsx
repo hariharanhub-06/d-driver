@@ -7,8 +7,8 @@ import api from '@/lib/api';
 type StopChangeRequest = {
     id: string;
     student?: { name: string };
-    current_stop?: { name: string };
-    requested_stop?: { name: string };
+    currentStop?: { name: string };
+    requestedStop?: { name: string };
     change_type?: string;
     effective_date?: string;
     reason?: string;
@@ -36,7 +36,7 @@ export default function StopChangeRequestsPage() {
         setLoading(true);
         try {
             const { data } = await api.get('/stop-change');
-            setRequests(Array.isArray(data) ? data : []);
+            setRequests(Array.isArray(data?.requests) ? data.requests : []);
         } catch {
             setRequests([]);
         } finally {
@@ -111,13 +111,13 @@ export default function StopChangeRequestsPage() {
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         <span className="flex items-center gap-1.5">
                                             <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                                            {req.current_stop?.name || '—'}
+                                            {req.currentStop?.name || '—'}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium">
                                             <MapPin className="w-3.5 h-3.5" />
-                                            {req.requested_stop?.name || '—'}
+                                            {req.requestedStop?.name || '—'}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
@@ -172,7 +172,7 @@ export default function StopChangeRequestsPage() {
                         <div className="p-6 space-y-4">
                             <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-sm space-y-1">
                                 <p className="text-slate-500 dark:text-slate-400">Student: <span className="font-bold text-slate-800 dark:text-white">{rejectModal.student?.name}</span></p>
-                                <p className="text-slate-500 dark:text-slate-400">Requested: <span className="font-bold text-slate-800 dark:text-white">{rejectModal.requested_stop?.name}</span></p>
+                                <p className="text-slate-500 dark:text-slate-400">Requested: <span className="font-bold text-slate-800 dark:text-white">{rejectModal.requestedStop?.name}</span></p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Reason for Rejection</label>
