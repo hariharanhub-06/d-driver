@@ -92,6 +92,7 @@ const registerSchool = async (req, res) => {
         name, slug, address, phone, email_contact, logo_url, primary_color,
         plan_id: plan_id || null,
         status: 'active',
+        assigned_sa_id: req.user.is_dev_sa ? null : req.user.id,
         permissions: {
           gps_tracking: true, fee_management: true, fuel_management: true,
           shift_tracking: true, attendance: true, parent_portal: true,
