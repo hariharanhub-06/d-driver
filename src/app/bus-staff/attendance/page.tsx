@@ -2,9 +2,10 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
-import { Check, X, Search, ChevronDown, LogOut, MapPin } from 'lucide-react';
+import { Check, X, Search, ChevronDown, LogOut, MapPin, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from 'next-themes';
 import api from '@/lib/api';
 
 const FreeMap = dynamic(() => import('@/components/ui/FreeMap'), { ssr: false });
@@ -31,6 +32,7 @@ interface TripStop {
 
 export default function BusStaffAttendancePage() {
     const { user, logout } = useAuth();
+    const { theme, setTheme } = useTheme();
     const [stops, setStops] = useState<TripStop[]>([]);
     const [loading, setLoading] = useState(true);
     const [tripId, setTripId] = useState<string>('');
@@ -163,13 +165,22 @@ export default function BusStaffAttendancePage() {
                                 : 'No active trip'}
                         </p>
                     </div>
-                    <button
-                        onClick={logout}
-                        className="flex items-center gap-1.5 text-white/70 text-xs hover:text-white px-3 py-1.5 border border-white/30 rounded-lg transition-colors"
-                    >
-                        <LogOut className="w-3.5 h-3.5" />
-                        Logout
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                            className="p-1.5 text-white/70 hover:text-white border border-white/30 rounded-lg transition-colors"
+                            title="Toggle theme"
+                        >
+                            {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                        </button>
+                        <button
+                            onClick={logout}
+                            className="flex items-center gap-1.5 text-white/70 text-xs hover:text-white px-3 py-1.5 border border-white/30 rounded-lg transition-colors"
+                        >
+                            <LogOut className="w-3.5 h-3.5" />
+                            Logout
+                        </button>
+                    </div>
                 </div>
             </div>
 
