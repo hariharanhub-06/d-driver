@@ -49,7 +49,9 @@ export default function StopChangeRequestsPage() {
         try {
             await api.put(`/stop-change/${req.id}/approve`);
             setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'approved' } : r));
-        } catch { /* ignore */ }
+        } catch (err: any) {
+            alert(err?.response?.data?.details || err?.response?.data?.error || 'Failed to approve request');
+        }
         setApprovingId(null);
     };
 

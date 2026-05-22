@@ -67,60 +67,89 @@ const listRequests = async (req, res) => {
 
 // PUT /api/v1/stop-change/:id/approve  (admin)
 const approveRequest = async (req, res) => {
-  const { admin_note } = req.body;
-  const io = req.app.get('io');
+  try {
+    const { admin_note } = req.body;
+    const io = req.app.get('io');
 
-  const request = await prisma.stopChangeRequest.findUnique({
-    where: { id: req.params.id },
-    include: { student: true, requestedStop: { select: { name: true } } },
-  });
-  if (!request) return res.status(404).json({ error: 'Request not found' });
+    const request = await prisma.stopChangeRequest.findUnique({
+      where: { id: req.params.id },
+      include: {
+        student: { select: { name: true } },
+        requestedStop: { select: { name: true } },
+      },
+    });
+    if (!request) return res.status(404).json({ error: 'Request not found' });
 
-  const ops = [
-    prisma.stopChangeRequest.update({ where: { id: request.id }, data: { status: 'approved', admin_note } }),
-  ];
+    await prisma.stopChangeRequest.update({
+      where: { id: request.id },
+      data: { status: 'approved', admin_note: admin_note || null },
+    });
 
-  // Permanent change: update the student's stop_id in the DB immediately.
-  // Temporary change: do NOT touch stop_id — getActiveTrips will apply it dynamically for the relevant dates.
-  if (request.change_type === 'permanent') {
-    ops.push(prisma.student.update({ where: { id: request.student_id }, data: { stop_id: request.requested_stop_id } }));
+    // Permanent change: update the student's stop_id in the DB immediately.
+    // Temporary change: do NOT touch stop_id — getActiveTrips applies it dynamically.
+    if (request.change_type === 'permanent') {
+      await prisma.student.update({
+        where: { id: request.student_id },
+        data: { stop_id: request.requested_stop_id },
+      });
+    }
+
+    const stopName = request.requestedStop?.name || 'new stop';
+    const studentName = request.student?.name || 'Student';
+    const typeLabel = request.change_type === 'temporary' ? 'temporarily' : 'permanently';
+
+    await prisma.notification.create({
+      data: {
+        user_id: request.parent_id,
+        message: `Stop change for ${studentName} approved. ${studentName} will ${typeLabel} board from "${stopName}".`,
+        type: 'success',
+        school_id: request.school_id,
+      },
+    });
+
+    io?.to(`parent-${request.parent_id}`).emit('stop-change-approved', { student_name: studentName });
+
+    res.json({ message: `Stop change approved (${request.change_type})` });
+  } catch (error) {
+    console.error('approveRequest error:', error.message);
+    res.status(500).json({ error: 'Error approving request', details: error.message });
   }
-
-  await prisma.$transaction(ops);
-
-  const stopName = request.requestedStop?.name || 'new stop';
-  const typeLabel = request.change_type === 'temporary' ? 'temporarily' : 'permanently';
-  await prisma.notification.create({
-    data: {
-      user_id: request.parent_id,
-      message: `Stop change for ${request.student.name} approved. ${request.student.name} will ${typeLabel} board from "${stopName}".`,
-      type: 'success',
-      school_id: request.school_id,
-    },
-  });
-
-  io?.to(`parent-${request.parent_id}`).emit('stop-change-approved', { student_name: request.student.name });
-
-  res.json({ message: `Stop change approved (${request.change_type})` });
 };
 
 // PUT /api/v1/stop-change/:id/reject  (admin)
 const rejectRequest = async (req, res) => {
-  const { admin_note } = req.body;
-  const io = req.app.get('io');
+  try {
+    const { admin_note } = req.body;
+    const io = req.app.get('io');
 
-  const request = await prisma.stopChangeRequest.findUnique({ where: { id: req.params.id }, include: { student: true } });
-  if (!request) return res.status(404).json({ error: 'Request not found' });
+    const request = await prisma.stopChangeRequest.findUnique({
+      where: { id: req.params.id },
+      include: { student: { select: { name: true } } },
+    });
+    if (!request) return res.status(404).json({ error: 'Request not found' });
 
-  await prisma.stopChangeRequest.update({ where: { id: request.id }, data: { status: 'rejected', admin_note } });
+    await prisma.stopChangeRequest.update({
+      where: { id: request.id },
+      data: { status: 'rejected', admin_note: admin_note || null },
+    });
 
-  await prisma.notification.create({
-    data: { user_id: request.parent_id, message: `Stop change for ${request.student.name} was not approved. ${admin_note || ''}`, type: 'alert', school_id: request.school_id },
-  });
+    const studentName = request.student?.name || 'Student';
+    await prisma.notification.create({
+      data: {
+        user_id: request.parent_id,
+        message: `Stop change for ${studentName} was not approved.${admin_note ? ' ' + admin_note : ''}`,
+        type: 'alert',
+        school_id: request.school_id,
+      },
+    });
 
-  io?.to(`parent-${request.parent_id}`).emit('stop-change-rejected', { student_name: request.student.name, reason: admin_note });
+    io?.to(`parent-${request.parent_id}`).emit('stop-change-rejected', { student_name: studentName, reason: admin_note });
 
-  res.json({ message: 'Stop change request rejected' });
+    res.json({ message: 'Stop change request rejected' });
+  } catch (error) {
+    console.error('rejectRequest error:', error.message);
+    res.status(500).json({ error: 'Error rejecting request', details: error.message });
+  }
 };
 
 module.exports = { requestChange, listRequests, approveRequest, rejectRequest };

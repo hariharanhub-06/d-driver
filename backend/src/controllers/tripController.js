@@ -280,12 +280,19 @@ const getActiveTrips = async (req, res) => {
         }
       }
 
+      console.log('[getActiveTrips] DEBUG routeStudents:', routeStudents.map(s => ({ name: s.name, stop_id: s.stop_id })));
+      console.log('[getActiveTrips] DEBUG validStopIds:', [...validStopIds]);
+      console.log('[getActiveTrips] DEBUG orphanedStopIds:', orphanedStopIds);
+      console.log('[getActiveTrips] DEBUG remapStopId:', [...remapStopId.entries()]);
+
       for (const trip of trips) {
         for (const stop of (trip.route?.stops || [])) {
           stop.students = routeStudents.filter(s => {
             const effectiveStopId = todayOverrideMap.get(s.id) ?? remapStopId.get(s.stop_id) ?? s.stop_id;
             return effectiveStopId === stop.id;
           });
+          if (stop.name === 'Sitra')
+            console.log(`[getActiveTrips] Sitra stop id=${stop.id} → ${stop.students.length} students`);
         }
         trip.route.unassignedStudents = routeStudents.filter(s => {
           const effectiveStopId = todayOverrideMap.get(s.id) ?? remapStopId.get(s.stop_id) ?? s.stop_id;
