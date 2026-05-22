@@ -50,6 +50,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                             ...parsed,
                             name: data.name,
                             email: data.email,
+                            role: data.role,
+                            school_id: data.school?.id ?? data.school_id ?? parsed.school_id,
                             is_dev_sa: data.is_dev_sa ?? false,
                             is_first_login: data.is_first_login,
                         };
