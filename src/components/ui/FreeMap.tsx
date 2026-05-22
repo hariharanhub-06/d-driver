@@ -15,6 +15,7 @@ interface MarkerData {
     stopNumber?: number;
     heading?: number;
     isMyStop?: boolean;
+    isComplete?: boolean;
     id?: string;
 }
 
@@ -128,14 +129,16 @@ function BusMarkerIcon(L: any, busNumber?: string, heading?: number) {
     });
 }
 
-function StopIcon(L: any, num: number, isMyStop = false) {
-    const bg  = isMyStop ? '#F59E0B' : '#3B82F6';
-    const bd  = isMyStop ? '#D97706' : '#1D4ED8';
+function StopIcon(L: any, num: number, isMyStop = false, isComplete = false) {
+    const bg  = isMyStop ? '#F59E0B' : isComplete ? '#10B981' : '#3B82F6';
+    const bd  = isMyStop ? '#D97706' : isComplete ? '#059669' : '#1D4ED8';
     const S   = isMyStop ? 28 : 20;
     const fs  = isMyStop ? 11 : 9;
     const shadow = isMyStop
         ? '0 0 0 4px rgba(245,158,11,0.25),0 2px 8px rgba(0,0,0,0.35)'
-        : '0 1px 5px rgba(0,0,0,0.35)';
+        : isComplete
+            ? '0 0 0 3px rgba(16,185,129,0.2),0 1px 5px rgba(0,0,0,0.25)'
+            : '0 1px 5px rgba(0,0,0,0.35)';
     return L.divIcon({
         className: '',
         html: `<div style="display:flex;flex-direction:column;align-items:center;">
@@ -202,7 +205,7 @@ export default function FreeMap({ center, zoom = 15, markers = [], followCenter 
                     : marker.isBus
                         ? BusMarkerIcon(L, marker.title, marker.heading)
                         : marker.stopNumber !== undefined
-                            ? StopIcon(L, marker.stopNumber, marker.isMyStop)
+                            ? StopIcon(L, marker.stopNumber, marker.isMyStop, marker.isComplete)
                             : marker.isStopPin
                                 ? StopPinIcon(L, marker.isSelected)
                                 : undefined;

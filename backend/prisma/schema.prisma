@@ -192,16 +192,21 @@ model Student {
 // ─── ATTENDANCE ───────────────────────────────────────────────────────────────
 
 model Attendance {
-  id         String   @id @default(uuid())
-  student_id String
-  date       DateTime @default(now())
-  status     String   // present | absent | missed
-  school_id  String
-  note       String?
-  marked_at  DateTime @default(now())
+  id              String   @id @default(uuid())
+  student_id      String
+  date_only       String?  // "YYYY-MM-DD" for day-scoped uniqueness per role
+  date            DateTime @default(now())
+  status          String   // present | absent | missed
+  school_id       String
+  note            String?
+  marked_at       DateTime @default(now())
+  marked_by_role  String?  // driver | bus_staff | admin
+  trip_id         String?
 
   student Student @relation(fields: [student_id], references: [id], onDelete: Cascade)
   school  School  @relation(fields: [school_id], references: [id], onDelete: Cascade)
+
+  @@unique([student_id, date_only, marked_by_role])
 }
 
 // ─── FINANCE ─────────────────────────────────────────────────────────────────

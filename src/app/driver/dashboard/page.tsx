@@ -388,6 +388,7 @@ export default function DriverDashboard() {
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km)</label>
                                         <input
                                             type="number"
+                                            min="0"
                                             value={fuelKm}
                                             onChange={e => setFuelKm(e.target.value)}
                                             placeholder="e.g. 45230"
@@ -462,6 +463,7 @@ export default function DriverDashboard() {
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km)</label>
                                         <input
                                             type="number"
+                                            min="0"
                                             value={fillKm}
                                             onChange={e => setFillKm(e.target.value)}
                                             placeholder="e.g. 45230"

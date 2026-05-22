@@ -17,7 +17,7 @@ interface ChildData {
 
 export default function ParentTracking() {
     const { user } = useAuth();
-    const [busPosition, setBusPosition] = useState<[number, number]>([12.9716, 77.5946]);
+    const [busPosition, setBusPosition] = useState<[number, number]>([11.1271, 78.6569]);
     const [busId, setBusId] = useState<string | null>(null);
     const [busNumber, setBusNumber] = useState<string | null>(null);
     const [driverPhone, setDriverPhone] = useState<string | null>(null);

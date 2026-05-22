@@ -75,10 +75,10 @@ export default function ChangePasswordPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {[
-              { label: 'Current Password', value: currentPassword, set: setCurrentPassword, show: showCurrent, toggle: () => setShowCurrent(v => !v) },
-              { label: 'New Password',     value: newPassword,     set: setNewPassword,     show: showNew,     toggle: () => setShowNew(v => !v) },
-              { label: 'Confirm New Password', value: confirmPassword, set: setConfirmPassword, show: showConfirm, toggle: () => setShowConfirm(v => !v) },
-            ].map(({ label, value, set, show, toggle }) => (
+              { label: 'Current Password',     autoComplete: 'current-password', value: currentPassword, set: setCurrentPassword, show: showCurrent, toggle: () => setShowCurrent(v => !v) },
+              { label: 'New Password',         autoComplete: 'new-password',     value: newPassword,     set: setNewPassword,     show: showNew,     toggle: () => setShowNew(v => !v) },
+              { label: 'Confirm New Password', autoComplete: 'new-password',     value: confirmPassword, set: setConfirmPassword, show: showConfirm, toggle: () => setShowConfirm(v => !v) },
+            ].map(({ label, autoComplete, value, set, show, toggle }) => (
               <div key={label}>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{label}</label>
                 <div className="relative">
@@ -86,6 +86,7 @@ export default function ChangePasswordPage() {
                     type={show ? 'text' : 'password'}
                     value={value}
                     onChange={(e) => set(e.target.value)}
+                    autoComplete={autoComplete}
                     className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors pr-10"
                     placeholder="••••••••"
                     required

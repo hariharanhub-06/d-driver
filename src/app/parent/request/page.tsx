@@ -91,7 +91,7 @@ export default function StopChangeRequest() {
 
     const handleStopSelect = (id: string) => setNewStopId(id);
 
-    const mapCenter: [number, number] = userLocation || [12.9716, 77.5946];
+    const mapCenter: [number, number] = userLocation || [11.1271, 78.6569];
 
     const mapMarkers = [
         ...(userLocation ? [{ position: userLocation, title: 'Your Location', isUserLocation: true as const }] : []),

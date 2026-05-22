@@ -3,6 +3,9 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import dynamic from 'next/dynamic';
+
+const DriverTour = dynamic(() => import('@/components/tour/DriverTour'), { ssr: false });
 
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
@@ -17,6 +20,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
     return (
         <div className="bg-slate-50 dark:bg-slate-900">
             {children}
+            <DriverTour />
         </div>
     );
 }

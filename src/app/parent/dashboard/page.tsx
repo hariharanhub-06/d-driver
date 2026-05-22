@@ -289,6 +289,7 @@ export default function ParentDashboard() {
                                         <input
                                             type="date"
                                             value={absentForm.from_date}
+                                            max={new Date().toLocaleDateString('en-CA')}
                                             onChange={e => setAbsentForm({ ...absentForm, from_date: e.target.value, to_date: e.target.value > absentForm.to_date ? e.target.value : absentForm.to_date })}
                                             className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
                                         />

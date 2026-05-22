@@ -14,6 +14,9 @@ import type { SchoolPermissions } from '@/context/SchoolBrandingContext';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import AccountSwitcher from '@/components/AccountSwitcher';
+import dynamic from 'next/dynamic';
+
+const ParentTour = dynamic(() => import('@/components/tour/ParentTour'), { ssr: false });
 
 export default function ParentLayout({ children }: { children: React.ReactNode }) {
     const { user, loading, logout } = useAuth();
@@ -205,6 +208,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                 <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
                     {children}
                 </main>
+                <ParentTour />
             </div>
         </div>
     );
