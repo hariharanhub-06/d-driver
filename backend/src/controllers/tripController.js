@@ -280,10 +280,9 @@ const getActiveTrips = async (req, res) => {
         }
       }
 
-      console.log('[getActiveTrips] DEBUG routeStudents:', routeStudents.map(s => ({ name: s.name, stop_id: s.stop_id })));
-      console.log('[getActiveTrips] DEBUG validStopIds:', [...validStopIds]);
-      console.log('[getActiveTrips] DEBUG orphanedStopIds:', orphanedStopIds);
-      console.log('[getActiveTrips] DEBUG remapStopId:', [...remapStopId.entries()]);
+      console.log(`[getActiveTrips] DEBUG students=${routeStudents.length} stops=${validStopIds.size} orphaned=${orphanedStopIds.length} remapped=${remapStopId.size}`);
+      console.log('[getActiveTrips] DEBUG student stop_ids:', JSON.stringify(routeStudents.map(s => ({ n: s.name, sid: s.stop_id }))));
+      console.log('[getActiveTrips] DEBUG validStopIds:', JSON.stringify([...validStopIds]));
 
       for (const trip of trips) {
         for (const stop of (trip.route?.stops || [])) {

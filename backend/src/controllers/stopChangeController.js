@@ -68,7 +68,7 @@ const listRequests = async (req, res) => {
 // PUT /api/v1/stop-change/:id/approve  (admin)
 const approveRequest = async (req, res) => {
   try {
-    const { admin_note } = req.body;
+    const admin_note = req.body?.admin_note;
     const io = req.app.get('io');
 
     const request = await prisma.stopChangeRequest.findUnique({
