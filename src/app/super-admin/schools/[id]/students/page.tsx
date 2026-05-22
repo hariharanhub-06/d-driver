@@ -238,9 +238,9 @@ export default function SchoolStudentsPage() {
                 school_id: id,
                 photo_url: addPhotoUrl || undefined,
                 ...(addForm.fee_amount && {
-                    fee_amount: addForm.fee_amount,
+                    fee_amount: parseFloat(addForm.fee_amount),
                     fee_frequency: addForm.fee_frequency,
-                    fee_due_day: addForm.fee_due_day,
+                    fee_due_day: parseInt(addForm.fee_due_day),
                     academic_year: addForm.academic_year,
                 }),
             });
@@ -253,7 +253,7 @@ export default function SchoolStudentsPage() {
             }
             fetchAll();
         } catch (e: any) {
-            setAddError(e.response?.data?.message || 'Failed to create student.');
+            setAddError(e.response?.data?.error || e.response?.data?.message || 'Failed to create student.');
         } finally {
             setAddSaving(false);
         }
