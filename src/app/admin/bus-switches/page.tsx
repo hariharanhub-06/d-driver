@@ -55,7 +55,7 @@ export default function BusSwitchesPage() {
         if (!assignModal || !selectedBusId) return;
         setIsSubmitting(true);
         try {
-            await api.put(`/bus-switch/${assignModal.id}/assign`, { bus_id: selectedBusId });
+            await api.put(`/bus-switch/${assignModal.id}/assign`, { new_bus_id: selectedBusId });
             const assignedBus = buses.find(b => b.id === selectedBusId);
             setSwitches(prev => prev.map(s => s.id === assignModal.id
                 ? { ...s, status: 'resolved', new_bus: assignedBus ? { id: assignedBus.id, bus_number: assignedBus.bus_number } : s.new_bus }

@@ -68,11 +68,11 @@ const assignNewBus = async (req, res) => {
   });
   if (!switchLog) return res.status(404).json({ error: 'Switch log not found' });
 
-  // Update the driver's permanently assigned bus
-  await prisma.driver.update({
-    where: { id: switchLog.driver_id },
-    data: { assigned_bus_id: new_bus_id },
-  });
+  // Mark the switch log as resolved and update the driver's assigned bus
+  await Promise.all([
+    prisma.busSwitchLog.update({ where: { id: switchLog.id }, data: { new_bus_id } }),
+    prisma.driver.update({ where: { id: switchLog.driver_id }, data: { assigned_bus_id: new_bus_id } }),
+  ]);
 
   const newBus = await prisma.bus.findUnique({ where: { id: new_bus_id } });
 
@@ -94,11 +94,25 @@ const listSwitchLogs = async (req, res) => {
     take: 100,
     include: {
       driver: { include: { user: { select: { name: true } } } },
-      originalBus: { select: { bus_number: true } },
-      newBus: { select: { bus_number: true } },
+      originalBus: { select: { id: true, bus_number: true } },
+      newBus: { select: { id: true, bus_number: true } },
     },
   });
-  res.json({ logs });
+
+  // Shape response to match frontend types (snake_case fields + derived status)
+  const shaped = logs.map(l => ({
+    id: l.id,
+    driver: l.driver,
+    original_bus: l.originalBus,
+    new_bus: l.newBus,
+    reason: l.reason,
+    notes: l.notes,
+    km_at_switch: l.km_at_switch,
+    status: l.new_bus_id ? 'resolved' : 'pending',
+    created_at: l.switched_at,
+  }));
+
+  res.json(shaped);
 };
 
 module.exports = { requestSwitch, assignNewBus, listSwitchLogs };
