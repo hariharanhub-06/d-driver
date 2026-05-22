@@ -291,7 +291,7 @@ const getActiveTrips = async (req, res) => {
             return effectiveStopId === stop.id;
           });
           if (stop.name === 'Sitra')
-            console.log(`[getActiveTrips] Sitra stop id=${stop.id} → ${stop.students.length} students`);
+            console.log(`[SITRA] stop.id=${stop.id} matched=${stop.students.length} | studentStopIds=${JSON.stringify(routeStudents.map(s => s.stop_id))}`);
         }
         trip.route.unassignedStudents = routeStudents.filter(s => {
           const effectiveStopId = todayOverrideMap.get(s.id) ?? remapStopId.get(s.stop_id) ?? s.stop_id;
