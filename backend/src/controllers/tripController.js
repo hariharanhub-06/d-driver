@@ -201,6 +201,10 @@ const getActiveTrips = async (req, res) => {
       where.school = { assigned_sa_id: req.user.id };
     }
 
+    // Filter stops by trip type: morning (before noon) shows morning stops, afternoon shows evening stops.
+    const currentHour = new Date().getHours();
+    const activeTripType = currentHour >= 12 ? 'evening' : 'morning';
+
     const trips = await prisma.activeTrip.findMany({
       where,
       include: {
@@ -208,6 +212,7 @@ const getActiveTrips = async (req, res) => {
           include: {
             stops: {
               orderBy: { sequence: 'asc' },
+              where: { trip_type: activeTripType },
               include: {
                 students: {
                   select: { id: true, name: true, photo_url: true, grade: true },
@@ -280,18 +285,12 @@ const getActiveTrips = async (req, res) => {
         }
       }
 
-      console.log(`[getActiveTrips] DEBUG students=${routeStudents.length} stops=${validStopIds.size} orphaned=${orphanedStopIds.length} remapped=${remapStopId.size}`);
-      console.log('[getActiveTrips] DEBUG student stop_ids:', JSON.stringify(routeStudents.map(s => ({ n: s.name, sid: s.stop_id }))));
-      console.log('[getActiveTrips] DEBUG validStopIds:', JSON.stringify([...validStopIds]));
-
       for (const trip of trips) {
         for (const stop of (trip.route?.stops || [])) {
           stop.students = routeStudents.filter(s => {
             const effectiveStopId = todayOverrideMap.get(s.id) ?? remapStopId.get(s.stop_id) ?? s.stop_id;
             return effectiveStopId === stop.id;
           });
-          if (stop.name === 'Sitra')
-            console.log(`[SITRA] stop.id=${stop.id} matched=${stop.students.length} | studentStopIds=${JSON.stringify(routeStudents.map(s => s.stop_id))}`);
         }
         trip.route.unassignedStudents = routeStudents.filter(s => {
           const effectiveStopId = todayOverrideMap.get(s.id) ?? remapStopId.get(s.stop_id) ?? s.stop_id;
