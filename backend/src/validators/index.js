@@ -104,7 +104,7 @@ const busSwitchSchema = z.object({
 
 const absenceReportSchema = z.object({
   student_id: z.string().uuid(),
-  date: z.string().datetime(),
+  date: z.string().min(1),
   reason: z.string().optional(),
 });
 

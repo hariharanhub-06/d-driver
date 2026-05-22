@@ -89,7 +89,7 @@ export default function ParentDashboard() {
                 return;
             }
             setShowAbsentModal(false);
-            setAbsentForm({ student_id: '', from_date: today, to_date: today, reason: '' });
+            setAbsentForm({ student_id: '', from_date: tomorrow, to_date: tomorrow, reason: '' });
             alert(`Absence reported for ${succeeded} day${succeeded > 1 ? 's' : ''}${succeeded < dates.length ? ` (${dates.length - succeeded} already reported)` : ''}.`);
         } finally {
             setSubmitting(false);
