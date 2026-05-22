@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, LogOut, X, Moon, Sun, DollarSign, Hash } from 'lucide-react';
+import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, LogOut, X, Moon, Sun, DollarSign, Hash, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from 'next-themes';
 import api from '@/lib/api';
@@ -58,6 +58,7 @@ export default function DriverDashboard() {
 
     const [pendingRouteId, setPendingRouteId] = useState<string | null>(null);
     const [showRouteTypeModal, setShowRouteTypeModal] = useState(false);
+    const [startingTripType, setStartingTripType] = useState<string | null>(null);
     const [fillSubmitting, setFillSubmitting] = useState(false);
     const [fillSuccess, setFillSuccess] = useState(false);
 
@@ -112,13 +113,14 @@ export default function DriverDashboard() {
     };
 
     const confirmStartTrip = async (routeType: string) => {
-        setShowRouteTypeModal(false);
-        if (!pendingRouteId) return;
+        if (!pendingRouteId || startingTripType) return;
+        setStartingTripType(routeType);
         try {
             await api.post('/trips/start', { route_id: pendingRouteId, route_type: routeType });
             localStorage.setItem('driver_trip_type', routeType);
             router.push('/driver/ride');
         } catch (e: any) {
+            setStartingTripType(null);
             alert(e.response?.data?.error || e.response?.data?.message || 'Failed to start trip');
         }
     };
@@ -494,24 +496,33 @@ export default function DriverDashboard() {
                         <div className="grid grid-cols-2 gap-3 mb-4">
                             <button
                                 onClick={() => confirmStartTrip('morning')}
-                                className="flex flex-col items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500 rounded-xl p-4 transition-all active:scale-95"
+                                disabled={!!startingTripType}
+                                className="flex flex-col items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500 rounded-xl p-4 transition-all active:scale-95 disabled:opacity-60"
                             >
-                                <span className="text-2xl">🌅</span>
+                                {startingTripType === 'morning'
+                                    ? <Loader2 className="w-7 h-7 text-amber-600 animate-spin" />
+                                    : <span className="text-2xl">🌅</span>
+                                }
                                 <span className="text-sm font-bold text-amber-700 dark:text-amber-400">Morning</span>
                                 <span className="text-xs text-slate-500 dark:text-slate-400">Pickup route</span>
                             </button>
                             <button
                                 onClick={() => confirmStartTrip('afternoon')}
-                                className="flex flex-col items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500 rounded-xl p-4 transition-all active:scale-95"
+                                disabled={!!startingTripType}
+                                className="flex flex-col items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500 rounded-xl p-4 transition-all active:scale-95 disabled:opacity-60"
                             >
-                                <span className="text-2xl">🌆</span>
+                                {startingTripType === 'afternoon'
+                                    ? <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
+                                    : <span className="text-2xl">🌆</span>
+                                }
                                 <span className="text-sm font-bold text-blue-700 dark:text-blue-400">Evening</span>
                                 <span className="text-xs text-slate-500 dark:text-slate-400">Drop route</span>
                             </button>
                         </div>
                         <button
-                            onClick={() => setShowRouteTypeModal(false)}
-                            className="w-full py-2.5 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                            onClick={() => { setShowRouteTypeModal(false); setStartingTripType(null); }}
+                            disabled={!!startingTripType}
+                            className="w-full py-2.5 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors disabled:opacity-40"
                         >
                             Cancel
                         </button>

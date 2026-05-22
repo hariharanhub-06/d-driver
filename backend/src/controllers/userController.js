@@ -54,6 +54,8 @@ const listSchoolUsers = async (req, res) => {
                 role: true,
                 is_active: true,
                 is_first_login: true,
+                assigned_bus_id: true,
+                assignedBus: { select: { id: true, bus_number: true } },
                 created_at: true,
                 school: { select: { id: true, name: true } },
             },
@@ -222,7 +224,7 @@ const getAllUsers = async (req, res) => {
 
 const createUser = async (req, res) => {
     try {
-        const { name, email: rawEmail, role, school_id, phone: rawPhone } = req.body;
+        const { name, email: rawEmail, role, school_id, phone: rawPhone, assigned_bus_id } = req.body;
         const email = rawEmail?.toLowerCase().trim();
         const phone = rawPhone?.trim() || null;
         // Admin creating school-scoped users — inherit their school if none provided
@@ -251,8 +253,13 @@ const createUser = async (req, res) => {
         }
         const hashedPassword = await bcrypt.hash(rawPassword, 12);
         const user = await prisma.user.create({
-            data: { name, email, password: hashedPassword, role, school_id: effectiveSchoolId || null, phone, is_first_login: true, is_active: true },
-            select: { id: true, name: true, email: true, phone: true, role: true, school_id: true, created_at: true },
+            data: {
+                name, email, password: hashedPassword, role,
+                school_id: effectiveSchoolId || null, phone,
+                assigned_bus_id: (role === 'bus_staff' && assigned_bus_id) ? assigned_bus_id : null,
+                is_first_login: true, is_active: true,
+            },
+            select: { id: true, name: true, email: true, phone: true, role: true, school_id: true, assigned_bus_id: true, created_at: true },
         });
         res.status(201).json(user);
     } catch (error) {
@@ -272,7 +279,7 @@ const updateUser = async (req, res) => {
         const updated = await prisma.user.update({
             where: { id },
             data: safeData,
-            select: { id: true, name: true, email: true, phone: true, role: true, is_active: true },
+            select: { id: true, name: true, email: true, phone: true, role: true, is_active: true, assigned_bus_id: true },
         });
         res.json(updated);
     } catch (error) {

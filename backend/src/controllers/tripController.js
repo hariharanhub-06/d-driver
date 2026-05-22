@@ -124,6 +124,11 @@ const getActiveTrips = async (req, res) => {
     where.school_id = req.user.school_id;
     const driver = await prisma.driver.findUnique({ where: { user_id: req.user.id }, select: { id: true } });
     if (driver) where.driver_id = driver.id;
+  } else if (req.user.role === 'bus_staff') {
+    // Bus staff sees only the trip for their assigned bus
+    where.school_id = req.user.school_id;
+    const staffUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { assigned_bus_id: true } });
+    if (staffUser?.assigned_bus_id) where.bus_id = staffUser.assigned_bus_id;
   } else if (req.schoolId) {
     // Admin or SA filtered to a specific school
     where.school_id = req.schoolId;

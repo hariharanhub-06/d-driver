@@ -35,6 +35,7 @@ router.get('/',             requireRole('admin', 'super_admin'), requireSchoolSc
 // Legacy admin endpoints
 router.post('/',            requireRole('admin', 'super_admin'), createUser);
 router.put('/:id',          requireRole('admin', 'super_admin'), updateUser);
+router.patch('/:id',        requireRole('admin', 'super_admin'), updateUser);
 
 // Toggle active / delete / reset password
 router.patch('/:id/active',           requireRole('admin', 'super_admin'), toggleUserActive);

@@ -18,22 +18,25 @@ function centerAspectCrop(width: number, height: number): Crop {
     );
 }
 
+const MAX_LOGO_SIZE = 512;
+
 async function cropImageToFile(img: HTMLImageElement, pixelCrop: PixelCrop, fileName: string): Promise<File> {
     const canvas = document.createElement('canvas');
-    const size = Math.max(pixelCrop.width, pixelCrop.height);
-    canvas.width = size;
-    canvas.height = size;
+    const srcSize = Math.max(pixelCrop.width, pixelCrop.height);
+    const outSize = Math.min(srcSize, MAX_LOGO_SIZE);
+    canvas.width = outSize;
+    canvas.height = outSize;
     const ctx = canvas.getContext('2d')!;
     ctx.drawImage(
         img,
         pixelCrop.x, pixelCrop.y,
         pixelCrop.width, pixelCrop.height,
-        0, 0, size, size,
+        0, 0, outSize, outSize,
     );
     return new Promise(resolve => {
         canvas.toBlob(blob => {
-            resolve(new File([blob!], fileName, { type: 'image/png' }));
-        }, 'image/png');
+            resolve(new File([blob!], fileName.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }));
+        }, 'image/jpeg', 0.85);
     });
 }
 
@@ -52,7 +55,7 @@ export default function LogoCropModal({ src, onConfirm, onCancel }: Props) {
         if (!imgRef.current || !completedCrop) return;
         setLoading(true);
         try {
-            const file = await cropImageToFile(imgRef.current, completedCrop, 'logo.png');
+            const file = await cropImageToFile(imgRef.current, completedCrop, 'logo.jpg');
             onConfirm(file);
         } finally {
             setLoading(false);
