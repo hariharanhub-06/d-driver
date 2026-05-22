@@ -127,7 +127,11 @@ const registerSchool = async (req, res) => {
       console.warn('sendWelcomeAdmin failed (non-fatal):', emailErr.message);
     }
 
-    await logAction({ req, action: 'create_school', targetType: 'school', targetId: school.id, schoolId: school.id });
+    try {
+      await logAction({ req, action: 'create_school', targetType: 'school', targetId: school.id, schoolId: school.id });
+    } catch (logErr) {
+      console.warn('logAction failed (non-fatal):', logErr.message);
+    }
     res.status(201).json({ ...school, temp_password: tempPassword });
   } catch (err) {
     console.error(err);
