@@ -18,10 +18,15 @@ const requestSwitch = async (req, res) => {
   if (!original_bus_id) original_bus_id = driver.assigned_bus_id;
   if (!original_bus_id) return res.status(400).json({ error: 'No bus assigned to this driver' });
 
-  const activeShift = await prisma.driverShift.findFirst({
+  let activeShift = await prisma.driverShift.findFirst({
     where: { driver_id: driver.id, status: 'active', school_id: schoolId },
   });
-  if (!activeShift) return res.status(400).json({ error: 'No active shift — start a shift first' });
+  // Auto-create a shift if none is open (driver may have started a trip without starting a shift)
+  if (!activeShift) {
+    activeShift = await prisma.driverShift.create({
+      data: { driver_id: driver.id, school_id: schoolId, start_time: new Date(), status: 'active' },
+    });
+  }
 
   const ops = [
     prisma.busSwitchLog.create({

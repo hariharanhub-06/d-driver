@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, ChevronDown, ChevronRight, Loader2, Calendar, LogIn, Bus, Navigation } from 'lucide-react';
+import { Clock, ChevronDown, ChevronRight, Loader2, Calendar, LogIn, Bus, Navigation, CheckSquare } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -26,7 +26,7 @@ type Shift = {
 
 type ActivityEvent = {
     id: string;
-    type: 'login' | 'trip_start' | 'trip_end';
+    type: 'login' | 'trip_start' | 'trip_end' | 'attendance';
     actor_name?: string;
     actor_role?: string;
     route_name?: string;
@@ -100,9 +100,10 @@ export default function ShiftLogsPage() {
             if (dateFrom) params.date_from = dateFrom;
             if (dateTo) params.date_to = dateTo;
 
-            const [loginsRes, tripsRes] = await Promise.allSettled([
+            const [loginsRes, tripsRes, attendanceRes] = await Promise.allSettled([
                 api.get('/audit/login-activity', { params: { ...params, role: undefined } }),
                 api.get('/trips/history', { params }),
+                api.get('/audit/logs', { params: { ...params, action: 'mark_attendance', limit: 200 } }),
             ]);
 
             const events: ActivityEvent[] = [];
@@ -150,6 +151,22 @@ export default function ShiftLogsPage() {
                 }
             }
 
+            // Attendance marking events
+            if (attendanceRes.status === 'fulfilled') {
+                const logs = attendanceRes.value.data?.logs || [];
+                for (const l of logs) {
+                    if (l.actor_role === 'driver' || l.actor_role === 'bus_staff') {
+                        events.push({
+                            id: l.id,
+                            type: 'attendance',
+                            actor_name: l.actor_name,
+                            actor_role: l.actor_role,
+                            timestamp: l.created_at,
+                        });
+                    }
+                }
+            }
+
             events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             setActivity(events);
         } catch {
@@ -171,6 +188,7 @@ export default function ShiftLogsPage() {
     const eventIcon = (type: ActivityEvent['type']) => {
         if (type === 'login') return <LogIn className="w-4 h-4 text-blue-500" />;
         if (type === 'trip_start') return <Navigation className="w-4 h-4 text-emerald-500" />;
+        if (type === 'attendance') return <CheckSquare className="w-4 h-4 text-violet-500" />;
         return <Bus className="w-4 h-4 text-amber-500" />;
     };
 
@@ -178,6 +196,10 @@ export default function ShiftLogsPage() {
         if (ev.type === 'login') {
             const role = ev.actor_role === 'bus_staff' ? 'Bus Staff' : 'Driver';
             return <><span className="font-semibold text-slate-800 dark:text-white">{ev.actor_name}</span> <span className="text-slate-500 dark:text-slate-400">({role}) logged in</span></>;
+        }
+        if (ev.type === 'attendance') {
+            const role = ev.actor_role === 'bus_staff' ? 'Bus Staff' : 'Driver';
+            return <><span className="font-semibold text-slate-800 dark:text-white">{ev.actor_name}</span> <span className="text-slate-500 dark:text-slate-400">({role}) marked attendance</span></>;
         }
         if (ev.type === 'trip_start') {
             return <><span className="font-semibold text-slate-800 dark:text-white">{ev.driver_name || 'Driver'}</span> <span className="text-slate-500 dark:text-slate-400">started trip on route</span> <span className="font-semibold text-slate-800 dark:text-white">{ev.route_name}</span>{ev.bus_number && <span className="text-slate-400"> · Bus {ev.bus_number}</span>}</>;
@@ -188,6 +210,7 @@ export default function ShiftLogsPage() {
     const eventBg = (type: ActivityEvent['type']) => {
         if (type === 'login') return 'bg-blue-50 dark:bg-blue-900/20';
         if (type === 'trip_start') return 'bg-emerald-50 dark:bg-emerald-900/20';
+        if (type === 'attendance') return 'bg-violet-50 dark:bg-violet-900/20';
         return 'bg-amber-50 dark:bg-amber-900/20';
     };
 
@@ -238,7 +261,7 @@ export default function ShiftLogsPage() {
                                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                         )}
                     >
-                        {t === 'shifts' ? 'Shift KM Logs' : 'Login & Trip Activity'}
+                        {t === 'shifts' ? 'Shift KM Logs' : 'User Activity'}
                     </button>
                 ))}
             </div>

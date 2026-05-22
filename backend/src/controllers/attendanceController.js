@@ -1,5 +1,6 @@
 const prisma = require('../prisma');
 const { notifyAdmins } = require('../utils/notifications');
+const { logAction } = require('../utils/auditLog');
 
 /**
  * Reconcile driver and bus_staff attendance marks for a student on a given day.
@@ -141,6 +142,9 @@ const markAttendance = async (req, res) => {
             console.error('Reconcile error:', reconcileErr.message);
         }
 
+        // Log to audit trail (fire-and-forget)
+        logAction({ req, action: 'mark_attendance', targetType: 'student', targetId: student_id });
+
         res.status(201).json(record);
     } catch (error) {
         res.status(500).json({ error: 'Error marking attendance', details: error.message });
@@ -163,16 +167,11 @@ const getAttendance = async (req, res) => {
             const end = new Date(year, mon, 1);
             where.date = { gte: start, lt: end };
         } else if (date) {
-            const day = new Date(date);
-            const nextDay = new Date(date);
-            nextDay.setDate(nextDay.getDate() + 1);
-            where.date = { gte: day, lt: nextDay };
+            // Use date_only string field to avoid UTC/IST timezone mismatches
+            where.date_only = date;
         } else {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            where.date = { gte: today, lt: tomorrow };
+            const todayStr = new Date().toLocaleDateString('en-CA'); // "YYYY-MM-DD" server local
+            where.date_only = todayStr;
         }
 
         if (route_id) {

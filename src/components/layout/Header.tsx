@@ -25,6 +25,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [notifications, setNotifications] = useState<RealNotification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [, setTimeTick] = useState(0);
 
     // useTour returns a no-op startTour when called outside TourProvider (safe default context)
     const { startTour } = useTour();
@@ -48,6 +49,12 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
         const interval = setInterval(fetchNotifications, 30000);
         return () => clearInterval(interval);
     }, [user, fetchNotifications]);
+
+    // Re-render every 60s so relative timestamps ("2 min ago") stay accurate
+    useEffect(() => {
+        const id = setInterval(() => setTimeTick(t => t + 1), 60000);
+        return () => clearInterval(id);
+    }, []);
 
     const markAllRead = async () => {
         try {

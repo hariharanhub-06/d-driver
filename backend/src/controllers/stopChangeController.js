@@ -98,7 +98,7 @@ const approveRequest = async (req, res) => {
     const studentName = request.student?.name || 'Student';
     const typeLabel = request.change_type === 'temporary' ? 'temporarily' : 'permanently';
 
-    await prisma.notification.create({
+    const notif = await prisma.notification.create({
       data: {
         user_id: request.parent_id,
         message: `Stop change for ${studentName} approved. ${studentName} will ${typeLabel} board from "${stopName}".`,
@@ -108,6 +108,10 @@ const approveRequest = async (req, res) => {
     });
 
     io?.to(`parent-${request.parent_id}`).emit('stop-change-approved', { student_name: studentName });
+    io?.to(`parent-${request.parent_id}`).emit('new-notification', {
+      id: notif.id, message: notif.message, type: notif.type,
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+    });
 
     res.json({ message: `Stop change approved (${request.change_type})` });
   } catch (error) {
@@ -134,7 +138,7 @@ const rejectRequest = async (req, res) => {
     });
 
     const studentName = request.student?.name || 'Student';
-    await prisma.notification.create({
+    const rejectNotif = await prisma.notification.create({
       data: {
         user_id: request.parent_id,
         message: `Stop change for ${studentName} was not approved.${admin_note ? ' ' + admin_note : ''}`,
@@ -144,6 +148,10 @@ const rejectRequest = async (req, res) => {
     });
 
     io?.to(`parent-${request.parent_id}`).emit('stop-change-rejected', { student_name: studentName, reason: admin_note });
+    io?.to(`parent-${request.parent_id}`).emit('new-notification', {
+      id: rejectNotif.id, message: rejectNotif.message, type: rejectNotif.type,
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+    });
 
     res.json({ message: 'Stop change request rejected' });
   } catch (error) {
