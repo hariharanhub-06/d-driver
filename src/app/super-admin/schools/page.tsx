@@ -113,6 +113,7 @@ export default function SchoolsManagement() {
     const [fixUserResult, setFixUserResult] = useState<any>(null);
     const [fixUserLoading, setFixUserLoading] = useState(false);
     const [fixUserMsg, setFixUserMsg] = useState('');
+    const [fixTargetRole, setFixTargetRole] = useState('driver');
 
     const handleFindUser = async () => {
         if (!fixEmail.trim()) return;
@@ -128,11 +129,11 @@ export default function SchoolsManagement() {
         finally { setFixUserLoading(false); }
     };
 
-    const handleFixToParent = async () => {
+    const handleFixRole = async () => {
         if (!fixUserResult || !adminSchool) return;
         try {
-            await api.patch(`/users/${fixUserResult.id}`, { role: 'parent', school_id: adminSchool.id });
-            setFixUserMsg(`✓ ${fixUserResult.name} changed to parent in ${adminSchool.name}.`);
+            await api.patch(`/users/${fixUserResult.id}`, { role: fixTargetRole, school_id: adminSchool.id });
+            setFixUserMsg(`✓ ${fixUserResult.name} changed to ${fixTargetRole} in ${adminSchool.name}.`);
             setFixUserResult(null);
             setFixEmail('');
         } catch (err: any) { setFixUserMsg(err.response?.data?.error || 'Failed to fix role.'); }
@@ -888,12 +889,18 @@ export default function SchoolsManagement() {
                                                 <p className="text-sm font-semibold text-slate-900 dark:text-white">{fixUserResult.name}</p>
                                                 <p className="text-xs text-slate-500">{fixUserResult.email} · <span className="text-amber-600 dark:text-amber-400 font-medium">{fixUserResult.role}</span> · {fixUserResult.school?.name || <span className="text-red-500">No school (orphaned)</span>}</p>
                                             </div>
-                                            <div className="flex gap-2">
-                                                <button type="button" onClick={handleFixToParent} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors">
-                                                    Set as Parent here
+                                            <div className="flex gap-2 items-center">
+                                                <select value={fixTargetRole} onChange={e => setFixTargetRole(e.target.value)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none">
+                                                    <option value="driver">driver</option>
+                                                    <option value="bus_staff">bus_staff</option>
+                                                    <option value="parent">parent</option>
+                                                    <option value="admin">admin</option>
+                                                </select>
+                                                <button type="button" onClick={handleFixRole} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap">
+                                                    Set Role
                                                 </button>
                                                 <button type="button" onClick={handleDeleteFixUser} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 transition-colors">
-                                                    Delete User
+                                                    Delete
                                                 </button>
                                             </div>
                                         </div>
