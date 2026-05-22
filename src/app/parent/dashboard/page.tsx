@@ -34,7 +34,8 @@ export default function ParentDashboard() {
     const [showAbsentModal, setShowAbsentModal] = useState(false);
     const [activeChildId, setActiveChildId] = useState<string | null>(null);
     const today = new Date().toLocaleDateString('en-CA');
-    const [absentForm, setAbsentForm] = useState({ student_id: '', from_date: today, to_date: today, reason: '' });
+    const tomorrow = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-CA'); })();
+    const [absentForm, setAbsentForm] = useState({ student_id: '', from_date: tomorrow, to_date: tomorrow, reason: '' });
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
@@ -289,7 +290,7 @@ export default function ParentDashboard() {
                                         <input
                                             type="date"
                                             value={absentForm.from_date}
-                                            max={new Date().toLocaleDateString('en-CA')}
+                                            min={tomorrow}
                                             onChange={e => setAbsentForm({ ...absentForm, from_date: e.target.value, to_date: e.target.value > absentForm.to_date ? e.target.value : absentForm.to_date })}
                                             className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
                                         />
@@ -299,7 +300,7 @@ export default function ParentDashboard() {
                                         <input
                                             type="date"
                                             value={absentForm.to_date}
-                                            min={absentForm.from_date}
+                                            min={absentForm.from_date || tomorrow}
                                             onChange={e => setAbsentForm({ ...absentForm, to_date: e.target.value })}
                                             className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
                                         />

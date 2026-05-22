@@ -47,22 +47,27 @@ async function reconcileAttendance(student_id, date_only, school_id, io) {
 
     if (!student.parent_id) return;
 
-    // Remove any prior same-day notification for this student to avoid duplicates
+    // Remove any prior same-day attendance notification for this student to avoid duplicates
     const startOfDay = new Date(date_only);
     startOfDay.setHours(0, 0, 0, 0);
     await prisma.notification.deleteMany({
         where: {
             user_id: student.parent_id,
-            message: { contains: `${student.name} is marked` },
+            message: { contains: student.name },
             created_at: { gte: startOfDay },
+            type: { in: ['success', 'alert'] },
         },
     });
+
+    const msg = finalStatus === 'present'
+        ? `${student.name} is present in the bus today.`
+        : `${student.name} is marked absent today.`;
 
     await prisma.notification.create({
         data: {
             user_id: student.parent_id,
             school_id,
-            message: `${student.name} is marked ${finalStatus} today.`,
+            message: msg,
             type: finalStatus === 'present' ? 'success' : 'alert',
         },
     });

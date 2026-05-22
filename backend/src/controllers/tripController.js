@@ -37,23 +37,31 @@ const startTrip = async (req, res) => {
     });
 
     const routeName = trip.route.name;
-    const parentNotifications = students
-      .filter((s) => s.parent)
-      .map((s) =>
-        prisma.notification.create({
-          data: {
-            user_id: s.parent.id,
-            message: `Bus has started for route "${routeName}". It's on the way!`,
-            type: 'info',
-            school_id: schoolId,
-          },
-        })
-      );
+
+    // Group students by parent_id so one parent with multiple students gets one notification
+    const parentMap = new Map();
+    for (const s of students) {
+      if (!s.parent) continue;
+      if (!parentMap.has(s.parent.id)) parentMap.set(s.parent.id, { parentId: s.parent.id, names: [] });
+      parentMap.get(s.parent.id).names.push(s.name);
+    }
+
+    const parentNotifications = [...parentMap.values()].map(({ parentId, names }) => {
+      const nameStr = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+      return prisma.notification.create({
+        data: {
+          user_id: parentId,
+          message: `Bus is on the way to pick up ${nameStr}. Route: "${routeName}".`,
+          type: 'info',
+          school_id: schoolId,
+        },
+      });
+    });
     await Promise.all(parentNotifications);
 
-    students.filter((s) => s.parent).forEach((s) => {
-      io?.to(`parent-${s.parent.id}`).emit('trip-started', { route_id, route_name: routeName });
-    });
+    for (const { parentId } of parentMap.values()) {
+      io?.to(`parent-${parentId}`).emit('trip-started', { route_id, route_name: routeName });
+    }
 
     io?.to(`driver-${driverId}`).emit('request-km-entry', { entry_type: 'route_start', message: 'Enter current odometer reading to start trip' });
 
@@ -111,15 +119,30 @@ const completeTrip = async (req, res) => {
       include: { parent: { select: { id: true } } },
     });
 
-    const msg = `Bus has completed route "${trip.route.name}". All students have arrived.`;
-    const notifs = students.filter((s) => s.parent).map((s) =>
-      prisma.notification.create({ data: { user_id: s.parent.id, message: msg, type: 'success', school_id: schoolId } })
-    );
+    // Group by parent_id — one notification per parent even if they have multiple students
+    const parentMap = new Map();
+    for (const s of students) {
+      if (!s.parent) continue;
+      if (!parentMap.has(s.parent.id)) parentMap.set(s.parent.id, { parentId: s.parent.id, names: [] });
+      parentMap.get(s.parent.id).names.push(s.name);
+    }
+
+    const notifs = [...parentMap.values()].map(({ parentId, names }) => {
+      const nameStr = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+      return prisma.notification.create({
+        data: {
+          user_id: parentId,
+          message: `Bus has arrived at school. ${nameStr} reached school safely. Route: "${trip.route.name}".`,
+          type: 'success',
+          school_id: schoolId,
+        },
+      });
+    });
     await Promise.all(notifs);
 
-    students.filter((s) => s.parent).forEach((s) => {
-      io?.to(`parent-${s.parent.id}`).emit('trip-completed', { route_id: trip.route_id });
-    });
+    for (const { parentId } of parentMap.values()) {
+      io?.to(`parent-${parentId}`).emit('trip-completed', { route_id: trip.route_id });
+    }
 
     io?.to(`driver-${req.user.id}`).emit('request-km-entry', { entry_type: 'route_end', message: 'Enter odometer reading to close trip' });
 
@@ -200,6 +223,29 @@ const getActiveTrips = async (req, res) => {
         bus: { select: { bus_number: true } },
       },
     });
+
+    // Explicit re-map: override nested Prisma include with a direct query per route.
+    // Handles the case where student.stop_id was set to NULL by onDelete:SetNull
+    // when stops were deleted/recreated, making the nested include return [].
+    if (trips.length > 0) {
+      const allRouteIds = [...new Set(trips.map(t => t.route_id).filter(Boolean))];
+      const schoolId = where.school_id || req.user.school_id;
+      const routeStudents = await prisma.student.findMany({
+        where: { route_id: { in: allRouteIds }, ...(schoolId ? { school_id: schoolId } : {}) },
+        select: { id: true, name: true, photo_url: true, grade: true, stop_id: true },
+      });
+
+      for (const trip of trips) {
+        for (const stop of (trip.route?.stops || [])) {
+          stop.students = routeStudents.filter(s => s.stop_id === stop.id);
+        }
+        // Expose unassigned students (stop_id=null) so frontend can show them
+        trip.route.unassignedStudents = routeStudents.filter(
+          s => !s.stop_id && s.route_id === trip.route_id
+        );
+      }
+    }
+
     res.json(trips);
   } catch (error) {
     console.error('getActiveTrips error:', error.message);

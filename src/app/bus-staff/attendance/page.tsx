@@ -26,6 +26,7 @@ interface TripStop {
     latitude?: number;
     longitude?: number;
     students: Student[];
+    isUnassigned?: boolean;
 }
 
 export default function BusStaffAttendancePage() {
@@ -60,22 +61,32 @@ export default function BusStaffAttendancePage() {
 
             setTripId(trip.id);
             const route = trip.route || {};
-            const students: Student[] = route.students || [];
-            // Prefer students embedded per-stop (from getActiveTrips include);
-            // fall back to filtering route.students by stop_id if not present.
+            const routeStudents: Student[] = route.students || [];
+
+            // stop.students comes from the backend explicit re-map (reliable).
+            // Use length check (not ??) so an empty array [] falls back to route-level filter.
             let enrichedStops: TripStop[] = (route.stops || []).map((stop: any) => ({
                 ...stop,
-                students: stop.students ?? students.filter((s: any) => s.stop_id === stop.id),
+                students: stop.students?.length > 0
+                    ? stop.students
+                    : routeStudents.filter((s: any) => s.stop_id === stop.id),
             }));
 
-            if (enrichedStops.length === 0) {
-                const routeRes = await api.get(`/routes/${trip.route_id}`);
-                const r = routeRes.data;
-                const s2: Student[] = r.students || [];
-                enrichedStops = (r.stops || []).map((stop: any) => ({
-                    ...stop,
-                    students: stop.students ?? s2.filter((s: any) => s.stop_id === stop.id),
-                }));
+            // If ALL stops have 0 students, students have no stop_id.
+            // Show them as a single virtual "Unassigned Students" stop so bus staff can still mark.
+            const totalAssigned = enrichedStops.reduce((n, s) => n + s.students.length, 0);
+            const unassigned: Student[] = (route.unassignedStudents || routeStudents.filter((s: any) => !s.stop_id));
+            if (totalAssigned === 0 && unassigned.length > 0) {
+                enrichedStops = [
+                    ...enrichedStops,
+                    {
+                        id: '__unassigned__',
+                        name: 'Unassigned Students',
+                        sequence: 999,
+                        isUnassigned: true,
+                        students: unassigned,
+                    },
+                ];
             }
 
             setStops(enrichedStops);

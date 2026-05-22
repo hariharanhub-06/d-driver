@@ -17,6 +17,7 @@ const TABS = [
     { label: 'Attendance',    path: '/attendance' },
     { label: 'Live Tracking', path: '/tracking' },
     { label: 'Revenue',       path: '/revenue' },
+    { label: 'Activity',      path: '/activity' },
 ];
 
 export default function SchoolDrillLayout({ children }: { children: React.ReactNode }) {

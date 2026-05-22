@@ -1,8 +1,8 @@
 const prisma = require('../prisma');
 const { distanceMeters } = require('../utils/haversine');
 
-// In-memory map tracking which (tripId:stopId) pairs have triggered proximity alerts.
-// Keyed by `tripId:stopId`, value is the timestamp of the alert.
+// In-memory map tracking proximity/arrival alerts per (tripId:stopId:type).
+// Types: "approaching" (1 km), "arrived" (100 m).
 // Entries older than 2 hours are purged so alerts can re-fire on the next trip the same day.
 const alertedStops = new Map();
 const ALERT_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -75,10 +75,6 @@ const updateLocation = async (req, res) => {
             );
 
             for (const stop of remainingStops) {
-                const alertKey = `${activeTrip.id}:${stop.id}`;
-                const alertedAt = alertedStops.get(alertKey);
-                if (alertedAt && Date.now() - alertedAt < ALERT_TTL_MS) continue;
-
                 const dist = distanceMeters(
                     parseFloat(latitude),
                     parseFloat(longitude),
@@ -86,30 +82,64 @@ const updateLocation = async (req, res) => {
                     stop.longitude
                 );
 
-                if (dist <= 1000) {
-                    alertedStops.set(alertKey, Date.now());
+                // Fetch students at this stop once (reused for both proximity levels)
+                const approachingKey = `${activeTrip.id}:${stop.id}:approaching`;
+                const arrivedKey    = `${activeTrip.id}:${stop.id}:arrived`;
 
-                    // Find all students at this stop and notify their parents
-                    const students = await prisma.student.findMany({
-                        where: { stop_id: stop.id, school_id: schoolId },
-                        select: { parent_id: true, name: true },
-                    });
+                const shouldApproach = dist <= 1000 && !(alertedStops.get(approachingKey) && Date.now() - alertedStops.get(approachingKey) < ALERT_TTL_MS);
+                const shouldArrived  = dist <= 100  && !(alertedStops.get(arrivedKey)     && Date.now() - alertedStops.get(arrivedKey)     < ALERT_TTL_MS);
 
-                    for (const student of students) {
-                        if (!student.parent_id) continue;
+                if (!shouldApproach && !shouldArrived) continue;
 
+                const students = await prisma.student.findMany({
+                    where: { stop_id: stop.id, school_id: schoolId },
+                    select: { parent_id: true, name: true },
+                });
+
+                // Group by parent_id — one notification per parent
+                const parentMap = new Map();
+                for (const s of students) {
+                    if (!s.parent_id) continue;
+                    if (!parentMap.has(s.parent_id)) parentMap.set(s.parent_id, []);
+                    parentMap.get(s.parent_id).push(s.name);
+                }
+
+                if (shouldApproach) {
+                    alertedStops.set(approachingKey, Date.now());
+                    for (const [parentId, names] of parentMap) {
+                        const nameStr = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
                         const notification = await prisma.notification.create({
                             data: {
-                                user_id: student.parent_id,
+                                user_id: parentId,
                                 school_id: schoolId,
                                 type: 'alert',
-                                message: `Bus is approaching ${stop.name} for ${student.name}. Please be ready.`,
+                                message: `Bus is 1 km away from ${stop.name}. ${nameStr} — please be ready!`,
                             },
                         });
-
-                        io.to(`parent-${student.parent_id}`).emit('bus-approaching', {
+                        io.to(`parent-${parentId}`).emit('bus-approaching', {
                             stopName: stop.name,
-                            studentName: student.name,
+                            studentNames: names,
+                            distanceKm: (dist / 1000).toFixed(1),
+                            notification,
+                        });
+                    }
+                }
+
+                if (shouldArrived) {
+                    alertedStops.set(arrivedKey, Date.now());
+                    for (const [parentId, names] of parentMap) {
+                        const nameStr = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+                        const notification = await prisma.notification.create({
+                            data: {
+                                user_id: parentId,
+                                school_id: schoolId,
+                                type: 'info',
+                                message: `Bus has arrived at ${stop.name} to pick up ${nameStr}.`,
+                            },
+                        });
+                        io.to(`parent-${parentId}`).emit('bus-arrived-stop', {
+                            stopName: stop.name,
+                            studentNames: names,
                             notification,
                         });
                     }
