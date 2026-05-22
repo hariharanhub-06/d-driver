@@ -108,6 +108,46 @@ export default function SchoolsManagement() {
     const [adminSubmitting, setAdminSubmitting] = useState(false);
     const [adminError, setAdminError] = useState('');
 
+    // ── Find & Fix orphaned user ─────────────────────────────────────────────
+    const [fixEmail, setFixEmail] = useState('');
+    const [fixUserResult, setFixUserResult] = useState<any>(null);
+    const [fixUserLoading, setFixUserLoading] = useState(false);
+    const [fixUserMsg, setFixUserMsg] = useState('');
+
+    const handleFindUser = async () => {
+        if (!fixEmail.trim()) return;
+        setFixUserLoading(true);
+        setFixUserResult(null);
+        setFixUserMsg('');
+        try {
+            const { data } = await api.get('/users', { params: { email: fixEmail.trim() } });
+            const found = Array.isArray(data) ? data.find((u: any) => u.email.toLowerCase() === fixEmail.trim().toLowerCase()) : null;
+            if (found) setFixUserResult(found);
+            else setFixUserMsg('No user found with that email.');
+        } catch { setFixUserMsg('Search failed.'); }
+        finally { setFixUserLoading(false); }
+    };
+
+    const handleFixToParent = async () => {
+        if (!fixUserResult || !adminSchool) return;
+        try {
+            await api.patch(`/users/${fixUserResult.id}`, { role: 'parent', school_id: adminSchool.id });
+            setFixUserMsg(`✓ ${fixUserResult.name} changed to parent in ${adminSchool.name}.`);
+            setFixUserResult(null);
+            setFixEmail('');
+        } catch (err: any) { setFixUserMsg(err.response?.data?.error || 'Failed to fix role.'); }
+    };
+
+    const handleDeleteFixUser = async () => {
+        if (!fixUserResult || !confirm(`Delete user ${fixUserResult.email}? This cannot be undone.`)) return;
+        try {
+            await api.delete(`/users/${fixUserResult.id}`);
+            setFixUserMsg(`✓ User ${fixUserResult.email} deleted.`);
+            setFixUserResult(null);
+            setFixEmail('');
+        } catch (err: any) { setFixUserMsg(err.response?.data?.error || 'Failed to delete user.'); }
+    };
+
     // ── Temp password shown after school creation ────────────────────────────
     const [tempPassword, setTempPassword] = useState('');
 
@@ -288,6 +328,7 @@ export default function SchoolsManagement() {
     };
 
     const openAdminModal = async (school: School) => {
+        setFixEmail(''); setFixUserResult(null); setFixUserMsg('');
         setAdminSchool(school);
         setAdminForm({ name: '', email: '', phone: '', password: '' });
         setAdminError('');
@@ -408,12 +449,12 @@ export default function SchoolsManagement() {
                             <div className="h-1.5 w-full" style={{ backgroundColor: school.primary_color || '#3B82F6' }} />
                             <div className="p-5 flex flex-col flex-1">
                                 <div className="flex items-start justify-between mb-4">
-                                    <div className="w-11 h-11 rounded-xl border border-slate-100 dark:border-slate-600 flex items-center justify-center overflow-hidden shrink-0" style={{ background: school.primary_color ? school.primary_color + '22' : '#f8fafc' }}>
+                                    <div className="w-11 h-11 rounded-xl border border-slate-100 dark:border-slate-600 flex items-center justify-center overflow-hidden shrink-0 bg-white dark:bg-slate-700">
                                         {school.logo_url
-                                            ? <img src={school.logo_url} alt={school.name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.removeAttribute('style'); }} />
+                                            ? <img src={school.logo_url} alt={school.name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement | null)?.classList.remove('hidden'); }} />
                                             : null
                                         }
-                                        <Building2 className="w-5 h-5 text-slate-300 dark:text-slate-500" style={school.logo_url ? { display: 'none' } : {}} />
+                                        <Building2 className={`w-5 h-5 text-slate-400 dark:text-slate-400 ${school.logo_url ? 'hidden' : ''}`} />
                                     </div>
                                     <div className="flex items-center gap-1 ml-2">
                                         <button onClick={() => router.push(`/super-admin/schools/${school.id}`)} title="Manage School" className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Settings2 className="w-4 h-4" /></button>
@@ -831,6 +872,34 @@ export default function SchoolsManagement() {
                                             </button>
                                         </div>
                                     </form>
+                                </div>
+
+                                {/* Find & Fix orphaned user */}
+                                <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Find & Fix User</p>
+                                    <div className="flex gap-2">
+                                        <input type="email" value={fixEmail} onChange={e => { setFixEmail(e.target.value); setFixUserResult(null); setFixUserMsg(''); }} placeholder="Search by email..." className={`${inputCls} flex-1`} onKeyDown={e => e.key === 'Enter' && handleFindUser()} />
+                                        <button type="button" onClick={handleFindUser} disabled={fixUserLoading} className="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 transition-colors disabled:opacity-50">
+                                            {fixUserLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
+                                        </button>
+                                    </div>
+                                    {fixUserResult && (
+                                        <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 space-y-2">
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-900 dark:text-white">{fixUserResult.name}</p>
+                                                <p className="text-xs text-slate-500">{fixUserResult.email} · <span className="text-amber-600 dark:text-amber-400 font-medium">{fixUserResult.role}</span> · {fixUserResult.school?.name || <span className="text-red-500">No school (orphaned)</span>}</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button type="button" onClick={handleFixToParent} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors">
+                                                    Set as Parent here
+                                                </button>
+                                                <button type="button" onClick={handleDeleteFixUser} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 transition-colors">
+                                                    Delete User
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {fixUserMsg && <p className="mt-2 text-xs font-medium text-slate-600 dark:text-slate-400">{fixUserMsg}</p>}
                                 </div>
                             </div>
                         </div>

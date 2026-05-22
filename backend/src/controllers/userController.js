@@ -33,11 +33,12 @@ const getMe = async (req, res) => {
 const listSchoolUsers = async (req, res) => {
     try {
         const schoolId = req.user.role === 'super_admin' ? req.query.school_id : req.user.school_id;
-        const { role } = req.query;
+        const { role, email } = req.query;
 
         const where = {};
         if (schoolId) where.school_id = schoolId;
         if (role) where.role = role;
+        if (email && req.user.role === 'super_admin') where.email = { contains: email, mode: 'insensitive' };
         // Admin only sees drivers and parents (not other admins/SAs)
         if (req.user.role === 'admin') {
             const adminRoles = ['driver', 'parent', 'bus_staff'];
