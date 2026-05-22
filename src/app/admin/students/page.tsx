@@ -96,7 +96,7 @@ export default function StudentsPage() {
     const fetchStops = async (routeId: string) => {
         if (!routeId) { setStops([]); return; }
         try {
-            const { data } = await api.get('/stops', { params: { route_id: routeId } });
+            const { data } = await api.get('/stops', { params: { route_id: routeId, trip_type: 'morning' } });
             setStops(Array.isArray(data) ? data : []);
         } catch { setStops([]); }
     };
@@ -104,7 +104,7 @@ export default function StudentsPage() {
     const fetchEditStops = async (routeId: string) => {
         if (!routeId) { setEditStops([]); return; }
         try {
-            const { data } = await api.get('/stops', { params: { route_id: routeId } });
+            const { data } = await api.get('/stops', { params: { route_id: routeId, trip_type: 'morning' } });
             setEditStops(Array.isArray(data) ? data : []);
         } catch { setEditStops([]); }
     };

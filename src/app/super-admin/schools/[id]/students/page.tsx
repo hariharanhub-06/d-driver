@@ -107,7 +107,7 @@ export default function SchoolStudentsPage() {
     const fetchStopsForRoute = async (routeId: string) => {
         if (!routeId) { setStops([]); return; }
         try {
-            const res = await api.get(`/stops?route_id=${routeId}`);
+            const res = await api.get(`/stops?route_id=${routeId}&trip_type=morning`);
             setStops(Array.isArray(res.data) ? res.data : []);
         } catch {
             setStops([]);
@@ -196,7 +196,7 @@ export default function SchoolStudentsPage() {
     const fetchAddStops = async (routeId: string) => {
         if (!routeId) { setAddStops([]); return; }
         try {
-            const res = await api.get(`/stops?route_id=${routeId}`);
+            const res = await api.get(`/stops?route_id=${routeId}&trip_type=morning`);
             setAddStops(Array.isArray(res.data) ? res.data : []);
         } catch {
             setAddStops([]);

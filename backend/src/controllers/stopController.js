@@ -5,6 +5,7 @@ const getAllStops = async (req, res) => {
     try {
         const schoolId = req.schoolId || (req.user.role === 'super_admin' ? req.query.school_id : req.user.school_id);
         const routeId = req.query.route_id || null;
+        const tripType = req.query.trip_type || null;
         const where = {};
         if (schoolId) {
             where.school_id = schoolId;
@@ -12,6 +13,7 @@ const getAllStops = async (req, res) => {
             where.school = { assigned_sa_id: req.user.id };
         }
         if (routeId) where.route_id = routeId;
+        if (tripType) where.trip_type = tripType;
         const stops = await prisma.stop.findMany({
             where,
             include: {
