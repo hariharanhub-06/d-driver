@@ -44,8 +44,8 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
         if (role === 'driver') return [
             { section: 'MENU', items: [
                 { icon: LayoutDashboard, label: 'Dashboard', href: '/driver/dashboard' },
-                ...(allow('attendance') ? [{ icon: CheckSquare, label: 'Attendance', href: '/driver/attendance' }] : []),
-                ...(allow('gps_tracking') ? [{ icon: Map, label: 'Ride', href: '/driver/ride' }] : []),
+                { icon: CheckSquare, label: 'Attendance', href: '/driver/attendance', disabled: !allow('attendance') },
+                { icon: Map, label: 'Ride', href: '/driver/ride', disabled: !allow('gps_tracking') },
             ]},
             { section: 'GENERAL', items: [
                 { icon: User, label: 'Profile', href: '/driver/profile' },
@@ -62,12 +62,12 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
         if (role === 'parent') return [
             { section: 'MENU', items: [
                 { icon: LayoutDashboard, label: 'Home', href: '/parent/dashboard' },
-                ...(allow('gps_tracking') ? [{ icon: Locate, label: 'Track Bus', href: '/parent/tracking' }] : []),
-                ...(allow('attendance') ? [{ icon: CheckSquare, label: 'Attendance', href: '/parent/attendance' }] : []),
-                ...(allow('fee_management') ? [{ icon: CreditCard, label: 'Fees', href: '/parent/fees' }] : []),
+                { icon: Locate, label: 'Track Bus', href: '/parent/tracking', disabled: !allow('gps_tracking') },
+                { icon: CheckSquare, label: 'Attendance', href: '/parent/attendance', disabled: !allow('attendance') },
+                { icon: CreditCard, label: 'Fees', href: '/parent/fees', disabled: !allow('fee_management') },
             ]},
             { section: 'GENERAL', items: [
-                ...(allow('stop_change_requests') ? [{ icon: MapPin, label: 'Change Stop', href: '/parent/request' }] : []),
+                { icon: MapPin, label: 'Change Stop', href: '/parent/request', disabled: !allow('stop_change_requests') },
                 { icon: User, label: 'Profile', href: '/parent/profile' },
             ]},
         ];
@@ -78,15 +78,15 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 { icon: Users, label: 'Students', href: '/admin/students', tourId: 'students' },
                 { icon: Truck, label: 'Drivers', href: '/admin/drivers' },
                 { icon: Shield, label: 'Bus Staff', href: '/admin/bus-staff' },
-                ...(allow('route_management') ? [{ icon: Map, label: 'Routes', href: '/admin/routes', tourId: 'routes' }] : []),
+                { icon: Map, label: 'Routes', href: '/admin/routes', tourId: 'routes', disabled: !allow('route_management') },
                 { icon: Bus, label: 'Buses', href: '/admin/buses', tourId: 'buses' },
-                ...(allow('gps_tracking') ? [{ icon: Locate, label: 'Tracking', href: '/admin/tracking' }] : []),
-                ...(allow('attendance') ? [{ icon: CheckSquare, label: 'Attendance', href: '/admin/attendance' }] : []),
-                ...(allow('fee_management') ? [{ icon: CreditCard, label: 'Fees', href: '/admin/fees', tourId: 'fees' }] : []),
+                { icon: Locate, label: 'Tracking', href: '/admin/tracking', disabled: !allow('gps_tracking') },
+                { icon: CheckSquare, label: 'Attendance', href: '/admin/attendance', disabled: !allow('attendance') },
+                { icon: CreditCard, label: 'Fees', href: '/admin/fees', tourId: 'fees', disabled: !allow('fee_management') },
             ]},
             { section: 'GENERAL', items: [
-                ...(allow('fuel_management') ? [{ icon: Fuel, label: 'Fuel Requests', href: '/admin/fuel-requests' }] : []),
-                ...(allow('shift_tracking') ? [{ icon: GitMerge, label: 'Shift Logs', href: '/admin/shift-logs' }] : []),
+                { icon: Fuel, label: 'Fuel Requests', href: '/admin/fuel-requests', disabled: !allow('fuel_management') },
+                { icon: GitMerge, label: 'Shift Logs', href: '/admin/shift-logs', disabled: !allow('shift_tracking') },
                 { icon: ArrowLeftRight, label: 'Bus Switches', href: '/admin/bus-switches' },
                 { icon: Bell, label: 'Notifications', href: '/admin/notifications' },
                 { icon: BarChart2, label: 'Reports', href: '/admin/reports' },
@@ -134,6 +134,18 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                             <nav className="space-y-0.5">
                                 {section.items.map((item) => {
                                     const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                                    if ((item as any).disabled) {
+                                        return (
+                                            <div
+                                                key={item.href}
+                                                className="nav-item opacity-40 cursor-not-allowed pointer-events-none"
+                                                {...((item as any).tourId ? { 'data-tour': (item as any).tourId } : {})}
+                                            >
+                                                <item.icon className="w-4 h-4 shrink-0" />
+                                                <span>{item.label}</span>
+                                            </div>
+                                        );
+                                    }
                                     return (
                                         <Link
                                             key={item.href}

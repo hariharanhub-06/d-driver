@@ -33,11 +33,18 @@ const login = async (req, res) => {
     return res.status(403).json({ error: 'Account deactivated. Contact your administrator.' });
   }
 
-  // Check school status for non-SA users
+  // Check school status and portal permissions for non-SA users
   if (user.school_id && user.role !== 'super_admin') {
-    const school = await prisma.school.findUnique({ where: { id: user.school_id }, select: { status: true } });
+    const school = await prisma.school.findUnique({ where: { id: user.school_id }, select: { status: true, permissions: true } });
     if (!school || school.status !== 'active') {
       return res.status(403).json({ error: 'Account inactive. Contact your service provider.' });
+    }
+    if (user.role !== 'admin') {
+      const perms = school.permissions || {};
+      const portalKey = { parent: 'parent_portal', driver: 'driver_portal', bus_staff: 'bus_staff_portal' }[user.role];
+      if (portalKey && perms[portalKey] === false) {
+        return res.status(403).json({ error: 'This portal is not enabled for your school. Contact your administrator.' });
+      }
     }
   }
 

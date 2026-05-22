@@ -57,7 +57,7 @@ export default function AccountSwitcher() {
     try {
       const res = await api.post('/auth/switch-account', { target_user_id: targetUserId });
       localStorage.removeItem('active_child_id');
-      login(res.data.access_token, res.data.user);
+      login(res.data.access_token, res.data.user, res.data.refresh_token);
       setOpen(false);
       window.location.reload();
     } catch { /* silently ignore */ }

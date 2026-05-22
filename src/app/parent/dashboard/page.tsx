@@ -185,7 +185,7 @@ export default function ParentDashboard() {
                                 </div>
                                 <div className="flex-1">
                                     <p className="font-semibold text-slate-900 dark:text-white text-sm">{child.name}</p>
-                                    <span className={getStatusBadge(child.status)}>{child.status || 'Pending'}</span>
+                                    {child.status && <span className={getStatusBadge(child.status)}>{child.status}</span>}
                                 </div>
                             </div>
                         ))}

@@ -48,6 +48,9 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
         api.get('/notifications/unread-count')
             .then(res => setUnreadCount(res.data?.count ?? res.data?.unread_count ?? 0))
             .catch(() => {});
+        const handler = () => setUnreadCount(0);
+        window.addEventListener('notifications-read', handler);
+        return () => window.removeEventListener('notifications-read', handler);
     }, [user]);
 
     if (loading || !user) {
@@ -63,10 +66,10 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
     const navItems = [
         { icon: Home, label: 'Home', href: '/parent/dashboard' },
-        ...(allow('gps_tracking') ? [{ icon: Locate, label: 'Track Bus', href: '/parent/tracking' }] : []),
-        ...(allow('attendance') ? [{ icon: CalendarDays, label: 'Attendance', href: '/parent/attendance' }] : []),
-        ...(allow('fee_management') ? [{ icon: CreditCard, label: 'Fees', href: '/parent/fees' }] : []),
-        ...(allow('stop_change_requests') ? [{ icon: MapPin, label: 'Change Stop', href: '/parent/request' }] : []),
+        { icon: Locate, label: 'Track Bus', href: '/parent/tracking', disabled: !allow('gps_tracking') },
+        { icon: CalendarDays, label: 'Attendance', href: '/parent/attendance', disabled: !allow('attendance') },
+        { icon: CreditCard, label: 'Fees', href: '/parent/fees', disabled: !allow('fee_management') },
+        { icon: MapPin, label: 'Change Stop', href: '/parent/request', disabled: !allow('stop_change_requests') },
         { icon: Bell, label: 'Notifications', href: '/parent/notifications' },
         { icon: User, label: 'Profile', href: '/parent/profile' },
     ];
@@ -108,6 +111,17 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                     <nav className="space-y-0.5 px-2">
                         {navItems.map(item => {
                             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                            if ((item as any).disabled) {
+                                return (
+                                    <div
+                                        key={item.href}
+                                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 opacity-40 cursor-not-allowed pointer-events-none"
+                                    >
+                                        <item.icon className="w-4 h-4 shrink-0" />
+                                        <span>{item.label}</span>
+                                    </div>
+                                );
+                            }
                             return (
                                 <Link
                                     key={item.href}

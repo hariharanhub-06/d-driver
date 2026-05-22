@@ -254,7 +254,7 @@ export default function StopChangeRequest() {
                         <span className="text-xs text-slate-400 font-normal ml-1">— tap a pin on the map</span>
                     </h3>
 
-                    <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700" style={{ height: 280 }}>
+                    <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700" style={{ height: 300 }}>
                         <FreeMap
                             center={mapCenter}
                             zoom={13}

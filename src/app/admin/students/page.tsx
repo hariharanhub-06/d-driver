@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Edit, Trash2, GraduationCap, Phone, MapPin, X, Loader2, FileUp, ChevronRight, ChevronLeft, Image, Download } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, GraduationCap, Phone, MapPin, X, Loader2, FileUp, ChevronRight, ChevronLeft, Image, Download, Camera, UserCircle2, Save } from 'lucide-react';
 import api from '@/lib/api';
 
 type Student = {
@@ -28,6 +28,14 @@ const EMPTY_FORM = {
     fee_amount: '', fee_frequency: 'monthly', fee_due_day: '5', academic_year: new Date().getFullYear().toString(),
 };
 
+const EMPTY_EDIT = {
+    name: '', grade: '', section: '', gr_no: '',
+    parent_id: '',
+    parent_name: '', parent_email: '', parent_phone: '',
+    route_id: '', stop_id: '',
+    fee_amount: '', fee_frequency: 'monthly', fee_due_day: '5', academic_year: new Date().getFullYear().toString(),
+};
+
 export default function StudentsPage() {
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
@@ -36,19 +44,33 @@ export default function StudentsPage() {
     const [routes, setRoutes] = useState<any[]>([]);
     const [stops, setStops] = useState<any[]>([]);
     const [parents, setParents] = useState<any[]>([]);
+
+    // Create wizard modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
     const [step, setStep] = useState(0);
     const [formData, setFormData] = useState({ ...EMPTY_FORM });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
-    const [deleteId, setDeleteId] = useState<string | null>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [parentSearch, setParentSearch] = useState('');
+
+    // Edit simple modal state
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState({ ...EMPTY_EDIT });
+    const [editStops, setEditStops] = useState<any[]>([]);
+    const [editSaving, setEditSaving] = useState(false);
+    const [editError, setEditError] = useState('');
+    const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
+    const [uploadingEditPhoto, setUploadingEditPhoto] = useState(false);
+    const [editPhotoPreview, setEditPhotoPreview] = useState('');
+
+    const [deleteId, setDeleteId] = useState<string | null>(null);
     const [resetEmailLoading, setResetEmailLoading] = useState(false);
     const [resetEmailSent, setResetEmailSent] = useState(false);
     const importRef = useRef<HTMLInputElement>(null);
     const photoRef = useRef<HTMLInputElement>(null);
+    const editPhotoRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => { fetchStudents(); fetchRoutes(); }, []);
 
@@ -79,6 +101,14 @@ export default function StudentsPage() {
         } catch { setStops([]); }
     };
 
+    const fetchEditStops = async (routeId: string) => {
+        if (!routeId) { setEditStops([]); return; }
+        try {
+            const { data } = await api.get('/stops', { params: { route_id: routeId } });
+            setEditStops(Array.isArray(data) ? data : []);
+        } catch { setEditStops([]); }
+    };
+
     const searchParents = async (q: string) => {
         setParentSearch(q);
         if (q.length < 2) { setParents([]); return; }
@@ -89,7 +119,6 @@ export default function StudentsPage() {
     };
 
     const openCreate = () => {
-        setEditingId(null);
         setFormData({ ...EMPTY_FORM });
         setStep(0);
         setPhotoFile(null);
@@ -101,9 +130,8 @@ export default function StudentsPage() {
 
     const openEdit = (s: Student) => {
         setEditingId(s.id);
-        setFormData({
+        setEditForm({
             name: s.name || '', grade: s.grade || '', section: s.section || '', gr_no: s.gr_no || '',
-            parent_mode: s.parent ? 'existing' : 'new',
             parent_id: s.parent?.id || '',
             parent_name: s.parent?.name || '', parent_email: s.parent?.email || '',
             parent_phone: s.parent?.phone || '',
@@ -113,23 +141,20 @@ export default function StudentsPage() {
             fee_due_day: s.feeStructure?.due_day?.toString() || '5',
             academic_year: s.feeStructure?.academic_year || new Date().getFullYear().toString(),
         });
-        // Pre-load stops for the existing route so the dropdown isn't empty
-        if (s.route?.id) fetchStops(s.route.id);
-        else setStops([]);
-        setStep(0);
-        setPhotoFile(null);
-        setParents([]);
-        setParentSearch('');
-        setSubmitError('');
-        setIsModalOpen(true);
+        if (s.route?.id) fetchEditStops(s.route.id);
+        else setEditStops([]);
+        setEditPhotoFile(null);
+        setEditPhotoPreview(s.photo_url || '');
+        setEditError('');
         setResetEmailSent(false);
+        setEditModalOpen(true);
     };
 
     const handleSendResetEmail = async () => {
-        if (!formData.parent_id) return;
+        if (!editForm.parent_id) return;
         setResetEmailLoading(true);
         try {
-            await api.post(`/users/${formData.parent_id}/send-reset-email`);
+            await api.post(`/users/${editForm.parent_id}/send-reset-email`);
             setResetEmailSent(true);
         } catch {
             // silent
@@ -138,16 +163,16 @@ export default function StudentsPage() {
         }
     };
 
+    // Create wizard submit (no editingId path)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!editingId && !formData.fee_amount) {
+        if (!formData.fee_amount) {
             setSubmitError('Please enter the fee amount before enrolling the student.');
             return;
         }
         setIsSubmitting(true);
         setSubmitError('');
         try {
-            // Let the backend handle parent lookup/creation — avoids silent 409 failures
             const payload: any = {
                 name: formData.name, grade: formData.grade, section: formData.section, gr_no: formData.gr_no,
                 ...(formData.parent_mode === 'existing' && formData.parent_id && { parent_id: formData.parent_id }),
@@ -158,26 +183,19 @@ export default function StudentsPage() {
                 }),
                 ...(formData.route_id && { route_id: formData.route_id }),
                 ...(formData.stop_id && { stop_id: formData.stop_id }),
-                ...(formData.fee_amount && {
-                    fee_amount: parseFloat(formData.fee_amount),
-                    fee_frequency: formData.fee_frequency,
-                    fee_due_day: parseInt(formData.fee_due_day),
-                    academic_year: formData.academic_year,
-                }),
+                fee_amount: parseFloat(formData.fee_amount),
+                fee_frequency: formData.fee_frequency,
+                fee_due_day: parseInt(formData.fee_due_day),
+                academic_year: formData.academic_year,
             };
 
-            let studentId = editingId;
-            if (editingId) {
-                await api.put(`/students/${editingId}`, payload);
-            } else {
-                const { data } = await api.post('/students', payload);
-                studentId = data?.id;
-            }
+            const { data } = await api.post('/students', payload);
+            const studentId = data?.id;
 
             if (photoFile && studentId) {
                 const fd = new FormData();
                 fd.append('photo', photoFile);
-                await api.post(`/students/upload-photo`, fd, { params: { student_id: studentId } });
+                await api.post(`/students/upload-photo`, fd, { params: { student_id: studentId }, headers: { 'Content-Type': undefined } });
             }
 
             setIsModalOpen(false);
@@ -187,6 +205,46 @@ export default function StudentsPage() {
             setSubmitError(msg);
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    // Edit simple modal submit
+    const handleEditSubmit = async () => {
+        if (!editingId) return;
+        if (!editForm.name.trim()) { setEditError('Student name is required.'); return; }
+        setEditSaving(true);
+        setEditError('');
+        try {
+            await api.put(`/students/${editingId}`, {
+                name: editForm.name.trim(),
+                grade: editForm.grade || undefined,
+                section: editForm.section || undefined,
+                gr_no: editForm.gr_no || undefined,
+                parent_name: editForm.parent_name || undefined,
+                parent_phone: editForm.parent_phone || undefined,
+                route_id: editForm.route_id || null,
+                stop_id: editForm.stop_id || null,
+                ...(editForm.fee_amount && {
+                    fee_amount: parseFloat(editForm.fee_amount),
+                    fee_frequency: editForm.fee_frequency,
+                    fee_due_day: parseInt(editForm.fee_due_day),
+                    academic_year: editForm.academic_year,
+                }),
+            });
+
+            if (editPhotoFile) {
+                const fd = new FormData();
+                fd.append('photo', editPhotoFile);
+                await api.post(`/students/upload-photo`, fd, { params: { student_id: editingId }, headers: { 'Content-Type': undefined } });
+            }
+
+            setEditModalOpen(false);
+            fetchStudents();
+        } catch (err: any) {
+            const msg = err?.response?.data?.error || err?.message || 'Something went wrong. Please try again.';
+            setEditError(msg);
+        } finally {
+            setEditSaving(false);
         }
     };
 
@@ -246,11 +304,6 @@ export default function StudentsPage() {
     const canProceed = () => {
         if (step === 0) return !!formData.name;
         if (step === 1 && formData.parent_mode === 'new' && formData.parent_name && !formData.parent_email) return false;
-        return true;
-    };
-
-    const canSubmit = () => {
-        if (!editingId && !formData.fee_amount) return false;
         return true;
     };
 
@@ -396,21 +449,19 @@ export default function StudentsPage() {
                 </div>
             </div>
 
-            {/* Multi-step Modal */}
+            {/* Create — Multi-step Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-                        {/* Modal Header */}
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
                             <div>
-                                <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editingId ? 'Edit Student' : 'Enroll Student'}</h2>
+                                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Enroll Student</h2>
                                 <p className="text-xs text-slate-400 mt-0.5">Step {step + 1} of {STEPS.length}: {STEPS[step]}</p>
                             </div>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
                         </div>
 
                         <div className="p-6">
-                            {/* Step indicator */}
                             <div className="flex gap-1.5 mb-6">
                                 {STEPS.map((s, i) => (
                                     <div key={s} className={`flex-1 h-1.5 rounded-full transition-all ${i <= step ? 'bg-[var(--brand)]' : 'bg-slate-200 dark:bg-slate-700'}`} />
@@ -454,54 +505,21 @@ export default function StudentsPage() {
                                             ))}
                                         </div>
                                         {formData.parent_mode === 'existing' ? (
-                                            <div className="space-y-3">
-                                                {/* When editing: show current parent info + reset; when adding: show search */}
-                                                {editingId && formData.parent_id ? (
-                                                    <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 space-y-3">
-                                                        <div>
-                                                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Parent Name</p>
-                                                            <p className="text-sm font-medium text-slate-900 dark:text-white">{formData.parent_name || '—'}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Email (Login ID)</p>
-                                                            <p className="text-sm font-medium text-slate-900 dark:text-white">{formData.parent_email || '—'}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Phone</p>
-                                                            <p className="text-sm font-medium text-slate-900 dark:text-white">{formData.parent_phone || '—'}</p>
-                                                        </div>
-                                                        <div className="pt-1 border-t border-slate-200 dark:border-slate-600">
-                                                            <p className="text-xs text-slate-400 mb-2">Send a password reset link to the parent's email.</p>
-                                                            <button
-                                                                type="button"
-                                                                onClick={handleSendResetEmail}
-                                                                disabled={resetEmailLoading || resetEmailSent}
-                                                                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border transition-all disabled:opacity-60
-                                                                    border-[var(--brand)] text-[var(--brand)] hover:bg-[var(--brand)]/10"
-                                                            >
-                                                                {resetEmailLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                                                                {resetEmailSent ? '✓ Reset Email Sent' : resetEmailLoading ? 'Sending...' : 'Send Password Reset Email'}
+                                            <div>
+                                                <label className={labelCls}>Search Parent</label>
+                                                <input type="text" placeholder="Type name or email..." className={`${inputCls} mb-2`} value={parentSearch} onChange={e => searchParents(e.target.value)} />
+                                                {parents.length > 0 && (
+                                                    <div className="border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden">
+                                                        {parents.map(p => (
+                                                            <button key={p.id} type="button" onClick={() => { setFormData({ ...formData, parent_id: p.id, parent_name: p.name, parent_email: p.email }); setParentSearch(p.name); setParents([]); }}
+                                                                className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--brand)]/5 transition-all ${formData.parent_id === p.id ? 'bg-[var(--brand)]/10 text-[var(--brand)]' : ''}`}>
+                                                                <p className="font-semibold">{p.name}</p>
+                                                                <p className="text-xs text-slate-400">{p.email}</p>
                                                             </button>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div>
-                                                        <label className={labelCls}>Search Parent</label>
-                                                        <input type="text" placeholder="Type name or email..." className={`${inputCls} mb-2`} value={parentSearch} onChange={e => searchParents(e.target.value)} />
-                                                        {parents.length > 0 && (
-                                                            <div className="border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden">
-                                                                {parents.map(p => (
-                                                                    <button key={p.id} type="button" onClick={() => { setFormData({ ...formData, parent_id: p.id, parent_name: p.name, parent_email: p.email }); setParentSearch(p.name); setParents([]); }}
-                                                                        className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--brand)]/5 transition-all ${formData.parent_id === p.id ? 'bg-[var(--brand)]/10 text-[var(--brand)]' : ''}`}>
-                                                                        <p className="font-semibold">{p.name}</p>
-                                                                        <p className="text-xs text-slate-400">{p.email}</p>
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                        {formData.parent_id && <p className="text-xs text-emerald-600 font-medium mt-1">Selected: {formData.parent_name}</p>}
+                                                        ))}
                                                     </div>
                                                 )}
+                                                {formData.parent_id && <p className="text-xs text-emerald-600 font-medium mt-1">Selected: {formData.parent_name}</p>}
                                             </div>
                                         ) : (
                                             <>
@@ -560,7 +578,7 @@ export default function StudentsPage() {
                                     <div className="space-y-4">
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                <label className={labelCls}>Fee Amount (₹)</label>
+                                                <label className={labelCls}>Fee Amount (₹) *</label>
                                                 <input type="number" placeholder="2500" className={inputCls} value={formData.fee_amount} onChange={e => setFormData({ ...formData, fee_amount: e.target.value })} />
                                             </div>
                                             <div>
@@ -584,28 +602,20 @@ export default function StudentsPage() {
                                                 <input type="text" placeholder="2024" className={inputCls} value={formData.academic_year} onChange={e => setFormData({ ...formData, academic_year: e.target.value })} />
                                             </div>
                                         </div>
-                                        <p className="text-xs text-slate-400">{editingId ? 'Leave fee amount blank to keep existing fee settings.' : 'Fee amount is required to enroll the student.'}</p>
+                                        <p className="text-xs text-slate-400">Fee amount is required to enroll the student.</p>
                                     </div>
                                 )}
 
-                                {/* Error banner */}
                                 {submitError && (
                                     <div className="mt-4 px-4 py-2.5 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl text-sm text-red-700 dark:text-red-400">
                                         {submitError}
                                     </div>
                                 )}
 
-                                {/* Navigation */}
                                 <div className="flex gap-3 mt-6">
                                     {step > 0 && (
                                         <button type="button" onClick={() => setStep(s => s - 1)} className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all">
                                             <ChevronLeft className="w-4 h-4" /> Back
-                                        </button>
-                                    )}
-                                    {/* When editing: show Save Changes on every step; when creating: only on last step */}
-                                    {editingId && step < STEPS.length - 1 && (
-                                        <button type="submit" disabled={isSubmitting} className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all disabled:opacity-60 flex items-center gap-2">
-                                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
                                         </button>
                                     )}
                                     {step < STEPS.length - 1 ? (
@@ -613,12 +623,182 @@ export default function StudentsPage() {
                                             Next <ChevronRight className="w-4 h-4" />
                                         </button>
                                     ) : (
-                                        <button type="submit" disabled={isSubmitting || !canSubmit()} className="flex-1 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2">
-                                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editingId ? 'Save Changes' : 'Enroll Student'}
+                                        <button type="submit" disabled={isSubmitting || !formData.fee_amount} className="flex-1 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2">
+                                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enroll Student'}
                                         </button>
                                     )}
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit — Simple single-page modal */}
+            {editModalOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Edit Student</h2>
+                            <button onClick={() => setEditModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            {/* Photo */}
+                            <div className="flex flex-col items-center gap-3 pb-2">
+                                <div className="relative">
+                                    {editPhotoPreview ? (
+                                        <img src={editPhotoPreview} alt={editForm.name} className="w-20 h-20 rounded-full object-cover border-2 border-[var(--brand)]" />
+                                    ) : (
+                                        <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600">
+                                            <UserCircle2 className="w-10 h-10 text-slate-400" />
+                                        </div>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => editPhotoRef.current?.click()}
+                                        disabled={uploadingEditPhoto}
+                                        className="absolute -bottom-1 -right-1 w-7 h-7 bg-[var(--brand)] text-white rounded-full flex items-center justify-center shadow-md hover:opacity-90 transition-opacity disabled:opacity-50"
+                                    >
+                                        {uploadingEditPhoto
+                                            ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            : <Camera className="w-3.5 h-3.5" />}
+                                    </button>
+                                    <input
+                                        ref={editPhotoRef}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={e => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                setEditPhotoFile(file);
+                                                setEditPhotoPreview(URL.createObjectURL(file));
+                                            }
+                                            e.target.value = '';
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">Tap camera to change photo</p>
+                            </div>
+
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student Details</p>
+                            <div>
+                                <label className={labelCls}>Name <span className="text-red-500">*</span></label>
+                                <input className={inputCls} placeholder="Full name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label className={labelCls}>GR No.</label>
+                                    <input className={inputCls} placeholder="GR-001" value={editForm.gr_no} onChange={e => setEditForm(f => ({ ...f, gr_no: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label className={labelCls}>Grade</label>
+                                    <input className={inputCls} placeholder="5" value={editForm.grade} onChange={e => setEditForm(f => ({ ...f, grade: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label className={labelCls}>Section</label>
+                                    <input className={inputCls} placeholder="A" value={editForm.section} onChange={e => setEditForm(f => ({ ...f, section: e.target.value }))} />
+                                </div>
+                            </div>
+
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Parent / Guardian</p>
+                            <div>
+                                <label className={labelCls}>Parent Name</label>
+                                <input className={inputCls} placeholder="Full name" value={editForm.parent_name} onChange={e => setEditForm(f => ({ ...f, parent_name: e.target.value }))} />
+                            </div>
+                            <div>
+                                <label className={labelCls}>Parent Phone</label>
+                                <input type="tel" className={inputCls} placeholder="+91 9876543210" value={editForm.parent_phone} onChange={e => setEditForm(f => ({ ...f, parent_phone: e.target.value }))} />
+                            </div>
+                            {editForm.parent_email && (
+                                <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 space-y-3">
+                                    <div>
+                                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Email (Login ID)</p>
+                                        <p className="text-sm font-medium text-slate-900 dark:text-white">{editForm.parent_email}</p>
+                                    </div>
+                                    <div className="pt-1 border-t border-slate-200 dark:border-slate-600">
+                                        <p className="text-xs text-slate-400 mb-2">Send a password reset link to the parent's email.</p>
+                                        <button
+                                            type="button"
+                                            onClick={handleSendResetEmail}
+                                            disabled={resetEmailLoading || resetEmailSent}
+                                            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border transition-all disabled:opacity-60 border-[var(--brand)] text-[var(--brand)] hover:bg-[var(--brand)]/10"
+                                        >
+                                            {resetEmailLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                                            {resetEmailSent ? '✓ Reset Email Sent' : resetEmailLoading ? 'Sending...' : 'Send Password Reset Email'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Transport Assignment</p>
+                            <div>
+                                <label className={labelCls}>Route</label>
+                                <select className={inputCls} value={editForm.route_id} onChange={e => { setEditForm(f => ({ ...f, route_id: e.target.value, stop_id: '' })); fetchEditStops(e.target.value); }}>
+                                    <option value="">No Route</option>
+                                    {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className={labelCls}>Stop</label>
+                                <select className={`${inputCls} disabled:opacity-40`} value={editForm.stop_id} onChange={e => setEditForm(f => ({ ...f, stop_id: e.target.value }))} disabled={!editForm.route_id}>
+                                    <option value="">No Stop</option>
+                                    {editStops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                            </div>
+
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Fee Setup</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className={labelCls}>Fee Amount (₹)</label>
+                                    <input type="number" min="0" className={inputCls} placeholder="e.g. 2500" value={editForm.fee_amount} onChange={e => setEditForm(f => ({ ...f, fee_amount: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label className={labelCls}>Frequency</label>
+                                    <select className={inputCls} value={editForm.fee_frequency} onChange={e => setEditForm(f => ({ ...f, fee_frequency: e.target.value }))}>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="quarterly">Quarterly</option>
+                                        <option value="half-yearly">Half-Yearly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className={labelCls}>Due Day</label>
+                                    <input type="number" min="1" max="31" placeholder="5" className={inputCls} value={editForm.fee_due_day} onChange={e => setEditForm(f => ({ ...f, fee_due_day: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label className={labelCls}>Academic Year</label>
+                                    <input type="text" placeholder="2024" className={inputCls} value={editForm.academic_year} onChange={e => setEditForm(f => ({ ...f, academic_year: e.target.value }))} />
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-400">Leave fee amount blank to keep existing fee settings.</p>
+
+                            {editError && (
+                                <div className="px-4 py-2.5 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl text-sm text-red-700 dark:text-red-400">
+                                    {editError}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex gap-3 px-6 pb-6">
+                            <button
+                                onClick={() => setEditModalOpen(false)}
+                                className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleEditSubmit}
+                                disabled={editSaving}
+                                className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+                            >
+                                {editSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                Save Changes
+                            </button>
                         </div>
                     </div>
                 </div>

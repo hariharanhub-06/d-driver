@@ -27,6 +27,7 @@ export default function ParentTracking() {
     const { user } = useAuth();
     const [busPosition, setBusPosition] = useState<[number, number]>([12.9716, 77.5946]);
     const [busId, setBusId] = useState<string | null>(null);
+    const [busNumber, setBusNumber] = useState<string | null>(null);
     const [hasBusLive, setHasBusLive] = useState(false);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
     const [childData, setChildData] = useState<ChildData | null>(null);
@@ -100,9 +101,11 @@ export default function ParentTracking() {
                     stop: student.stop,
                     route_id: student.route_id,
                 });
-                const foundBusId = student.bus?.id || student.bus_id || student.route?.bus_id;
+                const foundBusId = student.bus?.id || student.bus_id || student.route?.bus_id || student.route?.bus?.id;
+                const foundBusNumber = student.bus?.bus_number || student.route?.bus?.bus_number || null;
                 if (foundBusId) {
                     setBusId(String(foundBusId));
+                    setBusNumber(foundBusNumber ? String(foundBusNumber) : null);
                     connectSocket(String(foundBusId));
                     try {
                         const { data: loc } = await api.get(`/location/bus/${foundBusId}`);
@@ -130,7 +133,7 @@ export default function ParentTracking() {
     const mapCenter: [number, number] = hasBusLive ? busPosition : (userLocation || busPosition);
 
     const markers = [
-        ...(hasBusLive ? [{ position: busPosition, title: `Bus ${busId || ''}`, isBus: true }] : []),
+        ...(hasBusLive ? [{ position: busPosition, title: `Bus ${busNumber || busId || ''}`, isBus: true }] : []),
         ...(userLocation ? [{ position: userLocation, title: 'Your Location', isUserLocation: true }] : []),
         ...routeStops
             .filter(s => s.latitude && s.longitude)
@@ -203,7 +206,7 @@ export default function ParentTracking() {
                     </div>
                     <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate">
-                            {hasBusLive ? `Bus #${busId}` : (childData?.name || 'Tracking')}
+                            {hasBusLive ? `Bus #${busNumber || busId}` : (childData?.name || 'Tracking')}
                             {hasBusLive && childData ? ` · ${childData.name}` : ''}
                         </h4>
                         <div className="flex items-center gap-2 mt-0.5">

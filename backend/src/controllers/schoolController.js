@@ -98,6 +98,13 @@ const registerSchool = async (req, res) => {
           route_management: true, student_photos: true,
           stop_change_requests: true, absence_reporting: true,
           razorpay_payments: false,
+          gps_driver: true, fuel_requests: true, fuel_fill_entries: true,
+          notifications: true, parent_notifications: true, admin_notifications: true,
+          parent_multi_account: true, bus_switch: true, bulk_import: true,
+          reports: true, tutorials: true,
+          driver_portal: true, bus_staff_portal: true,
+          password_reset: true, password_reset_admin: true, password_reset_parent: true,
+          password_reset_driver: true, password_reset_bus_staff: true,
         },
         users: {
           create: {

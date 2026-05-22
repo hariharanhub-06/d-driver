@@ -42,6 +42,7 @@ export default function ParentNotificationsPage() {
         try {
             await api.post('/notifications/mark-all-read');
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            window.dispatchEvent(new Event('notifications-read'));
         } catch { /* non-fatal */ }
     };
 
