@@ -25,6 +25,16 @@ const reportAbsence = async (req, res) => {
       data: { student_id, parent_id: parentId, date: dayStart, reason, school_id: schoolId },
     });
 
+    // Pre-mark attendance absent for driver + bus_staff so they don't need to manually mark.
+    // skipDuplicates ensures we never override a mark that driver/bus_staff already made.
+    await prisma.attendance.createMany({
+      data: [
+        { student_id, date_only: date, status: 'absent', marked_by_role: 'driver', school_id: schoolId },
+        { student_id, date_only: date, status: 'absent', marked_by_role: 'bus_staff', school_id: schoolId },
+      ],
+      skipDuplicates: true,
+    });
+
     await notifyAdmins(
       schoolId,
       `Absence reported for ${student.name} on ${date}. Reason: ${reason || 'none'}.`,
@@ -81,7 +91,20 @@ const cancelAbsence = async (req, res) => {
     const report = await prisma.absenceReport.findUnique({ where: { id: req.params.id } });
     if (!report || report.parent_id !== req.user.id) return res.status(404).json({ error: 'Absence report not found' });
 
+    const dateOnly = report.date.toLocaleDateString('en-CA');
+
     await prisma.absenceReport.delete({ where: { id: req.params.id } });
+
+    // Remove auto-pre-marked absent records (only those still 'absent' — if driver changed to 'present', keep that)
+    await prisma.attendance.deleteMany({
+      where: {
+        student_id: report.student_id,
+        date_only: dateOnly,
+        status: 'absent',
+        marked_by_role: { in: ['driver', 'bus_staff'] },
+      },
+    });
+
     res.json({ message: 'Absence report cancelled' });
   } catch (error) {
     console.error('cancelAbsence error:', error.message);
