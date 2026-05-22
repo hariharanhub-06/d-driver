@@ -61,9 +61,11 @@ export default function BusStaffAttendancePage() {
             setTripId(trip.id);
             const route = trip.route || {};
             const students: Student[] = route.students || [];
+            // Prefer students embedded per-stop (from getActiveTrips include);
+            // fall back to filtering route.students by stop_id if not present.
             let enrichedStops: TripStop[] = (route.stops || []).map((stop: any) => ({
                 ...stop,
-                students: students.filter((s: any) => s.stop_id === stop.id),
+                students: stop.students ?? students.filter((s: any) => s.stop_id === stop.id),
             }));
 
             if (enrichedStops.length === 0) {
@@ -72,7 +74,7 @@ export default function BusStaffAttendancePage() {
                 const s2: Student[] = r.students || [];
                 enrichedStops = (r.stops || []).map((stop: any) => ({
                     ...stop,
-                    students: s2.filter((s: any) => s.stop_id === stop.id),
+                    students: stop.students ?? s2.filter((s: any) => s.stop_id === stop.id),
                 }));
             }
 

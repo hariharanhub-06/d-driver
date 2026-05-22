@@ -183,7 +183,14 @@ const getActiveTrips = async (req, res) => {
       include: {
         route: {
           include: {
-            stops: { orderBy: { sequence: 'asc' } },
+            stops: {
+              orderBy: { sequence: 'asc' },
+              include: {
+                students: {
+                  select: { id: true, name: true, photo_url: true, grade: true },
+                },
+              },
+            },
             students: {
               select: { id: true, name: true, photo_url: true, grade: true, stop_id: true },
             },
