@@ -449,12 +449,11 @@ export default function SchoolsManagement() {
                             <div className="h-1.5 w-full" style={{ backgroundColor: school.primary_color || '#3B82F6' }} />
                             <div className="p-5 flex flex-col flex-1">
                                 <div className="flex items-start justify-between mb-4">
-                                    <div className="w-11 h-11 rounded-xl border border-slate-100 dark:border-slate-600 flex items-center justify-center overflow-hidden shrink-0 bg-white dark:bg-slate-700">
-                                        {school.logo_url
-                                            ? <img src={school.logo_url} alt={school.name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement | null)?.classList.remove('hidden'); }} />
-                                            : null
-                                        }
-                                        <Building2 className={`w-5 h-5 text-slate-400 dark:text-slate-400 ${school.logo_url ? 'hidden' : ''}`} />
+                                    <div className="relative w-11 h-11 rounded-xl border border-slate-100 dark:border-slate-600 overflow-hidden shrink-0 bg-white dark:bg-white flex items-center justify-center">
+                                        <Building2 className="w-5 h-5 text-slate-300" />
+                                        {school.logo_url && (
+                                            <img src={school.logo_url} alt={school.name} className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-1 ml-2">
                                         <button onClick={() => router.push(`/super-admin/schools/${school.id}`)} title="Manage School" className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Settings2 className="w-4 h-4" /></button>
