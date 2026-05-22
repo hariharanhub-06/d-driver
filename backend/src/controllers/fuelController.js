@@ -143,4 +143,57 @@ const listFills = async (req, res) => {
   res.json(fills);
 };
 
-module.exports = { recordFuelFill, requestFuel, listRequests, updateRequest, myRequests, listFills };
+// GET /api/v1/fuel/bus-summary  (admin) — per-bus fuel stats
+const busSummary = async (req, res) => {
+  try {
+    const schoolId = req.schoolId;
+    const buses = await prisma.bus.findMany({
+      where: { school_id: schoolId },
+      select: {
+        id: true,
+        bus_number: true,
+        fuel_liters: true,
+        fuelRequests: {
+          select: { amount_requested: true, status: true },
+        },
+        fuelFillEntries: {
+          orderBy: { filled_at: 'desc' },
+          select: { liters_filled: true, filled_at: true, km_at_fill: true },
+        },
+      },
+    });
+
+    const summary = buses.map(bus => {
+      const disbursed = bus.fuelRequests
+        .filter(r => r.status === 'disbursed')
+        .reduce((s, r) => s + r.amount_requested, 0);
+      const approved = bus.fuelRequests
+        .filter(r => r.status === 'approved')
+        .reduce((s, r) => s + r.amount_requested, 0);
+      const pending = bus.fuelRequests
+        .filter(r => r.status === 'pending')
+        .reduce((s, r) => s + r.amount_requested, 0);
+      const totalLiters = bus.fuelFillEntries.reduce((s, f) => s + f.liters_filled, 0);
+      const lastFill = bus.fuelFillEntries[0] || null;
+
+      return {
+        bus_id: bus.id,
+        bus_number: bus.bus_number,
+        current_fuel_liters: bus.fuel_liters || 0,
+        total_disbursed: disbursed,
+        total_approved: approved,
+        total_pending: pending,
+        total_liters_filled: totalLiters,
+        fill_count: bus.fuelFillEntries.length,
+        last_fill_at: lastFill?.filled_at || null,
+        last_fill_liters: lastFill?.liters_filled || null,
+      };
+    });
+
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching bus fuel summary', details: error.message });
+  }
+};
+
+module.exports = { recordFuelFill, requestFuel, listRequests, updateRequest, myRequests, listFills, busSummary };

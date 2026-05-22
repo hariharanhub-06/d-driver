@@ -694,8 +694,8 @@ export default function ActiveRide() {
 
             {/* Skip Stop Toast */}
             {skipToast && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[300] bg-amber-500 text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-                    <span>⚠️ Skipping — {skipToast}</span>
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[300] bg-amber-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2 whitespace-nowrap">
+                    <span>⚠️ Skipping {skipToast}</span>
                 </div>
             )}
 

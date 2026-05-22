@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { authenticateToken, requireRole, requireSchoolScope, requirePasswordChanged } = require('../middleware/authMiddleware');
-const { recordFuelFill, requestFuel, listRequests, updateRequest, myRequests, listFills } = require('../controllers/fuelController');
+const { recordFuelFill, requestFuel, listRequests, updateRequest, myRequests, listFills, busSummary } = require('../controllers/fuelController');
 const { validate, fuelFillSchema, fuelRequestSchema } = require('../validators');
 
 const router = Router();
@@ -12,5 +12,6 @@ router.get('/requests',          requireRole('admin', 'super_admin'), requireSch
 router.put('/requests/:id',      requireRole('admin', 'super_admin'), updateRequest);
 router.get('/requests/mine',     requireRole('driver'),               myRequests);
 router.get('/fills',             requireRole('admin', 'super_admin'), requireSchoolScope, listFills);
+router.get('/bus-summary',       requireRole('admin', 'super_admin'), requireSchoolScope, busSummary);
 
 module.exports = router;

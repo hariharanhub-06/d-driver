@@ -225,6 +225,8 @@ const createUser = async (req, res) => {
         const { name, email: rawEmail, role, school_id, phone: rawPhone } = req.body;
         const email = rawEmail?.toLowerCase().trim();
         const phone = rawPhone?.trim() || null;
+        // Admin creating school-scoped users — inherit their school if none provided
+        const effectiveSchoolId = school_id || (['admin'].includes(req.user?.role) ? req.user.school_id : null);
 
         if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
 
@@ -239,7 +241,7 @@ const createUser = async (req, res) => {
                     const hashedPassword = await bcrypt.hash(rawPassword, 12);
                     const updated = await prisma.user.update({
                         where: { id: existing.id },
-                        data: { name, phone, school_id: school_id || null, password: hashedPassword, is_first_login: true, is_active: true },
+                        data: { name, phone, school_id: effectiveSchoolId || null, password: hashedPassword, is_first_login: true, is_active: true },
                         select: { id: true, name: true, email: true, phone: true, role: true, school_id: true, created_at: true },
                     });
                     return res.status(201).json(updated);
@@ -249,7 +251,7 @@ const createUser = async (req, res) => {
         }
         const hashedPassword = await bcrypt.hash(rawPassword, 12);
         const user = await prisma.user.create({
-            data: { name, email, password: hashedPassword, role, school_id: school_id || null, phone, is_first_login: true, is_active: true },
+            data: { name, email, password: hashedPassword, role, school_id: effectiveSchoolId || null, phone, is_first_login: true, is_active: true },
             select: { id: true, name: true, email: true, phone: true, role: true, school_id: true, created_at: true },
         });
         res.status(201).json(user);

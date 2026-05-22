@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bus, Clock, Navigation, Bell, Loader2 } from 'lucide-react';
+import { Bus, Clock, Navigation, Bell, Loader2, Phone } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { connectSocket, getSocket } from '@/lib/socket';
 import api from '@/lib/api';
@@ -20,6 +20,7 @@ export default function ParentTracking() {
     const [busPosition, setBusPosition] = useState<[number, number]>([12.9716, 77.5946]);
     const [busId, setBusId] = useState<string | null>(null);
     const [busNumber, setBusNumber] = useState<string | null>(null);
+    const [driverPhone, setDriverPhone] = useState<string | null>(null);
     const [hasBusLive, setHasBusLive] = useState(false);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
     const [childData, setChildData] = useState<ChildData | null>(null);
@@ -94,6 +95,8 @@ export default function ParentTracking() {
                 });
                 const foundBusId = student.bus?.id || student.bus_id || student.route?.bus_id || student.route?.bus?.id;
                 const foundBusNumber = student.bus?.bus_number || student.route?.bus?.bus_number || null;
+                const foundDriverPhone = student.route?.bus?.drivers?.[0]?.user?.phone || null;
+                if (foundDriverPhone) setDriverPhone(foundDriverPhone);
                 if (foundBusId) {
                     setBusId(String(foundBusId));
                     setBusNumber(foundBusNumber ? String(foundBusNumber) : null);
@@ -213,6 +216,17 @@ export default function ParentTracking() {
             <button className="absolute top-4 right-4 z-10 w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-[var(--brand)] transition-all active:scale-95">
                 <Bell size={20} />
             </button>
+
+            {/* Floating call button — only shown when driver has a phone */}
+            {driverPhone && (
+                <a
+                    href={`tel:${driverPhone}`}
+                    className="absolute bottom-36 right-4 z-20 w-14 h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-xl flex items-center justify-center transition-all active:scale-95"
+                    title={`Call driver: ${driverPhone}`}
+                >
+                    <Phone size={22} />
+                </a>
+            )}
 
             {/* ETA/status bar at bottom as overlay card */}
             <div className="absolute bottom-4 left-4 right-4 z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-4">

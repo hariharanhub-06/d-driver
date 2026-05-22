@@ -49,6 +49,7 @@ export default function AdminBusStaffPage() {
         e.preventDefault();
         setFormError('');
         if (!form.name.trim()) { setFormError('Name is required.'); return; }
+        if (!form.email.trim()) { setFormError('Email is required — bus staff use it to log in.'); return; }
         if (!form.password || form.password.length < 6) { setFormError('Password must be at least 6 characters.'); return; }
         setSaving(true);
         try {
@@ -224,8 +225,8 @@ export default function AdminBusStaffPage() {
                                     <input type="text" required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Ravi Kumar" className={inputCls} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email <span className="text-slate-400 font-normal">(optional)</span></label>
-                                    <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="ravi@school.com" className={inputCls} />
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email <span className="text-red-500">*</span> <span className="text-slate-400 font-normal text-xs">(used to log in)</span></label>
+                                    <input type="email" required value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="ravi@school.com" className={inputCls} />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone <span className="text-slate-400 font-normal">(optional)</span></label>

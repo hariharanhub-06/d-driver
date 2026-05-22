@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Droplets, X, Loader2, CheckCircle2, XCircle, Fuel, Banknote, CreditCard, Clock, Gauge } from 'lucide-react';
+import { Droplets, X, Loader2, CheckCircle2, XCircle, Fuel, Banknote, CreditCard, Clock, Gauge, Bus } from 'lucide-react';
 import api from '@/lib/api';
 
 type FuelRequest = {
@@ -17,6 +17,19 @@ type FuelRequest = {
     payment_method?: string;
     transfer_id?: string;
     created_at?: string;
+};
+
+type BusFuelSummary = {
+    bus_id: string;
+    bus_number: string;
+    current_fuel_liters: number;
+    total_disbursed: number;
+    total_approved: number;
+    total_pending: number;
+    total_liters_filled: number;
+    fill_count: number;
+    last_fill_at: string | null;
+    last_fill_liters: number | null;
 };
 
 type FillEntry = {
@@ -51,6 +64,7 @@ const fmtDateTime = (s?: string) => {
 export default function FuelRequestsPage() {
     const [requests, setRequests] = useState<FuelRequest[]>([]);
     const [fillEntries, setFillEntries] = useState<FillEntry[]>([]);
+    const [busSummaries, setBusSummaries] = useState<BusFuelSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState<typeof STATUS_TABS[number]>('All');
     const [actionModal, setActionModal] = useState<{ req: FuelRequest; action: 'approve' | 'reject' } | null>(null);
@@ -65,9 +79,10 @@ export default function FuelRequestsPage() {
     const fetchRequests = async () => {
         setLoading(true);
         try {
-            const [reqRes, fillRes] = await Promise.allSettled([
+            const [reqRes, fillRes, summaryRes] = await Promise.allSettled([
                 api.get('/fuel/requests'),
                 api.get('/fuel/fills'),
+                api.get('/fuel/bus-summary'),
             ]);
             if (reqRes.status === 'fulfilled') {
                 const d = reqRes.value.data;
@@ -76,6 +91,10 @@ export default function FuelRequestsPage() {
             if (fillRes.status === 'fulfilled') {
                 const d = fillRes.value.data;
                 setFillEntries(Array.isArray(d) ? d : []);
+            }
+            if (summaryRes.status === 'fulfilled') {
+                const d = summaryRes.value.data;
+                setBusSummaries(Array.isArray(d) ? d : []);
             }
         } catch {
             setRequests([]);
@@ -174,6 +193,76 @@ export default function FuelRequestsPage() {
                     <p className="text-xs text-slate-400 mt-0.5">{requests.filter(r => r.status === 'pending').length} pending</p>
                 </div>
             </div>
+
+            {/* Per-Bus Fuel Status */}
+            {busSummaries.length > 0 && (
+                <div>
+                    <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Per Bus Status</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {busSummaries.map(b => {
+                            const hasPending = b.total_pending > 0;
+                            const hasApproved = b.total_approved > 0;
+                            return (
+                                <div key={b.bus_id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm space-y-3">
+                                    {/* Bus header */}
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-9 h-9 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center shrink-0">
+                                            <Bus className="w-4 h-4 text-[var(--brand)]" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-900 dark:text-white text-sm">Bus #{b.bus_number}</p>
+                                            <p className="text-xs text-slate-400">{b.fill_count} fill{b.fill_count !== 1 ? 's' : ''} logged</p>
+                                        </div>
+                                        {hasPending && (
+                                            <span className="ml-auto text-[10px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full">Pending</span>
+                                        )}
+                                    </div>
+
+                                    {/* Fuel level bar */}
+                                    <div>
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-xs text-slate-500 dark:text-slate-400">Fuel Level</span>
+                                            <span className="text-xs font-bold text-slate-800 dark:text-white">{b.current_fuel_liters.toFixed(1)} L</span>
+                                        </div>
+                                        <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-[var(--brand)] transition-all"
+                                                style={{ width: `${Math.min((b.current_fuel_liters / Math.max(b.total_liters_filled, 60)) * 100, 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Stats grid */}
+                                    <div className="grid grid-cols-2 gap-2 pt-1">
+                                        <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl px-3 py-2">
+                                            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Disbursed</p>
+                                            <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">₹{b.total_disbursed.toLocaleString('en-IN')}</p>
+                                        </div>
+                                        <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl px-3 py-2">
+                                            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Total Filled</p>
+                                            <p className="text-sm font-bold text-[var(--brand)]">{b.total_liters_filled.toFixed(1)} L</p>
+                                        </div>
+                                        {hasApproved && (
+                                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl px-3 py-2 col-span-2">
+                                                <p className="text-[10px] text-blue-500 uppercase tracking-wide">Approved (awaiting disbursement)</p>
+                                                <p className="text-sm font-bold text-blue-600 dark:text-blue-400">₹{b.total_approved.toLocaleString('en-IN')}</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Last fill */}
+                                    {b.last_fill_at && (
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-700">
+                                            <Clock className="w-3 h-3 shrink-0" />
+                                            <span>Last fill: <span className="font-medium text-slate-600 dark:text-slate-300">{b.last_fill_liters?.toFixed(1)}L</span> on {new Date(b.last_fill_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Table Card */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">

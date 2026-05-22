@@ -168,7 +168,7 @@ export default function DriverDashboard() {
     const getActiveTrip = (routeId: string) => activeTrips.find(t => t.route_id === routeId);
 
     const routes = driverInfo?.bus?.routes || [];
-    const fuelLevel = driverInfo?.bus?.fuel_liters ?? 0;
+    const fuelLevel = driverInfo?.bus?.fuel_liters ?? null;
     const driverName = driverInfo?.user?.name || user?.name || 'Driver';
 
     return (
@@ -268,16 +268,16 @@ export default function DriverDashboard() {
                                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fuel Status</span>
                             </div>
                             <span className="text-sm font-bold text-slate-900 dark:text-white">
-                                {fuelLevel > 0 ? `${Math.round(fuelLevel)} L` : 'Unknown'}
+                                {fuelLevel != null ? `${Math.round(fuelLevel)} L` : '—'}
                             </span>
                         </div>
                         <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div
-                                className={`h-full rounded-full transition-all duration-1000 ${fuelLevel > 30 ? 'bg-emerald-500' : fuelLevel > 10 ? 'bg-amber-500' : 'bg-red-500'}`}
-                                style={{ width: `${Math.min(Math.max((fuelLevel / (driverInfo.bus.mileage ? driverInfo.bus.mileage * 10 : 100)) * 100, 0), 100)}%` }}
+                                className={`h-full rounded-full transition-all duration-1000 ${(fuelLevel ?? 0) > 30 ? 'bg-emerald-500' : (fuelLevel ?? 0) > 10 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                style={{ width: `${Math.min(Math.max(((fuelLevel ?? 0) / (driverInfo.bus.mileage ? driverInfo.bus.mileage * 10 : 100)) * 100, 0), 100)}%` }}
                             />
                         </div>
-                        {fuelLevel > 0 && fuelLevel < 10 && (
+                        {fuelLevel != null && fuelLevel < 10 && (
                             <p className="text-red-500 dark:text-red-400 text-xs font-medium">Low fuel — plan refuel soon</p>
                         )}
                         <div className="grid grid-cols-2 gap-3 pt-1">
