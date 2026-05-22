@@ -1,4 +1,5 @@
 const prisma = require('../prisma');
+const { notifyAdmins } = require('../utils/notifications');
 
 // POST /api/v1/stop-change  (parent)
 const requestChange = async (req, res) => {
@@ -25,9 +26,19 @@ const requestChange = async (req, res) => {
     }
   }
 
+  const requestedStop = await prisma.stop.findUnique({ where: { id: requested_stop_id }, select: { name: true } });
+
   const request = await prisma.stopChangeRequest.create({
     data: { student_id, parent_id: parentId, current_stop_id, requested_stop_id, change_type, effective_date: new Date(effective_date), reason, school_id: schoolId },
+    include: { requestedStop: { select: { name: true } } },
   });
+
+  const typeLabel = change_type === 'temporary' ? 'temporary' : 'permanent';
+  await notifyAdmins(
+    schoolId,
+    `Stop change request for ${student.name}: ${typeLabel} move to "${requestedStop?.name || 'new stop'}" on ${effective_date}. Reason: ${reason || 'none'}.`,
+    'info'
+  );
 
   res.status(201).json({ request });
 };
@@ -61,22 +72,36 @@ const approveRequest = async (req, res) => {
 
   const request = await prisma.stopChangeRequest.findUnique({
     where: { id: req.params.id },
-    include: { student: true },
+    include: { student: true, requestedStop: { select: { name: true } } },
   });
   if (!request) return res.status(404).json({ error: 'Request not found' });
 
-  await prisma.$transaction([
+  const ops = [
     prisma.stopChangeRequest.update({ where: { id: request.id }, data: { status: 'approved', admin_note } }),
-    prisma.student.update({ where: { id: request.student_id }, data: { stop_id: request.requested_stop_id } }),
-  ]);
+  ];
 
+  // Permanent change: update the student's stop_id in the DB immediately.
+  // Temporary change: do NOT touch stop_id — getActiveTrips will apply it dynamically for the relevant dates.
+  if (request.change_type === 'permanent') {
+    ops.push(prisma.student.update({ where: { id: request.student_id }, data: { stop_id: request.requested_stop_id } }));
+  }
+
+  await prisma.$transaction(ops);
+
+  const stopName = request.requestedStop?.name || 'new stop';
+  const typeLabel = request.change_type === 'temporary' ? 'temporarily' : 'permanently';
   await prisma.notification.create({
-    data: { user_id: request.parent_id, message: `Stop change for ${request.student.name} has been approved.`, type: 'success', school_id: request.school_id },
+    data: {
+      user_id: request.parent_id,
+      message: `Stop change for ${request.student.name} approved. ${request.student.name} will ${typeLabel} board from "${stopName}".`,
+      type: 'success',
+      school_id: request.school_id,
+    },
   });
 
   io?.to(`parent-${request.parent_id}`).emit('stop-change-approved', { student_name: request.student.name });
 
-  res.json({ message: 'Stop change approved and student stop updated' });
+  res.json({ message: `Stop change approved (${request.change_type})` });
 };
 
 // PUT /api/v1/stop-change/:id/reject  (admin)

@@ -88,6 +88,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 { icon: Fuel, label: 'Fuel Requests', href: '/admin/fuel-requests', disabled: !allow('fuel_management') },
                 { icon: GitMerge, label: 'Shift Logs', href: '/admin/shift-logs', disabled: !allow('shift_tracking') },
                 { icon: ArrowLeftRight, label: 'Bus Switches', href: '/admin/bus-switches' },
+                { icon: MapPin, label: 'Stop Requests', href: '/admin/stop-change-requests', disabled: !allow('stop_change_requests') },
                 { icon: Bell, label: 'Notifications', href: '/admin/notifications' },
                 { icon: BarChart2, label: 'Reports', href: '/admin/reports' },
                 { icon: Settings, label: 'Settings', href: '/admin/settings', tourId: 'settings' },

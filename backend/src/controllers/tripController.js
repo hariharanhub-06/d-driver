@@ -235,14 +235,45 @@ const getActiveTrips = async (req, res) => {
         select: { id: true, name: true, photo_url: true, grade: true, stop_id: true },
       });
 
+      // Apply approved temporary stop-change overrides for today
+      const today = new Date().toLocaleDateString('en-CA');
+      const tempOverrides = await prisma.stopChangeRequest.findMany({
+        where: {
+          status: 'approved',
+          change_type: 'temporary',
+          school_id: { in: trips.map(t => t.school_id).filter(Boolean) },
+          effective_date: { lte: new Date(today + 'T23:59:59') },
+          // from_date / to_date not in schema — use effective_date as the single override date
+        },
+        select: { student_id: true, requested_stop_id: true, effective_date: true },
+      });
+      const todayOverrideMap = new Map(); // student_id → requested_stop_id
+      for (const o of tempOverrides) {
+        const d = o.effective_date.toLocaleDateString('en-CA');
+        if (d === today) todayOverrideMap.set(o.student_id, o.requested_stop_id);
+      }
+
       for (const trip of trips) {
         for (const stop of (trip.route?.stops || [])) {
-          stop.students = routeStudents.filter(s => s.stop_id === stop.id);
+          stop.students = routeStudents.filter(s => {
+            const effectiveStopId = todayOverrideMap.get(s.id) ?? s.stop_id;
+            return effectiveStopId === stop.id;
+          });
         }
-        // Expose unassigned students (stop_id=null) so frontend can show them
-        trip.route.unassignedStudents = routeStudents.filter(
-          s => !s.stop_id && s.route_id === trip.route_id
-        );
+        // Expose unassigned students (stop_id=null and no temp override)
+        trip.route.unassignedStudents = routeStudents.filter(s => !s.stop_id && !todayOverrideMap.has(s.id));
+      }
+
+      // DEBUG: remove after confirming students show correctly
+      console.log('[getActiveTrips] routeStudents found:', routeStudents.length,
+        routeStudents.map(s => ({ name: s.name, stop_id: s.stop_id })));
+      for (const trip of trips) {
+        for (const stop of (trip.route?.stops || [])) {
+          if (stop.students.length > 0)
+            console.log(`[getActiveTrips] stop "${stop.name}" (${stop.id}): ${stop.students.length} students`);
+          else
+            console.log(`[getActiveTrips] stop "${stop.name}" (${stop.id}): 0 — looking for stop_id match`);
+        }
       }
     }
 
