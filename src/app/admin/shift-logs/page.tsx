@@ -6,7 +6,7 @@ import api from '@/lib/api';
 
 type KmEntry = {
     id: string;
-    type: string;
+    entry_type: string;
     km_reading: number;
     recorded_at?: string;
 };
@@ -14,13 +14,13 @@ type KmEntry = {
 type Shift = {
     id: string;
     driver?: { user: { name: string } };
-    bus?: { bus_number: string };
+    bus_number?: string;
     date?: string;
     start_time?: string;
     end_time?: string;
-    total_km?: number;
+    total_km?: number | null;
     status?: string;
-    km_entries?: KmEntry[];
+    kmEntries?: KmEntry[];
 };
 
 const statusBadge = (s?: string) => {
@@ -143,13 +143,13 @@ export default function ShiftLogsPage() {
                                                 : <ChevronRight className="w-4 h-4 text-slate-400" />}
                                         </td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-medium">{shift.driver?.user?.name || '—'}</td>
-                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{shift.bus?.bus_number || '—'}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{shift.bus_number || '—'}</td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                             {shift.date ? new Date(shift.date).toLocaleDateString('en-IN') : '—'}
                                         </td>
                                         <td className="px-4 py-3 font-mono text-xs text-emerald-600 dark:text-emerald-400 font-semibold">{fmtTime(shift.start_time)}</td>
                                         <td className="px-4 py-3 font-mono text-xs text-amber-600 dark:text-amber-400 font-semibold">{fmtTime(shift.end_time)}</td>
-                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-bold">{shift.total_km != null ? `${shift.total_km} km` : '—'}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-bold">{shift.total_km != null ? `${Number(shift.total_km).toFixed(1)} km` : '—'}</td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                             <span className={`${statusBadge(shift.status)} capitalize`}>
                                                 {shift.status || 'unknown'}
@@ -161,17 +161,17 @@ export default function ShiftLogsPage() {
                                     {expandedId === shift.id && (
                                         <tr key={`${shift.id}-expanded`} className="bg-slate-50 dark:bg-slate-700/30">
                                             <td colSpan={8} className="px-6 py-4">
-                                                {!shift.km_entries || shift.km_entries.length === 0 ? (
+                                                {!shift.kmEntries || shift.kmEntries.length === 0 ? (
                                                     <p className="text-xs text-slate-400 italic">No KM entries recorded for this shift.</p>
                                                 ) : (
                                                     <div className="space-y-2">
                                                         <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">KM Entries</p>
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                                            {shift.km_entries.map(entry => (
+                                                            {shift.kmEntries.map(entry => (
                                                                 <div key={entry.id} className="flex items-center gap-3 bg-white dark:bg-slate-800 rounded-xl px-4 py-2.5 border border-slate-100 dark:border-slate-700">
                                                                     <div className="w-2 h-2 rounded-full bg-[var(--brand)] shrink-0" />
                                                                     <div className="flex-1 min-w-0">
-                                                                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 capitalize">{entry.type?.replace('_', ' ')}</p>
+                                                                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 capitalize">{entry.entry_type?.replace(/_/g, ' ')}</p>
                                                                         <p className="text-xs text-slate-400">{entry.recorded_at ? new Date(entry.recorded_at).toLocaleString('en-IN') : '—'}</p>
                                                                     </div>
                                                                     <span className="font-mono font-bold text-sm text-slate-800 dark:text-white">{entry.km_reading} km</span>

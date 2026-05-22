@@ -79,7 +79,7 @@ export default function AccountSwitcher() {
         className="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1.5 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
       >
         <Users className="w-3.5 h-3.5" />
-        {activeChild ? activeChild.name : 'Switch'}
+        Switch
         <ChevronDown className="w-3 h-3" />
       </button>
 

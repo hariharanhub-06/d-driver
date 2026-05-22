@@ -113,28 +113,44 @@ const getActiveShift = async (req, res) => {
 
 // GET /api/v1/shifts  (admin)
 const listShifts = async (req, res) => {
-  const schoolId = req.schoolId;
-  const { driver_id, date, limit = 50 } = req.query;
+  try {
+    const schoolId = req.schoolId;
+    const { driver_id, from, to, limit = 50 } = req.query;
 
-  const where = { school_id: schoolId };
-  if (driver_id) where.driver_id = driver_id;
-  if (date) {
-    const d = new Date(date);
-    where.date = { gte: d, lt: new Date(d.getTime() + 86400000) };
+    const where = { school_id: schoolId };
+    if (driver_id) where.driver_id = driver_id;
+    if (from || to) {
+      where.date = {};
+      if (from) where.date.gte = new Date(from);
+      if (to) where.date.lte = new Date(new Date(to).getTime() + 86399999);
+    }
+
+    const shifts = await prisma.driverShift.findMany({
+      where,
+      take: parseInt(limit),
+      orderBy: { date: 'desc' },
+      include: {
+        driver: { include: { user: { select: { name: true } } } },
+        kmEntries: {
+          orderBy: { recorded_at: 'asc' },
+          include: { bus: { select: { bus_number: true } } },
+        },
+      },
+    });
+
+    // Compute total_km from shift_start → shift_end entries; surface bus_number
+    const enriched = shifts.map(s => {
+      const startEntry = s.kmEntries.find(e => e.entry_type === 'shift_start');
+      const endEntry   = s.kmEntries.find(e => e.entry_type === 'shift_end');
+      const total_km   = startEntry && endEntry ? endEntry.km_reading - startEntry.km_reading : null;
+      const bus_number = s.kmEntries[0]?.bus?.bus_number || null;
+      return { ...s, total_km, bus_number };
+    });
+
+    res.json(enriched);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching shifts', details: error.message });
   }
-
-  const shifts = await prisma.driverShift.findMany({
-    where,
-    take: parseInt(limit),
-    orderBy: { date: 'desc' },
-    include: {
-      driver: { include: { user: { select: { name: true } } } },
-      kmEntries: { orderBy: { recorded_at: 'asc' } },
-      busSwitches: true,
-    },
-  });
-
-  res.json({ shifts });
 };
 
 // GET /api/v1/shifts/mine  (driver)
