@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bus, Clock, Navigation, Bell, Loader2, MapPin } from 'lucide-react';
+import { Bus, Clock, Navigation, Bell, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { connectSocket, getSocket } from '@/lib/socket';
 import api from '@/lib/api';
@@ -9,17 +9,9 @@ import dynamic from 'next/dynamic';
 
 const FreeMap = dynamic(() => import('@/components/ui/FreeMap'), { ssr: false });
 
-interface RouteStop {
-    id: string;
-    name: string;
-    latitude: number;
-    longitude: number;
-    sequence: number;
-}
-
 interface ChildData {
     name: string;
-    stop?: { id?: string; name: string; lat?: number; lng?: number };
+    stop?: { id?: string; name: string; latitude?: number; longitude?: number };
     route_id?: string;
 }
 
@@ -31,7 +23,6 @@ export default function ParentTracking() {
     const [hasBusLive, setHasBusLive] = useState(false);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
     const [childData, setChildData] = useState<ChildData | null>(null);
-    const [routeStops, setRouteStops] = useState<RouteStop[]>([]);
     const [loading, setLoading] = useState(true);
     const [approaching, setApproaching] = useState(false);
     const [stopChangeModal, setStopChangeModal] = useState<{ id: string; name: string } | null>(null);
@@ -115,12 +106,6 @@ export default function ParentTracking() {
                         }
                     } catch { /* use default position */ }
                 }
-                if (student.route_id) {
-                    try {
-                        const { data: route } = await api.get(`/routes/${student.route_id}`);
-                        if (route?.stops?.length) setRouteStops(route.stops);
-                    } catch { /* stops remain empty */ }
-                }
             }
         } catch {
             // Fetch failed — show error state, no bus ID fallback
@@ -129,27 +114,26 @@ export default function ParentTracking() {
         }
     };
 
-    const myStopId = childData?.stop?.id;
-    const mapCenter: [number, number] = hasBusLive ? busPosition : (userLocation || busPosition);
+    const myStop = childData?.stop;
+    const stopPos: [number, number] | null = myStop?.latitude && myStop?.longitude
+        ? [myStop.latitude, myStop.longitude] : null;
+    const mapCenter: [number, number] = hasBusLive ? busPosition : (userLocation || stopPos || busPosition);
 
     const markers = [
-        ...(hasBusLive ? [{ position: busPosition, title: `Bus ${busNumber || busId || ''}`, isBus: true }] : []),
-        ...(userLocation ? [{ position: userLocation, title: 'Your Location', isUserLocation: true }] : []),
-        ...routeStops
-            .filter(s => s.latitude && s.longitude)
-            .sort((a, b) => a.sequence - b.sequence)
-            .map(s => ({
-                id: s.id,
-                position: [s.latitude, s.longitude] as [number, number],
-                title: s.name,
-                description: s.name,
-                stopNumber: s.sequence,
-                isMyStop: s.id === myStopId,
-            })),
+        ...(hasBusLive ? [{ position: busPosition, title: `Bus ${busNumber || busId || ''}`, isBus: true as const }] : []),
+        ...(userLocation ? [{ position: userLocation, title: 'Your Location', isUserLocation: true as const }] : []),
+        ...(stopPos ? [{
+            id: myStop!.id,
+            position: stopPos,
+            title: myStop!.name,
+            description: myStop!.name,
+            isStopPin: true as const,
+            isSelected: true,
+        }] : []),
     ];
 
     const handleStopClick = (id: string, name: string) => {
-        if (id === myStopId) return; // already their stop
+        if (id === myStop?.id) return; // already their stop
         setStopChangeSuccess(false);
         setStopChangeModal({ id, name });
     };
@@ -161,7 +145,7 @@ export default function ParentTracking() {
             const student = childData ? { stop: childData.stop } : null;
             await api.post('/stop-change', {
                 student_id: user?.student_id || undefined,
-                current_stop_id: myStopId,
+                current_stop_id: myStop?.id,
                 requested_stop_id: stopChangeModal.id,
                 change_type: 'permanent',
                 effective_date: new Date().toLocaleDateString('en-CA'),

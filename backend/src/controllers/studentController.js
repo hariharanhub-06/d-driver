@@ -352,7 +352,7 @@ const getMyStudents = async (req, res) => {
             where: { parent_id: parent.id },
             include: {
                 route: { select: { id: true, name: true, route_type: true, bus_id: true, bus: { select: { id: true, bus_number: true } } } },
-                stop: { select: { id: true, name: true, pickup_time: true } },
+                stop: { select: { id: true, name: true, pickup_time: true, latitude: true, longitude: true } },
             },
         });
         res.json(students);

@@ -12,7 +12,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.use(authenticateToken, requirePasswordChanged);
 
 router.get('/nearby', requireRole('parent'), getNearbyStops);
-router.get('/', requireRole('admin', 'super_admin', 'driver'), requireSchoolScope, getAllStops);
+router.get('/', requireRole('admin', 'super_admin', 'driver', 'parent'), requireSchoolScope, getAllStops);
 router.post('/bulk', requireRole('admin', 'super_admin'), requirePermission('route_management'), bulkCreateStops);
 router.post('/bulk-import', requireRole('admin', 'super_admin'), requirePermission('route_management'), upload.single('file'), bulkImportStops);
 router.post('/', requireRole('admin', 'super_admin'), requirePermission('route_management'), createStop);
