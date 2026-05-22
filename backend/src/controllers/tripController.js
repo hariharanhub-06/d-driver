@@ -207,4 +207,35 @@ const getActiveTrips = async (req, res) => {
   }
 };
 
-module.exports = { startTrip, updateStopIndex, completeTrip, getActiveTrips };
+// GET /api/v1/trips/history  (admin)
+const getTripHistory = async (req, res) => {
+  try {
+    const schoolId = req.schoolId;
+    const { from, to, limit = 100 } = req.query;
+
+    const where = { school_id: schoolId };
+    if (from || to) {
+      where.started_at = {};
+      if (from) where.started_at.gte = new Date(from);
+      if (to) where.started_at.lte = new Date(new Date(to).getTime() + 86399999);
+    }
+
+    const trips = await prisma.activeTrip.findMany({
+      where,
+      take: parseInt(limit),
+      orderBy: { started_at: 'desc' },
+      include: {
+        route: { select: { name: true } },
+        driver: { include: { user: { select: { name: true } } } },
+        bus: { select: { bus_number: true } },
+      },
+    });
+
+    res.json(trips);
+  } catch (error) {
+    console.error('getTripHistory error:', error.message);
+    res.status(500).json({ error: 'Error fetching trip history', details: error.message });
+  }
+};
+
+module.exports = { startTrip, updateStopIndex, completeTrip, getActiveTrips, getTripHistory };

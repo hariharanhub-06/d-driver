@@ -379,7 +379,7 @@ model StopChangeRequest {
   id                String   @id @default(uuid())
   student_id        String
   parent_id         String
-  current_stop_id   String
+  current_stop_id   String?
   requested_stop_id String
   change_type       String   // temporary | permanent
   effective_date    DateTime
@@ -389,8 +389,8 @@ model StopChangeRequest {
   created_at        DateTime @default(now())
   school_id         String
 
-  student       Student @relation(fields: [student_id], references: [id])
-  currentStop   Stop    @relation("CurrentStop", fields: [current_stop_id], references: [id])
+  student       Student  @relation(fields: [student_id], references: [id])
+  currentStop   Stop?    @relation("CurrentStop", fields: [current_stop_id], references: [id])
   requestedStop Stop    @relation("RequestedStop", fields: [requested_stop_id], references: [id])
   school        School  @relation(fields: [school_id], references: [id])
 }

@@ -110,10 +110,12 @@ const absenceReportSchema = z.object({
 
 const stopChangeSchema = z.object({
   student_id: z.string().uuid(),
-  current_stop_id: z.string().uuid(),
+  current_stop_id: z.string().uuid().optional(),
   requested_stop_id: z.string().uuid(),
   change_type: z.enum(['temporary', 'permanent']),
-  effective_date: z.string().datetime(),
+  effective_date: z.string().min(1),
+  from_date: z.string().optional(),
+  to_date: z.string().optional(),
   reason: z.string().optional(),
 });
 

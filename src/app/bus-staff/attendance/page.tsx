@@ -163,7 +163,7 @@ export default function BusStaffAttendancePage() {
             </div>
 
             {/* ── Map ── */}
-            <div className="absolute inset-0 z-0 pt-[76px]">
+            <div className="absolute left-0 right-0 bottom-0 z-0 top-[76px]">
                 {stops.length > 0 ? (
                     <FreeMap
                         center={mapCenter}

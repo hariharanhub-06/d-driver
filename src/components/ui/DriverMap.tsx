@@ -68,7 +68,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             });
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                maxZoom: 20, subdomains: 'abcd',
+                maxZoom: 20, minZoom: 3, subdomains: 'abcd', keepBuffer: 4,
             }).addTo(map);
 
             map.on('dragstart', () => {

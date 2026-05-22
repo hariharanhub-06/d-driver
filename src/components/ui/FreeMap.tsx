@@ -27,6 +27,17 @@ interface MapConfigProps {
     onStopClick?: (id: string, name: string) => void;
 }
 
+// Fires invalidateSize after mount so tiles fill the real container dimensions.
+// Without this, Leaflet reads the container size before CSS settles and leaves grey tile gaps.
+function MapReadyHandler() {
+    const map = useMap();
+    useEffect(() => {
+        const t = setTimeout(() => map.invalidateSize(false), 150);
+        return () => clearTimeout(t);
+    }, [map]);
+    return null;
+}
+
 function SmoothRecenter({ center, follow }: { center: [number, number]; follow: boolean }) {
     const map = useMap();
     const prevCenterRef = useRef<[number, number] | null>(null);
@@ -188,16 +199,21 @@ export default function FreeMap({ center, zoom = 15, markers = [], followCenter 
             center={center}
             zoom={zoom}
             scrollWheelZoom
-            className="w-full h-full min-h-[300px] z-0"
+            className="w-full h-full z-0"
+            style={{ height: '100%', width: '100%' }}
             zoomControl={false}
             attributionControl={false}
+            minZoom={3}
         >
             <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 maxZoom={20}
+                minZoom={3}
                 subdomains="abcd"
+                keepBuffer={4}
             />
+            <MapReadyHandler />
             <SmoothRecenter center={center} follow={followCenter} />
             {markers.map((marker, idx) => {
                 const icon = marker.isUserLocation
