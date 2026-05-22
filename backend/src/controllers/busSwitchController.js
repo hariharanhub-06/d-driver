@@ -44,7 +44,7 @@ const requestSwitch = async (req, res) => {
   io?.to(`admin-${schoolId}`).emit('bus-switch-requested', {
     driver_name: driver.user?.name,
     original_bus_id,
-    new_bus_id,
+    new_bus_id: null,
     reason,
     switch_log_id: switchLog.id,
   });

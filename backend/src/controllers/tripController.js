@@ -201,10 +201,6 @@ const getActiveTrips = async (req, res) => {
       where.school = { assigned_sa_id: req.user.id };
     }
 
-    // Filter stops by trip type: morning (before noon) shows morning stops, afternoon shows evening stops.
-    const currentHour = new Date().getHours();
-    const activeTripType = currentHour >= 12 ? 'evening' : 'morning';
-
     const trips = await prisma.activeTrip.findMany({
       where,
       include: {
@@ -212,7 +208,6 @@ const getActiveTrips = async (req, res) => {
           include: {
             stops: {
               orderBy: { sequence: 'asc' },
-              where: { trip_type: activeTripType },
               include: {
                 students: {
                   select: { id: true, name: true, photo_url: true, grade: true },
@@ -228,6 +223,21 @@ const getActiveTrips = async (req, res) => {
         bus: { select: { bus_number: true } },
       },
     });
+
+    // Filter stops per trip by trip_type using started_at converted to IST (UTC+5:30).
+    // Routes with morning+evening copies must only show the relevant half per trip.
+    for (const trip of trips) {
+      if (trip.route?.stops?.length > 0) {
+        const startedAt = trip.started_at ? new Date(trip.started_at) : new Date();
+        const istHour = (startedAt.getUTCHours() + 5.5) % 24;
+        const tripType = istHour >= 12 ? 'evening' : 'morning';
+        // Only filter if there are actually both types; if all are morning (no copies), keep all.
+        const hasEvening = trip.route.stops.some(s => s.trip_type === 'evening');
+        if (hasEvening) {
+          trip.route.stops = trip.route.stops.filter(s => s.trip_type === tripType);
+        }
+      }
+    }
 
     // Explicit re-map: override nested Prisma include with a direct query per route.
     // Handles the case where student.stop_id was set to NULL by onDelete:SetNull
