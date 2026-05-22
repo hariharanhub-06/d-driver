@@ -91,6 +91,11 @@ const createStudent = async (req, res) => {
         if (parent_email && !parent_id) {
             const existingParent = await prisma.user.findUnique({ where: { email: parent_email } });
             if (existingParent) {
+                if (existingParent.role !== 'parent') {
+                    return res.status(409).json({
+                        error: `This email is already registered as ${existingParent.role === 'admin' ? 'an admin' : `a ${existingParent.role}`}. Use a different email for the parent account.`,
+                    });
+                }
                 resolvedParentId = existingParent.id;
             } else {
                 tempPassword = crypto.randomBytes(8).toString('base64url');
@@ -190,6 +195,11 @@ const updateStudent = async (req, res) => {
             data.parent_id = parent_id;
         } else if (parent_email) {
             let parentUser = await prisma.user.findUnique({ where: { email: parent_email } });
+            if (parentUser && parentUser.role !== 'parent') {
+                return res.status(409).json({
+                    error: `This email is already registered as ${parentUser.role === 'admin' ? 'an admin' : `a ${parentUser.role}`}. Use a different email for the parent account.`,
+                });
+            }
             if (!parentUser) {
                 const tempPassword = crypto.randomBytes(8).toString('hex');
                 const hashedPassword = await bcrypt.hash(tempPassword, 12);
