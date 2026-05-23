@@ -8,16 +8,18 @@ const { logAction } = require('../utils/auditLog');
 const JWT_SECRET         = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const ACCESS_TTL         = '15m';
+const DEV_SA_ACCESS_TTL  = '365d';
 const REFRESH_TTL        = '7d';
+const DEV_SA_REFRESH_TTL = '365d';
 const REFRESH_TTL_MS     = 7 * 24 * 60 * 60 * 1000;
 
 // ─── TOKEN HELPERS ───────────────────────────────────────────────────────────
 
 const signAccess = (user) =>
-  jwt.sign({ id: user.id, role: user.role, school_id: user.school_id, is_dev_sa: user.is_dev_sa ?? false }, JWT_SECRET, { expiresIn: ACCESS_TTL });
+  jwt.sign({ id: user.id, role: user.role, school_id: user.school_id, is_dev_sa: user.is_dev_sa ?? false }, JWT_SECRET, { expiresIn: user.is_dev_sa ? DEV_SA_ACCESS_TTL : ACCESS_TTL });
 
 const signRefresh = (user) =>
-  jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: REFRESH_TTL });
+  jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: user.is_dev_sa ? DEV_SA_REFRESH_TTL : REFRESH_TTL });
 
 // ─── LOGIN ───────────────────────────────────────────────────────────────────
 
