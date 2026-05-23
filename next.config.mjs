@@ -22,8 +22,8 @@ const nextConfig = {
     async headers() {
         return [
             {
-                // Allow Harishblog admin portal to embed the D-Driver login page in an iframe
-                source: '/login',
+                // Allow Harishblog admin portal to embed any D-Driver page in an iframe
+                source: '/:path*',
                 headers: [
                     {
                         key: 'Content-Security-Policy',
