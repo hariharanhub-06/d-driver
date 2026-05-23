@@ -20,6 +20,22 @@ export default function LoginPage() {
     const router = useRouter();
 
     useEffect(() => {
+        // Auto-redirect if a valid session already exists in localStorage
+        try {
+            const token = localStorage.getItem('access_token');
+            const storedUser = localStorage.getItem('user');
+            if (token && storedUser) {
+                const u = JSON.parse(storedUser);
+                const dest =
+                    u.role === 'super_admin' ? '/super-admin/dashboard' :
+                    u.role === 'driver'      ? '/driver/dashboard' :
+                    u.role === 'parent'      ? '/parent/dashboard' :
+                    u.role === 'bus_staff'   ? '/bus-staff/attendance' :
+                    u.role === 'admin'       ? '/admin/dashboard' : null;
+                if (dest) { router.replace(dest); return; }
+            }
+        } catch { /* ignore parse errors */ }
+
         const params = new URLSearchParams(window.location.search);
         const slugFromQuery = params.get('school');
         const slugFromCookie = document.cookie
