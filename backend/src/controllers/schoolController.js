@@ -200,10 +200,30 @@ const updatePermissions = async (req, res) => {
 const deleteSchool = async (req, res) => {
   try {
     const { id } = req.params;
+
+    await prisma.$transaction([
+      // ShiftKmEntry has no school_id but blocks DriverShift via FK
+      prisma.shiftKmEntry.deleteMany({ where: { shift: { school_id: id } } }),
+      // These all have school_id with no onDelete (default Restrict)
+      prisma.activeTrip.deleteMany({ where: { school_id: id } }),
+      prisma.busSwitchLog.deleteMany({ where: { school_id: id } }),
+      prisma.driverShift.deleteMany({ where: { school_id: id } }),
+      prisma.location.deleteMany({ where: { school_id: id } }),
+      prisma.fuelFillEntry.deleteMany({ where: { school_id: id } }),
+      prisma.fuelRequest.deleteMany({ where: { school_id: id } }),
+      prisma.stopChangeRequest.deleteMany({ where: { school_id: id } }),
+      prisma.absenceReport.deleteMany({ where: { school_id: id } }),
+      prisma.notification.deleteMany({ where: { school_id: id } }),
+      prisma.schoolInvoice.deleteMany({ where: { school_id: id } }),
+      prisma.feeStructure.deleteMany({ where: { school_id: id } }),
+    ]);
+
+    // School.delete cascades: Bus, Driver, Route, RouteStop, Student, Attendance, Fee, Payment
     await prisma.school.delete({ where: { id } });
     await logAction({ req, action: 'delete_school', targetType: 'school', targetId: id, schoolId: id });
     res.json({ message: 'School deleted' });
   } catch (err) {
+    console.error('deleteSchool error:', err);
     res.status(500).json({ error: 'Error deleting school' });
   }
 };
