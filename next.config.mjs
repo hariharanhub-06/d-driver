@@ -19,6 +19,20 @@ const nextConfig = {
         config.resolve.fallback = { ...config.resolve.fallback, fs: false };
         return config;
     },
+    async headers() {
+        return [
+            {
+                // Allow Harishblog admin portal to embed the D-Driver login page in an iframe
+                source: '/login',
+                headers: [
+                    {
+                        key: 'Content-Security-Policy',
+                        value: "frame-ancestors 'self' https://hariharanhub.com",
+                    },
+                ],
+            },
+        ];
+    },
 };
 
 export default nextConfig;
