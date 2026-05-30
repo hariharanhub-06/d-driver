@@ -24,8 +24,9 @@ const nextConfig = {
             {
                 source: '/:path*',
                 headers: [
-                    // X-Frame-Options intentionally omitted — CSP frame-ancestors handles iframe
-                    // allowance for hariharanhub.com admin portal (X-Frame-Options: DENY would break it)
+                    // SAMEORIGIN here — CSP frame-ancestors overrides this in all modern browsers,
+                    // allowing hariharanhub.com admin portal to embed these pages via iframe
+                    { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
                     { key: 'X-Content-Type-Options', value: 'nosniff' },
                     { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
                     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
