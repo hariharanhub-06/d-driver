@@ -233,6 +233,7 @@ export default function StudentsPage() {
                 grade: editForm.grade || undefined,
                 section: editForm.section || undefined,
                 gr_no: editForm.gr_no || undefined,
+                parent_id: editForm.parent_id || undefined,
                 parent_name: editForm.parent_name || undefined,
                 parent_phone: editForm.parent_phone || undefined,
                 route_id: editForm.route_id || null,
