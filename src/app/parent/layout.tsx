@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Sun, Moon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { useSchoolBranding, useSetSchoolBranding } from '@/context/SchoolBrandingContext';
 import type { SchoolPermissions } from '@/context/SchoolBrandingContext';
@@ -63,6 +65,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
     const pathname = usePathname();
     const branding = useSchoolBranding();
     const setSchoolBranding = useSetSchoolBranding();
+    const { theme, setTheme } = useTheme();
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
@@ -177,6 +180,14 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                             </Link>
                         );
                     })}
+                    {/* Theme toggle */}
+                    <button
+                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        className="w-12 flex flex-col items-center justify-center gap-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors border-l border-slate-100 dark:border-slate-700"
+                    >
+                        {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+                        <span className="text-[8px] leading-none">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+                    </button>
                 </div>
             </nav>
 

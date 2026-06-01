@@ -40,9 +40,9 @@ export default function DriverProfilePage() {
 
     // ─── NEW BILINGUAL UI ────────────────────────────────────────────────────
     return (
-        <div className="min-h-screen bg-slate-900">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
             {/* Header */}
-            <div className="bg-slate-800 px-4 pt-10 pb-8 text-center">
+            <div className="bg-white dark:bg-slate-800 px-4 pt-10 pb-8 text-center">
                 <div className="w-20 h-20 rounded-full bg-[var(--brand)]/20 border-4 border-[var(--brand)]/40 flex items-center justify-center mx-auto mb-3">
                     <span className="text-2xl font-black text-[var(--brand)]">{initials}</span>
                 </div>
@@ -54,7 +54,7 @@ export default function DriverProfilePage() {
             <div className="px-4 py-4 space-y-4">
                 {/* My Bus */}
                 {driverInfo?.bus && (
-                    <div className="bg-slate-800 rounded-2xl border border-slate-700 p-5">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
                         <h2 className="text-sm font-bold text-slate-300 mb-3">{ta.myBus} / My Bus</h2>
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-[var(--brand)]/20 rounded-xl flex items-center justify-center">
@@ -70,7 +70,7 @@ export default function DriverProfilePage() {
                 )}
 
                 {/* Change Password */}
-                <div className="bg-slate-800 rounded-2xl border border-slate-700 p-5">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
                     <div className="flex items-center gap-2.5 mb-5">
                         <Lock className="w-5 h-5 text-[var(--brand)]" />
                         <h2 className="text-base font-semibold text-white">Change Password / {ta.changePassword}</h2>
@@ -103,12 +103,12 @@ export default function DriverProfilePage() {
                 </div>
 
                 {/* Settings */}
-                <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                     {[
                         { label: 'Language / மொழி', sub: 'English · தமிழ்', href: '#' },
                         { label: 'Help & Support', sub: ta.helpSupport, href: '#' },
                     ].map((item, idx) => (
-                        <a key={idx} href={item.href} className="flex items-center justify-between px-5 py-4 border-b border-slate-700 last:border-0 hover:bg-slate-700/50 transition-colors">
+                        <a key={idx} href={item.href} className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700 last:border-0 hover:bg-slate-700/50 transition-colors">
                             <div>
                                 <p className="text-sm font-medium text-white">{item.label}</p>
                                 <p className="text-xs text-slate-400 mt-0.5">{item.sub}</p>

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, X, DollarSign, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from 'next-themes';
 import api from '@/lib/api';
 import { ta } from '@/lib/i18n';
 
@@ -21,7 +20,6 @@ interface ActiveTrip { id: string; route_id: string; status: string; current_sto
 // ── ALL EXISTING LOGIC PRESERVED — VERBATIM ───────────────────────────────
 export default function DriverDashboard() {
     const { user, logout } = useAuth();
-    const { theme, setTheme } = useTheme();
     const router = useRouter();
     const [currentTime, setCurrentTime] = useState(new Date());
     const [driverInfo, setDriverInfo] = useState<DriverInfo | null>(null);
@@ -126,9 +124,9 @@ export default function DriverDashboard() {
     const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
 
     return (
-        <div className="min-h-screen bg-slate-900">
-            {/* ── Dark header ── */}
-            <div className="bg-slate-900 px-4 pt-10 pb-5">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+            {/* ── Header ── */}
+            <div className="bg-[var(--brand)] dark:bg-slate-900 px-4 pt-10 pb-5">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {driverInfo?.school?.logo_url ? (
@@ -140,7 +138,7 @@ export default function DriverDashboard() {
                         )}
                         <div>
                             <p className="text-white/60 text-xs">{driverInfo?.school?.name || 'D-Driver'}</p>
-                            <h1 className="text-white font-black text-xl leading-tight">
+                            <h1 className="text-slate-900 dark:text-white font-black text-xl leading-tight">
                                 {driverInfo?.bus?.bus_number || '—'}
                             </h1>
                             {routes.length > 0 && <p className="text-white/50 text-xs">{routes[0]?.name}</p>}
@@ -167,7 +165,7 @@ export default function DriverDashboard() {
 
             <div className="px-4 space-y-3 pb-4">
                 {/* Trip status card */}
-                <div className="bg-slate-800 rounded-2xl p-5">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-5">
                     <div className="flex items-center gap-2 mb-1">
                         <div className={`w-2 h-2 rounded-full ${hasAnyActiveTrip ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
                         <p className={`text-xs font-bold uppercase tracking-widest ${hasAnyActiveTrip ? 'text-emerald-400' : 'text-slate-400'}`}>
@@ -180,7 +178,7 @@ export default function DriverDashboard() {
                 {loading ? (
                     <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" /></div>
                 ) : routes.length === 0 ? (
-                    <div className="bg-slate-800 rounded-2xl p-8 text-center">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center">
                         <Navigation className="w-8 h-8 text-slate-600 mx-auto mb-3" />
                         <p className="text-slate-400 text-sm">{driverInfo?.bus ? 'No routes assigned to your bus yet' : 'No bus assigned to you yet'}</p>
                     </div>
@@ -189,7 +187,7 @@ export default function DriverDashboard() {
                         {routes.map(route => {
                             const activeTrip = getActiveTrip(route.id);
                             return (
-                                <div key={route.id} className="bg-slate-800 rounded-2xl p-5 space-y-3">
+                                <div key={route.id} className="bg-white dark:bg-slate-800 rounded-2xl p-5 space-y-3">
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-white font-bold">{route.name}</p>
@@ -217,15 +215,15 @@ export default function DriverDashboard() {
                 {/* Stats row */}
                 {driverInfo?.bus && (
                     <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-slate-800 rounded-2xl p-4 text-center">
-                            <p className="text-white font-black text-xl">{fuelLevel != null ? `${Math.round(fuelLevel)}L` : '—'}</p>
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 text-center">
+                            <p className="text-slate-900 dark:text-white font-black text-xl">{fuelLevel != null ? `${Math.round(fuelLevel)}L` : '—'}</p>
                             <p className="text-slate-400 text-xs mt-0.5">Fuel</p>
                         </div>
-                        <div className="bg-slate-800 rounded-2xl p-4 text-center">
-                            <p className="text-white font-black text-xl">{routes.length}</p>
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 text-center">
+                            <p className="text-slate-900 dark:text-white font-black text-xl">{routes.length}</p>
                             <p className="text-slate-400 text-xs mt-0.5">Routes</p>
                         </div>
-                        <div className="bg-slate-800 rounded-2xl p-4 text-center">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 text-center">
                             <p className={`font-black text-xl ${(fuelLevel ?? 100) < 10 ? 'text-red-400' : (fuelLevel ?? 100) < 30 ? 'text-amber-400' : 'text-emerald-400'}`}>
                                 {fuelLevel != null ? ((fuelLevel / (driverInfo?.bus?.mileage ? driverInfo.bus.mileage * 10 : 100)) * 100).toFixed(0) + '%' : '—'}
                             </p>
@@ -250,7 +248,7 @@ export default function DriverDashboard() {
             {/* ── MODALS — IDENTICAL to original ─────────────────────────────────── */}
             {showFuelModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
+                    <div className="bg-white dark:bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Request Fuel Fund</h3>
                             <button onClick={() => setShowFuelModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"><X className="w-5 h-5" /></button>
@@ -282,7 +280,7 @@ export default function DriverDashboard() {
 
             {showFuelFillModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
+                    <div className="bg-white dark:bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><Fuel className="w-5 h-5 text-amber-500" /> Log Fuel Fill</h3>
                             <button onClick={() => setShowFuelFillModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"><X className="w-5 h-5" /></button>
@@ -313,7 +311,7 @@ export default function DriverDashboard() {
 
             {showRouteTypeModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-xs p-6">
+                    <div className="bg-white dark:bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-xs p-6">
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-1">Select Trip Type</h2>
                         <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">Which route are you running?</p>
                         <div className="grid grid-cols-2 gap-3 mb-4">

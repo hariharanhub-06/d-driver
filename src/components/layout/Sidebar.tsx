@@ -1,6 +1,20 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
+// Tamil labels for bilingual sidebar
+const LABEL_TA: Record<string, string> = {
+    'Dashboard': 'டாஷ்போர்டு', 'Students': 'மாணவர்கள்', 'Drivers': 'ஓட்டுநர்கள்',
+    'Bus Staff': 'பேருந்து ஊழியர்கள்', 'Routes': 'வழிகள்', 'Buses': 'பேருந்துகள்',
+    'Tracking': 'கண்காணிப்பு', 'Attendance': 'வருகை பதிவு', 'Fees': 'கட்டணம்',
+    'Fuel Requests': 'எரிபொருள்', 'Shift Logs': 'பணிமாற்றம்', 'Bus Switches': 'பேருந்து மாற்றம்',
+    'Stop Requests': 'நிறுத்தம்', 'Notifications': 'அறிவிப்புகள்', 'Reports': 'அறிக்கைகள்',
+    'Settings': 'அமைப்புகள்', 'Schools': 'பள்ளிகள்', 'Billing': 'கட்டணப் பட்டியல்',
+    'Revenue': 'வருவாய்', 'Expenses': 'செலவுகள்', 'SA Users': 'SA பயனர்கள்',
+    'Audit Trail': 'தணிக்கை', 'Profile': 'சுயவிவரம்', 'Ride': 'பயணம்',
+    'Track Bus': 'பேருந்து கண்காணி', 'Home': 'முகப்பு', 'Change Stop': 'நிறுத்தம் மாற்று',
+};
+
 import {
     LayoutDashboard, Users, FileText, Settings, LogOut,
     Bus, CreditCard, ShieldCheck, Building2, Truck, Map,
@@ -143,7 +157,10 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                                                 {...((item as any).tourId ? { 'data-tour': (item as any).tourId } : {})}
                                             >
                                                 <item.icon className="w-4 h-4 shrink-0" />
-                                                <span>{item.label}</span>
+                                                <span className="flex-1 min-w-0">
+                                                    <span className="block truncate">{item.label}</span>
+                                                    {LABEL_TA[item.label] && <span className="block text-[9px] opacity-60 truncate leading-tight">{LABEL_TA[item.label]}</span>}
+                                                </span>
                                             </div>
                                         );
                                     }
@@ -156,7 +173,10 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                                             {...((item as any).tourId ? { 'data-tour': (item as any).tourId } : {})}
                                         >
                                             <item.icon className="w-4 h-4 shrink-0" />
-                                            <span>{item.label}</span>
+                                            <span className="flex-1 min-w-0">
+                                                <span className="block truncate">{item.label}</span>
+                                                {LABEL_TA[item.label] && <span className="block text-[9px] opacity-60 truncate leading-tight">{LABEL_TA[item.label]}</span>}
+                                            </span>
                                         </Link>
                                     );
                                 })}

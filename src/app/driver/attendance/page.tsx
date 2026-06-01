@@ -82,13 +82,13 @@ export default function DriverAttendancePage() {
     const missing = allStudents.filter(s => !attendance[s.id] && !isPreAbsent(s.id)).length;
 
     // ─── NEW BILINGUAL UI ────────────────────────────────────────────────────
-    if (loading) return <div className="min-h-screen bg-slate-900 flex items-center justify-center"><div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" /></div>;
-    if (error) return <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6"><div className="bg-red-900/30 border border-red-800 text-red-400 rounded-2xl p-6 text-center">{error}</div></div>;
+    if (loading) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center"><div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" /></div>;
+    if (error) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-6"><div className="bg-red-900/30 border border-red-800 text-red-400 rounded-2xl p-6 text-center">{error}</div></div>;
 
     return (
-        <div className="min-h-screen bg-slate-900">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
             {/* Header */}
-            <div className="bg-slate-800 px-4 pt-10 pb-4">
+            <div className="bg-white dark:bg-slate-800 px-4 pt-10 pb-4">
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <h1 className="text-xl font-bold text-white">Student Attendance</h1>
@@ -119,7 +119,7 @@ export default function DriverAttendancePage() {
             <div className="px-4 pt-3 pb-2">
                 <div className="relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="text" placeholder="Search student..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-2xl py-2.5 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-[var(--brand)] transition-colors placeholder:text-slate-500" />
+                    <input type="text" placeholder="Search student..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-2.5 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-[var(--brand)] transition-colors placeholder:text-slate-500" />
                 </div>
             </div>
 
@@ -127,7 +127,7 @@ export default function DriverAttendancePage() {
             {!searchQuery && stops.length > 0 && (
                 <div className="px-4 py-2 flex gap-2 overflow-x-auto">
                     {stops.map((stop, i) => (
-                        <button key={stop.id} onClick={() => setCurrentStopIndex(i)} className={cn('shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all', i === currentStopIndex ? 'bg-[var(--brand)] text-white' : 'bg-slate-800 text-slate-400 border border-slate-700')}>
+                        <button key={stop.id} onClick={() => setCurrentStopIndex(i)} className={cn('shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all', i === currentStopIndex ? 'bg-[var(--brand)] text-white' : 'bg-white dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700')}>
                             {stop.name}
                         </button>
                     ))}
@@ -136,7 +136,7 @@ export default function DriverAttendancePage() {
 
             {/* Current stop info */}
             {!searchQuery && currentStop && (
-                <div className="mx-4 mt-2 mb-3 bg-slate-800 rounded-2xl p-4 border border-slate-700 flex items-center gap-3">
+                <div className="mx-4 mt-2 mb-3 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
                     <div className="p-2 bg-[var(--brand)]/20 rounded-xl"><MapPin className="w-4 h-4 text-[var(--brand)]" /></div>
                     <div>
                         <p className="font-bold text-white text-sm">{currentStop.name}</p>
@@ -153,7 +153,7 @@ export default function DriverAttendancePage() {
                     const marked = attendance[student.id];
                     const preAbsent = isPreAbsent(student.id);
                     return (
-                        <div key={student.id} className={cn('bg-slate-800 rounded-2xl p-4 border flex items-center gap-4 transition-all', marked === 'present' ? 'border-emerald-700' : marked === 'absent' ? 'border-red-800' : preAbsent ? 'border-amber-700 opacity-75' : 'border-slate-700')}>
+                        <div key={student.id} className={cn('bg-white dark:bg-slate-800 rounded-2xl p-4 border flex items-center gap-4 transition-all', marked === 'present' ? 'border-emerald-700' : marked === 'absent' ? 'border-red-800' : preAbsent ? 'border-amber-700 opacity-75' : 'border-slate-200 dark:border-slate-700')}>
                             <div className="w-12 h-12 rounded-2xl bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
                                 {student.photo_url ? <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" /> : <span className="text-lg font-bold text-slate-400">{student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</span>}
                             </div>
@@ -185,8 +185,8 @@ export default function DriverAttendancePage() {
             {/* Mark attendance overlay — IDENTICAL to original */}
             {activeStudent && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
+                    <div className="bg-white dark:bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-200 dark:border-slate-700">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Mark Attendance</h3>
                             <button onClick={() => { setActiveStudentId(null); setMarkingNote(''); }} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"><X className="w-5 h-5" /></button>
                         </div>
