@@ -203,7 +203,9 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     useEffect(() => {
         if (!mapReady) return;
 
-        const remainingStops = stops.slice(nextStopIndex).filter(s => s.lat && s.lng);
+        // Only draw path to the NEXT stop — advances stop by stop as driver moves
+        const nextStop = stops[nextStopIndex];
+        const remainingStops = (nextStop?.lat && nextStop?.lng) ? [nextStop] : [];
         const stopsKey = remainingStops.map(s => s.id).join(',');
 
         import('leaflet').then(async L => {
