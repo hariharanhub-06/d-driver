@@ -239,16 +239,19 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 ...remainingStops.map(s => `${s.lng},${s.lat}`),
             ].join(';');
 
-            const drawFallback = () => {
+            const lineStyle = { color: '#2563EB', weight: 5, opacity: 0.85, lineJoin: 'round' as const, lineCap: 'round' as const };
+
+            const drawStraightLine = () => {
                 if (!mapRef.current) return;
                 if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
                 const pts: [number, number][] = [[uLat, uLng], ...remainingStops.map(s => [s.lat, s.lng] as [number, number])];
-                routeLineRef.current = L.polyline(pts, { color: '#2563EB', weight: 4, opacity: 0.55, dashArray: '10 6' }).addTo(mapRef.current);
+                routeLineRef.current = L.polyline(pts, lineStyle).addTo(mapRef.current);
             };
 
+            // Try OSRM public server; fall back to straight line (solid, not dashed) on failure
             try {
                 const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 8000);
+                const timeout = setTimeout(() => controller.abort(), 6000);
                 const res = await fetch(
                     `https://router.project-osrm.org/route/v1/driving/${waypoints}?geometries=geojson&overview=full`,
                     { signal: controller.signal },
@@ -259,14 +262,11 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 const coords: [number, number][] = (data.routes?.[0]?.geometry?.coordinates ?? []).map(
                     ([lng, lat]: [number, number]) => [lat, lng] as [number, number],
                 );
-                if (!mapRef.current || coords.length === 0) { drawFallback(); return; }
+                if (!mapRef.current || coords.length === 0) { drawStraightLine(); return; }
                 if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
-                routeLineRef.current = L.polyline(coords, {
-                    color: '#2563EB', weight: 5, opacity: 0.85,
-                    lineJoin: 'round', lineCap: 'round',
-                }).addTo(mapRef.current);
+                routeLineRef.current = L.polyline(coords, lineStyle).addTo(mapRef.current);
             } catch {
-                drawFallback();
+                drawStraightLine();
             }
         });
     }, [userPosition, stops, nextStopIndex, mapReady]);
