@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, UserCheck, X, Loader2, Upload, ChevronDown } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, UserCheck, X, Loader2, Upload } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -63,9 +63,6 @@ export default function DriversPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
 
-    // Assign bus dropdown state
-    const [assigningBusFor, setAssigningBusFor] = useState<string | null>(null);
-    const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -345,24 +342,16 @@ export default function DriversPage() {
 
                                             {/* Assigned Bus */}
                                             <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                                <div>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            if (assigningBusFor === driver.id) {
-                                                                setAssigningBusFor(null);
-                                                                setDropdownPos(null);
-                                                            } else {
-                                                                const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
-                                                                setAssigningBusFor(driver.id);
-                                                                setDropdownPos({ top: rect.bottom + 4, left: rect.left });
-                                                            }
-                                                        }}
-                                                        className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-2.5 py-1.5 rounded-lg transition-colors hover:bg-[var(--brand)]/20"
-                                                    >
-                                                        {driver.bus?.bus_number || 'Assign Bus'}
-                                                        <ChevronDown className="w-3 h-3" />
-                                                    </button>
-                                                </div>
+                                                <select
+                                                    value={driver.bus?.id || ''}
+                                                    onChange={e => handleAssignBus(driver.id, e.target.value || null)}
+                                                    className="text-xs font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-2.5 py-1.5 rounded-lg border-none outline-none cursor-pointer hover:bg-[var(--brand)]/20 transition-colors"
+                                                >
+                                                    <option value="">Assign Bus</option>
+                                                    {buses.map(bus => (
+                                                        <option key={bus.id} value={bus.id}>{bus.bus_number}</option>
+                                                    ))}
+                                                </select>
                                             </td>
 
                                             {/* Status */}
@@ -512,48 +501,6 @@ export default function DriversPage() {
                 </div>
             )}
 
-            {/* Fixed-position assign bus dropdown — escapes table overflow clipping */}
-            {assigningBusFor && dropdownPos && (() => {
-                const driver = drivers.find(d => d.id === assigningBusFor);
-                if (!driver) return null;
-                return (
-                    <>
-                        {/* Backdrop */}
-                        <div
-                            className="fixed inset-0 z-[998]"
-                            onClick={() => { setAssigningBusFor(null); setDropdownPos(null); }}
-                        />
-                        {/* Dropdown */}
-                        <div
-                            style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, zIndex: 999 }}
-                            className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl shadow-xl py-1 min-w-[160px]"
-                        >
-                            <button
-                                onClick={() => { handleAssignBus(driver.id, null); setDropdownPos(null); }}
-                                className="w-full text-left px-4 py-2 text-xs text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700"
-                            >
-                                Unassign
-                            </button>
-                            {buses.length === 0 && (
-                                <p className="px-4 py-2 text-xs text-slate-400 italic">No buses added yet</p>
-                            )}
-                            {buses.map(bus => (
-                                <button
-                                    key={bus.id}
-                                    onClick={() => { handleAssignBus(driver.id, bus.id); setDropdownPos(null); }}
-                                    className={`w-full text-left px-4 py-2 text-xs hover:bg-[var(--brand)]/5 dark:hover:bg-[var(--brand)]/10 ${
-                                        driver.bus?.id === bus.id
-                                            ? 'text-[var(--brand)] font-bold'
-                                            : 'text-slate-700 dark:text-slate-300'
-                                    }`}
-                                >
-                                    {bus.bus_number}
-                                </button>
-                            ))}
-                        </div>
-                    </>
-                );
-            })()}
         </div>
     );
 }
