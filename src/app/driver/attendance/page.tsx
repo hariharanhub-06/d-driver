@@ -34,14 +34,21 @@ export default function DriverAttendancePage() {
             if (trip) {
                 setTripId(trip.id);
                 const route = trip.route || {};
-                const students = route.students || [];
-                const enrichedStops: TripStop[] = (route.stops || []).map((stop: any) => ({ ...stop, students: students.filter((s: any) => s.stop_id === stop.id) }));
-                if (enrichedStops.length > 0) { setStops(enrichedStops); }
+                // stops already have .students from Prisma include — use them directly.
+                // route.students (top-level) is NOT populated by the backend.
+                const stopsWithStudents: TripStop[] = (route.stops || []).map((stop: any) => ({
+                    ...stop,
+                    students: stop.students || [],
+                }));
+                if (stopsWithStudents.length > 0) { setStops(stopsWithStudents); }
                 else {
                     const routeRes = await api.get(`/routes/${trip.route_id}`);
                     const r = routeRes.data;
                     const s2 = r.students || [];
-                    setStops((r.stops || []).map((stop: any) => ({ ...stop, students: s2.filter((s: any) => s.stop_id === stop.id) })));
+                    setStops((r.stops || []).map((stop: any) => ({
+                        ...stop,
+                        students: stop.students || s2.filter((s: any) => s.stop_id === stop.id),
+                    })));
                 }
                 setCurrentStopIndex(trip.current_stop_index ?? 0);
             }
