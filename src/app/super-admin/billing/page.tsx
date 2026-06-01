@@ -109,14 +109,14 @@ export default function BillingPage() {
         setEditingPlanId(plan.id);
         setPlanForm({ name: plan.name, description: plan.description || '' });
         const allItems = plan.lineItems || [];
-        setRevenueItems(
-            allItems.filter(li => !['expense', 'profit'].includes(li.metric))
-                .map(li => ({ label: li.label, metric: li.metric, unit_rate: String(li.unit_rate) }))
-        );
-        setExpenseItems(
-            allItems.filter(li => li.metric === 'expense')
-                .map(li => ({ label: li.label, unit_rate: String(li.unit_rate) }))
-        );
+        const revenueRows = allItems
+            .filter(li => !['expense', 'profit'].includes(li.metric))
+            .map(li => ({ label: li.label, metric: li.metric, unit_rate: String(li.unit_rate) }));
+        setRevenueItems(revenueRows.length > 0 ? revenueRows : [{ label: '', metric: 'per_bus', unit_rate: '' }]);
+        const expenseRows = allItems
+            .filter(li => li.metric === 'expense')
+            .map(li => ({ label: li.label, unit_rate: String(li.unit_rate) }));
+        setExpenseItems(expenseRows.length > 0 ? expenseRows : DEFAULT_EXPENSE_ITEMS);
         const profitLine = allItems.find(li => li.metric === 'profit');
         setProfitAmount(profitLine ? String(profitLine.unit_rate) : '');
         setSample({ buses: '10', students: '200', routes: '3', schools: '10' });
