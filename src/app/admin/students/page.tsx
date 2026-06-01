@@ -150,6 +150,9 @@ export default function StudentsPage() {
         setEditPhotoPreview(s.photo_url || '');
         setEditError('');
         setResetEmailSent(false);
+        // Pre-fill parent search with existing parent name; reset dropdown
+        setEditParentSearch(s.parent?.name || '');
+        setEditParents([]);
         setEditModalOpen(true);
     };
 
