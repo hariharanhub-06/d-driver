@@ -120,7 +120,9 @@ export default function FuelRequestsPage() {
         }
 
         setIsSubmitting(true);
-        const statusMap = { approve: 'approved', reject: 'rejected' };
+        // Approve = disburse in one step (admin picks payment method when approving,
+        // which means they're handing over the money at the same time)
+        const statusMap = { approve: 'disbursed', reject: 'rejected' };
         try {
             const payload: Record<string, string | undefined> = {
                 status: statusMap[actionModal.action],
@@ -185,7 +187,7 @@ export default function FuelRequestsPage() {
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm">
                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Approved</p>
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">₹{totalApproved.toLocaleString('en-IN')}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Awaiting fuel fill</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Approved, not yet disbursed</p>
                 </div>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm">
                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Awaiting Approval</p>
