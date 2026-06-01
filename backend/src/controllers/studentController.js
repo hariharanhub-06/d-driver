@@ -73,6 +73,7 @@ const createStudent = async (req, res) => {
             parent_name,
             parent_email,
             parent_phone,
+            parent_password,
             route_id,
             stop_id,
             photo_url,
@@ -98,7 +99,7 @@ const createStudent = async (req, res) => {
                 }
                 resolvedParentId = existingParent.id;
             } else {
-                tempPassword = crypto.randomBytes(8).toString('base64url');
+                tempPassword = parent_password || crypto.randomBytes(8).toString('base64url');
                 const hashedPassword = await bcrypt.hash(tempPassword, 12);
                 const newParent = await prisma.user.create({
                     data: {

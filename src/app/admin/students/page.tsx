@@ -23,7 +23,7 @@ const EMPTY_FORM = {
     name: '', grade: '', section: '', gr_no: '',
     parent_mode: 'new' as 'new' | 'existing',
     parent_id: '',
-    parent_name: '', parent_email: '', parent_phone: '',
+    parent_name: '', parent_email: '', parent_phone: '', parent_password: '',
     route_id: '', stop_id: '',
     fee_amount: '', fee_frequency: 'monthly', fee_due_day: '5', academic_year: new Date().getFullYear().toString(),
 };
@@ -181,6 +181,7 @@ export default function StudentsPage() {
                     parent_name: formData.parent_name,
                     parent_email: formData.parent_email,
                     parent_phone: formData.parent_phone || undefined,
+                    parent_password: formData.parent_password || undefined,
                 }),
                 ...(formData.route_id && { route_id: formData.route_id }),
                 ...(formData.stop_id && { stop_id: formData.stop_id }),
@@ -199,9 +200,10 @@ export default function StudentsPage() {
                 await api.post(`/students/upload-photo`, fd, { params: { student_id: studentId }, headers: { 'Content-Type': undefined } });
             }
 
-            // Show parent login credentials if a new parent account was auto-created
-            if (data?.temp_password && formData.parent_email) {
-                setParentCreds({ name: formData.parent_name || 'Parent', email: formData.parent_email, password: data.temp_password });
+            // Show parent login credentials if parent account was created/updated
+            const shownPassword = formData.parent_password || data?.temp_password;
+            if (shownPassword && formData.parent_mode === 'new' && formData.parent_email) {
+                setParentCreds({ name: formData.parent_name || 'Parent', email: formData.parent_email, password: shownPassword });
             }
 
             setIsModalOpen(false);
@@ -255,8 +257,12 @@ export default function StudentsPage() {
     };
 
     const handleDelete = async (id: string) => {
-        try { await api.delete(`/students/${id}`); } catch { /* ignore */ }
-        setStudents(prev => prev.filter(s => s.id !== id));
+        try {
+            await api.delete(`/students/${id}`);
+            setStudents(prev => prev.filter(s => s.id !== id));
+        } catch (err: any) {
+            alert(err?.response?.data?.error || 'Failed to delete student. Please try again.');
+        }
         setDeleteId(null);
     };
 
@@ -545,6 +551,10 @@ export default function StudentsPage() {
                                                 <div>
                                                     <label className={labelCls}>Phone</label>
                                                     <input type="tel" placeholder="+91 98765 43210" className={inputCls} value={formData.parent_phone} onChange={e => setFormData({ ...formData, parent_phone: e.target.value })} />
+                                                </div>
+                                                <div>
+                                                    <label className={labelCls}>Password <span className="text-slate-400 font-normal">(leave blank to auto-generate)</span></label>
+                                                    <input type="text" placeholder="Set a password (min 8 chars)" className={inputCls} value={formData.parent_password} onChange={e => setFormData({ ...formData, parent_password: e.target.value })} autoComplete="off" />
                                                 </div>
                                             </>
                                         )}
