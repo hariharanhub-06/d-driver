@@ -348,7 +348,8 @@ export default function ActiveRide() {
         ? rawStops.filter((s: any) => s.trip_type === (isEvening ? 'evening' : 'morning') || s.trip_type === 'both')
         : rawStops;
     const orderedStops = filteredStops.length > 0 ? filteredStops : rawStops;
-    const stops = isEvening && !hasTripTypeSplit ? [...orderedStops].reverse() : orderedStops;
+    // Evening always visits stops in reverse sequence (7→6→5→...→1)
+    const stops = isEvening ? [...orderedStops].reverse() : orderedStops;
     const allStudents = tripData?.route?.students || [];
     const currentStop = stops[currentStopIndex];
     const nextStop = stops[currentStopIndex + 1];
