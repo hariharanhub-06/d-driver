@@ -96,6 +96,10 @@ const createDriver = async (req, res) => {
         res.status(201).json(newDriver);
     } catch (error) {
         console.error('createDriver error:', error.message);
+        if (error.code === 'P2002') {
+            const field = error.meta?.target?.[0] || 'field';
+            return res.status(409).json({ error: `A user with this ${field} already exists. Use a different ${field}.` });
+        }
         res.status(500).json({ error: 'Error creating driver', details: error.message });
     }
 };
