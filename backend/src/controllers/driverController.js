@@ -48,6 +48,7 @@ const createDriver = async (req, res) => {
         const effectiveSchoolId = req.user.role === 'super_admin' ? school_id : req.user.school_id;
 
         let resolvedUserId = user_id;
+        let tempPassword = null;
 
         // If name + email provided instead of user_id, create the user account first
         if (!resolvedUserId && name && rawEmail) {
@@ -58,7 +59,7 @@ const createDriver = async (req, res) => {
                 if (existing.role === 'driver') {
                     const linked = await prisma.driver.findUnique({ where: { user_id: existing.id } });
                     if (!linked) {
-                        const tempPassword = crypto.randomBytes(8).toString('base64url');
+                        tempPassword = crypto.randomBytes(8).toString('base64url');
                         const hashedPassword = await bcrypt.hash(tempPassword, 12);
                         await prisma.user.update({
                             where: { id: existing.id },
@@ -72,7 +73,7 @@ const createDriver = async (req, res) => {
                     return res.status(409).json({ error: `This email is already registered as a ${existing.role}. Use a different email.` });
                 }
             } else {
-                const tempPassword = crypto.randomBytes(8).toString('base64url');
+                tempPassword = crypto.randomBytes(8).toString('base64url');
                 const hashedPassword = await bcrypt.hash(tempPassword, 12);
                 const newUser = await prisma.user.create({
                     data: { name, email, phone: phone || null, password: hashedPassword, role: 'driver', school_id: effectiveSchoolId, is_first_login: true, is_active: true },
@@ -93,7 +94,8 @@ const createDriver = async (req, res) => {
             },
         });
         await logAction({ req, action: 'create_driver', targetType: 'driver', targetId: newDriver.id });
-        res.status(201).json(newDriver);
+        // Return temp_password so admin can share login credentials with the driver
+        res.status(201).json({ ...newDriver, temp_password: tempPassword });
     } catch (error) {
         console.error('createDriver error:', error.message);
         if (error.code === 'P2002') {

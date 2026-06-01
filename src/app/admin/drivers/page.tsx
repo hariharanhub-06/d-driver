@@ -62,6 +62,7 @@ export default function DriversPage() {
     const [formData, setFormData] = useState(EMPTY_FORM);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
+    const [createdCreds, setCreatedCreds] = useState<{ name: string; email: string; password: string } | null>(null);
 
 
     useEffect(() => {
@@ -181,6 +182,9 @@ export default function DriversPage() {
             } else {
                 const { data } = await api.post('/drivers', payload);
                 setDrivers(prev => [...prev, data]);
+                if (data.temp_password) {
+                    setCreatedCreds({ name: formData.name, email: formData.email, password: data.temp_password });
+                }
             }
             setIsModalOpen(false);
         } catch (err: any) {
@@ -497,6 +501,51 @@ export default function DriversPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Driver Credentials Dialog — shown once after creation */}
+            {createdCreds && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm">
+                        <div className="p-6 text-center space-y-4">
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto">
+                                <UserCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900 dark:text-white">Driver Created</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Share these login credentials with the driver. The password must be changed on first login.</p>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 text-left space-y-2">
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400">Name</span>
+                                    <span className="font-semibold text-slate-800 dark:text-white">{createdCreds.name}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400">Email</span>
+                                    <span className="font-semibold text-slate-800 dark:text-white">{createdCreds.email}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400">Temp Password</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-mono font-bold text-[var(--brand)] text-sm">{createdCreds.password}</span>
+                                        <button
+                                            onClick={() => navigator.clipboard.writeText(createdCreds.password)}
+                                            className="text-[10px] bg-[var(--brand)]/10 text-[var(--brand)] px-2 py-0.5 rounded-md font-semibold hover:bg-[var(--brand)]/20 transition-colors"
+                                        >
+                                            Copy
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setCreatedCreds(null)}
+                                className="w-full bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
+                            >
+                                Done
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
