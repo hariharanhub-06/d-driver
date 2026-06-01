@@ -65,12 +65,13 @@ export default function StudentsPage() {
     const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
     const [editParentSearch, setEditParentSearch] = useState('');
     const [editParents, setEditParents] = useState<any[]>([]);
+    const [newParentPassword, setNewParentPassword] = useState('');
+    const [settingPassword, setSettingPassword] = useState(false);
+    const [passwordMsg, setPasswordMsg] = useState('');
     const [uploadingEditPhoto, setUploadingEditPhoto] = useState(false);
     const [editPhotoPreview, setEditPhotoPreview] = useState('');
 
     const [deleteId, setDeleteId] = useState<string | null>(null);
-    const [resetEmailLoading, setResetEmailLoading] = useState(false);
-    const [resetEmailSent, setResetEmailSent] = useState(false);
     const importRef = useRef<HTMLInputElement>(null);
     const photoRef = useRef<HTMLInputElement>(null);
     const editPhotoRef = useRef<HTMLInputElement>(null);
@@ -149,23 +150,27 @@ export default function StudentsPage() {
         setEditPhotoFile(null);
         setEditPhotoPreview(s.photo_url || '');
         setEditError('');
-        setResetEmailSent(false);
         // Pre-fill parent search with existing parent name; reset dropdown
         setEditParentSearch(s.parent?.name || '');
         setEditParents([]);
+        setNewParentPassword('');
+        setPasswordMsg('');
         setEditModalOpen(true);
     };
 
-    const handleSendResetEmail = async () => {
-        if (!editForm.parent_id) return;
-        setResetEmailLoading(true);
+    const handleSetParentPassword = async () => {
+        if (!editForm.parent_id || !newParentPassword) return;
+        if (newParentPassword.length < 8) { setPasswordMsg('Password must be at least 8 characters.'); return; }
+        setSettingPassword(true);
+        setPasswordMsg('');
         try {
-            await api.post(`/users/${editForm.parent_id}/send-reset-email`);
-            setResetEmailSent(true);
-        } catch {
-            // silent
+            await api.patch(`/users/${editForm.parent_id}/reset-password`, { new_password: newParentPassword });
+            setPasswordMsg('✓ Password set. Parent must change it on next login.');
+            setNewParentPassword('');
+        } catch (err: any) {
+            setPasswordMsg(err?.response?.data?.error || 'Failed to set password.');
         } finally {
-            setResetEmailLoading(false);
+            setSettingPassword(false);
         }
     };
 
@@ -762,23 +767,36 @@ export default function StudentsPage() {
                                 <label className={labelCls}>Parent Phone</label>
                                 <input type="tel" className={inputCls} placeholder="+91 9876543210" value={editForm.parent_phone} onChange={e => setEditForm(f => ({ ...f, parent_phone: e.target.value }))} />
                             </div>
-                            {editForm.parent_email && (
+                            {editForm.parent_id && (
                                 <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 space-y-3">
                                     <div>
-                                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Email (Login ID)</p>
-                                        <p className="text-sm font-medium text-slate-900 dark:text-white">{editForm.parent_email}</p>
+                                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Parent Login</p>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">{editForm.parent_email}</p>
                                     </div>
-                                    <div className="pt-1 border-t border-slate-200 dark:border-slate-600">
-                                        <p className="text-xs text-slate-400 mb-2">Send a password reset link to the parent's email.</p>
-                                        <button
-                                            type="button"
-                                            onClick={handleSendResetEmail}
-                                            disabled={resetEmailLoading || resetEmailSent}
-                                            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border transition-all disabled:opacity-60 border-[var(--brand)] text-[var(--brand)] hover:bg-[var(--brand)]/10"
-                                        >
-                                            {resetEmailLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                                            {resetEmailSent ? '✓ Reset Email Sent' : resetEmailLoading ? 'Sending...' : 'Send Password Reset Email'}
-                                        </button>
+                                    <div className="pt-2 border-t border-slate-200 dark:border-slate-600 space-y-2">
+                                        <p className="text-xs text-slate-400">Set a new temporary password — parent must change it on first login.</p>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="New temp password (min 8 chars)"
+                                                value={newParentPassword}
+                                                onChange={e => { setNewParentPassword(e.target.value); setPasswordMsg(''); }}
+                                                className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)]"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleSetParentPassword}
+                                                disabled={settingPassword || !newParentPassword}
+                                                className="px-4 py-2 text-xs font-semibold rounded-xl bg-[var(--brand)] text-white hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+                                            >
+                                                {settingPassword ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Set Password'}
+                                            </button>
+                                        </div>
+                                        {passwordMsg && (
+                                            <p className={`text-xs font-medium ${passwordMsg.startsWith('✓') ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                {passwordMsg}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             )}
