@@ -339,11 +339,12 @@ export default function ActiveRide() {
     const isEvening = selectedTripType === 'afternoon'
         || tripData?.route?.route_type === 'afternoon'
         || tripData?.route?.route_type === 'evening';
-    // Filter stops by trip_type; fall back to all stops for routes without split stops
+    // Filter stops by trip_type; fall back to all stops when filter yields nothing
     const hasTripTypeSplit = rawStops.some((s: any) => s.trip_type && s.trip_type !== 'morning');
-    const stops = hasTripTypeSplit
+    const filteredStops = hasTripTypeSplit
         ? rawStops.filter((s: any) => s.trip_type === (isEvening ? 'evening' : 'morning') || s.trip_type === 'both')
         : rawStops;
+    const stops = filteredStops.length > 0 ? filteredStops : rawStops;
     const allStudents = tripData?.route?.students || [];
     const currentStop = stops[currentStopIndex];
     const nextStop = stops[currentStopIndex + 1];
