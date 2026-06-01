@@ -278,25 +278,10 @@ export default function ActiveRide() {
                 setGeoError('Geolocation is not supported by this browser.');
                 return;
             }
-            if ('permissions' in navigator) {
-                navigator.permissions.query({ name: 'geolocation' as PermissionName }).then((result) => {
-                    if (result.state === 'denied') {
-                        setLocationDenied(true);
-                    } else {
-                        startTracking();
-                    }
-                    result.onchange = () => {
-                        if (result.state === 'granted') {
-                            setLocationDenied(false);
-                            startTracking();
-                        } else if (result.state === 'denied') {
-                            setLocationDenied(true);
-                        }
-                    };
-                });
-            } else {
-                startTracking();
-            }
+            // Skip the Permissions API pre-check — it is unreliable on iOS Safari
+            // and many Android browsers (returns 'denied' even when location is allowed).
+            // watchPosition's error callback already handles PERMISSION_DENIED (code 1).
+            startTracking();
         });
 
         return () => {
