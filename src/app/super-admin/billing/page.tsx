@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee } from 'lucide-react';
+import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee, Pencil, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -57,6 +57,8 @@ export default function BillingPage() {
     const [schools, setSchools] = useState<School[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
+    const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
 
     // Plan modal
     const [showPlanModal, setShowPlanModal] = useState(false);
@@ -95,6 +97,7 @@ export default function BillingPage() {
 
     const resetPlanModal = () => {
         setShowPlanModal(false);
+        setEditingPlanId(null);
         setPlanForm({ name: '', description: '' });
         setRevenueItems([{ label: '', metric: 'per_bus', unit_rate: '' }]);
         setExpenseItems(DEFAULT_EXPENSE_ITEMS);
@@ -102,7 +105,25 @@ export default function BillingPage() {
         setSample({ buses: '10', students: '200', routes: '3', schools: '10' });
     };
 
-    const handleCreatePlan = async () => {
+    const openEditModal = (plan: Plan) => {
+        setEditingPlanId(plan.id);
+        setPlanForm({ name: plan.name, description: plan.description || '' });
+        const allItems = plan.line_items || [];
+        setRevenueItems(
+            allItems.filter(li => !['expense', 'profit'].includes(li.metric))
+                .map(li => ({ label: li.label, metric: li.metric, unit_rate: String(li.unit_rate) }))
+        );
+        setExpenseItems(
+            allItems.filter(li => li.metric === 'expense')
+                .map(li => ({ label: li.label, unit_rate: String(li.unit_rate) }))
+        );
+        const profitLine = allItems.find(li => li.metric === 'profit');
+        setProfitAmount(profitLine ? String(profitLine.unit_rate) : '');
+        setSample({ buses: '10', students: '200', routes: '3', schools: '10' });
+        setShowPlanModal(true);
+    };
+
+    const handleSavePlan = async () => {
         if (!planForm.name) return;
         setSubmitting(true);
         try {
@@ -111,13 +132,30 @@ export default function BillingPage() {
                 ...expenseItems.filter(e => e.label.trim()).map(e => ({ label: e.label, metric: 'expense', unit_rate: parseFloat(e.unit_rate) || 0 })),
                 ...(profitAmount ? [{ label: 'Profit Target', metric: 'profit', unit_rate: parseFloat(profitAmount) || 0 }] : []),
             ];
-            await api.post('/billing/plans', { ...planForm, line_items: allLineItems });
+            if (editingPlanId) {
+                await api.put(`/billing/plans/${editingPlanId}`, { ...planForm, line_items: allLineItems });
+            } else {
+                await api.post('/billing/plans', { ...planForm, line_items: allLineItems });
+            }
             resetPlanModal();
             fetchAll();
         } catch (e: any) {
-            alert(e.response?.data?.message || 'Failed to create plan');
+            alert(e.response?.data?.message || `Failed to ${editingPlanId ? 'update' : 'create'} plan`);
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleDeletePlan = async (id: string, name: string) => {
+        if (!confirm(`Delete the plan "${name}"? This cannot be undone.`)) return;
+        setDeletingPlanId(id);
+        try {
+            await api.delete(`/billing/plans/${id}`);
+            setPlans(prev => prev.filter(p => p.id !== id));
+        } catch (e: any) {
+            alert(e.response?.data?.error || 'Failed to delete plan');
+        } finally {
+            setDeletingPlanId(null);
         }
     };
 
@@ -229,7 +267,26 @@ export default function BillingPage() {
                             const profitLine = plan.line_items?.find(li => li.metric === 'profit');
                             return (
                                 <div key={plan.id} className="bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-600 p-5 hover:border-[var(--brand)]/30 transition-colors">
-                                    <h4 className="font-semibold text-slate-900 dark:text-white mb-1">{plan.name}</h4>
+                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                        <h4 className="font-semibold text-slate-900 dark:text-white">{plan.name}</h4>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <button
+                                                onClick={() => openEditModal(plan)}
+                                                title="Edit plan"
+                                                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-400 hover:text-[var(--brand)] transition-colors"
+                                            >
+                                                <Pencil className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeletePlan(plan.id, plan.name)}
+                                                disabled={deletingPlanId === plan.id}
+                                                title="Delete plan"
+                                                className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-50"
+                                            >
+                                                {deletingPlanId === plan.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                            </button>
+                                        </div>
+                                    </div>
                                     {plan.description && <p className="text-slate-500 dark:text-slate-400 text-xs mb-3">{plan.description}</p>}
                                     {revenueLines.length > 0 && (
                                         <div className="space-y-1.5 mb-3">
@@ -337,7 +394,7 @@ export default function BillingPage() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Create Pricing Plan</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{editingPlanId ? 'Edit Pricing Plan' : 'Create Pricing Plan'}</h3>
                             <button onClick={resetPlanModal} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"><X className="w-5 h-5" /></button>
                         </div>
 
@@ -509,9 +566,9 @@ export default function BillingPage() {
                                     className="flex-1 flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
                                     Cancel
                                 </button>
-                                <button onClick={handleCreatePlan} disabled={submitting || !planForm.name}
+                                <button onClick={handleSavePlan} disabled={submitting || !planForm.name}
                                     className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50">
-                                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Plan'}
+                                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : editingPlanId ? 'Save Changes' : 'Create Plan'}
                                 </button>
                             </div>
                         </div>
