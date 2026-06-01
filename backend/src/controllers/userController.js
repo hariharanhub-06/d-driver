@@ -296,11 +296,20 @@ const resetUserPassword = async (req, res) => {
         if (!new_password || new_password.length < 8) {
             return res.status(400).json({ error: 'new_password must be at least 8 characters' });
         }
-        const target = await prisma.user.findUnique({ where: { id }, select: { is_dev_sa: true } });
+        const target = await prisma.user.findUnique({ where: { id }, select: { is_dev_sa: true, school_id: true, role: true } });
         if (!target) return res.status(404).json({ error: 'User not found' });
-        // Only DEV SA can reset DEV SA password; regular SA cannot touch DEV SA
+        // Only DEV SA can reset DEV SA password
         if (target.is_dev_sa && !req.user.is_dev_sa) {
             return res.status(403).json({ error: 'Cannot reset DEV SA password' });
+        }
+        // Admin can only reset passwords for users in their own school (drivers, parents, bus_staff)
+        if (req.user.role === 'admin') {
+            if (target.school_id !== req.user.school_id) {
+                return res.status(403).json({ error: 'Access denied' });
+            }
+            if (!['driver', 'parent', 'bus_staff'].includes(target.role)) {
+                return res.status(403).json({ error: 'Admins can only reset passwords for drivers, parents, and bus staff' });
+            }
         }
         const hashed = await bcrypt.hash(new_password, 12);
         await prisma.user.update({
