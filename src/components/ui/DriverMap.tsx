@@ -169,7 +169,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
 
                 const bg  = isNext ? '#F59E0B' : isPast ? '#94A3B8' : '#3B82F6';
                 const bd  = isNext ? '#D97706' : isPast ? '#64748B' : '#1D4ED8';
-                const num = idx + 1;
+                const num = stop.sequence ?? (idx + 1);
                 const S   = isNext ? 22 : 16;
                 const fs  = isNext ? 9 : 7;
 

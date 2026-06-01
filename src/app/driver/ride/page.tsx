@@ -654,7 +654,7 @@ export default function ActiveRide() {
                                 <div className="flex items-center gap-2 mb-0.5">
                                     <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Heading to</p>
                                     <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 rounded-full px-2 py-0.5">
-                                        {currentStopIndex + 1} / {stops.length}
+                                        Stop {currentStop?.sequence ?? (currentStopIndex + 1)} of {stops.length}
                                     </span>
                                 </div>
                                 <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
