@@ -9,7 +9,7 @@ interface Plan {
     id: string;
     name: string;
     description?: string;
-    line_items?: { label: string; metric: string; unit_rate: number }[];
+    lineItems?: { label: string; metric: string; unit_rate: number }[];
 }
 
 interface Invoice {
@@ -108,7 +108,7 @@ export default function BillingPage() {
     const openEditModal = (plan: Plan) => {
         setEditingPlanId(plan.id);
         setPlanForm({ name: plan.name, description: plan.description || '' });
-        const allItems = plan.line_items || [];
+        const allItems = plan.lineItems || [];
         setRevenueItems(
             allItems.filter(li => !['expense', 'profit'].includes(li.metric))
                 .map(li => ({ label: li.label, metric: li.metric, unit_rate: String(li.unit_rate) }))
@@ -133,9 +133,9 @@ export default function BillingPage() {
                 ...(profitAmount ? [{ label: 'Profit Target', metric: 'profit', unit_rate: parseFloat(profitAmount) || 0 }] : []),
             ];
             if (editingPlanId) {
-                await api.put(`/billing/plans/${editingPlanId}`, { ...planForm, line_items: allLineItems });
+                await api.put(`/billing/plans/${editingPlanId}`, { ...planForm, lineItems: allLineItems });
             } else {
-                await api.post('/billing/plans', { ...planForm, line_items: allLineItems });
+                await api.post('/billing/plans', { ...planForm, lineItems: allLineItems });
             }
             resetPlanModal();
             fetchAll();
@@ -262,9 +262,9 @@ export default function BillingPage() {
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
                         {plans.map(plan => {
-                            const revenueLines = plan.line_items?.filter(li => !['expense', 'profit'].includes(li.metric)) || [];
-                            const expenseLines = plan.line_items?.filter(li => li.metric === 'expense') || [];
-                            const profitLine = plan.line_items?.find(li => li.metric === 'profit');
+                            const revenueLines = plan.lineItems?.filter(li => !['expense', 'profit'].includes(li.metric)) || [];
+                            const expenseLines = plan.lineItems?.filter(li => li.metric === 'expense') || [];
+                            const profitLine = plan.lineItems?.find(li => li.metric === 'profit');
                             return (
                                 <div key={plan.id} className="bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-600 p-5 hover:border-[var(--brand)]/30 transition-colors">
                                     <div className="flex items-start justify-between gap-2 mb-1">
