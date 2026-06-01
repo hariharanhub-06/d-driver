@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import {
   TrendingUp, Mail, Image, Zap, Database, Plus,
-  Loader2, X, Trash2, AlertTriangle,
+  Loader2, X, Trash2, AlertTriangle, Info, ShieldCheck,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 interface PlatformUsage {
   resend: { used: number; limit: number; unit: string };
@@ -15,15 +16,10 @@ interface PlatformUsage {
   neon: { estimated_mb: number };
 }
 
-interface RevenueMonth {
-  month: string;
-  billed: number;
-  collected: number;
-}
-
 interface RevenueData {
   total_collected: number;
-  monthly_revenue: RevenueMonth[];
+  active_schools: number;
+  monthly_revenue: { month: string; billed: number; collected: number }[];
 }
 
 interface ManualExpense {
@@ -46,6 +42,39 @@ const CATEGORY_LABEL: Record<string, string> = {
   misc: 'Miscellaneous',
 };
 
+// Hardcoded upgrade thresholds — only shown to DEV SA
+const UPGRADE_THRESHOLDS = [
+  { service: 'Render', upgradeAt: 1,  nextUsd: 7,  reason: 'Free tier spins down — WebSocket connections drop on idle',   nextPlan: 'Starter ($7/mo)' },
+  { service: 'Vercel', upgradeAt: 5,  nextUsd: 20, reason: 'Fast Origin Transfer hits 10 GB free ceiling at ~5 schools', nextPlan: 'Pro ($20/mo)' },
+  { service: 'Neon DB', upgradeAt: 7, nextUsd: 20, reason: 'Compute hours exceed 100 hr/month free cap at ~7 schools',  nextPlan: 'Launch (~$20/mo)' },
+  { service: 'ImageKit', upgradeAt: 30, nextUsd: 9, reason: 'Bandwidth approaches 20 GB/month limit at ~30 schools',    nextPlan: 'Lite ($9/mo)' },
+  { service: 'Resend', upgradeAt: 60,  nextUsd: 20, reason: 'Email volume approaches 3,000/month limit at ~60 schools',  nextPlan: 'Pro ($20/mo)' },
+];
+
+function upgradeStatus(upgradeAt: number, schoolCount: number): 'urgent' | 'soon' | 'safe' {
+  if (schoolCount >= upgradeAt) return 'urgent';
+  if (schoolCount >= Math.floor(upgradeAt * 0.7)) return 'soon';
+  return 'safe';
+}
+
+function StatusBadge({ status }: { status: 'urgent' | 'soon' | 'safe' }) {
+  if (status === 'urgent') return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400">
+      🔴 Upgrade Now
+    </span>
+  );
+  if (status === 'soon') return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">
+      🟡 Plan Soon
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400">
+      🟢 Safe
+    </span>
+  );
+}
+
 function ProgressBar({ pct }: { pct: number }) {
   const clamped = Math.min(100, Math.max(0, pct));
   const color = clamped > 80 ? 'bg-red-500' : clamped > 60 ? 'bg-amber-500' : 'bg-emerald-500';
@@ -59,10 +88,14 @@ function ProgressBar({ pct }: { pct: number }) {
 const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
 
 export default function SAExpensesPage() {
+  const { user } = useAuth();
+  const isDevSA = (user as any)?.is_dev_sa === true;
+
   const [usage, setUsage] = useState<PlatformUsage | null>(null);
   const [revenue, setRevenue] = useState<RevenueData | null>(null);
   const [expenses, setExpenses] = useState<ManualExpense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({
@@ -76,9 +109,7 @@ export default function SAExpensesPage() {
   const [formError, setFormError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -154,6 +185,7 @@ export default function SAExpensesPage() {
   const resendPct = usage ? (usage.resend.used / usage.resend.limit) * 100 : 0;
   const imagekitPct = usage ? (usage.imagekit.used_gb / usage.imagekit.limit_gb) * 100 : 0;
   const neonPct = Math.min(100, ((usage?.neon.estimated_mb ?? 0) / 512) * 100);
+  const activeSchools = revenue?.active_schools ?? 0;
 
   return (
     <div className="space-y-6 animate-in">
@@ -172,7 +204,21 @@ export default function SAExpensesPage() {
 
       {/* Service Cards */}
       <div>
-        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Platform Services — This Month</p>
+        <div className="flex items-center gap-2 mb-4">
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Platform Services — This Month
+          </p>
+          {/* DEV SA only: infrastructure upgrade info button */}
+          {isDevSA && (
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              title="Infrastructure upgrade thresholds (visible to you only)"
+              className="ml-1 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-[var(--brand)] transition-colors"
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Resend */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
@@ -361,9 +407,7 @@ export default function SAExpensesPage() {
                         disabled={deletingId === exp.id}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-xl text-xs font-semibold border border-red-200 dark:border-red-800 transition-all active:scale-95 disabled:opacity-50"
                       >
-                        {deletingId === exp.id
-                          ? <Loader2 className="w-3 h-3 animate-spin" />
-                          : <Trash2 className="w-3 h-3" />}
+                        {deletingId === exp.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                         Delete
                       </button>
                     </td>
@@ -385,94 +429,130 @@ export default function SAExpensesPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-
             <form onSubmit={handleAddExpense} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Label *</label>
                 <input
-                  type="text"
-                  value={form.label}
+                  type="text" value={form.label}
                   onChange={e => setForm(p => ({ ...p, label: e.target.value }))}
-                  placeholder="e.g. Render hosting — May"
-                  required
-                  className={inputCls}
+                  placeholder="e.g. Render hosting — May" required className={inputCls}
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Category</label>
-                  <select
-                    value={form.category}
-                    onChange={e => setForm(p => ({ ...p, category: e.target.value as typeof CATEGORIES[number] }))}
-                    className={inputCls}
-                  >
-                    {CATEGORIES.map(c => (
-                      <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
-                    ))}
+                  <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value as typeof CATEGORIES[number] }))} className={inputCls}>
+                    {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount (₹) *</label>
                   <input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={form.amount}
+                    type="number" min={0} step={0.01} value={form.amount}
                     onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
-                    placeholder="0.00"
-                    required
-                    className={inputCls}
+                    placeholder="0.00" required className={inputCls}
                   />
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Month *</label>
-                <input
-                  type="month"
-                  value={form.month}
-                  onChange={e => setForm(p => ({ ...p, month: e.target.value }))}
-                  required
-                  className={inputCls}
-                />
+                <input type="month" value={form.month} onChange={e => setForm(p => ({ ...p, month: e.target.value }))} required className={inputCls} />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Notes (optional)</label>
-                <textarea
-                  value={form.notes}
-                  onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                  placeholder="Any additional details..."
-                  rows={2}
-                  className={`${inputCls} resize-none`}
-                />
+                <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Any additional details..." rows={2} className={`${inputCls} resize-none`} />
               </div>
-
               {formError && (
                 <div className="flex items-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-xs font-medium">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  {formError}
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />{formError}
                 </div>
               )}
-
               <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
-                >
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
-                >
+                <button type="submit" disabled={submitting} className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50">
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Expense'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DEV SA Only — Infrastructure Upgrade Thresholds Modal */}
+      {isDevSA && showUpgradeModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5 text-[var(--brand)]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Infrastructure Upgrade Roadmap</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Based on active schools: <span className="font-semibold text-slate-700 dark:text-slate-300">{activeSchools}</span></p>
+                </div>
+              </div>
+              <button onClick={() => setShowUpgradeModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-700">
+                      {['Service', 'Upgrade At', 'Next Plan', 'Cost/mo', 'Reason', 'Status'].map(h => (
+                        <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50 first:rounded-tl-xl last:rounded-tr-xl whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {UPGRADE_THRESHOLDS.map((t, i) => {
+                      const status = upgradeStatus(t.upgradeAt, activeSchools);
+                      return (
+                        <tr key={i} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                          <td className="px-3 py-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">{t.service}</td>
+                          <td className="px-3 py-3 text-slate-700 dark:text-slate-300 whitespace-nowrap">{t.upgradeAt === 1 ? 'Immediately' : `${t.upgradeAt} schools`}</td>
+                          <td className="px-3 py-3 text-slate-700 dark:text-slate-300 whitespace-nowrap text-xs">{t.nextPlan}</td>
+                          <td className="px-3 py-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">${t.nextUsd}</td>
+                          <td className="px-3 py-3 text-slate-500 dark:text-slate-400 text-xs max-w-[200px]">{t.reason}</td>
+                          <td className="px-3 py-3"><StatusBadge status={status} /></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Cost projection summary */}
+              <div className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-4 space-y-2">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Cost Projection by Scale</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                  {[
+                    { label: '1–4 schools', usd: 7,  note: 'Render only' },
+                    { label: '5–7 schools', usd: 47, note: '+ Vercel + Neon' },
+                    { label: '8–15 schools', usd: 47, note: 'No new upgrades' },
+                    { label: '16–30 schools', usd: 65, note: '+ Render upgrade' },
+                    { label: '31–50 schools', usd: 74, note: '+ ImageKit Lite' },
+                    { label: '51–80 schools', usd: 94, note: '+ Resend Pro' },
+                  ].map(row => (
+                    <div key={row.label} className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-600">
+                      <p className="font-semibold text-slate-800 dark:text-white">{row.label}</p>
+                      <p className="text-[var(--brand)] font-bold text-base">${row.usd}/mo</p>
+                      <p className="text-slate-400 dark:text-slate-500 text-[10px] mt-0.5">{row.note}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" />
+                This information is only visible to you.
+              </p>
+            </div>
           </div>
         </div>
       )}

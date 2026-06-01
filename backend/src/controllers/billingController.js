@@ -86,7 +86,12 @@ async function computeInvoiceForSchool(school_id, billing_month) {
 
   const usage = { bus_count, student_count, route_count, gps_hours, total_km, shift_count };
 
-  const lineItemsCalc = plan.lineItems.map(item => {
+  // expense / profit rows are planning aids — never billed to schools
+  const billableLineItems = plan.lineItems.filter(
+    item => !['expense', 'profit'].includes(item.metric)
+  );
+
+  const lineItemsCalc = billableLineItems.map(item => {
     let quantity = 0;
     switch (item.metric) {
       case 'fixed':        quantity = 1; break;
