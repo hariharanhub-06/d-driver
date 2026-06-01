@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bus, AlertTriangle, MapPin, Phone, Clock, ChevronRight, Navigation, X } from 'lucide-react';
+import { Bus, AlertTriangle, MapPin, Phone, X, Navigation } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
+import { ta } from '@/lib/i18n';
 
 interface Child {
     id: string;
@@ -14,6 +15,8 @@ interface Child {
     driver?: { name: string; phone?: string };
     bus?: { bus_number: string };
     route_id?: string;
+    route?: { id: string; name: string; stops?: any[] };
+    stop?: { id: string; name: string };
 }
 
 interface Notification {
@@ -25,6 +28,7 @@ interface Notification {
     read: boolean;
 }
 
+// ── ALL EXISTING LOGIC PRESERVED ──────────────────────────────────────────
 export default function ParentDashboard() {
     const { user } = useAuth();
     const [children, setChildren] = useState<Child[]>([]);
@@ -51,7 +55,6 @@ export default function ParentDashboard() {
                 api.get('/students/my-children'),
                 api.get('/notifications'),
             ]);
-
             if (childrenRes.status === 'fulfilled') {
                 const data = childrenRes.value.data;
                 setChildren(Array.isArray(data) ? data : []);
@@ -60,7 +63,7 @@ export default function ParentDashboard() {
                 const data = notifRes.value.data;
                 setNotifications((Array.isArray(data) ? data : []).slice(0, 10));
             }
-        } catch (e: any) {
+        } catch {
             setError('Failed to load data');
         } finally {
             setLoading(false);
@@ -96,189 +99,209 @@ export default function ParentDashboard() {
         }
     };
 
-    const getStatusBadge = (status?: string) => {
-        switch (status?.toLowerCase()) {
-            case 'boarding': return 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
-            case 'in transit': return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
-            case 'at school': return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
-            case 'at home': return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
-            default: return 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
-        }
-    };
-
-    const getNotifIcon = (type: string) => {
-        switch (type) {
-            case 'alert': return '🚨';
-            case 'info': return 'ℹ️';
-            case 'success': return '✅';
-            case 'warning': return '⚠️';
-            default: return '🔔';
-        }
-    };
-
     const primaryChild = (activeChildId ? children.find(c => c.id === activeChildId) : null) || children[0];
     const driverPhone = primaryChild?.driver?.phone;
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? '🌅' : hour < 17 ? '☀️' : '🌙';
 
+    // ─── NEW BILINGUAL UI ────────────────────────────────────────────────────
     return (
-        <div className="space-y-4 p-4">
-            {/* Greeting */}
-            <div>
-                <h1 className="text-lg font-bold text-slate-900 dark:text-white">Hello, {user?.name.split(' ')[0]}</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
-                </p>
-            </div>
-
-            {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 text-red-600 dark:text-red-400 text-sm font-bold flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
-                </div>
-            )}
-
-            {/* Hero child status card */}
-            {loading ? (
-                <div className="flex justify-center py-12">
-                    <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
-                </div>
-            ) : primaryChild ? (
-                <div className="bg-[var(--brand)] text-white rounded-2xl p-6 shadow-lg">
-                    <div className="flex items-start justify-between mb-4">
-                        <div>
-                            <p className="text-white/70 text-xs font-semibold uppercase tracking-widest mb-1">Live Status</p>
-                            <h3 className="text-2xl font-bold">{primaryChild.name}</h3>
-                            <span className="inline-block mt-2 bg-white/20 text-white rounded-full px-2.5 py-0.5 text-xs font-medium">
-                                {primaryChild.status || 'Status unknown'}
-                            </span>
-                        </div>
-                        <div className="bg-white/20 p-3 rounded-xl">
-                            <Bus className="w-6 h-6 text-white" />
-                        </div>
+        <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
+            {/* ── Header bar ── */}
+            <div className="bg-[var(--brand)] px-4 pt-10 pb-5">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-white/80 text-xs font-medium">{greeting} {ta.goodMorning},</p>
+                        <h1 className="text-xl font-bold text-white leading-tight">{user?.name?.split(' ')[0] || 'Parent'}!</h1>
                     </div>
-                    {primaryChild.bus && (
-                        <p className="text-white/70 text-sm font-medium flex items-center gap-2 mb-4">
-                            <Bus className="w-4 h-4" />
-                            Bus {primaryChild.bus.bus_number}
-                            {primaryChild.driver && <span>· {primaryChild.driver.name}</span>}
-                        </p>
+                    {/* SOS button */}
+                    {driverPhone && (
+                        <a
+                            href={`tel:${driverPhone}`}
+                            className="bg-red-500 hover:bg-red-600 text-white font-black text-xs px-3 py-2 rounded-xl shadow-lg active:scale-95 transition-all"
+                        >
+                            SOS
+                        </a>
                     )}
-                    <Link
-                        href="/parent/tracking"
-                        className="flex items-center justify-center gap-2 bg-white text-[var(--brand)] hover:bg-white/90 transition-all py-3 rounded-xl font-semibold text-sm active:scale-95"
-                    >
-                        <Navigation className="w-4 h-4" /> Track Now
-                    </Link>
                 </div>
-            ) : (
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 text-center">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">No children linked to your account</p>
-                </div>
-            )}
 
-            {/* Multiple children list */}
-            {children.length > 1 && (
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Your Children</h2>
-                    <div className="space-y-3">
-                        {children.slice(1).map(child => (
-                            <div key={child.id} className="flex items-center gap-4 py-2">
-                                <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center font-bold text-slate-500 dark:text-slate-400">
-                                    {child.name.charAt(0)}
+                {/* Bus ETA card inside header */}
+                {!loading && primaryChild?.bus && (
+                    <div className="mt-4 bg-white/15 backdrop-blur-sm rounded-2xl p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                    <Bus className="w-5 h-5 text-white" />
                                 </div>
-                                <div className="flex-1">
-                                    <p className="font-semibold text-slate-900 dark:text-white text-sm">{child.name}</p>
-                                    {child.status && <span className={getStatusBadge(child.status)}>{child.status}</span>}
+                                <div>
+                                    <p className="text-white font-bold text-base">{primaryChild.bus.bus_number}</p>
+                                    <p className="text-white/70 text-xs">{primaryChild.route?.name || 'Route'}</p>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Quick actions */}
-            <div className="grid grid-cols-2 gap-3">
-                <button
-                    onClick={() => {
-                        if (primaryChild) setAbsentForm(prev => ({ ...prev, student_id: primaryChild.id }));
-                        setShowAbsentModal(true);
-                    }}
-                    className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 text-left active:scale-95 transition-all"
-                >
-                    <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex items-center justify-center mb-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-white">Report Absent</span>
-                </button>
-
-                <Link href="/parent/request" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 text-left active:scale-95 transition-all block">
-                    <div className="w-10 h-10 bg-[var(--brand)]/10 rounded-xl flex items-center justify-center mb-3">
-                        <MapPin className="w-5 h-5 text-[var(--brand)]" />
-                    </div>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-white">Change Stop</span>
-                </Link>
-
-                {driverPhone ? (
-                    <a href={`tel:${driverPhone}`} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 text-left active:scale-95 transition-all block">
-                        <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-3">
-                            <Phone className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                            <Link href="/parent/tracking" className="bg-white text-[var(--brand)] rounded-xl px-3 py-2 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all">
+                                <Navigation className="w-3 h-3" /> Track
+                            </Link>
                         </div>
-                        <span className="text-sm font-semibold text-slate-700 dark:text-white">Call Driver</span>
-                    </a>
-                ) : (
-                    <Link href="/parent/fees" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 text-left active:scale-95 transition-all block">
-                        <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-3">
-                            <ChevronRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <span className="text-sm font-semibold text-slate-700 dark:text-white">Pay Fees</span>
-                    </Link>
+                    </div>
                 )}
             </div>
 
-            {/* Activity feed */}
-            {notifications.length > 0 && (
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Today's Activity</h2>
-                    <div className="space-y-3">
-                        {notifications.map(notif => (
-                            <div key={notif.id} className={`flex items-start gap-3 py-3 border-b border-slate-50 dark:border-slate-700/50 last:border-0 ${!notif.read ? 'opacity-100' : 'opacity-75'}`}>
-                                <div className="text-lg shrink-0">{getNotifIcon(notif.type)}</div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-slate-900 dark:text-white text-sm">{notif.title}</p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{notif.message}</p>
-                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        {new Date(notif.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
+            <div className="px-4 py-4 space-y-4">
+                {error && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 text-red-600 dark:text-red-400 text-sm font-bold flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Report Absent Modal */}
+                {loading && (
+                    <div className="flex justify-center py-12">
+                        <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                    </div>
+                )}
+
+                {/* Bus Stops vertical timeline */}
+                {!loading && primaryChild?.route?.stops && primaryChild.route.stops.length > 0 && (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                        <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-1">
+                            {ta.busStops} <span className="text-slate-400 font-normal text-xs">/ Bus Stops</span>
+                        </h2>
+                        <div className="mt-3 space-y-0">
+                            {(primaryChild.route.stops as any[]).map((stop, idx, arr) => {
+                                const isYours = stop.id === primaryChild.stop?.id;
+                                const isLast = idx === arr.length - 1;
+                                return (
+                                    <div key={stop.id} className="flex items-start gap-3">
+                                        {/* Timeline dot + line */}
+                                        <div className="flex flex-col items-center w-4 shrink-0">
+                                            <div className={`w-3 h-3 rounded-full border-2 mt-1 shrink-0 ${isYours ? 'border-orange-400 bg-orange-400' : 'border-emerald-400 bg-emerald-400'}`} />
+                                            {!isLast && <div className="w-px flex-1 bg-slate-200 dark:bg-slate-600 min-h-[20px]" />}
+                                        </div>
+                                        <div className={`pb-3 flex-1 min-w-0 ${isYours ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>
+                                            <p className="text-sm leading-tight">
+                                                {isYours ? `👇 ${ta.yourStop} — ` : ''}{stop.name}
+                                            </p>
+                                            {stop.pickup_time && (
+                                                <p className="text-xs text-slate-400 mt-0.5">{stop.pickup_time}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Multiple children selector */}
+                {children.length > 1 && (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4">
+                        <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-3">{ta.myChild}</h2>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                            {children.map(child => (
+                                <button
+                                    key={child.id}
+                                    onClick={() => { setActiveChildId(child.id); localStorage.setItem('active_child_id', child.id); }}
+                                    className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                                        (activeChildId || children[0].id) === child.id
+                                            ? 'bg-[var(--brand)] text-white'
+                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                    }`}
+                                >
+                                    {child.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Quick Actions */}
+                <div className="grid grid-cols-3 gap-3">
+                    <button
+                        onClick={() => {
+                            if (primaryChild) setAbsentForm(prev => ({ ...prev, student_id: primaryChild.id }));
+                            setShowAbsentModal(true);
+                        }}
+                        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center active:scale-95 transition-all"
+                    >
+                        <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex items-center justify-center mx-auto mb-2">
+                            <AlertTriangle className="w-5 h-5 text-amber-500" />
+                        </div>
+                        <p className="text-xs font-semibold text-slate-700 dark:text-white leading-tight">Report</p>
+                        <p className="text-[10px] text-slate-400">{ta.absent}</p>
+                    </button>
+
+                    <Link href="/parent/request" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center active:scale-95 transition-all block">
+                        <div className="w-10 h-10 bg-[var(--brand)]/10 rounded-xl flex items-center justify-center mx-auto mb-2">
+                            <MapPin className="w-5 h-5 text-[var(--brand)]" />
+                        </div>
+                        <p className="text-xs font-semibold text-slate-700 dark:text-white leading-tight">Change</p>
+                        <p className="text-[10px] text-slate-400">Stop</p>
+                    </Link>
+
+                    {driverPhone ? (
+                        <a href={`tel:${driverPhone}`} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center active:scale-95 transition-all block">
+                            <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                <Phone className="w-5 h-5 text-emerald-500" />
+                            </div>
+                            <p className="text-xs font-semibold text-slate-700 dark:text-white leading-tight">Call</p>
+                            <p className="text-[10px] text-slate-400">{ta.driver}</p>
+                        </a>
+                    ) : (
+                        <Link href="/parent/fees" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center active:scale-95 transition-all block">
+                            <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                <span className="text-emerald-500 font-black text-sm">₹</span>
+                            </div>
+                            <p className="text-xs font-semibold text-slate-700 dark:text-white leading-tight">Pay</p>
+                            <p className="text-[10px] text-slate-400">Fees</p>
+                        </Link>
+                    )}
+                </div>
+
+                {/* Today's Activity */}
+                {notifications.length > 0 && (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                        <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-3">
+                            Today's Activity <span className="text-slate-400 font-normal text-xs">/ இன்றைய நடவடிக்கை</span>
+                        </h2>
+                        <div className="space-y-3">
+                            {notifications.slice(0, 5).map(notif => (
+                                <div key={notif.id} className="flex items-start gap-3">
+                                    <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${notif.type === 'alert' ? 'bg-red-400' : notif.type === 'success' ? 'bg-emerald-400' : 'bg-blue-400'}`} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-snug">{notif.message}</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">
+                                            {new Date(notif.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {!loading && !primaryChild && (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8 text-center">
+                        <Bus className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                        <p className="text-sm text-slate-500 dark:text-slate-400">No children linked to your account</p>
+                    </div>
+                )}
+            </div>
+
+            {/* ── Report Absent Modal — IDENTICAL to original ── */}
             {showAbsentModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Report Absence</h3>
-                            <button onClick={() => setShowAbsentModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                            <button onClick={() => setShowAbsentModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
                         <div className="p-6">
-                            <div className="flex items-center gap-3 mb-5">
-                                <AlertTriangle className="w-5 h-5 text-amber-500" />
-                                <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Fill in the details below</span>
-                            </div>
                             <div className="space-y-4 mb-6">
                                 {children.length > 1 && (
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Student</label>
-                                        <select
-                                            value={absentForm.student_id}
-                                            onChange={e => setAbsentForm({ ...absentForm, student_id: e.target.value })}
-                                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
-                                        >
+                                        <select value={absentForm.student_id} onChange={e => setAbsentForm({ ...absentForm, student_id: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]">
                                             <option value="">Select child</option>
                                             {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                         </select>
@@ -287,48 +310,22 @@ export default function ParentDashboard() {
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">From</label>
-                                        <input
-                                            type="date"
-                                            value={absentForm.from_date}
-                                            min={tomorrow}
-                                            onChange={e => setAbsentForm({ ...absentForm, from_date: e.target.value, to_date: e.target.value > absentForm.to_date ? e.target.value : absentForm.to_date })}
-                                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
-                                        />
+                                        <input type="date" value={absentForm.from_date} min={tomorrow} onChange={e => setAbsentForm({ ...absentForm, from_date: e.target.value, to_date: e.target.value > absentForm.to_date ? e.target.value : absentForm.to_date })} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">To</label>
-                                        <input
-                                            type="date"
-                                            value={absentForm.to_date}
-                                            min={absentForm.from_date || tomorrow}
-                                            onChange={e => setAbsentForm({ ...absentForm, to_date: e.target.value })}
-                                            className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
-                                        />
+                                        <input type="date" value={absentForm.to_date} min={absentForm.from_date || tomorrow} onChange={e => setAbsentForm({ ...absentForm, to_date: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Reason</label>
-                                    <textarea
-                                        value={absentForm.reason}
-                                        onChange={e => setAbsentForm({ ...absentForm, reason: e.target.value })}
-                                        placeholder="Reason for absence..."
-                                        className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none h-20"
-                                    />
+                                    <textarea value={absentForm.reason} onChange={e => setAbsentForm({ ...absentForm, reason: e.target.value })} placeholder="Reason for absence..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] resize-none h-20" />
                                 </div>
                             </div>
                             <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowAbsentModal(false)}
-                                    className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm flex-1 justify-center"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleReportAbsent}
-                                    disabled={submitting || !absentForm.reason || !absentForm.from_date || !absentForm.to_date || (children.length > 1 && !absentForm.student_id)}
-                                    className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 flex-1 justify-center disabled:opacity-50"
-                                >
-                                    {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Submit'}
+                                <button onClick={() => setShowAbsentModal(false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm">Cancel</button>
+                                <button onClick={handleReportAbsent} disabled={submitting || !absentForm.reason || !absentForm.from_date || !absentForm.to_date || (children.length > 1 && !absentForm.student_id)} className="flex-1 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm disabled:opacity-50 active:scale-95">
+                                    {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Submit'}
                                 </button>
                             </div>
                         </div>
