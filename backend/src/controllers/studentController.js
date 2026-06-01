@@ -25,7 +25,7 @@ const getAllStudents = async (req, res) => {
         const students = await prisma.student.findMany({
             where,
             include: {
-                parent: { select: { name: true, phone: true } },
+                parent: { select: { id: true, name: true, email: true, phone: true } },
                 route: { select: { id: true, name: true } },
                 stop: { select: { id: true, name: true } },
                 feeStructure: true,

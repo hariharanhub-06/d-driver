@@ -63,6 +63,8 @@ export default function StudentsPage() {
     const [parentCreds, setParentCreds] = useState<{ name: string; email: string; password: string } | null>(null);
     const [editError, setEditError] = useState('');
     const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
+    const [editParentSearch, setEditParentSearch] = useState('');
+    const [editParents, setEditParents] = useState<any[]>([]);
     const [uploadingEditPhoto, setUploadingEditPhoto] = useState(false);
     const [editPhotoPreview, setEditPhotoPreview] = useState('');
 
@@ -719,9 +721,35 @@ export default function StudentsPage() {
                             </div>
 
                             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Parent / Guardian</p>
-                            <div>
-                                <label className={labelCls}>Parent Name</label>
-                                <input className={inputCls} placeholder="Full name" value={editForm.parent_name} onChange={e => setEditForm(f => ({ ...f, parent_name: e.target.value }))} />
+                            <div className="relative">
+                                <label className={labelCls}>Search & Select Parent</label>
+                                <input
+                                    className={inputCls}
+                                    placeholder="Type parent name or email..."
+                                    value={editParentSearch}
+                                    onChange={async e => {
+                                        setEditParentSearch(e.target.value);
+                                        if (e.target.value.length >= 2) {
+                                            try {
+                                                const { data } = await api.get('/users', { params: { role: 'parent', search: e.target.value } });
+                                                setEditParents(Array.isArray(data) ? data : []);
+                                            } catch { setEditParents([]); }
+                                        } else { setEditParents([]); }
+                                    }}
+                                />
+                                {editParents.length > 0 && (
+                                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                                        {editParents.map(p => (
+                                            <button key={p.id} type="button"
+                                                onClick={() => { setEditForm(f => ({ ...f, parent_id: p.id, parent_name: p.name, parent_email: p.email, parent_phone: p.phone || f.parent_phone })); setEditParentSearch(p.name); setEditParents([]); }}
+                                                className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--brand)]/5 transition-all">
+                                                <span className="font-medium text-slate-800 dark:text-white">{p.name}</span>
+                                                <span className="text-slate-400 text-xs ml-2">{p.email}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {editForm.parent_id && <p className="text-xs text-emerald-600 font-medium mt-1">✓ Linked: {editForm.parent_name}</p>}
                             </div>
                             <div>
                                 <label className={labelCls}>Parent Phone</label>
