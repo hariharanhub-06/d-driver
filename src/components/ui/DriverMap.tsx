@@ -242,18 +242,19 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             ].join(';');
 
             const lineStyle = { color: '#2563EB', weight: 5, opacity: 0.85, lineJoin: 'round' as const, lineCap: 'round' as const };
+            const pts: [number, number][] = [[uLat, uLng], ...remainingStops.map(s => [s.lat, s.lng] as [number, number])];
 
-            const drawStraightLine = () => {
-                if (!mapRef.current) return;
+            // Draw straight line IMMEDIATELY so the driver sees a line with zero delay,
+            // then silently replace it with the OSRM road-following path once it loads.
+            if (mapRef.current) {
                 if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
-                const pts: [number, number][] = [[uLat, uLng], ...remainingStops.map(s => [s.lat, s.lng] as [number, number])];
                 routeLineRef.current = L.polyline(pts, lineStyle).addTo(mapRef.current);
-            };
+            }
 
-            // Try OSRM public server; fall back to straight line (solid, not dashed) on failure
+            // Try OSRM and upgrade to road-following path if it responds quickly
             try {
                 const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 6000);
+                const timeout = setTimeout(() => controller.abort(), 4000);
                 const res = await fetch(
                     `https://router.project-osrm.org/route/v1/driving/${waypoints}?geometries=geojson&overview=full`,
                     { signal: controller.signal },
@@ -264,11 +265,12 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 const coords: [number, number][] = (data.routes?.[0]?.geometry?.coordinates ?? []).map(
                     ([lng, lat]: [number, number]) => [lat, lng] as [number, number],
                 );
-                if (!mapRef.current || coords.length === 0) { drawStraightLine(); return; }
-                if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
-                routeLineRef.current = L.polyline(coords, lineStyle).addTo(mapRef.current);
+                if (mapRef.current && coords.length > 0) {
+                    if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
+                    routeLineRef.current = L.polyline(coords, lineStyle).addTo(mapRef.current);
+                }
             } catch {
-                drawStraightLine();
+                // straight line already drawn above — nothing more to do
             }
         });
     }, [userPosition, stops, nextStopIndex, mapReady]);
