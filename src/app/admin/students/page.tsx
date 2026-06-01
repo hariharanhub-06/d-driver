@@ -728,7 +728,7 @@ export default function StudentsPage() {
                                 <label className={labelCls}>Search & Select Parent</label>
                                 <input
                                     className={inputCls}
-                                    placeholder="Type parent name or email..."
+                                    placeholder="Type name → click result to link"
                                     value={editParentSearch}
                                     onChange={async e => {
                                         setEditParentSearch(e.target.value);
@@ -752,7 +752,10 @@ export default function StudentsPage() {
                                         ))}
                                     </div>
                                 )}
-                                {editForm.parent_id && <p className="text-xs text-emerald-600 font-medium mt-1">✓ Linked: {editForm.parent_name}</p>}
+                                {editForm.parent_id
+                                    ? <p className="text-xs text-emerald-600 font-medium mt-1">✓ Linked: {editForm.parent_name}</p>
+                                    : editParentSearch && <p className="text-xs text-amber-500 mt-1">⚠ Type and click a name from the list to link the parent</p>
+                                }
                             </div>
                             <div>
                                 <label className={labelCls}>Parent Phone</label>
