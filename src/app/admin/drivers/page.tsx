@@ -187,6 +187,7 @@ export default function DriversPage() {
             setIsModalOpen(false);
         } catch (err: any) {
             const msg =
+                err?.response?.data?.error ||
                 err?.response?.data?.message ||
                 'Failed to save driver. Please check inputs.';
             setFormError(msg);

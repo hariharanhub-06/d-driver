@@ -44,14 +44,58 @@ const getDriverById = async (req, res) => {
 
 const createDriver = async (req, res) => {
     try {
-        const { user_id, license_no, assigned_bus_id, school_id } = req.body;
+        const { user_id, license_no, assigned_bus_id, school_id, name, email: rawEmail, phone } = req.body;
         const effectiveSchoolId = req.user.role === 'super_admin' ? school_id : req.user.school_id;
+
+        let resolvedUserId = user_id;
+
+        // If name + email provided instead of user_id, create the user account first
+        if (!resolvedUserId && name && rawEmail) {
+            const email = rawEmail.toLowerCase().trim();
+            const existing = await prisma.user.findUnique({ where: { email } });
+            if (existing) {
+                // Re-use orphaned driver user (no linked Driver record)
+                if (existing.role === 'driver') {
+                    const linked = await prisma.driver.findUnique({ where: { user_id: existing.id } });
+                    if (!linked) {
+                        const tempPassword = crypto.randomBytes(8).toString('base64url');
+                        const hashedPassword = await bcrypt.hash(tempPassword, 12);
+                        await prisma.user.update({
+                            where: { id: existing.id },
+                            data: { name, phone: phone || null, school_id: effectiveSchoolId, password: hashedPassword, is_first_login: true, is_active: true },
+                        });
+                        resolvedUserId = existing.id;
+                    } else {
+                        return res.status(409).json({ error: 'A driver with this email already exists' });
+                    }
+                } else {
+                    return res.status(409).json({ error: `This email is already registered as a ${existing.role}. Use a different email.` });
+                }
+            } else {
+                const tempPassword = crypto.randomBytes(8).toString('base64url');
+                const hashedPassword = await bcrypt.hash(tempPassword, 12);
+                const newUser = await prisma.user.create({
+                    data: { name, email, phone: phone || null, password: hashedPassword, role: 'driver', school_id: effectiveSchoolId, is_first_login: true, is_active: true },
+                });
+                resolvedUserId = newUser.id;
+            }
+        }
+
+        if (!resolvedUserId) {
+            return res.status(400).json({ error: 'Either user_id or name + email are required' });
+        }
+
         const newDriver = await prisma.driver.create({
-            data: { user_id, license_no, assigned_bus_id, school_id: effectiveSchoolId },
+            data: { user_id: resolvedUserId, license_no: license_no || null, assigned_bus_id: assigned_bus_id || null, school_id: effectiveSchoolId },
+            include: {
+                user: { select: { id: true, name: true, email: true, phone: true, is_active: true } },
+                bus: { select: { id: true, bus_number: true } },
+            },
         });
         await logAction({ req, action: 'create_driver', targetType: 'driver', targetId: newDriver.id });
         res.status(201).json(newDriver);
     } catch (error) {
+        console.error('createDriver error:', error.message);
         res.status(500).json({ error: 'Error creating driver', details: error.message });
     }
 };
