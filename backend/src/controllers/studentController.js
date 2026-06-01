@@ -249,12 +249,18 @@ const updateStudent = async (req, res) => {
 const deleteStudent = async (req, res) => {
     try {
         const { id } = req.params;
-        await prisma.student.delete({ where: { id } });
+        // Delete related records that don't have onDelete: Cascade in schema
+        await prisma.$transaction([
+            prisma.stopChangeRequest.deleteMany({ where: { student_id: id } }),
+            prisma.absenceReport.deleteMany({ where: { student_id: id } }),
+            prisma.feeStructure.deleteMany({ where: { student_id: id } }),
+            prisma.student.delete({ where: { id } }),
+        ]);
         await logAction({ req, action: 'delete_student', targetType: 'student', targetId: id });
         res.json({ deleted: true });
     } catch (error) {
         console.error('deleteStudent error:', error);
-        res.status(500).json({ error: 'Error deleting student' });
+        res.status(500).json({ error: 'Error deleting student', details: error.message });
     }
 };
 
