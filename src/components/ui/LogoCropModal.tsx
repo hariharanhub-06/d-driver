@@ -27,6 +27,10 @@ async function cropImageToFile(img: HTMLImageElement, pixelCrop: PixelCrop, file
     canvas.width = outSize;
     canvas.height = outSize;
     const ctx = canvas.getContext('2d')!;
+    // Fill white first — JPEG has no transparency; without this, transparent
+    // pixels in PNG logos render as solid black in the output file.
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, outSize, outSize);
     ctx.drawImage(
         img,
         pixelCrop.x, pixelCrop.y,
