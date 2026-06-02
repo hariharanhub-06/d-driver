@@ -35,14 +35,18 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
         { href: '/driver/profile', labelEn: 'Profile', labelTa: ta.profile, icon: '👤' },
     ];
 
+    // Hide bottom nav on ride page — it's a focused mode with its own controls
+    const hideNav = pathname === '/driver/ride';
+
     return (
         <div className="flex flex-col min-h-screen bg-slate-900">
-            {/* Page content */}
-            <main className="flex-1 overflow-y-auto pb-20">
+            {/* Page content — no bottom padding on ride page (has its own fixed controls) */}
+            <main className={hideNav ? 'flex-1 overflow-hidden' : 'flex-1 overflow-y-auto pb-20'}>
                 {children}
             </main>
 
-            {/* Bottom tab bar */}
+            {/* Bottom tab bar — hidden on ride page */}
+            {!hideNav && (
             <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
                 <div className="flex items-stretch h-16">
                     {tabs.map(tab => {
@@ -73,6 +77,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
                     </button>
                 </div>
             </nav>
+            )}
 
             <DriverTour />
         </div>
