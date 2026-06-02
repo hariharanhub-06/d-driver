@@ -84,8 +84,18 @@ export default function FeesPage() {
         }
     };
 
+    // Derive status client-side if backend doesn't provide it (due_amount=0 → paid, overdue date → overdue, else pending)
+    const deriveStatus = (f: Fee): string => {
+        if (f.status) return f.status;
+        const dueAmt = f.due_amount ?? f.total_amount ?? 0;
+        if (dueAmt === 0) return 'paid';
+        if (f.due_date && new Date(f.due_date) < new Date()) return 'overdue';
+        return 'pending';
+    };
+
     const filtered = fees.filter(f => {
-        const matchTab = tab === 'All' || f.status?.toLowerCase() === tab.toLowerCase();
+        const status = deriveStatus(f);
+        const matchTab = tab === 'All' || status.toLowerCase() === tab.toLowerCase();
         const matchSearch = !search || f.student?.name?.toLowerCase().includes(search.toLowerCase());
         return matchTab && matchSearch;
     });
@@ -203,8 +213,8 @@ export default function FeesPage() {
                                         {fee.due_date ? new Date(fee.due_date).toLocaleDateString('en-IN') : '—'}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                        <span className={`${statusBadge(fee.status)} capitalize`}>
-                                            {fee.status}
+                                        <span className={`${statusBadge(deriveStatus(fee))} capitalize`}>
+                                            {deriveStatus(fee)}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 capitalize">{fee.payment_method || '—'}</td>

@@ -94,12 +94,23 @@ const getFees = async (req, res) => {
             where,
             include: {
                 payments: true,
-                student: { select: { name: true } },
+                student: { select: { id: true, name: true } },
             },
             orderBy: { due_date: 'desc' },
         });
 
-        res.json(fees);
+        const now = new Date();
+        const enriched = fees.map(fee => ({
+            ...fee,
+            amount: fee.total_amount,
+            status: fee.due_amount === 0
+                ? 'paid'
+                : new Date(fee.due_date) < now
+                    ? 'overdue'
+                    : 'pending',
+        }));
+
+        res.json(enriched);
     } catch (error) {
         console.error('getFees error:', error);
         res.status(500).json({ error: 'Error fetching fees' });
@@ -322,12 +333,18 @@ const getMyFees = async (req, res) => {
 
         if (!parent) return res.status(404).json({ error: 'Parent not found' });
 
-        // Flatten children → fees, adding student_name and normalising amount field
+        const now = new Date();
+        // Flatten children → fees, adding computed status + student_name + normalised amount
         const fees = (parent.children || []).flatMap(child =>
             (child.fees || []).map(fee => ({
                 ...fee,
                 student_name: child.name,
                 amount: fee.total_amount ?? fee.due_amount ?? 0,
+                status: fee.due_amount === 0
+                    ? 'paid'
+                    : new Date(fee.due_date) < now
+                        ? 'overdue'
+                        : 'pending',
             }))
         );
 
