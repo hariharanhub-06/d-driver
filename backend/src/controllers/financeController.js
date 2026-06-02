@@ -322,7 +322,16 @@ const getMyFees = async (req, res) => {
 
         if (!parent) return res.status(404).json({ error: 'Parent not found' });
 
-        res.json(parent.children);
+        // Flatten children → fees, adding student_name and normalising amount field
+        const fees = (parent.children || []).flatMap(child =>
+            (child.fees || []).map(fee => ({
+                ...fee,
+                student_name: child.name,
+                amount: fee.total_amount ?? fee.due_amount ?? 0,
+            }))
+        );
+
+        res.json(fees);
     } catch (error) {
         console.error('getMyFees error:', error);
         res.status(500).json({ error: 'Error fetching fees' });
