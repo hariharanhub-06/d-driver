@@ -7,7 +7,9 @@ import api from '@/lib/api';
 type Fee = {
     id: string;
     student?: { id: string; name: string };
-    amount: number;
+    total_amount: number;
+    due_amount: number;
+    amount?: number; // legacy alias
     due_date?: string;
     status: 'pending' | 'paid' | 'overdue';
     payment_method?: string;
@@ -88,13 +90,13 @@ export default function FeesPage() {
         return matchTab && matchSearch;
     });
 
-    const totalOutstanding = fees.filter(f => f.status !== 'paid').reduce((s, f) => s + (f.amount || 0), 0);
+    const totalOutstanding = fees.filter(f => f.status !== 'paid').reduce((s, f) => s + (f.total_amount || f.amount || 0), 0);
     const totalCollectedMonth = fees.filter(f => {
         if (f.status !== 'paid' || !f.paid_at) return false;
         const d = new Date(f.paid_at);
         const now = new Date();
         return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).reduce((s, f) => s + (f.amount || 0), 0);
+    }).reduce((s, f) => s + (f.total_amount || f.amount || 0), 0);
     const overdueCount = fees.filter(f => f.status === 'overdue').length;
 
     return (
@@ -196,7 +198,7 @@ export default function FeesPage() {
                             ) : filtered.map(fee => (
                                 <tr key={fee.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-medium">{fee.student?.name || '—'}</td>
-                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-bold">₹{fee.amount?.toLocaleString()}</td>
+                                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-bold">₹{(fee.total_amount || fee.amount || 0).toLocaleString('en-IN')}</td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         {fee.due_date ? new Date(fee.due_date).toLocaleDateString('en-IN') : '—'}
                                     </td>
@@ -209,7 +211,7 @@ export default function FeesPage() {
                                     <td className="px-4 py-3 text-right">
                                         {fee.status !== 'paid' && (
                                             <button
-                                                onClick={() => { setSelectedFee(fee); setPayAmount(String(fee.amount)); setIsPayModalOpen(true); }}
+                                                onClick={() => { setSelectedFee(fee); setPayAmount(String(fee.due_amount || fee.total_amount || fee.amount || '')); setIsPayModalOpen(true); }}
                                                 className="text-xs bg-[var(--brand)] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-semibold transition-all opacity-0 group-hover:opacity-100"
                                             >
                                                 Record Cash
