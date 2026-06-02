@@ -198,9 +198,26 @@ export default function DriverDashboard() {
                                         </span>
                                     </div>
                                     {activeTrip ? (
-                                        <a href="/driver/ride" className="flex items-center justify-center gap-2 w-full bg-[var(--brand)] text-white rounded-2xl px-4 py-4 font-black text-base active:scale-95 transition-all">
-                                            <Navigation className="w-5 h-5" /> Open Live Map
-                                        </a>
+                                        <div className="flex gap-2">
+                                            <a href="/driver/ride" className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] text-white rounded-2xl px-4 py-4 font-black text-base active:scale-95 transition-all">
+                                                <Navigation className="w-5 h-5" /> Live Map
+                                            </a>
+                                            <button
+                                                onClick={async () => {
+                                                    if (!confirm('End this trip?')) return;
+                                                    try {
+                                                        await api.post(`/trips/${activeTrip.id}/complete`);
+                                                        localStorage.removeItem('driver_trip_type');
+                                                        await fetchAll();
+                                                    } catch (e: any) {
+                                                        alert(e.response?.data?.error || 'Failed to end trip');
+                                                    }
+                                                }}
+                                                className="flex items-center justify-center gap-1 bg-red-500 hover:bg-red-600 text-white rounded-2xl px-4 py-4 font-black text-sm active:scale-95 transition-all shrink-0"
+                                            >
+                                                ■ End Trip
+                                            </button>
+                                        </div>
                                     ) : (
                                         <button onClick={() => handleStartTrip(route.id)} className="flex items-center justify-center gap-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl px-4 py-4 font-black text-base active:scale-95 transition-all">
                                             ▶ {ta.startTrip}
