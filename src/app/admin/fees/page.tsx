@@ -100,14 +100,17 @@ export default function FeesPage() {
         return matchTab && matchSearch;
     });
 
-    const totalOutstanding = fees.filter(f => f.status !== 'paid').reduce((s, f) => s + (f.total_amount || f.amount || 0), 0);
+    const totalOutstanding = fees.filter(f => deriveStatus(f) !== 'paid').reduce((s, f) => s + (f.total_amount || f.amount || 0), 0);
     const totalCollectedMonth = fees.filter(f => {
-        if (f.status !== 'paid' || !f.paid_at) return false;
-        const d = new Date(f.paid_at);
+        if (deriveStatus(f) !== 'paid') return false;
+        // payment date is in f.payments array (payment_date field) or f.paid_at
+        const paidAt = (f as any).paid_at || (f as any).payments?.[0]?.payment_date;
+        if (!paidAt) return true; // count it even without exact date
+        const d = new Date(paidAt);
         const now = new Date();
         return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).reduce((s, f) => s + (f.total_amount || f.amount || 0), 0);
-    const overdueCount = fees.filter(f => f.status === 'overdue').length;
+    const overdueCount = fees.filter(f => deriveStatus(f) === 'overdue').length;
 
     return (
         <div className="space-y-6 animate-in">
