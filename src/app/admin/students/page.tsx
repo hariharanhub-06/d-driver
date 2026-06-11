@@ -47,6 +47,13 @@ export default function StudentsPage() {
     const [stops, setStops] = useState<any[]>([]);
     const [parents, setParents] = useState<any[]>([]);
 
+    const [importing, setImporting] = useState(false);
+    const [importCount, setImportCount] = useState(0);
+
+    // Inline route/stop quick-assign
+    const [quickAssign, setQuickAssign] = useState<{ studentId: string; routeId: string; stopId: string } | null>(null);
+    const [quickSaving, setQuickSaving] = useState(false);
+
     // Create wizard modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [step, setStep] = useState(0);
@@ -297,13 +304,39 @@ export default function StudentsPage() {
 
         if (students.length === 0) { alert('No valid student rows found.'); return; }
 
+        setImportCount(students.length);
+        setImporting(true);
         try {
             const { data } = await api.post('/students/bulk', { students });
             const errs = data?.errors?.length || 0;
+            setImporting(false);
             alert(`Imported ${data?.created?.length || 0} student(s).${errs ? ` ${errs} row(s) failed.` : ''}`);
             fetchStudents();
         } catch (err: any) {
+            setImporting(false);
             alert(err?.response?.data?.error || 'Import failed. Check your CSV format.');
+        }
+    };
+
+    const handleQuickAssignSave = async () => {
+        if (!quickAssign) return;
+        setQuickSaving(true);
+        try {
+            await api.put(`/students/${quickAssign.studentId}`, {
+                route_id: quickAssign.routeId || null,
+                stop_id: quickAssign.stopId || null,
+            });
+            setStudents(prev => prev.map(s => {
+                if (s.id !== quickAssign.studentId) return s;
+                const route = routes.find(r => r.id === quickAssign.routeId);
+                const stop = stops.find(st => st.id === quickAssign.stopId);
+                return { ...s, route: route || undefined, stop: stop || undefined };
+            }));
+            setQuickAssign(null);
+        } catch {
+            alert('Failed to save assignment.');
+        } finally {
+            setQuickSaving(false);
         }
     };
 
@@ -337,6 +370,23 @@ export default function StudentsPage() {
 
     return (
         <div className="space-y-6 animate-in">
+
+            {/* CSV Import loading overlay */}
+            {importing && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl px-10 py-8 flex flex-col items-center gap-5 min-w-[260px]">
+                        <div className="w-14 h-14 rounded-full bg-[var(--brand)]/10 flex items-center justify-center">
+                            <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                        </div>
+                        <div className="text-center">
+                            <p className="font-bold text-slate-800 dark:text-white text-base">{t('Importing CSV…', 'CSV இறக்குமதி…')}</p>
+                            <p className="text-sm text-slate-400 mt-1">{t(`Processing ${importCount} record(s)`, `${importCount} பதிவுகள் செயலாக்கப்படுகின்றன`)}</p>
+                            <p className="text-xs text-slate-400 mt-2">{t('Please wait, do not close this page.', 'காத்திருங்கள், இந்தப் பக்கத்தை மூட வேண்டாம்.')}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
@@ -451,14 +501,62 @@ export default function StudentsPage() {
                                         )}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                        {s.stop?.name ? (
-                                            <span className="flex items-center gap-1.5">
-                                                <MapPin className="w-3.5 h-3.5 text-orange-400" />
-                                                {s.stop.name}
-                                            </span>
-                                        ) : <span className="text-slate-400 text-xs italic">{t('Unassigned', 'ஒதுக்கப்படவில்லை')}</span>}
-                                        {s.route?.name && (
-                                            <p className="text-xs text-[var(--brand)] font-medium uppercase mt-0.5">{s.route.name}</p>
+                                        {quickAssign?.studentId === s.id ? (
+                                            <div className="flex flex-col gap-1.5 min-w-[200px]">
+                                                <select
+                                                    value={quickAssign.routeId}
+                                                    onChange={e => setQuickAssign({ ...quickAssign, routeId: e.target.value, stopId: '' })}
+                                                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-[var(--brand)]"
+                                                >
+                                                    <option value="">{t('Select Route', 'வழி தேர்ந்தெடு')}</option>
+                                                    {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                                </select>
+                                                <select
+                                                    value={quickAssign.stopId}
+                                                    onChange={e => setQuickAssign({ ...quickAssign, stopId: e.target.value })}
+                                                    disabled={!quickAssign.routeId}
+                                                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-[var(--brand)] disabled:opacity-40"
+                                                >
+                                                    <option value="">{t('Select Stop', 'நிறுத்தம் தேர்ந்தெடு')}</option>
+                                                    {stops.filter(st => st.route?.id === quickAssign.routeId || st.route_id === quickAssign.routeId).map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+                                                </select>
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={handleQuickAssignSave}
+                                                        disabled={quickSaving || !quickAssign.stopId}
+                                                        className="flex-1 flex items-center justify-center gap-1 bg-[var(--brand)] text-white rounded-lg py-1 text-xs font-semibold disabled:opacity-50"
+                                                    >
+                                                        {quickSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                                        {t('Save', 'சேமி')}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setQuickAssign(null)}
+                                                        className="px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-lg text-xs"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                className="text-left w-full group/cell"
+                                                onClick={() => setQuickAssign({ studentId: s.id, routeId: s.route?.id || '', stopId: s.stop?.id || '' })}
+                                            >
+                                                {s.stop?.name ? (
+                                                    <span className="flex items-center gap-1.5 group-hover/cell:text-[var(--brand)] transition-colors">
+                                                        <MapPin className="w-3.5 h-3.5 text-orange-400" />
+                                                        {s.stop.name}
+                                                    </span>
+                                                ) : (
+                                                    <span className="flex items-center gap-1 text-slate-400 text-xs italic hover:text-[var(--brand)] transition-colors">
+                                                        <MapPin className="w-3 h-3" />
+                                                        {t('Click to assign', 'ஒதுக்க கிளிக் செய்யவும்')}
+                                                    </span>
+                                                )}
+                                                {s.route?.name && (
+                                                    <p className="text-xs text-[var(--brand)] font-medium uppercase mt-0.5">{s.route.name}</p>
+                                                )}
+                                            </button>
                                         )}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 text-right">

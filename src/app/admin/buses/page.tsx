@@ -44,6 +44,7 @@ export default function BusesPage() {
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [fetchError, setFetchError] = useState('');
     const [formError, setFormError] = useState('');
+    const [importing, setImporting] = useState(false);
     const importRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => { fetchBuses(); }, []);
@@ -117,13 +118,15 @@ export default function BusesPage() {
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        if (importRef.current) importRef.current.value = '';
         const fd = new FormData();
         fd.append('file', file);
+        setImporting(true);
         try {
             await api.post('/buses/bulk', fd);
             fetchBuses();
         } catch { /* ignore */ }
-        if (importRef.current) importRef.current.value = '';
+        finally { setImporting(false); }
     };
 
     const filtered = buses.filter(b =>
@@ -137,6 +140,19 @@ export default function BusesPage() {
 
     return (
         <div className="space-y-6 animate-in">
+            {importing && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl px-10 py-8 flex flex-col items-center gap-5 min-w-[260px]">
+                        <div className="w-14 h-14 rounded-full bg-[var(--brand)]/10 flex items-center justify-center">
+                            <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                        </div>
+                        <div className="text-center">
+                            <p className="font-bold text-slate-800 dark:text-white text-base">{t('Importing CSV…', 'CSV இறக்குமதி…')}</p>
+                            <p className="text-xs text-slate-400 mt-2">{t('Please wait, do not close this page.', 'காத்திருங்கள், இந்தப் பக்கத்தை மூட வேண்டாம்.')}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
             {fetchError && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-300 flex items-center justify-between">
                     <span>{fetchError}</span>

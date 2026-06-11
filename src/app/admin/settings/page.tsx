@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { School, CreditCard, CheckCircle2, XCircle, Loader2, Eye, EyeOff, CheckSquare, Shield, Lock, Camera, User } from 'lucide-react';
 import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
+import { useAuth } from '@/context/AuthContext';
 
 type SchoolInfo = {
     name?: string;
@@ -26,6 +27,7 @@ const ONBOARDING_STEPS = [
 type ActiveTab = 'school' | 'razorpay' | 'security';
 
 export default function SettingsPage() {
+    const { refreshUser } = useAuth();
     const t = useT();
     const [activeTab, setActiveTab] = useState<ActiveTab>('school');
     const [school, setSchool] = useState<SchoolInfo>({});
@@ -64,6 +66,7 @@ export default function SettingsPage() {
             fd.append('photo', file);
             const res = await api.post('/upload/profile-photo', fd, { headers: { 'Content-Type': undefined } });
             setPhotoUrl(res.data.url);
+            refreshUser();
         } catch { alert('Photo upload failed'); }
         finally { setPhotoUploading(false); }
     };

@@ -10,7 +10,7 @@ interface Child { id: string; name: string; grade?: string; bus?: { bus_number: 
 
 // ── ALL EXISTING LOGIC PRESERVED ──────────────────────────────────────────
 export default function ParentProfile() {
-    const { user, logout } = useAuth();
+    const { user, logout, refreshUser } = useAuth();
     const t = useT();
     const [cpForm, setCpForm] = useState({ current: '', newPw: '', confirm: '' });
     const [cpError, setCpError] = useState('');
@@ -35,6 +35,7 @@ export default function ParentProfile() {
             fd.append('photo', file);
             const res = await api.post('/upload/profile-photo', fd, { headers: { 'Content-Type': undefined } });
             setPhotoUrl(res.data.url);
+            refreshUser();
         } catch { alert('Photo upload failed'); }
         finally { setPhotoUploading(false); }
     };

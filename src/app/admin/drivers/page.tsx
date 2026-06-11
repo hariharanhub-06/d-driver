@@ -66,6 +66,7 @@ export default function DriversPage() {
     const [formError, setFormError] = useState('');
     const [createdCreds, setCreatedCreds] = useState<{ name: string; email: string; password: string } | null>(null);
     const [assigningBusFor, setAssigningBusFor] = useState<string | null>(null);
+    const [importing, setImporting] = useState(false);
 
 
     useEffect(() => {
@@ -204,8 +205,10 @@ export default function DriversPage() {
     const handleBulkImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        e.target.value = '';
         const formDataObj = new FormData();
         formDataObj.append('file', file);
+        setImporting(true);
         try {
             await api.post('/drivers/bulk', formDataObj, {
                 headers: { 'Content-Type': 'multipart/form-data' },
@@ -214,8 +217,9 @@ export default function DriversPage() {
             alert('Drivers imported successfully!');
         } catch {
             alert('Bulk import failed. Ensure the file is valid CSV/Excel.');
+        } finally {
+            setImporting(false);
         }
-        e.target.value = '';
     };
 
     const filtered = drivers.filter(d => {
@@ -233,6 +237,19 @@ export default function DriversPage() {
 
     return (
         <div className="space-y-6 animate-in">
+            {importing && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl px-10 py-8 flex flex-col items-center gap-5 min-w-[260px]">
+                        <div className="w-14 h-14 rounded-full bg-[var(--brand)]/10 flex items-center justify-center">
+                            <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                        </div>
+                        <div className="text-center">
+                            <p className="font-bold text-slate-800 dark:text-white text-base">{t('Importing CSV…', 'CSV இறக்குமதி…')}</p>
+                            <p className="text-xs text-slate-400 mt-2">{t('Please wait, do not close this page.', 'காத்திருங்கள், இந்தப் பக்கத்தை மூட வேண்டாம்.')}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>

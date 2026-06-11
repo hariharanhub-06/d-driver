@@ -14,6 +14,7 @@ interface User {
     is_dev_sa?: boolean;
     is_first_login?: boolean;
     isMockMode?: boolean;
+    profile_photo_url?: string;
 }
 
 interface AuthContextType {
@@ -21,6 +22,7 @@ interface AuthContextType {
     loading: boolean;
     login: (token: string, userData: User, refreshToken?: string) => void;
     logout: () => void;
+    refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -28,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
     login: () => { },
     logout: () => { },
+    refreshUser: async () => { },
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -54,6 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                             school_id: data.school?.id ?? data.school_id ?? parsed.school_id,
                             is_dev_sa: data.is_dev_sa ?? false,
                             is_first_login: data.is_first_login,
+                            profile_photo_url: data.profile_photo_url ?? undefined,
                         };
                         setUser(refreshed);
                         localStorage.setItem('user', JSON.stringify(refreshed));
@@ -91,6 +95,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
+    const refreshUser = async () => {
+        try {
+            const { data } = await api.get('/users/me');
+            setUser(prev => {
+                if (!prev) return prev;
+                const updated: User = {
+                    ...prev,
+                    name: data.name,
+                    email: data.email,
+                    profile_photo_url: data.profile_photo_url ?? undefined,
+                };
+                localStorage.setItem('user', JSON.stringify(updated));
+                return updated;
+            });
+        } catch { /* silent */ }
+    };
+
     const logout = async () => {
         try { await api.post('/auth/logout'); } catch { /* fail silently — still clear local state */ }
         localStorage.removeItem('access_token');
@@ -101,7 +122,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

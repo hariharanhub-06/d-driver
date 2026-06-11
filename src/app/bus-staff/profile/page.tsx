@@ -7,7 +7,7 @@ import { Lock, LogOut, Eye, EyeOff, CheckCircle, AlertCircle, Camera, Pencil } f
 import { useT, ta } from '@/lib/i18n';
 
 export default function BusStaffProfilePage() {
-    const { user, logout } = useAuth();
+    const { user, logout, refreshUser } = useAuth();
     const t = useT();
     const [cpForm, setCpForm] = useState({ current: '', newPw: '', confirm: '' });
     const [cpError, setCpError] = useState('');
@@ -45,6 +45,7 @@ export default function BusStaffProfilePage() {
             fd.append('photo', file);
             const res = await api.post('/upload/profile-photo', fd, { headers: { 'Content-Type': undefined } });
             setPhotoUrl(res.data.url);
+            refreshUser();
         } catch { alert('Photo upload failed'); }
         finally { setPhotoUploading(false); }
     };

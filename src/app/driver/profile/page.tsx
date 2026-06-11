@@ -8,7 +8,7 @@ import { useT, ta } from '@/lib/i18n';
 
 // ── ALL EXISTING LOGIC PRESERVED — VERBATIM ───────────────────────────────
 export default function DriverProfilePage() {
-    const { user, logout } = useAuth();
+    const { user, logout, refreshUser } = useAuth();
     const t = useT();
     const [cpForm, setCpForm] = useState({ current: '', newPw: '', confirm: '' });
     const [cpError, setCpError] = useState('');
@@ -48,6 +48,7 @@ export default function DriverProfilePage() {
             fd.append('photo', file);
             const res = await api.post('/upload/profile-photo', fd, { headers: { 'Content-Type': undefined } });
             setPhotoUrl(res.data.url);
+            refreshUser();
         } catch { alert('Photo upload failed'); }
         finally { setPhotoUploading(false); }
     };

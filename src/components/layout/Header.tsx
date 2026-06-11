@@ -230,8 +230,11 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                                 : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
                         )}
                     >
-                        <div className="w-8 h-8 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center shrink-0">
-                            <User size={16} className="text-[var(--brand)]" />
+                        <div className="w-8 h-8 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center shrink-0 overflow-hidden">
+                            {user?.profile_photo_url
+                                ? <img src={user.profile_photo_url} alt={user.name} className="w-full h-full object-cover" />
+                                : <User size={16} className="text-[var(--brand)]" />
+                            }
                         </div>
                         <div className="text-left hidden sm:block">
                             <p className="text-sm font-semibold text-slate-900 dark:text-white leading-none">{user?.name || 'User'}</p>
@@ -244,8 +247,11 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                     {isProfileOpen && (
                         <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden animate-in z-50">
                             <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center text-[var(--brand)]">
-                                    <User size={20} />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center text-[var(--brand)] overflow-hidden shrink-0">
+                                    {user?.profile_photo_url
+                                        ? <img src={user.profile_photo_url} alt={user?.name} className="w-full h-full object-cover" />
+                                        : <User size={20} />
+                                    }
                                 </div>
                                 <div className="overflow-hidden">
                                     <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{user?.name || 'User'}</p>
