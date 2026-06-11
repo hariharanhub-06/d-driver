@@ -2,7 +2,7 @@
 
 import { Menu, Search, Bell, User, Sun, Moon, LogOut, Settings, Globe } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -34,6 +34,8 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
     const [langOpen, setLangOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const notifRef = useRef<HTMLDivElement>(null);
+    const profileRef = useRef<HTMLDivElement>(null);
     const [notifications, setNotifications] = useState<RealNotification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [, setTimeTick] = useState(0);
@@ -65,6 +67,19 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
     useEffect(() => {
         const id = setInterval(() => setTimeTick(tick => tick + 1), 60000);
         return () => clearInterval(id);
+    }, []);
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+                setIsNotificationOpen(false);
+            }
+            if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+                setIsProfileOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
     }, []);
 
     const markAllRead = async () => {
@@ -145,7 +160,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                 </div>
 
                 {/* Notifications */}
-                <div className="relative">
+                <div className="relative" ref={notifRef}>
                     <button
                         onClick={() => {
                             setIsNotificationOpen(!isNotificationOpen);
@@ -217,7 +232,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                 <div className="h-7 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
 
                 {/* Profile dropdown */}
-                <div className="relative">
+                <div className="relative" ref={profileRef}>
                     <button
                         onClick={() => {
                             setIsProfileOpen(!isProfileOpen);
