@@ -290,9 +290,28 @@ export default function RoutesPage() {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                        {route.bus?.bus_number
-                                            ? <span className="font-medium">{route.bus.bus_number}</span>
-                                            : <span className="text-slate-400 text-xs italic">{t('Unassigned', 'ஒதுக்கப்படவில்லை')}</span>}
+                                        <select
+                                            value={route.bus_id || ''}
+                                            onChange={async e => {
+                                                const newBusId = e.target.value || null;
+                                                try {
+                                                    await api.put(`/routes/${route.id}`, { bus_id: newBusId });
+                                                    const bus = buses.find(b => b.id === newBusId) || undefined;
+                                                    setRoutes(prev => prev.map(r => r.id === route.id
+                                                        ? { ...r, bus_id: newBusId || undefined, bus: bus ? { bus_number: bus.bus_number } : undefined }
+                                                        : r
+                                                    ));
+                                                } catch {
+                                                    alert(t('Failed to assign bus.', 'பேருந்தை ஒதுக்க முடியவில்லை.'));
+                                                }
+                                            }}
+                                            className="text-xs font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-2.5 py-1.5 rounded-lg border-none outline-none cursor-pointer hover:bg-[var(--brand)]/20 transition-colors"
+                                        >
+                                            <option value="">{t('Assign Bus', 'பேருந்து ஒதுக்கு')}</option>
+                                            {buses.map(b => (
+                                                <option key={b.id} value={b.id}>{b.bus_number}</option>
+                                            ))}
+                                        </select>
                                     </td>
                                     <td className="px-4 py-3">
                                         <button
