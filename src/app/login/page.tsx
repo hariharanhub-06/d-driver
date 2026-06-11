@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Bus, Eye, EyeOff, Lock, ArrowLeft } from 'lucide-react';
+import { Bus, Eye, EyeOff, Lock, ArrowLeft, Sun, Moon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import api from '@/lib/api';
 
 export default function LoginPage() {
@@ -15,8 +16,10 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [currentSchool, setCurrentSchool] = useState<{ name: string; logo?: string; color?: string } | null>(null);
     const [platformLogo, setPlatformLogo] = useState<string | null>(null);
+    const [logoError, setLogoError] = useState(false);
     const { login } = useAuth();
     const router = useRouter();
+    const { theme, setTheme } = useTheme();
 
     useEffect(() => {
         // Auto-redirect if a valid session already exists in localStorage
@@ -109,17 +112,19 @@ export default function LoginPage() {
                         className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-md"
                         style={{ backgroundColor: brandColor }}
                     >
-                        {currentSchool?.logo ? (
+                        {currentSchool?.logo && !logoError ? (
                             <img
                                 src={currentSchool.logo}
                                 alt={currentSchool.name}
                                 className="w-10 h-10 rounded-xl object-cover"
+                                onError={() => setLogoError(true)}
                             />
-                        ) : platformLogo ? (
+                        ) : platformLogo && !logoError ? (
                             <img
                                 src={platformLogo}
                                 alt="ONLIVE"
                                 className="w-10 h-10 object-contain rounded-lg"
+                                onError={() => setLogoError(true)}
                             />
                         ) : (
                             <Bus className="w-7 h-7 text-white" />
@@ -241,13 +246,22 @@ export default function LoginPage() {
                         <Lock size={11} />
                         Secure · ONLIVE
                     </p>
-                    <Link
-                        href="/"
-                        className="text-xs text-slate-400 hover:text-green-600 dark:hover:text-green-400 flex items-center gap-1 transition-colors"
-                    >
-                        <ArrowLeft size={11} />
-                        Home
-                    </Link>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                            title="Toggle theme"
+                        >
+                            {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+                        </button>
+                        <Link
+                            href="/"
+                            className="text-xs text-slate-400 hover:text-green-600 dark:hover:text-green-400 flex items-center gap-1 transition-colors"
+                        >
+                            <ArrowLeft size={11} />
+                            Home
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>

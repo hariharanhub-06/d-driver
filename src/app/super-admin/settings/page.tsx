@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
+import ImageUpload from '@/components/ui/ImageUpload';
 
 interface BillingConfig {
   overdue_grace_days?: number;
@@ -523,8 +524,14 @@ function LandingPageTab() {
                   <input type="text" value={partnerForm.name} onChange={e => setPartnerForm(p => ({ ...p, name: e.target.value }))} placeholder="Acme Corp" className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Logo URL</label>
-                  <input type="url" value={partnerForm.logo_url} onChange={e => setPartnerForm(p => ({ ...p, logo_url: e.target.value }))} placeholder="https://..." className={inputCls} />
+                  <ImageUpload
+                    value={partnerForm.logo_url}
+                    onChange={url => setPartnerForm(p => ({ ...p, logo_url: url }))}
+                    folder="partners"
+                    label="Logo"
+                    shape="square"
+                    previewSize="sm"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Website</label>
@@ -566,8 +573,14 @@ function LandingPageTab() {
                           <input type="text" value={editPartnerForm.name} onChange={e => setEditPartnerForm(f => ({ ...f, name: e.target.value }))} className={inputCls} />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Logo URL</label>
-                          <input type="url" value={editPartnerForm.logo_url} onChange={e => setEditPartnerForm(f => ({ ...f, logo_url: e.target.value }))} className={inputCls} />
+                          <ImageUpload
+                            value={editPartnerForm.logo_url}
+                            onChange={url => setEditPartnerForm(f => ({ ...f, logo_url: url }))}
+                            folder="partners"
+                            label="Logo"
+                            shape="square"
+                            previewSize="sm"
+                          />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Website</label>
@@ -669,8 +682,14 @@ function LandingPageTab() {
                   <input type="text" value={founderForm.title} onChange={e => setFounderForm(f => ({ ...f, title: e.target.value }))} placeholder="Co-Founder & CEO" className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Photo URL</label>
-                  <input type="url" value={founderForm.photo_url} onChange={e => setFounderForm(f => ({ ...f, photo_url: e.target.value }))} placeholder="https://..." className={inputCls} />
+                  <ImageUpload
+                    value={founderForm.photo_url}
+                    onChange={url => setFounderForm(f => ({ ...f, photo_url: url }))}
+                    folder="founders"
+                    label="Photo"
+                    shape="circle"
+                    previewSize="sm"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">LinkedIn URL</label>
@@ -716,8 +735,14 @@ function LandingPageTab() {
                           <input type="text" value={editFounderForm.title} onChange={e => setEditFounderForm(ef => ({ ...ef, title: e.target.value }))} className={inputCls} />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Photo URL</label>
-                          <input type="url" value={editFounderForm.photo_url} onChange={e => setEditFounderForm(ef => ({ ...ef, photo_url: e.target.value }))} className={inputCls} />
+                          <ImageUpload
+                            value={editFounderForm.photo_url}
+                            onChange={url => setEditFounderForm(ef => ({ ...ef, photo_url: url }))}
+                            folder="founders"
+                            label="Photo"
+                            shape="circle"
+                            previewSize="sm"
+                          />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">LinkedIn URL</label>
@@ -979,20 +1004,14 @@ export default function SASettingsPage() {
                 </div>
               </div>
               <div className="p-6 space-y-4">
-                {platformLogo && (
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
-                    <img src={platformLogo} alt="Platform logo" className="w-12 h-12 rounded-xl object-contain bg-white p-1" />
-                    <div>
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Current Logo</p>
-                      <p className="text-xs text-slate-400 font-mono truncate max-w-xs">{platformLogo}</p>
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Logo URL</label>
-                  <input type="url" value={platformLogo} onChange={e => setPlatformLogo(e.target.value)} placeholder="https://imagekit.io/your-logo.png" className={inputCls} />
-                  <p className="text-xs text-slate-400 mt-1.5">Upload your image to ImageKit and paste the URL here. Recommended: 200×60px PNG with transparent background.</p>
-                </div>
+                <ImageUpload
+                  value={platformLogo}
+                  onChange={setPlatformLogo}
+                  folder="platform"
+                  label="Platform Logo"
+                  shape="square"
+                  previewSize="md"
+                />
                 {platformLogoMsg && <MsgBanner msg={platformLogoMsg} />}
                 <button onClick={handleSavePlatformLogo} disabled={platformLogoSaving || !platformLogo.trim()} className="bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-5 py-2.5 font-semibold text-sm transition-all disabled:opacity-50 flex items-center gap-2">
                   {platformLogoSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}

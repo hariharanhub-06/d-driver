@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 import {
   Bus,
   Users,
@@ -18,6 +19,8 @@ import {
   Mail,
   Phone,
   ChevronRight,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 // ─── TypeScript interfaces ────────────────────────────────────────────────────
@@ -171,6 +174,7 @@ export default function LandingPage() {
   const [data, setData] = useState<LandingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -225,23 +229,23 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="min-h-screen bg-white dark:bg-slate-950 font-sans">
 
       {/* ── NAVBAR ──────────────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
+      <nav className="sticky top-0 z-50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-gray-100 dark:border-slate-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 bg-[#22c55e] rounded-full flex items-center justify-center shadow shadow-green-400/30 flex-shrink-0">
               <Bus className="w-4.5 h-4.5 text-white w-[18px] h-[18px]" />
             </div>
-            <span className="text-xl font-bold text-[#0F172A] tracking-tight">
+            <span className="text-xl font-bold text-[#0F172A] dark:text-white tracking-tight">
               {config.product_name}
             </span>
           </div>
 
           {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600 dark:text-gray-300">
             <Link href="#features" className="hover:text-[#22c55e] transition-colors">
               Features
             </Link>
@@ -251,9 +255,16 @@ export default function LandingPage() {
             <Link href="#schools" className="hover:text-[#22c55e] transition-colors">
               Schools
             </Link>
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="w-9 h-9 flex items-center justify-center rounded-full text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+              title="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4.5 h-4.5 w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+            </button>
             <Link
               href="/login"
-              className="ml-2 bg-[#22c55e] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-green-600 transition-colors shadow shadow-green-400/20"
+              className="bg-[#22c55e] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-green-600 transition-colors shadow shadow-green-400/20"
             >
               Sign In
             </Link>
