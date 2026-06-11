@@ -108,7 +108,7 @@ function EndTripSlider({ onConfirm, onCancel, isEnding }: { onConfirm: () => voi
                     {/* Label */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <span className="text-xs font-bold text-red-500 uppercase tracking-widest">
-                            {filled >= 98 ? t('Ending trip…', 'முடிவு செய்கிறது…') : t('Slide to End →', 'முடிவுக்கு நழுவுங்கள் →')}
+                            {filled >= 98 ? t('Ending trip…', 'பயணம் முடிக்கிறது…') : t('Slide to End →', 'முடிக்க ஸ்லைடு செய்யவும் →')}
                         </span>
                     </div>
                     {/* Thumb */}
@@ -645,7 +645,7 @@ export default function ActiveRide() {
                         onClick={openBusSwitch}
                         className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white px-3 py-2 rounded-xl flex items-center gap-1.5 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 shadow-sm"
                     >
-                        <Wrench className="w-4 h-4" /> {t('Switch Bus', 'பேருந்து மாற்றம்')}
+                        <Wrench className="w-4 h-4" /> {t('Switch Bus', 'பேருந்தை மாற்று')}
                     </button>
                 </div>
             </div>
@@ -786,7 +786,7 @@ export default function ActiveRide() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Send SOS Alert?', 'அவசரநிலை எச்சரிக்கை அனுப்பவா?')}</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Send SOS Alert?', 'SOS எச்சரிக்கை அனுப்பவா?')}</h3>
                             <button onClick={() => setShowSosConfirm(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
@@ -795,7 +795,7 @@ export default function ActiveRide() {
                             <div className="w-14 h-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <AlertTriangle className="w-7 h-7 text-red-500" />
                             </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">{t('This will immediately notify school administration of an emergency.', 'இது உடனடியாக பள்ளி நிர்வாகத்திற்கு அவசரநிலையை தெரிவிக்கும்.')}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">{t('This will immediately notify school administration of an emergency.', 'இது உடனடியாக பள்ளி நிர்வாகத்திற்கு அவசர நிலை அறிவிப்பு அனுப்பும்.')}</p>
                             <div className="flex gap-3">
                                 <button onClick={() => setShowSosConfirm(false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm">{t('Cancel', 'ரத்து செய்')}</button>
                                 <button onClick={handleSOS} disabled={submitting} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold disabled:opacity-50 text-sm active:scale-95 transition-all">
@@ -813,7 +813,7 @@ export default function ActiveRide() {
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-5">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <Bus className="w-5 h-5 text-[var(--brand)]" /> {t('Switch Bus', 'பேருந்து மாற்றம்')}
+                                <Bus className="w-5 h-5 text-[var(--brand)]" /> {t('Switch Bus', 'பேருந்தை மாற்று')}
                             </h3>
                             <button onClick={() => setShowBusSwitch(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all">
                                 <X className="w-5 h-5 text-slate-400" />
@@ -829,7 +829,7 @@ export default function ActiveRide() {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Reason', 'காரணம்')}</label>
                                 <select value={switchForm.reason} onChange={e => setSwitchForm({ ...switchForm, reason: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors">
-                                    <option value="breakdown">{t('Breakdown', 'செயலிழப்பு')}</option>
+                                    <option value="breakdown">{t('Breakdown', 'கோளாறு')}</option>
                                     <option value="accident">{t('Accident', 'விபத்து')}</option>
                                     <option value="maintenance">{t('Maintenance', 'பராமரிப்பு')}</option>
                                     <option value="other">{t('Other', 'மற்றவை')}</option>
@@ -842,15 +842,15 @@ export default function ActiveRide() {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Replacement Bus', 'மாற்று பேருந்து')} <span className="text-red-500">*</span></label>
                                 <select value={switchForm.new_bus_id} onChange={e => setSwitchForm({ ...switchForm, new_bus_id: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors">
-                                    <option value="">{t('Select a bus…', 'பேருந்தை தேர்வு செய்யுங்கள்…')}</option>
+                                    <option value="">{t('Select a bus…', 'பேருந்தை தேர்வு செய்யவும்…')}</option>
                                     {schoolBuses.map(b => (
                                         <option key={b.id} value={b.id}>{b.bus_number}</option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Current Odometer (km) — optional', 'தற்போதைய ஒடோமீட்டர் (கி.மீ) — விரும்பினால்')}</label>
-                                <input type="number" value={switchForm.km_at_switch} onChange={e => setSwitchForm({ ...switchForm, km_at_switch: e.target.value })} placeholder="e.g. 45230" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" />
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Current Odometer (km) — optional', 'தற்போதைய ஓடோமீட்டர் (கி.மீ) — விருப்பத்தேர்வு')}</label>
+                                <input type="number" value={switchForm.km_at_switch} onChange={e => setSwitchForm({ ...switchForm, km_at_switch: e.target.value })} placeholder={t('e.g. 45230', 'எ.கா. 45230')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" />
                             </div>
                         </div>
                         <button onClick={handleBusSwitch} disabled={submitting} className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center disabled:opacity-50">

@@ -18,7 +18,7 @@ type Student = {
     feeStructure?: { amount: number; frequency: string; due_day: number; academic_year: string };
 };
 
-const STEPS = ['Student Info', 'Parent / Guardian', 'Route & Stop', 'Fee Setup'] as const;
+const STEPS_EN = ['Student Info', 'Parent / Guardian', 'Route & Stop', 'Fee Setup'] as const;
 
 const EMPTY_FORM = {
     name: '', grade: '', section: '', gr_no: '',
@@ -481,14 +481,14 @@ export default function StudentsPage() {
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
                             <div>
                                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('Enroll Student', 'மாணவரை சேர்க்கவும்')}</h2>
-                                <p className="text-xs text-slate-400 mt-0.5">{t('Step', 'படி')} {step + 1} {t('of', 'இல்')} {STEPS.length}: {STEPS[step]}</p>
+                                <p className="text-xs text-slate-400 mt-0.5">{t('Step', 'படி')} {step + 1} {t('of', 'இல்')} {STEPS_EN.length}: {[t('Student Info', 'மாணவர் தகவல்'), t('Parent / Guardian', 'பெற்றோர் / பாதுகாவலர்'), t('Route & Stop', 'வழி மற்றும் நிறுத்தம்'), t('Fee Setup', 'கட்டண அமைப்பு')][step]}</p>
                             </div>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
                         </div>
 
                         <div className="p-6">
                             <div className="flex gap-1.5 mb-6">
-                                {STEPS.map((s, i) => (
+                                {STEPS_EN.map((s, i) => (
                                     <div key={s} className={`flex-1 h-1.5 rounded-full transition-all ${i <= step ? 'bg-[var(--brand)]' : 'bg-slate-200 dark:bg-slate-700'}`} />
                                 ))}
                             </div>
@@ -503,7 +503,7 @@ export default function StudentsPage() {
                                         </div>
                                         <div className="grid grid-cols-3 gap-3">
                                             <div>
-                                                <label className={labelCls}>GR No.</label>
+                                                <label className={labelCls}>{t('GR No.', 'GR எண்.')}</label>
                                                 <input type="text" placeholder="GR-001" className={inputCls} value={formData.gr_no} onChange={e => setFormData({ ...formData, gr_no: e.target.value })} />
                                             </div>
                                             <div>
@@ -647,7 +647,7 @@ export default function StudentsPage() {
                                             <ChevronLeft className="w-4 h-4" /> {t('Back', 'திரும்பு')}
                                         </button>
                                     )}
-                                    {step < STEPS.length - 1 ? (
+                                    {step < STEPS_EN.length - 1 ? (
                                         <button type="button" disabled={!canProceed()} onClick={() => setStep(s => s + 1)} className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50">
                                             {t('Next', 'அடுத்து')} <ChevronRight className="w-4 h-4" />
                                         </button>
@@ -718,7 +718,7 @@ export default function StudentsPage() {
                             </div>
                             <div className="grid grid-cols-3 gap-3">
                                 <div>
-                                    <label className={labelCls}>GR No.</label>
+                                    <label className={labelCls}>{t('GR No.', 'GR எண்.')}</label>
                                     <input className={inputCls} placeholder="GR-001" value={editForm.gr_no} onChange={e => setEditForm(f => ({ ...f, gr_no: e.target.value }))} />
                                 </div>
                                 <div>

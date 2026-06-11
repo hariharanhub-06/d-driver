@@ -185,8 +185,8 @@ export default function AdminMaintenancePage() {
                                 <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">₹{actionModal.record.total_cost.toLocaleString('en-IN')} · {actionModal.record.driver?.user?.name}</p>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Note to driver', 'ஓட்டுநருக்கு குறிப்பு')} <span className="text-slate-400 font-normal">({t('optional', 'விருப்பமானது')})</span></label>
-                                <input type="text" value={adminNote} onChange={e => setAdminNote(e.target.value)} placeholder={t('e.g. Approved. Will reimburse by Friday.', 'எ.கா. அனுமதிக்கப்பட்டது. வெள்ளிக்கிழமைக்குள் திருப்பி செலுத்தப்படும்.')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Note to driver', 'ஓட்டுநருக்கு குறிப்பு')} <span className="text-slate-400 font-normal">({t('optional', 'விருப்பத்தேர்வு')})</span></label>
+                                <input type="text" value={adminNote} onChange={e => setAdminNote(e.target.value)} placeholder={t('e.g. Approved. Will reimburse by Friday.', 'எ.கா. அங்கீகரிக்கப்பட்டது. வெள்ளிக்கிழமையில் திரும்ப கொடுப்போம்.')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
                             </div>
                             <div className="flex gap-3">
                                 <button type="button" onClick={() => setActionModal(null)} className="flex-1 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl py-2.5 text-sm font-semibold">{t('Cancel', 'ரத்து செய்')}</button>

@@ -193,8 +193,8 @@ function LeaveTab({ students, loadingStudents }: { students: Student[]; loadingS
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-white mb-2">{t('Reason', 'காரணம்')} <span className="text-slate-400 font-normal">({t('optional', 'விருப்பமானது')})</span></label>
-                        <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder="e.g. Sick, family function..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] resize-none" />
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-white mb-2">{t('Reason', 'காரணம்')} <span className="text-slate-400 font-normal">({t('optional', 'விருப்பத்தேர்வு')})</span></label>
+                        <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder={t('e.g. Sick, family function...', 'எ.கா. உடல்நலம், குடும்ப நிகழ்வு...')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] resize-none" />
                     </div>
                 </div>
 
@@ -403,8 +403,8 @@ function StopChangeTab({ students, stops, loadingStudents }: { students: Student
                     )}
 
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-white mb-2">{t('Reason', 'காரணம்')} <span className="text-slate-400 font-normal">({t('optional', 'விருப்பமானது')})</span></label>
-                        <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder="e.g. Moving to a new address temporarily..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] resize-none" />
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-white mb-2">{t('Reason', 'காரணம்')} <span className="text-slate-400 font-normal">({t('optional', 'விருப்பத்தேர்வு')})</span></label>
+                        <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder={t('e.g. Moving to a new address temporarily...', 'எ.கா. தற்காலிகமாக புதிய முகவரிக்கு செல்கிறோம்...')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] resize-none" />
                     </div>
                 </div>
 

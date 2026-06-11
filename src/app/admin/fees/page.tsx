@@ -363,13 +363,13 @@ export default function FeesPage() {
                             </div>
                             {delayAction.action === 'approve' && (
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('New Due Date', 'புதிய கட்டண தேதி')}</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('New Due Date', 'புதிய செலுத்த வேண்டிய தேதி')}</label>
                                     <input type="date" value={delayActionDate} onChange={e => setDelayActionDate(e.target.value)} required className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
                                 </div>
                             )}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Admin Note', 'நிர்வாக குறிப்பு')} <span className="text-slate-400 font-normal">({t('optional', 'விருப்பமானது')})</span></label>
-                                <input type="text" value={delayActionNote} onChange={e => setDelayActionNote(e.target.value)} placeholder={t('Optional note to parent...', 'பெற்றோருக்கு விருப்ப குறிப்பு...')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Admin Note', 'நிர்வாக குறிப்பு')} <span className="text-slate-400 font-normal">({t('optional', 'விருப்பத்தேர்வு')})</span></label>
+                                <input type="text" value={delayActionNote} onChange={e => setDelayActionNote(e.target.value)} placeholder={t('Optional note to parent...', 'பெற்றோருக்கு குறிப்பு (விருப்பத்தேர்வு)...')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
                             </div>
                             <div className="flex gap-3 pt-1">
                                 <button type="button" onClick={() => setDelayAction(null)} className="flex-1 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl py-2.5 text-sm font-semibold">{t('Cancel', 'ரத்து செய்')}</button>

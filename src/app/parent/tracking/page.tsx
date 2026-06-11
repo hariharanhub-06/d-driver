@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { connectSocket, getSocket } from '@/lib/socket';
 import api from '@/lib/api';
 import dynamic from 'next/dynamic';
+import { useT } from '@/lib/i18n';
 
 const FreeMap = dynamic(() => import('@/components/ui/FreeMap'), { ssr: false });
 
@@ -21,6 +22,7 @@ interface ChildData {
 
 export default function ParentTracking() {
     const { user } = useAuth();
+    const t = useT();
     const [busPosition, setBusPosition] = useState<[number, number]>([11.1271, 78.6569]);
     const [busId, setBusId] = useState<string | null>(null);
     const [busNumber, setBusNumber] = useState<string | null>(null);
@@ -209,7 +211,7 @@ export default function ParentTracking() {
             {approaching && (
                 <div className="absolute top-4 left-4 right-4 z-20 bg-amber-500 text-white rounded-2xl px-5 py-3 flex items-center gap-3 shadow-xl animate-bounce">
                     <Bus className="w-5 h-5 shrink-0" />
-                    <span className="font-semibold text-sm">Bus is approaching your stop!</span>
+                    <span className="font-semibold text-sm">{t('Bus is approaching your stop!', 'பேருந்து உங்கள் நிறுத்தத்தை நெருங்குகிறது!')}</span>
                     <button onClick={() => setApproaching(false)} className="ml-auto text-white/70 hover:text-white">✕</button>
                 </div>
             )}
@@ -236,19 +238,19 @@ export default function ParentTracking() {
                     </div>
                     <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate">
-                            {hasBusLive ? `Bus #${busNumber || busId}` : (childData?.name || 'Tracking')}
+                            {hasBusLive ? `Bus #${busNumber || busId}` : (childData?.name || t('Live Tracking', 'நேரடி கண்காணிப்பு'))}
                             {hasBusLive && childData ? ` · ${childData.name}` : ''}
                         </h4>
                         <div className="flex items-center gap-2 mt-0.5">
                             {hasBusLive ? (
                                 <>
-                                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full uppercase tracking-widest">Live</span>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><Clock size={10} /> Bus en route</p>
+                                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full uppercase tracking-widest">{t('Live', 'நேரடி')}</span>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><Clock size={10} /> {t('Bus en route', 'பேருந்து வருகிறது')}</p>
                                 </>
                             ) : (
                                 <>
-                                    <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full uppercase tracking-widest">Waiting</span>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">Bus hasn't started yet</p>
+                                    <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full uppercase tracking-widest">{t('Waiting', 'காத்திருக்கிறது')}</span>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">{t("Bus hasn't started yet", 'பேருந்து இன்னும் தொடங்கவில்லை')}</p>
                                 </>
                             )}
                         </div>
@@ -275,11 +277,11 @@ export default function ParentTracking() {
             <div className="absolute bottom-4 left-4 right-4 z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-4">
                 <div className="flex justify-between items-start mb-4">
                     <div>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Your Stop</p>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{t('Your Stop', 'உங்கள் நிறுத்தம்')}</p>
                         <h5 className="font-bold text-slate-900 dark:text-white text-base">
-                            {childData?.stop?.name || 'Home Stop'}
+                            {childData?.stop?.name || t('Home Stop', 'வீட்டு நிறுத்தம்')}
                         </h5>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Bus is en route to your location</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('Bus is on the way', 'பேருந்து வருகிறது')}</p>
                     </div>
                     <div className="w-9 h-9 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center shrink-0">
                         <Navigation size={16} />
@@ -297,13 +299,13 @@ export default function ParentTracking() {
                         className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 justify-center"
                     >
                         <Navigation size={14} />
-                        Stop Request
+                        {t('Stop Request', 'நிறுத்தம் மாற்று கோரிக்கை')}
                     </a>
                     <a
                         href="/parent/dashboard"
                         className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm justify-center"
                     >
-                        Back to Home
+                        {t('Back to Home', 'முகப்புக்கு திரும்பு')}
                     </a>
                 </div>
             </div>
@@ -316,15 +318,15 @@ export default function ParentTracking() {
                                 <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
                                     <Navigation className="w-7 h-7 text-emerald-600" />
                                 </div>
-                                <h3 className="font-bold text-slate-900 dark:text-white text-lg">Request Sent!</h3>
+                                <h3 className="font-bold text-slate-900 dark:text-white text-lg">{t('Request Sent!', 'கோரிக்கை அனுப்பப்பட்டது!')}</h3>
                                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                                    Your request to change to <span className="font-semibold text-slate-700 dark:text-slate-200">{stopChangeModal.name}</span> has been submitted. You will be notified after admin approval.
+                                    {t('Your request to change to', 'இடம் மாற்றும் கோரிக்கை')} <span className="font-semibold text-slate-700 dark:text-slate-200">{stopChangeModal.name}</span> {t('has been submitted. You will be notified after admin approval.', 'சமர்ப்பிக்கப்பட்டது. நிர்வாகி அனுமதித்தவுடன் அறிவிப்பு வரும்.')}
                                 </p>
                                 <button
                                     onClick={() => setStopChangeModal(null)}
                                     className="w-full py-2.5 bg-[var(--brand)] text-white rounded-xl font-semibold text-sm"
                                 >
-                                    Done
+                                    {t('Done', 'முடிந்தது')}
                                 </button>
                             </div>
                         ) : (
@@ -334,22 +336,22 @@ export default function ParentTracking() {
                                         <Navigation className="w-5 h-5 text-blue-600" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-900 dark:text-white text-base">Change Stop?</h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Requires admin approval</p>
+                                        <h3 className="font-bold text-slate-900 dark:text-white text-base">{t('Change Stop?', 'நிறுத்தம் மாற்றவா?')}</h3>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('Requires admin approval', 'நிர்வாகி அனுமதி தேவை')}</p>
                                     </div>
                                 </div>
                                 <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3 mb-4">
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Current stop</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">{t('Current Stop', 'தற்போதைய நிறுத்தம்')}</p>
                                     <p className="font-semibold text-sm text-slate-700 dark:text-slate-200">{childData?.stop?.name || '—'}</p>
-                                    <p className="text-xs text-slate-400 mt-2 mb-1">New stop</p>
+                                    <p className="text-xs text-slate-400 mt-2 mb-1">{t('New Stop', 'புதிய நிறுத்தம்')}</p>
                                     <p className="font-bold text-sm text-[var(--brand)]">{stopChangeModal.name}</p>
                                 </div>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                                    After admin approval, your child will appear at <strong>{stopChangeModal.name}</strong> in the attendance and tracking views.
+                                    {t('After admin approval, your child will appear at', 'நிர்வாகி அனுமதித்தவுடன் உங்கள் குழந்தை')} <strong>{stopChangeModal.name}</strong> {t('in the attendance and tracking views.', 'வருகை மற்றும் கண்காணிப்பில் காட்டப்படும்.')}
                                 </p>
                                 {stopChangeError && (
                                     <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2 mb-3">
-                                        {stopChangeError}
+                                        {t('Failed to submit request. Please try again.', 'கோரிக்கை சமர்ப்பிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.')}
                                     </p>
                                 )}
                                 <div className="flex gap-3">
@@ -357,7 +359,7 @@ export default function ParentTracking() {
                                         onClick={() => setStopChangeModal(null)}
                                         className="flex-1 py-2.5 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-semibold text-sm"
                                     >
-                                        Cancel
+                                        {t('Cancel', 'ரத்து செய்')}
                                     </button>
                                     <button
                                         onClick={submitStopChange}
@@ -366,7 +368,7 @@ export default function ParentTracking() {
                                     >
                                         {stopChangeSubmitting ? (
                                             <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : 'Request Change'}
+                                        ) : t('Request Change', 'மாற்று கோரிக்கை')}
                                     </button>
                                 </div>
                             </>

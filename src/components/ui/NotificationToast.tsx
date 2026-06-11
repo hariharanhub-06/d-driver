@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getSocket } from '@/lib/socket';
 import { useAuth } from '@/context/AuthContext';
+import { useT } from '@/lib/i18n';
 import { AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
 
 export type NotificationType = 'info' | 'error' | 'success';
@@ -16,6 +17,7 @@ interface AppNotification {
 
 export default function NotificationToast() {
     const { user } = useAuth();
+    const t = useT();
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
     useEffect(() => {
@@ -68,6 +70,7 @@ export default function NotificationToast() {
                     <button
                         onClick={() => setNotifications(prev => prev.filter(n => n.id !== notif.id))}
                         className="shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+                        aria-label={t('Dismiss', 'மூடு')}
                     >
                         <X className="w-4 h-4" />
                     </button>

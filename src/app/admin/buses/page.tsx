@@ -311,7 +311,7 @@ export default function BusesPage() {
                                 <input
                                     required
                                     type="text"
-                                    placeholder="e.g. BUS-001"
+                                    placeholder={t('e.g. BUS-001', 'எ.கா. BUS-001')}
                                     className={inputCls}
                                     value={formData.bus_number}
                                     onChange={e => setFormData({ ...formData, bus_number: e.target.value })}
@@ -334,7 +334,7 @@ export default function BusesPage() {
                                     <label className={labelCls}>{t('Registration No.', 'பதிவு எண்.')}</label>
                                     <input
                                         type="text"
-                                        placeholder="TN-01-AB-1234"
+                                        placeholder={t('e.g. TN-01-AB-1234', 'எ.கா. TN-01-AB-1234')}
                                         className={inputCls}
                                         value={formData.registration_no}
                                         onChange={e => setFormData({ ...formData, registration_no: e.target.value })}

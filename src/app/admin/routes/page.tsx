@@ -412,7 +412,7 @@ export default function RoutesPage() {
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div>
                                 <label className={labelCls}>{t('Route Name', 'வழி பெயர்')} *</label>
-                                <input required type="text" placeholder="e.g. North Morning Route" className={inputCls} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                                <input required type="text" placeholder={t('e.g. North Morning Route', 'எ.கா. வடக்கு காலை வழி')} className={inputCls} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                             </div>
                             <div>
                                 <label className={labelCls}>{t('Route Type', 'வழி வகை')}</label>

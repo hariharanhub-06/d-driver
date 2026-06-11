@@ -463,7 +463,7 @@ export default function DriversPage() {
                                 <input
                                     required
                                     type="email"
-                                    placeholder="driver@example.com"
+                                    placeholder={t('driver@example.com', 'driver@example.com')}
                                     className={inputCls}
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -474,7 +474,7 @@ export default function DriversPage() {
                                 <label className={labelCls}>{t('License Number', 'உரிம எண்')}</label>
                                 <input
                                     type="text"
-                                    placeholder="e.g. MH-01-20200012345"
+                                    placeholder={t('e.g. MH-01-20200012345', 'எ.கா. MH-01-20200012345')}
                                     className={`${inputCls} font-mono`}
                                     value={formData.license_no}
                                     onChange={e => setFormData({ ...formData, license_no: e.target.value })}

@@ -351,7 +351,7 @@ export default function SchoolsManagement() {
         if (!adminSchool) return;
         setAdminError('');
         if (!adminForm.password || adminForm.password.length < 8) {
-            setAdminError('Password must be at least 8 characters.');
+            setAdminError(t('Password must be at least 8 characters.', 'கடவுச்சொல் குறைந்தது 8 எழுத்துகள் இருக்க வேண்டும்.'));
             return;
         }
         setAdminSubmitting(true);
@@ -460,7 +460,7 @@ export default function SchoolsManagement() {
                                     </div>
                                     <div className="flex items-center gap-1 ml-2">
                                         <button onClick={() => router.push(`/super-admin/schools/${school.id}`)} title={t('View Details', 'விவரங்கள் காண்க')} className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Settings2 className="w-4 h-4" /></button>
-                                        <button onClick={() => openAdminModal(school)} title="Manage Admins" className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all"><ShieldCheck className="w-4 h-4" /></button>
+                                        <button onClick={() => openAdminModal(school)} title={t('Manage Admins', 'அட்மின்களை நிர்வகி')} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all"><ShieldCheck className="w-4 h-4" /></button>
                                         <button onClick={() => openEdit(school)} title={t('Edit', 'திருத்து')} className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Edit className="w-4 h-4" /></button>
                                         <button
                                             onClick={() => handleToggleStatus(school)}
@@ -500,11 +500,11 @@ export default function SchoolsManagement() {
                                             {school.assignedSA ? (
                                                 <span className="text-xs font-semibold text-violet-700 dark:text-violet-300 truncate">{school.assignedSA.name}</span>
                                             ) : (
-                                                <span className="text-xs font-medium text-violet-400 dark:text-violet-500">No SA assigned</span>
+                                                <span className="text-xs font-medium text-violet-400 dark:text-violet-500">{t('No SA assigned', 'SA ஒதுக்கப்படவில்லை')}</span>
                                             )}
                                         </div>
                                         <span className="text-[10px] font-semibold text-violet-400 dark:text-violet-500 uppercase tracking-wide shrink-0">
-                                            {school.assignedSA ? 'Change' : 'Assign →'}
+                                            {school.assignedSA ? t('Change', 'மாற்று') : t('Assign →', 'ஒதுக்கு →')}
                                         </span>
                                     </div>
                                 )}
@@ -538,7 +538,7 @@ export default function SchoolsManagement() {
                                     <UserCheck className="w-4 h-4 text-violet-600 dark:text-violet-400" />
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Assign SA</h3>
+                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t('Assign SA', 'SA ஒதுக்கவும்')}</h3>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[180px]">{assignSASchool.name}</p>
                                 </div>
                             </div>
@@ -548,13 +548,13 @@ export default function SchoolsManagement() {
                         </div>
                         <div className="p-5 space-y-4">
                             <div>
-                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Assign to SA</label>
+                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('Assign to SA', 'SA-க்கு ஒதுக்கு')}</label>
                                 <select
                                     value={selectedSAId}
                                     onChange={e => setSelectedSAId(e.target.value)}
                                     className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors"
                                 >
-                                    <option value="">— Unassigned —</option>
+                                    <option value="">{t('— Unassigned —', '— ஒதுக்கப்படவில்லை —')}</option>
                                     {saUsers.map(sa => (
                                         <option key={sa.id} value={sa.id}>{sa.name} ({sa.email})</option>
                                     ))}
@@ -602,7 +602,7 @@ export default function SchoolsManagement() {
                                     </div>
                                     <div>
                                         <h2 className="text-base font-bold text-slate-900 dark:text-white">{editingId ? t('Edit School', 'பள்ளியை திருத்து') : t('Add School', 'பள்ளி சேர்க்கவும்')}</h2>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">{editingId ? 'Update details and feature permissions' : 'Create school + first admin account'}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{editingId ? t('Update details and feature permissions', 'விவரங்கள் மற்றும் அனுமதிகளை புதுப்பி') : t('Create school + first admin account', 'பள்ளி + முதல் அட்மின் கணக்கை உருவாக்கு')}</p>
                                     </div>
                                 </div>
                                 <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 flex items-center justify-center transition-all shrink-0">
@@ -639,7 +639,7 @@ export default function SchoolsManagement() {
                                                     <input type="text" value={formData.name} onChange={e => handleNameChange(e.target.value)} placeholder="St. Joseph's School" required className={inputCls} autoFocus />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Portal Slug *</label>
+                                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('Portal Slug *', 'போர்டல் ஸ்லக் *')}</label>
                                                     <div className="flex items-center bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[var(--brand)]/30 focus-within:border-[var(--brand)] transition-all">
                                                         <input
                                                             type="text"
@@ -656,16 +656,16 @@ export default function SchoolsManagement() {
 
                                             {/* Row 2: Address */}
                                             <div>
-                                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Address</label>
+                                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('Address', 'முகவரி')}</label>
                                                 <input type="text" value={formData.address} onChange={e => setFormData(p => ({ ...p, address: e.target.value }))} placeholder="123 Main St, Chennai, Tamil Nadu" className={inputCls} />
                                             </div>
 
                                             {/* Row 3: Logo + Brand Color */}
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Logo</label>
+                                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('Logo', 'லோகோ')}</label>
                                                     <label className="flex items-center justify-center w-full h-11 bg-slate-50 dark:bg-slate-700/50 border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl cursor-pointer hover:border-[var(--brand)] hover:bg-[var(--brand)]/5 transition-all group">
-                                                        <span className="text-xs font-medium text-slate-400 group-hover:text-[var(--brand)] truncate px-4">{logoFile?.name || '+ Upload & crop logo'}</span>
+                                                        <span className="text-xs font-medium text-slate-400 group-hover:text-[var(--brand)] truncate px-4">{logoFile?.name || t('+ Upload & crop logo', '+ லோகோ பதிவேற்றி வெட்டவும்')}</span>
                                                         <input
                                                             ref={logoInputRef}
                                                             type="file"
@@ -683,7 +683,7 @@ export default function SchoolsManagement() {
                                                     </label>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Brand Color</label>
+                                                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('Brand Color', 'பிராண்ட் வண்ணம்')}</label>
                                                     <div className="flex items-center h-11 bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 px-3 rounded-xl gap-3">
                                                         <input type="color" value={formData.primary_color} onChange={e => setFormData(p => ({ ...p, primary_color: e.target.value }))} className="h-7 w-7 cursor-pointer rounded-md bg-transparent border-0 p-0" />
                                                         <span className="text-xs font-mono text-slate-700 dark:text-slate-300">{formData.primary_color}</span>
@@ -696,24 +696,24 @@ export default function SchoolsManagement() {
                                                 <>
                                                     <div className="flex items-center gap-3 pt-1">
                                                         <div className="flex-1 border-t border-dashed border-slate-200 dark:border-slate-600" />
-                                                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide whitespace-nowrap">First Admin Account</span>
+                                                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide whitespace-nowrap">{t('First Admin Account', 'முதல் அட்மின் கணக்கு')}</span>
                                                         <div className="flex-1 border-t border-dashed border-slate-200 dark:border-slate-600" />
                                                     </div>
 
                                                     {/* Row 4: Admin name + email */}
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div>
-                                                            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Admin Name *</label>
+                                                            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('Admin Name *', 'அட்மின் பெயர் *')}</label>
                                                             <input type="text" value={formData.admin_name} onChange={e => setFormData(p => ({ ...p, admin_name: e.target.value }))} placeholder="John Doe" required className={inputCls} />
                                                         </div>
                                                         <div>
-                                                            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Admin {t('Email', 'மின்னஞ்சல்')} *</label>
+                                                            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('Admin Email *', 'அட்மின் மின்னஞ்சல் *')}</label>
                                                             <input type="email" value={formData.admin_email} onChange={e => setFormData(p => ({ ...p, admin_email: e.target.value }))} placeholder="admin@school.com" required className={inputCls} />
                                                         </div>
                                                     </div>
                                                     {/* Row 5: Admin password */}
                                                     <div>
-                                                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Admin Password *</label>
+                                                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('Admin Password', 'அட்மின் கடவுச்சொல்')} *</label>
                                                         <input type="password" value={formData.admin_password} onChange={e => setFormData(p => ({ ...p, admin_password: e.target.value }))} placeholder="Set admin login password" required className={inputCls} />
                                                     </div>
                                                 </>
@@ -724,7 +724,7 @@ export default function SchoolsManagement() {
                                     {/* Permissions tab — edit mode only, scrollable within fixed height */}
                                     {editingId && activeTab === 'permissions' && (
                                         <div className="max-h-[50vh] overflow-y-auto pr-1 space-y-2">
-                                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Disabled features are hidden from the school's sidebar and API.</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{t("Disabled features are hidden from the school's sidebar and API.", "முடக்கப்பட்ட அம்சங்கள் பள்ளியின் பக்கப்பட்டி மற்றும் API-லிருந்து மறைக்கப்படும்.")}</p>
                                             {FEATURES.map(f => (
                                                 <label key={f.key} className={cn(
                                                     "flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all",
@@ -760,10 +760,10 @@ export default function SchoolsManagement() {
                                             {tempPassword && (
                                                 <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-lg px-3 py-2 border border-emerald-200 dark:border-emerald-700">
                                                     <div>
-                                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold tracking-wide">Admin Password</p>
+                                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold tracking-wide">{t('Admin Password', 'அட்மின் கடவுச்சொல்')}</p>
                                                         <p className="text-sm font-mono font-bold text-slate-900 dark:text-white">{tempPassword}</p>
                                                     </div>
-                                                    <button type="button" onClick={() => navigator.clipboard.writeText(tempPassword)} className="ml-3 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-[var(--brand)] transition-all" title="Copy password">
+                                                    <button type="button" onClick={() => navigator.clipboard.writeText(tempPassword)} className="ml-3 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-[var(--brand)] transition-all" title={t('Copy password', 'கடவுச்சொல்லை நகலெடு')}>
                                                         <Copy className="w-4 h-4" />
                                                     </button>
                                                 </div>
@@ -804,7 +804,7 @@ export default function SchoolsManagement() {
                                         <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                     </div>
                                     <div>
-                                        <h3 className="text-base font-bold text-slate-900 dark:text-white">Manage Admins</h3>
+                                        <h3 className="text-base font-bold text-slate-900 dark:text-white">{t('Manage Admins', 'அட்மின்களை நிர்வகி')}</h3>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">{adminSchool.name}</p>
                                     </div>
                                 </div>
@@ -816,13 +816,13 @@ export default function SchoolsManagement() {
                             <div className="px-6 py-5 space-y-5">
                                 {/* Existing admins */}
                                 <div>
-                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Current Admins</p>
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">{t('Current Admins', 'தற்போதைய அட்மின்கள்')}</p>
                                     {loadingAdmins ? (
                                         <div className="flex justify-center py-6">
                                             <div className="w-5 h-5 border-2 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                                         </div>
                                     ) : schoolAdmins.length === 0 ? (
-                                        <p className="text-sm text-slate-500 text-center py-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">No admins yet</p>
+                                        <p className="text-sm text-slate-500 text-center py-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">{t('No admins yet', 'இன்னும் அட்மின்கள் இல்லை')}</p>
                                     ) : (
                                         <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                                             {schoolAdmins.map(admin => (
@@ -844,11 +844,11 @@ export default function SchoolsManagement() {
                                 </div>
 
                                 <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
-                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Add Admin</p>
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">{t('Add Admin', 'அட்மின் சேர்க்கவும்')}</p>
                                     <form onSubmit={handleCreateAdmin} className="space-y-3">
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Name *</label>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{t('Name *', 'பெயர் *')}</label>
                                                 <input type="text" value={adminForm.name} onChange={e => setAdminForm(p => ({ ...p, name: e.target.value }))} required className={inputCls} placeholder="John Doe" />
                                             </div>
                                             <div>
@@ -857,7 +857,7 @@ export default function SchoolsManagement() {
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Password * <span className="text-slate-400 font-normal">min. 8 chars</span></label>
+                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{t('Password', 'கடவுச்சொல்')} * <span className="text-slate-400 font-normal">{t('min. 8 chars', 'குறைந்தது 8 எழுத்துகள்')}</span></label>
                                             <input type="password" value={adminForm.password} onChange={e => setAdminForm(p => ({ ...p, password: e.target.value }))} required minLength={8} className={inputCls} placeholder="••••••••" />
                                         </div>
                                         {adminError && (
@@ -867,10 +867,10 @@ export default function SchoolsManagement() {
                                         )}
                                         <div className="flex gap-3 pt-1">
                                             <button type="button" onClick={() => setAdminSchool(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                                Close
+                                                {t('Close', 'மூடு')}
                                             </button>
                                             <button type="submit" disabled={adminSubmitting} className="flex-1 py-2.5 rounded-xl bg-[var(--brand)] text-white text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                                                {adminSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><UserPlus className="w-4 h-4" /> Add Admin</>}
+                                                {adminSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><UserPlus className="w-4 h-4" /> {t('Add Admin', 'அட்மின் சேர்க்கவும்')}</>}
                                             </button>
                                         </div>
                                     </form>
@@ -878,18 +878,18 @@ export default function SchoolsManagement() {
 
                                 {/* Find & Fix orphaned user */}
                                 <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
-                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Find & Fix User</p>
+                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">{t('Find & Fix User', 'பயனரை கண்டுபிடி மற்றும் சரிசெய்')}</p>
                                     <div className="flex gap-2">
                                         <input type="email" value={fixEmail} onChange={e => { setFixEmail(e.target.value); setFixUserResult(null); setFixUserMsg(''); }} placeholder="Search by email..." className={`${inputCls} flex-1`} onKeyDown={e => e.key === 'Enter' && handleFindUser()} />
                                         <button type="button" onClick={handleFindUser} disabled={fixUserLoading} className="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 transition-colors disabled:opacity-50">
-                                            {fixUserLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
+                                            {fixUserLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('Find', 'கண்டுபிடி')}
                                         </button>
                                     </div>
                                     {fixUserResult && (
                                         <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 space-y-2">
                                             <div>
                                                 <p className="text-sm font-semibold text-slate-900 dark:text-white">{fixUserResult.name}</p>
-                                                <p className="text-xs text-slate-500">{fixUserResult.email} · <span className="text-amber-600 dark:text-amber-400 font-medium">{fixUserResult.role}</span> · {fixUserResult.school?.name || <span className="text-red-500">No school (orphaned)</span>}</p>
+                                                <p className="text-xs text-slate-500">{fixUserResult.email} · <span className="text-amber-600 dark:text-amber-400 font-medium">{fixUserResult.role}</span> · {fixUserResult.school?.name || <span className="text-red-500">{t('No school (orphaned)', 'பள்ளி இல்லை (அனாதை)')}</span>}</p>
                                             </div>
                                             <div className="flex gap-2 items-center">
                                                 <select value={fixTargetRole} onChange={e => setFixTargetRole(e.target.value)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none">
@@ -899,7 +899,7 @@ export default function SchoolsManagement() {
                                                     <option value="admin">admin</option>
                                                 </select>
                                                 <button type="button" onClick={handleFixRole} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap">
-                                                    Set Role
+                                                    {t('Set Role', 'பணி அமை')}
                                                 </button>
                                                 <button type="button" onClick={handleDeleteFixUser} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 transition-colors">
                                                     {t('Delete', 'நீக்கு')}
