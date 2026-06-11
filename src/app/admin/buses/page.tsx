@@ -13,8 +13,10 @@ type Bus = {
     mileage?: number;
     fuel_liters?: number;
     current_status?: string;
-    drivers?: { user: { name: string } }[];
+    drivers?: { id: string; user: { id: string; name: string } }[];
 };
+
+type DriverOption = { id: string; user: { id: string; name: string }; assigned_bus_id?: string | null; bus?: { id: string; bus_number: string } };
 
 const EMPTY_FORM = { bus_number: '', capacity: '', registration_no: '', mileage: '', initial_fuel_liters: '' };
 
@@ -45,9 +47,13 @@ export default function BusesPage() {
     const [fetchError, setFetchError] = useState('');
     const [formError, setFormError] = useState('');
     const [importing, setImporting] = useState(false);
+    const [allDrivers, setAllDrivers] = useState<DriverOption[]>([]);
     const importRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => { fetchBuses(); }, []);
+    useEffect(() => {
+        fetchBuses();
+        api.get('/drivers').then(r => setAllDrivers(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+    }, []);
 
     const fetchBuses = async () => {
         setLoading(true);
@@ -136,6 +142,30 @@ export default function BusesPage() {
             fetchBuses();
         } catch { /* ignore */ }
         finally { setImporting(false); }
+    };
+
+    const handleAssignDriver = async (busId: string, newDriverId: string | null) => {
+        const prevDriver = allDrivers.find(d => d.bus?.id === busId || d.assigned_bus_id === busId);
+        try {
+            if (prevDriver && prevDriver.id !== newDriverId) {
+                await api.put(`/drivers/${prevDriver.id}`, { assigned_bus_id: null });
+            }
+            if (newDriverId) {
+                await api.put(`/drivers/${newDriverId}`, { assigned_bus_id: busId });
+            }
+            setAllDrivers(prev => prev.map(d => {
+                if (d.id === prevDriver?.id) return { ...d, assigned_bus_id: null };
+                if (d.id === newDriverId) return { ...d, assigned_bus_id: busId };
+                return d;
+            }));
+            setBuses(prev => prev.map(b => {
+                if (b.id !== busId) return b;
+                const driver = allDrivers.find(d => d.id === newDriverId);
+                return { ...b, drivers: driver ? [{ id: driver.id, user: driver.user }] : [] };
+            }));
+        } catch {
+            alert(t('Failed to assign driver.', 'ஓட்டுநரை ஒதுக்க முடியவில்லை.'));
+        }
     };
 
     const filtered = buses.filter(b =>
@@ -300,9 +330,16 @@ export default function BusesPage() {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                                        {bus.drivers && bus.drivers.length > 0
-                                            ? <span className="font-medium">{bus.drivers[0].user?.name}</span>
-                                            : <span className="text-slate-400 italic text-xs">{t('Unassigned', 'ஒதுக்கப்படவில்லை')}</span>}
+                                        <select
+                                            value={bus.drivers?.[0]?.id || ''}
+                                            onChange={e => handleAssignDriver(bus.id, e.target.value || null)}
+                                            className="text-xs font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-2.5 py-1.5 rounded-lg border-none outline-none cursor-pointer hover:bg-[var(--brand)]/20 transition-colors"
+                                        >
+                                            <option value="">{t('Assign Driver', 'ஓட்டுநர் ஒதுக்கு')}</option>
+                                            {allDrivers.map(d => (
+                                                <option key={d.id} value={d.id}>{d.user?.name}</option>
+                                            ))}
+                                        </select>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 text-right">
                                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

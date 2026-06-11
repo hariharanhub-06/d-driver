@@ -26,6 +26,7 @@ const EMPTY_FORM = {
     email: '',
     phone: '',
     license_no: '',
+    password: '',
 };
 
 function Avatar({ name }: { name: string }) {
@@ -160,9 +161,13 @@ export default function DriversPage() {
         setFormError('');
         setIsSubmitting(true);
         try {
-            const payload = {
-                ...formData,
+            const payload: any = {
+                name: formData.name,
+                email: formData.email,
+                phone: formData.phone,
+                license_no: formData.license_no,
                 school_id: user?.school_id,
+                ...((!editDriver && formData.password) && { password: formData.password }),
             };
             if (editDriver) {
                 await api.put(`/drivers/${editDriver.id}`, payload);
@@ -513,6 +518,22 @@ export default function DriversPage() {
                                     onChange={e => setFormData({ ...formData, license_no: e.target.value })}
                                 />
                             </div>
+
+                            {!editDriver && (
+                                <div>
+                                    <label className={labelCls}>
+                                        {t('Temporary Password', 'தற்காலிக கடவுச்சொல்')}
+                                        <span className="text-slate-400 font-normal ml-1 text-xs">({t('optional — auto-generated if blank', 'இல்லாவிட்டால் தானாக உருவாகும்')})</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder={t('Min. 6 characters', 'குறைந்தது 6 எழுத்துகள்')}
+                                        className={inputCls}
+                                        value={formData.password}
+                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                    />
+                                </div>
+                            )}
 
                             <div className="flex gap-3 pt-2">
                                 <button

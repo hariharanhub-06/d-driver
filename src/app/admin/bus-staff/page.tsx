@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { HardHat, Plus, Trash2, X, ToggleLeft, ToggleRight, Copy, CheckCircle2, Loader2, Bus, Download, FileUp } from 'lucide-react';
+import { HardHat, Plus, Trash2, X, ToggleLeft, ToggleRight, Copy, CheckCircle2, Loader2, Download, FileUp } from 'lucide-react';
 import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
 
@@ -38,9 +38,6 @@ export default function AdminBusStaffPage() {
     const [togglingId, setTogglingId] = useState<string | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [deleteSubmitting, setDeleteSubmitting] = useState(false);
-    const [reassignStaff, setReassignStaff] = useState<StaffUser | null>(null);
-    const [reassignBusId, setReassignBusId] = useState('');
-    const [reassigning, setReassigning] = useState(false);
     const [importing, setImporting] = useState(false);
     const [importCount, setImportCount] = useState(0);
     const importRef = useRef<HTMLInputElement>(null);
@@ -111,24 +108,6 @@ export default function AdminBusStaffPage() {
             alert(e.response?.data?.error || t('Failed to delete.', 'நீக்க முடியவில்லை.'));
         } finally {
             setDeleteSubmitting(false);
-        }
-    };
-
-    const handleReassign = async () => {
-        if (!reassignStaff) return;
-        setReassigning(true);
-        try {
-            await api.patch(`/users/${reassignStaff.id}`, { assigned_bus_id: reassignBusId || null });
-            const bus = buses.find(b => b.id === reassignBusId) || null;
-            setStaff(prev => prev.map(s => s.id === reassignStaff.id
-                ? { ...s, assigned_bus_id: reassignBusId || null, assignedBus: bus ? { id: bus.id, bus_number: bus.bus_number } : null }
-                : s
-            ));
-            setReassignStaff(null);
-        } catch (e: any) {
-            alert(e.response?.data?.error || t('Failed to update bus assignment.', 'பேருந்து ஒதுக்கீட்டை மாற்ற முடியவில்லை.'));
-        } finally {
-            setReassigning(false);
         }
     };
 
@@ -297,21 +276,28 @@ export default function AdminBusStaffPage() {
                                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{s.email || '—'}</td>
                                         <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{s.phone || '—'}</td>
                                         <td className="px-4 py-3">
-                                            <button
-                                                onClick={() => { setReassignStaff(s); setReassignBusId(s.assigned_bus_id || ''); }}
-                                                className="flex items-center gap-1.5 group"
+                                            <select
+                                                value={s.assigned_bus_id || ''}
+                                                onChange={async e => {
+                                                    const newBusId = e.target.value || null;
+                                                    try {
+                                                        await api.patch(`/users/${s.id}`, { assigned_bus_id: newBusId });
+                                                        const bus = buses.find(b => b.id === newBusId) || null;
+                                                        setStaff(prev => prev.map(x => x.id === s.id
+                                                            ? { ...x, assigned_bus_id: newBusId, assignedBus: bus ? { id: bus.id, bus_number: bus.bus_number } : null }
+                                                            : x
+                                                        ));
+                                                    } catch {
+                                                        alert(t('Failed to update bus assignment.', 'பேருந்து ஒதுக்கீட்டை மாற்ற முடியவில்லை.'));
+                                                    }
+                                                }}
+                                                className="text-xs font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-2.5 py-1.5 rounded-lg border-none outline-none cursor-pointer hover:bg-[var(--brand)]/20 transition-colors"
                                             >
-                                                {s.assignedBus ? (
-                                                    <span className="flex items-center gap-1.5 bg-[var(--brand)]/10 text-[var(--brand)] rounded-lg px-2.5 py-1 text-xs font-semibold group-hover:opacity-80 transition-opacity">
-                                                        <Bus className="w-3.5 h-3.5" />
-                                                        {t('Bus', 'பேருந்து')} {s.assignedBus.bus_number}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-xs text-slate-400 dark:text-slate-500 group-hover:text-[var(--brand)] transition-colors">
-                                                        + {t('Assign bus', 'பேருந்து ஒதுக்கவும்')}
-                                                    </span>
-                                                )}
-                                            </button>
+                                                <option value="">{t('Assign Bus', 'பேருந்து ஒதுக்கு')}</option>
+                                                {buses.map(b => (
+                                                    <option key={b.id} value={b.id}>{b.bus_number}</option>
+                                                ))}
+                                            </select>
                                         </td>
                                         <td className="px-4 py-3">
                                             <button onClick={() => handleToggle(s)} disabled={togglingId === s.id} className="transition-all">
@@ -417,42 +403,6 @@ export default function AdminBusStaffPage() {
                                 </div>
                             </form>
                         )}
-                    </div>
-                </div>
-            )}
-
-            {/* Reassign Bus Modal */}
-            {reassignStaff && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm">
-                        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center">
-                                    <Bus className="w-5 h-5 text-[var(--brand)]" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-slate-900 dark:text-white text-base">{t('Assign Bus', 'பேருந்து ஒதுக்கவும்')}</h3>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">{reassignStaff.name}</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setReassignStaff(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-                        <div className="p-5 space-y-4">
-                            <select value={reassignBusId} onChange={e => setReassignBusId(e.target.value)} className={inputCls}>
-                                <option value="">— {t('No bus assigned', 'பேருந்து ஒதுக்கப்படவில்லை')} —</option>
-                                {buses.map(b => (
-                                    <option key={b.id} value={b.id}>{t('Bus', 'பேருந்து')} {b.bus_number}</option>
-                                ))}
-                            </select>
-                            <div className="flex gap-3">
-                                <button onClick={() => setReassignStaff(null)} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-semibold text-sm">{t('Cancel', 'ரத்து')}</button>
-                                <button onClick={handleReassign} disabled={reassigning} className="flex-1 py-2.5 bg-[var(--brand)] text-white rounded-xl font-semibold text-sm disabled:opacity-50 flex items-center justify-center gap-2">
-                                    {reassigning ? <Loader2 className="w-4 h-4 animate-spin" /> : t('Save', 'சேமி')}
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             )}

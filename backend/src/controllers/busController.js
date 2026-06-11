@@ -8,6 +8,7 @@ const getAllBuses = async (req, res) => {
             where: getSchoolFilter(req),
             include: {
                 routes: { select: { id: true, name: true } },
+                drivers: { select: { id: true, user: { select: { id: true, name: true } } } },
             },
             orderBy: { bus_number: 'asc' },
         });
