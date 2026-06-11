@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, UserCheck, X, Loader2, Upload } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, UserCheck, X, Loader2, Upload, Download } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/lib/i18n';
@@ -202,6 +202,15 @@ export default function DriversPage() {
         }
     };
 
+    const downloadTemplate = () => {
+        const csv = 'name,email,phone,license_no\nRavi Kumar,ravi@school.com,9876543210,TN-1234\nMohan Das,mohan@school.com,,';
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'drivers_import_template.csv'; a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const handleBulkImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -259,9 +268,16 @@ export default function DriversPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <button
+                        onClick={downloadTemplate}
+                        className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-600"
+                        title={t('Download CSV template', 'CSV வார்ப்புரு பதிவிறக்கம்')}
+                    >
+                        <Download className="w-4 h-4" /> {t('Template', 'வார்ப்புரு')}
+                    </button>
                     <label className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600">
                         <Upload className="w-4 h-4" />
-                        {t('Import', 'இறக்குமதி')}
+                        {t('Import CSV', 'CSV இறக்குமதி')}
                         <input
                             type="file"
                             accept=".csv,.xlsx,.xls"
