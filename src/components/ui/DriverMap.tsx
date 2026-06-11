@@ -197,22 +197,59 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         });
     }, [stops, nextStopIndex, mapReady]);
 
-    // ── Route line to next stop (straight line) ─────────────────────────────
+    // ── Route line to next stop (OSRM road-following, fallback to straight line) ──
+    const osrmAbortRef = useRef<AbortController | null>(null);
     useEffect(() => {
         if (!mapReady) return;
-
         const nextStop = stops[nextStopIndex];
 
-        import('leaflet').then(L => {
+        import('leaflet').then(async L => {
             const map = mapRef.current;
             if (!map) return;
 
+            // Cancel any in-flight OSRM request
+            if (osrmAbortRef.current) { osrmAbortRef.current.abort(); osrmAbortRef.current = null; }
             if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
             if (!nextStop?.lat || !nextStop?.lng) return;
 
             const [uLat, uLng] = userPosition;
-            const lineStyle = { color: '#2563EB', weight: 5, opacity: 0.85, lineJoin: 'round' as const, lineCap: 'round' as const, dashArray: '10 6' };
-            routeLineRef.current = L.polyline([[uLat, uLng], [nextStop.lat, nextStop.lng]], lineStyle).addTo(map);
+
+            // Straight-line distance (Haversine) in metres
+            const toRad = (d: number) => d * Math.PI / 180;
+            const dLat = toRad(nextStop.lat - uLat), dLng = toRad(nextStop.lng - uLng);
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(uLat)) * Math.cos(toRad(nextStop.lat)) * Math.sin(dLng / 2) ** 2;
+            const straightM = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            // Draw straight dashed line immediately for instant feedback
+            const dashStyle = { color: '#2563EB', weight: 4, opacity: 0.6, dashArray: '8 6', lineJoin: 'round' as const, lineCap: 'round' as const };
+            routeLineRef.current = L.polyline([[uLat, uLng], [nextStop.lat, nextStop.lng]], dashStyle).addTo(map);
+
+            // Then fetch OSRM road route
+            try {
+                const ctrl = new AbortController();
+                osrmAbortRef.current = ctrl;
+                const url = `https://router.project-osrm.org/route/v1/driving/${uLng},${uLat};${nextStop.lng},${nextStop.lat}?overview=full&geometries=geojson`;
+                const resp = await fetch(url, { signal: ctrl.signal });
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const route = data?.routes?.[0];
+                if (!route) return;
+
+                // Sanity check: reject if OSRM route is >3× the straight-line distance (highway detour)
+                const osrmM = route.distance;
+                if (osrmM > straightM * 3) return;
+
+                const coords: [number, number][] = route.geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng]);
+                if (!mapRef.current) return;
+
+                // Replace dashed fallback with solid road-following line
+                if (routeLineRef.current) { mapRef.current.removeLayer(routeLineRef.current); routeLineRef.current = null; }
+                const roadStyle = { color: '#2563EB', weight: 5, opacity: 0.9, lineJoin: 'round' as const, lineCap: 'round' as const };
+                routeLineRef.current = L.polyline(coords, roadStyle).addTo(mapRef.current);
+            } catch (e: any) {
+                if (e?.name === 'AbortError') return;
+                // Keep the straight dashed fallback on error
+            }
         });
     }, [userPosition, stops, nextStopIndex, mapReady]);
 

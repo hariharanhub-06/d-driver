@@ -77,35 +77,67 @@ export default function DriverAttendancePage() {
 
     const fetchData = async () => {
         setLoading(true);
+        let activeRouteId: string | null = null;
         try {
             const tripsRes = await api.get('/trips/active');
             const trips = Array.isArray(tripsRes.data) ? tripsRes.data : [];
             const trip = trips[0];
+
             if (trip) {
                 setTripId(trip.id);
                 const savedType = typeof window !== 'undefined' ? localStorage.getItem('driver_trip_type') : null;
                 const tripType = savedType || trip.route?.route_type || trip.route_type || '';
                 setIsEvening(tripType === 'afternoon' || tripType === 'evening');
+                activeRouteId = trip.route_id || trip.route?.id || null;
+
                 const route = trip.route || {};
                 const stopsWithStudents: TripStop[] = (route.stops || []).map((stop: any) => ({
                     ...stop,
-                    students: stop.students || [],
+                    students: Array.isArray(stop.students) ? stop.students : [],
                 }));
-                if (stopsWithStudents.length > 0) { setStops(stopsWithStudents); }
-                else {
-                    const routeRes = await api.get(`/routes/${trip.route_id}`);
-                    const r = routeRes.data;
-                    const s2 = r.students || [];
-                    setStops((r.stops || []).map((stop: any) => ({
-                        ...stop,
-                        students: stop.students || s2.filter((s: any) => s.stop_id === stop.id),
-                    })));
+
+                if (stopsWithStudents.length > 0 && stopsWithStudents.some(s => s.students.length > 0)) {
+                    setStops(stopsWithStudents);
+                } else {
+                    // stops came back but students not embedded — fetch route directly
+                    const routeId = activeRouteId;
+                    if (routeId) {
+                        const routeRes = await api.get(`/routes/${routeId}`);
+                        const r = routeRes.data;
+                        const flat = r.students || [];
+                        setStops((r.stops || []).map((stop: any) => ({
+                            ...stop,
+                            students: Array.isArray(stop.students) && stop.students.length > 0
+                                ? stop.students
+                                : flat.filter((s: any) => s.stop_id === stop.id),
+                        })));
+                    }
                 }
                 setCurrentStopIndex(trip.current_stop_index ?? 0);
+            } else {
+                // No active trip — load from driver's assigned route
+                try {
+                    const meRes = await api.get('/drivers/me');
+                    const driver = meRes.data;
+                    const routeId = driver?.bus?.routes?.[0]?.id;
+                    if (routeId) {
+                        activeRouteId = routeId;
+                        const routeRes = await api.get(`/routes/${routeId}`);
+                        const r = routeRes.data;
+                        const flat = r.students || [];
+                        setStops((r.stops || []).map((stop: any) => ({
+                            ...stop,
+                            students: Array.isArray(stop.students) && stop.students.length > 0
+                                ? stop.students
+                                : flat.filter((s: any) => s.stop_id === stop.id),
+                        })));
+                    }
+                } catch { /* no route assigned, stays empty */ }
             }
+
             try {
                 const today = new Date().toLocaleDateString('en-CA');
-                const routeParam = trip?.route_id ? `&route_id=${trip.route_id}` : '';
+                const routeParam = activeRouteId ? `&route_id=${activeRouteId}` : '';
                 const absRes = await api.get(`/absence?date=${today}${routeParam}`);
                 const absData = absRes.data;
                 setAbsences(Array.isArray(absData) ? absData : absData?.absences || []);
