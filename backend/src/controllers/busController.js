@@ -116,27 +116,44 @@ const bulkCreateBuses = async (req, res) => {
         }
 
         const created = [];
+        const updated = [];
         const errors = [];
 
         for (const busData of buses) {
             try {
-                const bus = await prisma.bus.create({
-                    data: {
-                        bus_number: busData.bus_number,
-                        capacity: parseInt(busData.capacity),
-                        school_id: schoolId,
-                        registration_no: busData.registration_no || null,
-                        mileage: busData.mileage ? parseFloat(busData.mileage) : null,
-                        fuel_liters: 0,
-                    },
+                const existing = await prisma.bus.findFirst({
+                    where: { bus_number: busData.bus_number, school_id: schoolId },
                 });
-                created.push(bus);
+
+                if (existing) {
+                    const bus = await prisma.bus.update({
+                        where: { id: existing.id },
+                        data: {
+                            capacity: busData.capacity ? parseInt(busData.capacity) : existing.capacity,
+                            registration_no: busData.registration_no || existing.registration_no,
+                            mileage: busData.mileage ? parseFloat(busData.mileage) : existing.mileage,
+                        },
+                    });
+                    updated.push(bus);
+                } else {
+                    const bus = await prisma.bus.create({
+                        data: {
+                            bus_number: busData.bus_number,
+                            capacity: parseInt(busData.capacity),
+                            school_id: schoolId,
+                            registration_no: busData.registration_no || null,
+                            mileage: busData.mileage ? parseFloat(busData.mileage) : null,
+                            fuel_liters: 0,
+                        },
+                    });
+                    created.push(bus);
+                }
             } catch (err) {
                 errors.push({ bus_number: busData.bus_number, error: err.message });
             }
         }
 
-        res.status(201).json({ created, errors });
+        res.status(201).json({ created, updated, errors });
     } catch (error) {
         console.error('bulkCreateBuses error:', error);
         res.status(500).json({ error: 'Error bulk creating buses' });

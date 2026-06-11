@@ -289,6 +289,7 @@ const bulkCreateStudents = async (req, res) => {
         }
 
         const created = [];
+        const updated = [];
         const errors = [];
 
         for (const row of students) {
@@ -344,18 +345,49 @@ const bulkCreateStudents = async (req, res) => {
                     });
                 }
 
-                const student = await prisma.student.create({
-                    data: {
-                        name: row.name,
-                        gr_no: row.gr_no || null,
-                        grade: row.grade || null,
-                        section: row.section || null,
-                        parent_id: parentUser.id,
-                        route_id: resolvedRouteId,
-                        stop_id: resolvedStopId,
-                        school_id: schoolId,
-                    },
-                });
+                // Upsert: match existing student by gr_no (if provided) or name within school
+                let student;
+                let isUpdate = false;
+                let existingStudent = null;
+
+                if (row.gr_no) {
+                    existingStudent = await prisma.student.findFirst({
+                        where: { gr_no: row.gr_no, school_id: schoolId },
+                    });
+                }
+                if (!existingStudent && row.name) {
+                    existingStudent = await prisma.student.findFirst({
+                        where: { name: { equals: row.name, mode: 'insensitive' }, school_id: schoolId },
+                    });
+                }
+
+                if (existingStudent) {
+                    student = await prisma.student.update({
+                        where: { id: existingStudent.id },
+                        data: {
+                            name: row.name,
+                            grade: row.grade || existingStudent.grade,
+                            section: row.section || existingStudent.section,
+                            parent_id: parentUser.id,
+                            ...(resolvedRouteId && { route_id: resolvedRouteId }),
+                            ...(resolvedStopId && { stop_id: resolvedStopId }),
+                        },
+                    });
+                    isUpdate = true;
+                } else {
+                    student = await prisma.student.create({
+                        data: {
+                            name: row.name,
+                            gr_no: row.gr_no || null,
+                            grade: row.grade || null,
+                            section: row.section || null,
+                            parent_id: parentUser.id,
+                            route_id: resolvedRouteId,
+                            stop_id: resolvedStopId,
+                            school_id: schoolId,
+                        },
+                    });
+                }
 
                 // Create fee structure if fee_amount provided
                 if (row.fee_amount && parseFloat(row.fee_amount) > 0) {
@@ -380,13 +412,13 @@ const bulkCreateStudents = async (req, res) => {
                     });
                 }
 
-                created.push(student);
+                if (isUpdate) { updated.push(student); } else { created.push(student); }
             } catch (err) {
                 errors.push({ name: row.name, error: err.message });
             }
         }
 
-        res.status(201).json({ created, errors });
+        res.status(201).json({ created, updated, errors });
     } catch (error) {
         console.error('bulkCreateStudents error:', error);
         res.status(500).json({ error: 'Error bulk creating students' });

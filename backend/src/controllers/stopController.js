@@ -86,6 +86,7 @@ const bulkCreateStops = async (req, res) => {
         if (!schoolId) return res.status(400).json({ error: 'school_id is required' });
 
         const created = [];
+        const updated = [];
         const errors = [];
 
         for (const row of stops) {
@@ -95,25 +96,43 @@ const bulkCreateStops = async (req, res) => {
                 continue;
             }
             try {
-                const stop = await prisma.stop.create({
-                    data: {
-                        name,
-                        route_id,
-                        school_id: schoolId,
-                        latitude: parseFloat(latitude || lat || 0),
-                        longitude: parseFloat(longitude || lng || 0),
-                        sequence: sequence !== undefined ? parseInt(sequence) : 0,
-                        pickup_time: pickup_time || null,
-                        drop_time: drop_time || null,
-                    },
+                const existing = await prisma.stop.findFirst({
+                    where: { name: { equals: name, mode: 'insensitive' }, route_id },
                 });
-                created.push(stop);
+
+                if (existing) {
+                    const stop = await prisma.stop.update({
+                        where: { id: existing.id },
+                        data: {
+                            latitude: parseFloat(latitude || lat || existing.latitude || 0),
+                            longitude: parseFloat(longitude || lng || existing.longitude || 0),
+                            sequence: sequence !== undefined ? parseInt(sequence) : existing.sequence,
+                            pickup_time: pickup_time || existing.pickup_time || null,
+                            drop_time: drop_time || existing.drop_time || null,
+                        },
+                    });
+                    updated.push(stop);
+                } else {
+                    const stop = await prisma.stop.create({
+                        data: {
+                            name,
+                            route_id,
+                            school_id: schoolId,
+                            latitude: parseFloat(latitude || lat || 0),
+                            longitude: parseFloat(longitude || lng || 0),
+                            sequence: sequence !== undefined ? parseInt(sequence) : 0,
+                            pickup_time: pickup_time || null,
+                            drop_time: drop_time || null,
+                        },
+                    });
+                    created.push(stop);
+                }
             } catch (err) {
                 errors.push({ row, error: err.message });
             }
         }
 
-        res.status(201).json({ created: created.length, stops: created, errors });
+        res.status(201).json({ created: created.length, updated: updated.length, stops: [...created, ...updated], errors });
     } catch (error) {
         res.status(500).json({ error: 'Error bulk creating stops', details: error.message });
     }

@@ -308,9 +308,11 @@ export default function StudentsPage() {
         setImporting(true);
         try {
             const { data } = await api.post('/students/bulk', { students });
+            const newCount = data?.created?.length || 0;
+            const updCount = data?.updated?.length || 0;
             const errs = data?.errors?.length || 0;
             setImporting(false);
-            alert(`Imported ${data?.created?.length || 0} student(s).${errs ? ` ${errs} row(s) failed.` : ''}`);
+            alert(`${newCount} new student(s) added, ${updCount} updated.${errs ? ` ${errs} row(s) failed.` : ''}`);
             fetchStudents();
         } catch (err: any) {
             setImporting(false);
