@@ -41,6 +41,7 @@ export default function BusesPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [fetchError, setFetchError] = useState('');
+    const [formError, setFormError] = useState('');
     const importRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => { fetchBuses(); }, []);
@@ -62,6 +63,7 @@ export default function BusesPage() {
     const openCreate = () => {
         setEditBus(null);
         setFormData({ ...EMPTY_FORM });
+        setFormError('');
         setIsModalOpen(true);
     };
 
@@ -74,6 +76,7 @@ export default function BusesPage() {
             mileage: bus.mileage ? String(bus.mileage) : '',
             initial_fuel_liters: bus.fuel_liters ? String(bus.fuel_liters) : '',
         });
+        setFormError('');
         setIsModalOpen(true);
     };
 
@@ -102,8 +105,8 @@ export default function BusesPage() {
                 setBuses(prev => [...prev, data || { id: Date.now().toString(), ...payload, current_status: 'active', drivers: [] }]);
             }
             setIsModalOpen(false);
-        } catch {
-            setIsModalOpen(false);
+        } catch (err: any) {
+            setFormError(err.response?.data?.error || 'Failed to save. Try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -360,6 +363,9 @@ export default function BusesPage() {
                                     />
                                 </div>
                             </div>
+                            {formError && (
+                                <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2.5">{formError}</div>
+                            )}
                             <div className="flex gap-3 pt-2">
                                 <button
                                     type="button"

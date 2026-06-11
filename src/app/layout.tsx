@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeContextProvider } from "@/context/ThemeContext";
 import { SchoolBrandingProvider } from "@/context/SchoolBrandingContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import dynamic from 'next/dynamic';
 
 const NotificationToast = dynamic(() => import('@/components/ui/NotificationToast'), { ssr: false });
@@ -22,11 +23,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <ThemeContextProvider>
           <AuthProvider>
-            <SchoolBrandingProvider>
-              <NotificationToast />
-              <KeepAlive />
-              {children}
-            </SchoolBrandingProvider>
+            <LanguageProvider>
+              <SchoolBrandingProvider>
+                <NotificationToast />
+                <KeepAlive />
+                {children}
+              </SchoolBrandingProvider>
+            </LanguageProvider>
           </AuthProvider>
         </ThemeContextProvider>
       </body>

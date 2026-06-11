@@ -72,6 +72,7 @@ model User {
   is_active          Boolean   @default(true)
   is_dev_sa          Boolean   @default(false)
   notification_prefs Json?
+  profile_photo_url  String?
   created_at         DateTime  @default(now())
 
   school              School?              @relation(fields: [school_id], references: [id], onDelete: SetNull)
@@ -202,6 +203,7 @@ model Attendance {
   marked_at       DateTime @default(now())
   marked_by_role  String?  // driver | bus_staff | admin
   trip_id         String?
+  attendance_type String   @default("pickup") // pickup | dropoff
 
   student Student @relation(fields: [student_id], references: [id], onDelete: Cascade)
   school  School  @relation(fields: [school_id], references: [id], onDelete: Cascade)
@@ -212,18 +214,20 @@ model Attendance {
 // ─── FINANCE ─────────────────────────────────────────────────────────────────
 
 model Fee {
-  id                String   @id @default(uuid())
-  student_id        String
-  total_amount      Float
-  due_amount        Float
-  due_date          DateTime
-  school_id         String
-  payment_method    String?
-  razorpay_order_id String?
+  id                  String    @id @default(uuid())
+  student_id          String
+  total_amount        Float
+  due_amount          Float
+  due_date            DateTime
+  school_id           String
+  payment_method      String?
+  razorpay_order_id   String?
+  last_alert_sent_at  DateTime? // tracks when fee alert was last sent (cron dedup)
 
-  student  Student   @relation(fields: [student_id], references: [id], onDelete: Cascade)
-  school   School    @relation(fields: [school_id], references: [id], onDelete: Cascade)
-  payments Payment[]
+  student       Student           @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  school        School            @relation(fields: [school_id], references: [id], onDelete: Cascade)
+  payments      Payment[]
+  delayRequests FeeDelayRequest[]
 }
 
 model Payment {
@@ -263,6 +267,7 @@ model Location {
   bus_id    String
   latitude  Float
   longitude Float
+  heading   Float?   // 0–360 degrees for bus icon rotation
   timestamp DateTime @default(now())
   school_id String
 
@@ -346,7 +351,7 @@ model FuelFillEntry {
   driver_id     String
   bus_id        String
   liters_filled Float
-  km_at_fill    Float
+  km_at_fill    Float?
   filled_at     DateTime @default(now())
   school_id     String
 
@@ -450,6 +455,7 @@ model PlatformConfig {
   razorpay_key_secret String?  // AES-256-GCM encrypted — overrides .env
   razorpay_configured Boolean  @default(false)
   default_from_email  String?
+  platform_logo_url   String?  // ONLIVE logo — uploaded by Dev SA
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 }
@@ -572,4 +578,52 @@ model EmailLog {
   sent_at   DateTime @default(now())
 
   school School? @relation(fields: [school_id], references: [id])
+}
+
+// ─── SOS ALERTS ──────────────────────────────────────────────────────────────
+
+model SosAlert {
+  id            String   @id @default(uuid())
+  driver_id     String
+  bus_id        String
+  school_id     String
+  latitude      Float?
+  longitude     Float?
+  status        String   @default("active") // active | resolved
+  resolved_by   String?
+  resolved_note String?
+  triggered_at  DateTime @default(now())
+}
+
+// ─── MAINTENANCE RECORDS ─────────────────────────────────────────────────────
+
+model MaintenanceRecord {
+  id          String   @id @default(uuid())
+  bus_id      String
+  driver_id   String
+  school_id   String
+  date        DateTime
+  description String
+  items       Json     // [{part: string, cost: number}]
+  total_cost  Float
+  status      String   @default("pending") // pending | approved | rejected
+  admin_note  String?
+  created_at  DateTime @default(now())
+}
+
+// ─── FEE DELAY REQUESTS ──────────────────────────────────────────────────────
+
+model FeeDelayRequest {
+  id                String    @id @default(uuid())
+  fee_id            String
+  parent_id         String
+  school_id         String
+  requested_date    DateTime
+  reason            String
+  status            String    @default("pending") // pending | approved | rejected
+  approved_due_date DateTime?
+  admin_note        String?
+  created_at        DateTime  @default(now())
+
+  fee Fee @relation(fields: [fee_id], references: [id], onDelete: Cascade)
 }

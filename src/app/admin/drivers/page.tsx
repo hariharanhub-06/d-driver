@@ -63,6 +63,7 @@ export default function DriversPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
     const [createdCreds, setCreatedCreds] = useState<{ name: string; email: string; password: string } | null>(null);
+    const [assigningBusFor, setAssigningBusFor] = useState<string | null>(null);
 
 
     useEffect(() => {

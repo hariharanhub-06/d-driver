@@ -154,6 +154,10 @@ export default function ActiveRide() {
     const [attendance, setAttendance] = useState<Record<string, 'present' | 'absent'>>({});
     const [markingStudentId, setMarkingStudentId] = useState<string | null>(null);
 
+    // SOS state
+    const [activeSosId, setActiveSosId] = useState<string | null>(null);
+    const [cancellingsos, setCancellingSos] = useState(false);
+
     // Modal states
     const [showSosConfirm, setShowSosConfirm] = useState(false);
     const [showBusSwitch, setShowBusSwitch] = useState(false);
@@ -459,19 +463,26 @@ export default function ActiveRide() {
     const handleSOS = async () => {
         setSubmitting(true);
         try {
-            getSocket().emit('trigger-alert', { message: `SOS EMERGENCY: Bus ${busId} is in distress!`, type: 'error' });
-            await api.post('/notifications', {
-                type: 'alert',
-                title: 'SOS Alert',
-                message: `SOS EMERGENCY: Driver ${user?.name || 'Driver'} on Bus ${busId} needs help!`,
-            });
+            const payload: Record<string, any> = {};
+            if (currentPos) { payload.latitude = currentPos[0]; payload.longitude = currentPos[1]; }
+            const res = await api.post('/sos/trigger', payload);
+            setActiveSosId(res.data?.id || res.data?.alert?.id || null);
             setShowSosConfirm(false);
-            alert('SOS Alert sent to administration!');
         } catch {
             alert('Failed to send SOS. Please call emergency services immediately.');
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleCancelSos = async () => {
+        if (!activeSosId) return;
+        setCancellingSos(true);
+        try {
+            await api.put(`/sos/${activeSosId}/cancel`);
+            setActiveSosId(null);
+        } catch { alert('Failed to cancel SOS'); }
+        finally { setCancellingSos(false); }
     };
 
     const openBusSwitch = () => {
@@ -590,8 +601,21 @@ export default function ActiveRide() {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col w-full relative overflow-hidden">
+            {/* Active SOS Banner */}
+            {activeSosId && (
+                <div className="fixed top-0 left-0 right-0 z-[600] bg-red-600 text-white px-4 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 animate-pulse shrink-0" />
+                        <span className="text-sm font-bold">SOS ACTIVE — Admin notified</span>
+                    </div>
+                    <button onClick={handleCancelSos} disabled={cancellingsos} className="bg-white/20 border border-white/40 text-white text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-white/30 transition-all disabled:opacity-50">
+                        {cancellingsos ? '…' : 'Cancel SOS'}
+                    </button>
+                </div>
+            )}
+
             {/* Map — explicit height so Leaflet container has non-zero size */}
-            <div className="bg-slate-200 dark:bg-slate-800 relative z-0" style={{ height: '60vh' }}>
+            <div className="bg-slate-200 dark:bg-slate-800 relative z-0" style={{ height: activeSosId ? 'calc(60vh - 48px)' : '60vh', marginTop: activeSosId ? '48px' : '0' }}>
                 <DriverMap
                     userPosition={currentPos || fallbackPos}
                     userHeading={heading}
@@ -643,7 +667,8 @@ export default function ActiveRide() {
                         <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">The route is complete. Slide below to end the trip.</p>
                         <button
                             onClick={() => setShowEndTrip(true)}
-                            className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white rounded-xl px-4 py-3 font-bold text-sm transition-all active:scale-95 w-full"
+                            disabled={endingTrip}
+                            className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white rounded-xl px-4 py-3 font-bold text-sm transition-all active:scale-95 w-full disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             End Trip
                         </button>
@@ -675,7 +700,8 @@ export default function ActiveRide() {
 
                         <button
                             onClick={() => setShowEndTrip(true)}
-                            className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-all active:scale-95"
+                            disabled={endingTrip}
+                            className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             End Trip
                         </button>

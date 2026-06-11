@@ -1,13 +1,10 @@
 const prisma = require('../prisma');
+const { getSchoolFilter } = require('../middleware/authMiddleware');
 
 // GET /dashboard/stats — admin gets their school's live stats
 const getStats = async (req, res) => {
   try {
-    const schoolId = req.user.role === 'super_admin'
-      ? (req.query.school_id || null)
-      : req.user.school_id;
-
-    const where = schoolId ? { school_id: schoolId } : {};
+    const where = getSchoolFilter(req);
 
     const [students, buses, drivers, routes, activeTrips, todayAbsences, pendingFees] = await Promise.all([
       prisma.student.count({ where }),
@@ -42,4 +39,91 @@ const getStats = async (req, res) => {
   }
 };
 
-module.exports = { getStats };
+// GET /dashboard/financials?period=current|past|custom&from=YYYY-MM-DD&to=YYYY-MM-DD
+const getFinancials = async (req, res) => {
+  try {
+    const { period = 'current', from, to } = req.query;
+    const schoolFilter = getSchoolFilter(req);
+
+    let startDate, endDate;
+    const now = new Date();
+
+    if (period === 'custom' && from && to) {
+      startDate = new Date(from);
+      endDate = new Date(new Date(to).getTime() + 86399999);
+    } else if (period === 'past') {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    } else {
+      // current month
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    }
+
+    const dateFilter = { gte: startDate, lte: endDate };
+
+    const [payments, fuelRequests, maintenanceRecords] = await Promise.all([
+      // Income: paid payments in period
+      prisma.payment.findMany({
+        where: { ...schoolFilter, payment_date: dateFilter },
+        select: { amount: true, payment_date: true },
+      }),
+      // Expenses: disbursed fuel requests in period (amount_requested is in ₹)
+      prisma.fuelRequest.findMany({
+        where: { ...schoolFilter, status: 'disbursed', updated_at: dateFilter },
+        select: { amount_requested: true, updated_at: true },
+      }),
+      // Expenses: approved maintenance in period
+      prisma.maintenanceRecord.findMany({
+        where: { ...schoolFilter, status: 'approved', date: dateFilter },
+        select: { total_cost: true, date: true },
+      }),
+    ]);
+
+    const totalIncome = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const totalFuelCost = fuelRequests.reduce((sum, f) => sum + (f.amount_requested || 0), 0);
+    const totalMaintenanceCost = maintenanceRecords.reduce((sum, m) => sum + (m.total_cost || 0), 0);
+    const totalExpenses = totalFuelCost + totalMaintenanceCost;
+
+    // Daily breakdown for chart (sum by date)
+    const incomeByDay = {};
+    for (const p of payments) {
+      const day = new Date(p.payment_date).toLocaleDateString('en-CA');
+      incomeByDay[day] = (incomeByDay[day] || 0) + (p.amount || 0);
+    }
+    const expenseByDay = {};
+    for (const f of fuelRequests) {
+      const day = new Date(f.updated_at).toLocaleDateString('en-CA');
+      expenseByDay[day] = (expenseByDay[day] || 0) + (f.amount_requested || 0);
+    }
+    for (const m of maintenanceRecords) {
+      const day = new Date(m.date).toLocaleDateString('en-CA');
+      expenseByDay[day] = (expenseByDay[day] || 0) + (m.total_cost || 0);
+    }
+
+    // Merge days
+    const allDays = [...new Set([...Object.keys(incomeByDay), ...Object.keys(expenseByDay)])].sort();
+    const chartData = allDays.map(day => ({
+      date: day,
+      income: incomeByDay[day] || 0,
+      expense: expenseByDay[day] || 0,
+    }));
+
+    res.json({
+      summary: {
+        total_income: totalIncome,
+        total_expenses: totalExpenses,
+        net: totalIncome - totalExpenses,
+        period,
+        from: startDate,
+        to: endDate,
+      },
+      chart: chartData,
+    });
+  } catch (err) {
+    console.error('getFinancials error:', err);
+    res.status(500).json({ error: 'Error fetching financials' });
+  }
+};
+
+module.exports = { getStats, getFinancials };

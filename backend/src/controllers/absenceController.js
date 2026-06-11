@@ -51,20 +51,18 @@ const reportAbsence = async (req, res) => {
 // GET /api/v1/absence  (admin sees all; driver sees only their route's students)
 const getTodayAbsences = async (req, res) => {
   try {
-    const schoolId = req.user.role === 'super_admin'
-      ? (req.query.school_id || null)
-      : req.user.school_id;
+    const { getSchoolFilter } = require('../middleware/authMiddleware');
     const { route_id, date } = req.query;
 
     const dateStr = date || new Date().toLocaleDateString('en-CA');
     const dayStart = new Date(dateStr + 'T00:00:00');
     const dayEnd   = new Date(dateStr + 'T23:59:59.999');
 
-    const where = { school_id: schoolId, date: { gte: dayStart, lte: dayEnd } };
+    const where = { ...getSchoolFilter(req), date: { gte: dayStart, lte: dayEnd } };
 
     if (req.user.role === 'driver' && route_id) {
       const routeStudentIds = await prisma.student.findMany({
-        where: { route_id, school_id: schoolId },
+        where: { route_id, school_id: req.user.school_id },
         select: { id: true },
       });
       where.student_id = { in: routeStudentIds.map((s) => s.id) };
@@ -112,4 +110,20 @@ const cancelAbsence = async (req, res) => {
   }
 };
 
-module.exports = { reportAbsence, getTodayAbsences, cancelAbsence };
+// GET /api/v1/absence/my  (parent sees their own history)
+const getMyAbsences = async (req, res) => {
+  try {
+    const reports = await prisma.absenceReport.findMany({
+      where: { parent_id: req.user.id },
+      include: { student: { select: { name: true, grade: true } } },
+      orderBy: { date: 'desc' },
+      take: 30,
+    });
+    res.json(reports);
+  } catch (error) {
+    console.error('getMyAbsences error:', error.message);
+    res.status(500).json({ error: 'Error fetching absence history' });
+  }
+};
+
+module.exports = { reportAbsence, getTodayAbsences, cancelAbsence, getMyAbsences };

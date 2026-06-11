@@ -28,6 +28,9 @@ export default function DriverDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    const [activeSos, setActiveSos] = useState<{ id: string } | null>(null);
+    const [cancellingsos, setCancellingSos] = useState(false);
+
     const [showFuelModal, setShowFuelModal] = useState(false);
     const [fuelAmount, setFuelAmount] = useState('');
     const [fuelKm, setFuelKm] = useState('');
@@ -56,13 +59,32 @@ export default function DriverDashboard() {
         return () => clearInterval(interval);
     }, []);
 
+    const handleCancelSos = async () => {
+        if (!activeSos) return;
+        setCancellingSos(true);
+        try {
+            await api.put(`/sos/${activeSos.id}/cancel`);
+            setActiveSos(null);
+        } catch { alert('Failed to cancel SOS'); }
+        finally { setCancellingSos(false); }
+    };
+
+    const handleTriggerSos = async () => {
+        if (!confirm('Send SOS alert to admin?')) return;
+        try {
+            const res = await api.post('/sos/trigger', {});
+            setActiveSos({ id: res.data?.id || res.data?.alert?.id });
+        } catch { alert('Failed to send SOS'); }
+    };
+
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [driverRes, absenceRes, tripsRes] = await Promise.allSettled([
+            const [driverRes, absenceRes, tripsRes, sosRes] = await Promise.allSettled([
                 api.get('/drivers/me'),
                 api.get('/absence'),
                 api.get('/trips/active'),
+                api.get('/sos/mine'),
             ]);
             if (driverRes.status === 'fulfilled') {
                 const d: DriverInfo = driverRes.value.data;
@@ -71,6 +93,10 @@ export default function DriverDashboard() {
             }
             if (absenceRes.status === 'fulfilled') { const abs = absenceRes.value.data; setAbsenceCount(Array.isArray(abs) ? abs.length : 0); }
             if (tripsRes.status === 'fulfilled') { const data = tripsRes.value.data; setActiveTrips(Array.isArray(data) ? data : []); }
+            if (sosRes.status === 'fulfilled') {
+                const sosData = sosRes.value.data;
+                setActiveSos(sosData?.id ? { id: sosData.id } : null);
+            }
         } catch { setError('Failed to load dashboard data'); }
         finally { setLoading(false); }
     };
@@ -149,6 +175,19 @@ export default function DriverDashboard() {
                     </div>
                 </div>
 
+                {/* Active SOS banner */}
+                {activeSos && (
+                    <div className="mt-3 bg-red-600 rounded-xl px-4 py-3 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-white animate-pulse shrink-0" />
+                            <p className="text-white text-sm font-bold">SOS ACTIVE — Admin notified</p>
+                        </div>
+                        <button onClick={handleCancelSos} disabled={cancellingsos} className="bg-white/20 border border-white/40 text-white text-xs font-bold px-3 py-1 rounded-xl disabled:opacity-50">
+                            {cancellingsos ? '…' : 'Cancel'}
+                        </button>
+                    </div>
+                )}
+
                 {/* Absence alert */}
                 {absenceCount > 0 && (
                     <div className="mt-3 bg-amber-500/20 border border-amber-500/30 rounded-xl px-4 py-3 flex items-center gap-2">
@@ -198,25 +237,32 @@ export default function DriverDashboard() {
                                         </span>
                                     </div>
                                     {activeTrip ? (
-                                        <div className="flex gap-2">
-                                            <a href="/driver/ride" className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] text-white rounded-2xl px-4 py-4 font-black text-base active:scale-95 transition-all">
-                                                <Navigation className="w-5 h-5" /> Live Map
-                                            </a>
-                                            <button
-                                                onClick={async () => {
-                                                    if (!confirm('End this trip?')) return;
-                                                    try {
-                                                        await api.post(`/trips/${activeTrip.id}/complete`);
-                                                        localStorage.removeItem('driver_trip_type');
-                                                        await fetchAll();
-                                                    } catch (e: any) {
-                                                        alert(e.response?.data?.error || 'Failed to end trip');
-                                                    }
-                                                }}
-                                                className="flex items-center justify-center gap-1 bg-red-500 hover:bg-red-600 text-white rounded-2xl px-4 py-4 font-black text-sm active:scale-95 transition-all shrink-0"
-                                            >
-                                                ■ End Trip
-                                            </button>
+                                        <div className="space-y-2">
+                                            <div className="flex gap-2">
+                                                <a href="/driver/ride" className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] text-white rounded-2xl px-4 py-4 font-black text-base active:scale-95 transition-all">
+                                                    <Navigation className="w-5 h-5" /> Live Map
+                                                </a>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!confirm('End this trip?')) return;
+                                                        try {
+                                                            await api.post(`/trips/${activeTrip.id}/complete`);
+                                                            localStorage.removeItem('driver_trip_type');
+                                                            await fetchAll();
+                                                        } catch (e: any) {
+                                                            alert(e.response?.data?.error || 'Failed to end trip');
+                                                        }
+                                                    }}
+                                                    className="flex items-center justify-center gap-1 bg-red-500 hover:bg-red-600 text-white rounded-2xl px-4 py-4 font-black text-sm active:scale-95 transition-all shrink-0"
+                                                >
+                                                    ■ End Trip
+                                                </button>
+                                            </div>
+                                            {!activeSos && (
+                                                <button onClick={handleTriggerSos} className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white rounded-2xl px-4 py-3 font-black text-sm active:scale-95 transition-all">
+                                                    <AlertTriangle className="w-4 h-4" /> SOS — Emergency
+                                                </button>
+                                            )}
                                         </div>
                                     ) : (
                                         <button onClick={() => handleStartTrip(route.id)} className="flex items-center justify-center gap-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl px-4 py-4 font-black text-base active:scale-95 transition-all">

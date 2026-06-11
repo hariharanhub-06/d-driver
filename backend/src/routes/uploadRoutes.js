@@ -46,4 +46,19 @@ router.post('/file', authenticateToken, upload.single('file'), async (req, res) 
     }
 });
 
+// POST /upload/profile-photo — upload and save profile photo for the authenticated user
+router.post('/profile-photo', authenticateToken, upload.single('photo'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+        const prisma = require('../prisma');
+        const ext = req.file.originalname.split('.').pop();
+        const result = await uploadImage(req.file.buffer, `profile-${req.user.id}.${ext}`, 'profiles');
+        await prisma.user.update({ where: { id: req.user.id }, data: { profile_photo_url: result.url } });
+        res.json({ url: result.url });
+    } catch (error) {
+        console.error('UPLOAD ERROR (profile-photo):', error.message);
+        res.status(500).json({ error: 'Upload failed', details: error.message });
+    }
+});
+
 module.exports = router;

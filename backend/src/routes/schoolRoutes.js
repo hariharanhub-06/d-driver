@@ -4,7 +4,7 @@ const {
   registerSchool, updateSchool, deleteSchool,
   toggleSchoolStatus, updatePermissions,
   updateSchoolRazorpay, getMySchool, dismissOnboarding,
-  assignSAToSchool, getSchoolBranding,
+  assignSAToSchool, getSchoolBranding, getSchoolAdmins,
 } = require('../controllers/schoolController');
 const { authenticateToken, requireRole, requirePasswordChanged } = require('../middleware/authMiddleware');
 const { validate } = require('../validators');
@@ -33,5 +33,6 @@ router.patch('/:id/status', toggleSchoolStatus);
 router.put('/:id/permissions', validate(updatePermissionsSchema), updatePermissions);
 router.delete('/:id', deleteSchool);
 router.put('/:id/assign-sa', assignSAToSchool);
+router.get('/:id/admins', getSchoolAdmins);
 
 module.exports = router;

@@ -9,7 +9,7 @@ const ALERT_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 const updateLocation = async (req, res) => {
     try {
-        const { latitude, longitude } = req.body;
+        const { latitude, longitude, heading } = req.body;
         const userId = req.user.id;
         const schoolId = req.user.school_id;
 
@@ -47,6 +47,7 @@ const updateLocation = async (req, res) => {
                 latitude: parseFloat(latitude),
                 longitude: parseFloat(longitude),
                 school_id: schoolId,
+                ...(heading !== undefined && { heading: parseFloat(heading) }),
             },
         });
 
@@ -55,6 +56,7 @@ const updateLocation = async (req, res) => {
             busId,
             latitude: location.latitude,
             longitude: location.longitude,
+            heading: location.heading ?? null,
             timestamp: location.timestamp,
         });
 

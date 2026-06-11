@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const {
     getMe,
+    updateMe,
     listSchoolUsers,
     createUser,
     updateUser,
@@ -22,6 +23,7 @@ const router = Router();
 
 // /me is outside requirePasswordChanged so a first-login user can still fetch their own profile
 router.get('/me', authenticateToken, getMe);
+router.put('/me', authenticateToken, requirePasswordChanged, updateMe);
 
 router.use(authenticateToken, requirePasswordChanged);
 

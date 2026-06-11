@@ -1,17 +1,11 @@
 const prisma = require('../prisma');
 const { logAction } = require('../utils/auditLog');
+const { getSchoolFilter } = require('../middleware/authMiddleware');
 
 const getAllBuses = async (req, res) => {
     try {
-        let schoolId;
-        if (req.user.role === 'super_admin') {
-            schoolId = req.query.school_id || undefined;
-        } else {
-            schoolId = req.user.school_id;
-        }
-
         const buses = await prisma.bus.findMany({
-            where: schoolId ? { school_id: schoolId } : {},
+            where: getSchoolFilter(req),
             include: {
                 routes: { select: { id: true, name: true } },
             },

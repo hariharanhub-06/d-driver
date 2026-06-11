@@ -319,10 +319,24 @@ const getSchoolBranding = async (req, res) => {
   }
 };
 
+const getSchoolAdmins = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const admins = await prisma.user.findMany({
+      where: { school_id: id, role: 'admin' },
+      select: { id: true, name: true, email: true, phone: true, is_first_login: true, created_at: true },
+      orderBy: { created_at: 'asc' },
+    });
+    res.json(admins);
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching school admins' });
+  }
+};
+
 module.exports = {
   getPublicSchool, getAllSchools, getSchoolById,
   registerSchool, updateSchool, deleteSchool,
   toggleSchoolStatus, updatePermissions,
   updateSchoolRazorpay, getMySchool, dismissOnboarding,
-  assignSAToSchool, getSchoolBranding,
+  assignSAToSchool, getSchoolBranding, getSchoolAdmins,
 };

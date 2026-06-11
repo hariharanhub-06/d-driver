@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Building2, Loader2, Save, ChevronLeft, ExternalLink, Copy, Upload } from 'lucide-react';
+import { Building2, Loader2, Save, ChevronLeft, ExternalLink, Copy, Upload, UserPlus, X, Check, AlertCircle, Mail, Phone, User } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -51,7 +51,16 @@ const PERMISSIONS: { key: string; label: string }[] = [
     { key: 'razorpay_payments', label: 'Razorpay Payments' },
 ];
 
-type Tab = 'overview' | 'permissions' | 'billing';
+type Tab = 'overview' | 'permissions' | 'billing' | 'admins';
+
+interface AdminUser {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    is_first_login?: boolean;
+    created_at?: string;
+}
 
 const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
 
@@ -72,6 +81,13 @@ export default function SchoolDetailPage() {
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const [cropSrc, setCropSrc] = useState<string | null>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
+
+    const [admins, setAdmins] = useState<AdminUser[]>([]);
+    const [adminsLoading, setAdminsLoading] = useState(false);
+    const [showAddAdmin, setShowAddAdmin] = useState(false);
+    const [addAdminForm, setAddAdminForm] = useState({ name: '', email: '', phone: '', temp_password: '' });
+    const [addAdminSaving, setAddAdminSaving] = useState(false);
+    const [addAdminMsg, setAddAdminMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     useEffect(() => {
         fetchAll();
@@ -157,6 +173,45 @@ export default function SchoolDetailPage() {
         }
     };
 
+    const fetchAdmins = async () => {
+        setAdminsLoading(true);
+        try {
+            const res = await api.get(`/schools/${id}/admins`);
+            setAdmins(Array.isArray(res.data) ? res.data : []);
+        } catch {
+            setAdmins([]);
+        } finally {
+            setAdminsLoading(false);
+        }
+    };
+
+    const handleAddAdmin = async () => {
+        if (!addAdminForm.name.trim() || !addAdminForm.email.trim() || !addAdminForm.temp_password.trim()) {
+            setAddAdminMsg({ type: 'error', text: 'Name, email, and password are required.' });
+            return;
+        }
+        setAddAdminSaving(true);
+        setAddAdminMsg(null);
+        try {
+            await api.post('/users', {
+                name: addAdminForm.name.trim(),
+                email: addAdminForm.email.trim(),
+                phone: addAdminForm.phone.trim() || undefined,
+                password: addAdminForm.temp_password,
+                role: 'admin',
+                school_id: id,
+                is_first_login: true,
+            });
+            setAddAdminMsg({ type: 'success', text: 'Admin added successfully. They will be prompted to change their password on first login.' });
+            setAddAdminForm({ name: '', email: '', phone: '', temp_password: '' });
+            fetchAdmins();
+        } catch (e: any) {
+            setAddAdminMsg({ type: 'error', text: e.response?.data?.error || e.response?.data?.message || 'Failed to add admin.' });
+        } finally {
+            setAddAdminSaving(false);
+        }
+    };
+
     const getInvoiceStatusStyle = (status: string) => {
         switch (status?.toLowerCase()) {
             case 'paid': return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium';
@@ -185,6 +240,7 @@ export default function SchoolDetailPage() {
         { key: 'overview', label: 'Overview' },
         { key: 'permissions', label: 'Permissions' },
         { key: 'billing', label: 'Billing' },
+        { key: 'admins', label: 'Admins' },
     ];
 
     return (
@@ -277,7 +333,7 @@ export default function SchoolDetailPage() {
                 {tabs.map(tab => (
                     <button
                         key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
+                        onClick={() => { setActiveTab(tab.key); if (tab.key === 'admins') fetchAdmins(); }}
                         className={cn(
                             'flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all',
                             activeTab === tab.key
@@ -447,6 +503,101 @@ export default function SchoolDetailPage() {
                     )}
                 </div>
             )}
+            {activeTab === 'admins' && (
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                    <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold text-slate-900 dark:text-white text-sm">School Admins</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Users with admin access to this school</p>
+                        </div>
+                        <button
+                            onClick={() => { setShowAddAdmin(true); setAddAdminMsg(null); setAddAdminForm({ name: '', email: '', phone: '', temp_password: '' }); }}
+                            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
+                        >
+                            <UserPlus className="w-4 h-4" />
+                            Add Admin
+                        </button>
+                    </div>
+                    {adminsLoading ? (
+                        <div className="flex justify-center py-10"><div className="w-6 h-6 border-3 border-[var(--brand)] border-t-transparent rounded-full animate-spin" /></div>
+                    ) : admins.length === 0 ? (
+                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No admins found for this school</div>
+                    ) : (
+                        <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                            {admins.map(admin => (
+                                <div key={admin.id} className="px-6 py-4 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                    <div className="w-9 h-9 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center shrink-0">
+                                        <User className="w-4 h-4 text-[var(--brand)]" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-slate-900 dark:text-white text-sm">{admin.name}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                                            <Mail className="w-3 h-3" /> {admin.email}
+                                            {admin.phone && <><Phone className="w-3 h-3 ml-2" /> {admin.phone}</>}
+                                        </p>
+                                    </div>
+                                    {admin.is_first_login && (
+                                        <span className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">Pending login</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Add Admin Modal */}
+            {showAddAdmin && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700">
+                            <div className="flex items-center gap-3">
+                                <UserPlus className="w-5 h-5 text-[var(--brand)]" />
+                                <h2 className="font-bold text-slate-900 dark:text-white text-base">Add Admin</h2>
+                            </div>
+                            <button onClick={() => setShowAddAdmin(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">The admin will be required to change their password on first login.</p>
+                            {[
+                                { label: 'Full Name *', key: 'name', type: 'text', placeholder: 'Admin name' },
+                                { label: 'Email Address *', key: 'email', type: 'email', placeholder: 'admin@school.com' },
+                                { label: 'Phone', key: 'phone', type: 'tel', placeholder: '+91 9876543210' },
+                                { label: 'Temporary Password *', key: 'temp_password', type: 'password', placeholder: 'Min 8 characters' },
+                            ].map(f => (
+                                <div key={f.key}>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{f.label}</label>
+                                    <input
+                                        type={f.type}
+                                        value={addAdminForm[f.key as keyof typeof addAdminForm]}
+                                        onChange={e => setAddAdminForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                                        placeholder={f.placeholder}
+                                        className={inputCls}
+                                    />
+                                </div>
+                            ))}
+                            {addAdminMsg && (
+                                <div className={`flex items-start gap-2 text-sm rounded-xl px-4 py-3 ${addAdminMsg.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>
+                                    {addAdminMsg.type === 'success' ? <Check className="w-4 h-4 mt-0.5 shrink-0" /> : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />}
+                                    {addAdminMsg.text}
+                                </div>
+                            )}
+                            <div className="flex gap-3 pt-1">
+                                <button onClick={() => setShowAddAdmin(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                    Cancel
+                                </button>
+                                <button onClick={handleAddAdmin} disabled={addAdminSaving} className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl py-2.5 font-semibold text-sm transition-all disabled:opacity-50">
+                                    {addAdminSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                                    Add Admin
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Crop modal */}
             {cropSrc && (
                 <LogoCropModal

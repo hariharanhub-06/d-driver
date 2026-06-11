@@ -6,17 +6,10 @@ const { logAction } = require('../utils/auditLog');
 
 const getAllStudents = async (req, res) => {
     try {
-        let schoolId;
-        if (req.user.role === 'super_admin') {
-            schoolId = req.query.school_id || undefined;
-        } else {
-            schoolId = req.user.school_id;
-        }
-
+        const { getSchoolFilter } = require('../middleware/authMiddleware');
         const { search, route_id } = req.query;
 
-        const where = {};
-        if (schoolId) where.school_id = schoolId;
+        const where = { ...getSchoolFilter(req) };
         if (route_id) where.route_id = route_id;
         if (search) {
             where.name = { contains: search, mode: 'insensitive' };
@@ -300,6 +293,25 @@ const bulkCreateStudents = async (req, res) => {
 
         for (const row of students) {
             try {
+                // Resolve route by name
+                let resolvedRouteId = row.route_id || null;
+                if (!resolvedRouteId && row.route_name) {
+                    const route = await prisma.route.findFirst({
+                        where: { name: { equals: row.route_name, mode: 'insensitive' }, school_id: schoolId },
+                    });
+                    resolvedRouteId = route?.id || null;
+                }
+
+                // Resolve stop by name within the resolved route
+                let resolvedStopId = row.stop_id || null;
+                if (!resolvedStopId && row.stop_name && resolvedRouteId) {
+                    const stop = await prisma.stop.findFirst({
+                        where: { name: { equals: row.stop_name, mode: 'insensitive' }, route_id: resolvedRouteId },
+                    });
+                    resolvedStopId = stop?.id || null;
+                }
+
+                // Find or create parent
                 let parentUser = null;
 
                 if (row.parent_phone) {
@@ -315,7 +327,8 @@ const bulkCreateStudents = async (req, res) => {
                 }
 
                 if (!parentUser) {
-                    const tempPassword = crypto.randomBytes(8).toString('hex');
+                    const rawTemp = row.parent_temp_password?.trim();
+                    const tempPassword = rawTemp || crypto.randomBytes(8).toString('hex');
                     const hashedPassword = await bcrypt.hash(tempPassword, 12);
 
                     parentUser = await prisma.user.create({
@@ -338,11 +351,34 @@ const bulkCreateStudents = async (req, res) => {
                         grade: row.grade || null,
                         section: row.section || null,
                         parent_id: parentUser.id,
-                        route_id: row.route_id || null,
-                        stop_id: row.stop_id || null,
+                        route_id: resolvedRouteId,
+                        stop_id: resolvedStopId,
                         school_id: schoolId,
                     },
                 });
+
+                // Create fee structure if fee_amount provided
+                if (row.fee_amount && parseFloat(row.fee_amount) > 0) {
+                    const freq = row.fee_frequency || 'monthly';
+                    const now = new Date();
+                    const academicYear = now.getMonth() >= 5
+                        ? `${now.getFullYear()}-${now.getFullYear() + 1}`
+                        : `${now.getFullYear() - 1}-${now.getFullYear()}`;
+                    await prisma.feeStructure.upsert({
+                        where: { student_id: student.id },
+                        create: {
+                            student_id: student.id,
+                            school_id: schoolId,
+                            amount: parseFloat(row.fee_amount),
+                            frequency: freq,
+                            academic_year: academicYear,
+                        },
+                        update: {
+                            amount: parseFloat(row.fee_amount),
+                            frequency: freq,
+                        },
+                    });
+                }
 
                 created.push(student);
             } catch (err) {

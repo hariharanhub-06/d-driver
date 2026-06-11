@@ -163,7 +163,7 @@ export default function NearbyStopsPage() {
                   </div>
 
                   <Link
-                    href={`/parent/request?stop_id=${stop.id}&stop_name=${encodeURIComponent(stop.name)}`}
+                    href={`/parent/requests?stop_id=${stop.id}&stop_name=${encodeURIComponent(stop.name)}`}
                     className="shrink-0 flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-3 py-1.5 text-xs font-semibold hover:border-[var(--brand)] hover:text-[var(--brand)] transition-all"
                   >
                     Request <ArrowRight className="w-3 h-3" />

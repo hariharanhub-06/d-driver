@@ -18,6 +18,7 @@ const getMe = async (req, res) => {
                 is_active: true,
                 is_first_login: true,
                 is_dev_sa: true,
+                profile_photo_url: true,
                 created_at: true,
                 school: { select: { id: true, name: true, logo_url: true, primary_color: true } },
             },
@@ -32,11 +33,10 @@ const getMe = async (req, res) => {
 // GET /users — admin lists drivers/parents in their school; SA can pass ?school_id
 const listSchoolUsers = async (req, res) => {
     try {
-        const schoolId = req.user.role === 'super_admin' ? req.query.school_id : req.user.school_id;
+        const { getSchoolFilter } = require('../middleware/authMiddleware');
         const { role, email } = req.query;
 
-        const where = {};
-        if (schoolId) where.school_id = schoolId;
+        const where = { ...getSchoolFilter(req) };
         if (role) where.role = role;
         if (email && req.user.role === 'super_admin') where.email = { contains: email, mode: 'insensitive' };
         // Admin only sees drivers and parents (not other admins/SAs)
@@ -369,8 +369,27 @@ const sendResetEmail = async (req, res) => {
     }
 };
 
+// PUT /users/me — update own name and phone
+const updateMe = async (req, res) => {
+    try {
+        const { name, phone } = req.body;
+        const data = {};
+        if (name?.trim()) data.name = name.trim();
+        if (phone !== undefined) data.phone = phone?.trim() || null;
+        const updated = await prisma.user.update({
+            where: { id: req.user.id },
+            data,
+            select: { id: true, name: true, email: true, phone: true, role: true, profile_photo_url: true },
+        });
+        res.json(updated);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update profile' });
+    }
+};
+
 module.exports = {
     getMe,
+    updateMe,
     listSchoolUsers,
     getAllUsers,
     createUser,

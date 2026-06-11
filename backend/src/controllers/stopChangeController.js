@@ -3,66 +3,74 @@ const { notifyAdmins } = require('../utils/notifications');
 
 // POST /api/v1/stop-change  (parent)
 const requestChange = async (req, res) => {
-  const { student_id, current_stop_id, requested_stop_id, change_type, effective_date, reason } = req.body;
-  const parentId = req.user.id;
-  const schoolId = req.user.school_id;
+  try {
+    const { student_id, current_stop_id, requested_stop_id, change_type, effective_date, reason } = req.body;
+    const parentId = req.user.id;
+    const schoolId = req.user.school_id;
 
-  const student = await prisma.student.findUnique({
-    where: { id: student_id },
-    include: { stop: true, route: { include: { stops: { orderBy: { sequence: 'asc' } } } } },
-  });
-  if (!student || student.parent_id !== parentId) return res.status(403).json({ error: 'Not your student' });
+    const student = await prisma.student.findUnique({
+      where: { id: student_id },
+      include: { stop: true, route: { include: { stops: { orderBy: { sequence: 'asc' } } } } },
+    });
+    if (!student || student.parent_id !== parentId) return res.status(403).json({ error: 'Not your student' });
 
-  // Block if within 1 hour of pickup_time
-  const currentStop = student.stop;
-  if (currentStop?.pickup_time) {
-    const [h, m] = currentStop.pickup_time.split(':').map(Number);
-    const now = new Date();
-    const pickup = new Date();
-    pickup.setHours(h, m, 0, 0);
-    const diffMs = pickup - now;
-    if (diffMs > 0 && diffMs < 60 * 60 * 1000) {
-      return res.status(400).json({ error: 'Changes locked 1 hour before departure' });
+    // Block if within 1 hour of pickup_time
+    const currentStop = student.stop;
+    if (currentStop?.pickup_time) {
+      const [h, m] = currentStop.pickup_time.split(':').map(Number);
+      const now = new Date();
+      const pickup = new Date();
+      pickup.setHours(h, m, 0, 0);
+      const diffMs = pickup - now;
+      if (diffMs > 0 && diffMs < 60 * 60 * 1000) {
+        return res.status(400).json({ error: 'Changes locked 1 hour before departure' });
+      }
     }
+
+    const requestedStop = await prisma.stop.findUnique({ where: { id: requested_stop_id }, select: { name: true } });
+
+    const request = await prisma.stopChangeRequest.create({
+      data: { student_id, parent_id: parentId, current_stop_id, requested_stop_id, change_type, effective_date: new Date(effective_date), reason, school_id: schoolId },
+      include: { requestedStop: { select: { name: true } } },
+    });
+
+    const typeLabel = change_type === 'temporary' ? 'temporary' : 'permanent';
+    await notifyAdmins(
+      schoolId,
+      `Stop change request for ${student.name}: ${typeLabel} move to "${requestedStop?.name || 'new stop'}" on ${effective_date}. Reason: ${reason || 'none'}.`,
+      'info'
+    );
+
+    res.status(201).json({ request });
+  } catch (error) {
+    console.error('requestChange error:', error.message);
+    res.status(500).json({ error: 'Server error', details: error.message });
   }
-
-  const requestedStop = await prisma.stop.findUnique({ where: { id: requested_stop_id }, select: { name: true } });
-
-  const request = await prisma.stopChangeRequest.create({
-    data: { student_id, parent_id: parentId, current_stop_id, requested_stop_id, change_type, effective_date: new Date(effective_date), reason, school_id: schoolId },
-    include: { requestedStop: { select: { name: true } } },
-  });
-
-  const typeLabel = change_type === 'temporary' ? 'temporary' : 'permanent';
-  await notifyAdmins(
-    schoolId,
-    `Stop change request for ${student.name}: ${typeLabel} move to "${requestedStop?.name || 'new stop'}" on ${effective_date}. Reason: ${reason || 'none'}.`,
-    'info'
-  );
-
-  res.status(201).json({ request });
 };
 
 // GET /api/v1/stop-change  (admin)
 const listRequests = async (req, res) => {
-  const { status } = req.query;
-  const schoolId = req.user.role === 'super_admin'
-    ? (req.query.school_id || null)
-    : req.user.school_id;
-  const where = { school_id: schoolId };
-  if (status) where.status = status;
+  try {
+    const { getSchoolFilter } = require('../middleware/authMiddleware');
+    const { status } = req.query;
+    const where = { ...getSchoolFilter(req) };
+    if (status) where.status = status;
 
-  const requests = await prisma.stopChangeRequest.findMany({
-    where,
-    orderBy: { created_at: 'desc' },
-    take: 100,
-    include: {
-      student: { select: { name: true, grade: true } },
-      currentStop: { select: { name: true } },
-      requestedStop: { select: { name: true } },
-    },
-  });
-  res.json({ requests });
+    const requests = await prisma.stopChangeRequest.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      take: 100,
+      include: {
+        student: { select: { name: true, grade: true } },
+        currentStop: { select: { name: true } },
+        requestedStop: { select: { name: true } },
+      },
+    });
+    res.json({ requests });
+  } catch (error) {
+    console.error('listRequests error:', error.message);
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
 };
 
 // PUT /api/v1/stop-change/:id/approve  (admin)
@@ -160,4 +168,24 @@ const rejectRequest = async (req, res) => {
   }
 };
 
-module.exports = { requestChange, listRequests, approveRequest, rejectRequest };
+// GET /api/v1/stop-change/my  (parent sees their own history)
+const getMyStopChangeRequests = async (req, res) => {
+  try {
+    const requests = await prisma.stopChangeRequest.findMany({
+      where: { parent_id: req.user.id },
+      include: {
+        student: { select: { name: true } },
+        requestedStop: { select: { name: true } },
+        currentStop: { select: { name: true } },
+      },
+      orderBy: { created_at: 'desc' },
+      take: 30,
+    });
+    res.json(requests);
+  } catch (error) {
+    console.error('getMyStopChangeRequests error:', error.message);
+    res.status(500).json({ error: 'Error fetching stop change history' });
+  }
+};
+
+module.exports = { requestChange, listRequests, approveRequest, rejectRequest, getMyStopChangeRequests };

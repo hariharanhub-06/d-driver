@@ -5,9 +5,9 @@ const { logAction } = require('../utils/auditLog');
 
 const getAllDrivers = async (req, res) => {
     try {
-        const schoolId = req.schoolId || (req.user.role === 'super_admin' ? req.query.school_id : req.user.school_id);
+        const { getSchoolFilter } = require('../middleware/authMiddleware');
         const drivers = await prisma.driver.findMany({
-            where: schoolId ? { school_id: schoolId } : {},
+            where: getSchoolFilter(req),
             include: {
                 user: { select: { id: true, name: true, phone: true, email: true, is_active: true } },
                 bus: { select: { id: true, bus_number: true, registration_no: true, fuel_liters: true, mileage: true } },
@@ -182,52 +182,56 @@ const bulkCreateDrivers = async (req, res) => {
     const schoolId = req.user.role === 'super_admin' ? req.body.school_id : req.user.school_id;
     if (!schoolId) return res.status(400).json({ error: 'school_id is required' });
 
-    const created = [];
-    const errors = [];
+    try {
+        const created = [];
+        const errors = [];
 
-    for (const row of drivers) {
-        const { name, email, phone, license_no } = row;
-        if (!name || !email) {
-            errors.push({ row, error: 'name and email are required' });
-            continue;
-        }
-        try {
-            const existing = await prisma.user.findUnique({ where: { email } });
-            if (existing) {
-                errors.push({ row, error: 'Email already in use' });
+        for (const row of drivers) {
+            const { name, email, phone, license_no } = row;
+            if (!name || !email) {
+                errors.push({ row, error: 'name and email are required' });
                 continue;
             }
-            const tempPassword = crypto.randomBytes(6).toString('hex');
-            const hashedPassword = await bcrypt.hash(tempPassword, 12);
+            try {
+                const existing = await prisma.user.findUnique({ where: { email } });
+                if (existing) {
+                    errors.push({ row, error: 'Email already in use' });
+                    continue;
+                }
+                const tempPassword = crypto.randomBytes(6).toString('hex');
+                const hashedPassword = await bcrypt.hash(tempPassword, 12);
 
-            const user = await prisma.user.create({
-                data: {
-                    name,
-                    email,
-                    phone: phone || null,
-                    password: hashedPassword,
-                    role: 'driver',
-                    school_id: schoolId,
-                    is_first_login: true,
-                    is_active: true,
-                },
-            });
+                const user = await prisma.user.create({
+                    data: {
+                        name,
+                        email,
+                        phone: phone || null,
+                        password: hashedPassword,
+                        role: 'driver',
+                        school_id: schoolId,
+                        is_first_login: true,
+                        is_active: true,
+                    },
+                });
 
-            const driver = await prisma.driver.create({
-                data: {
-                    user_id: user.id,
-                    license_no: license_no || null,
-                    school_id: schoolId,
-                },
-            });
+                const driver = await prisma.driver.create({
+                    data: {
+                        user_id: user.id,
+                        license_no: license_no || null,
+                        school_id: schoolId,
+                    },
+                });
 
-            created.push({ driver, tempPassword });
-        } catch (err) {
-            errors.push({ row, error: err.message });
+                created.push({ driver, tempPassword });
+            } catch (err) {
+                errors.push({ row, error: err.message });
+            }
         }
-    }
 
-    res.status(201).json({ created: created.length, errors });
+        res.status(201).json({ created: created.length, errors });
+    } catch (error) {
+        res.status(500).json({ error: 'Bulk driver creation failed', details: error.message });
+    }
 };
 
 module.exports = {

@@ -11,7 +11,7 @@ const LABEL_TA: Record<string, string> = {
     'Stop Requests': 'நிறுத்தம்', 'Notifications': 'அறிவிப்புகள்', 'Reports': 'அறிக்கைகள்',
     'Settings': 'அமைப்புகள்', 'Schools': 'பள்ளிகள்', 'Billing': 'கட்டணப் பட்டியல்',
     'Revenue': 'வருவாய்', 'Expenses': 'செலவுகள்', 'SA Users': 'SA பயனர்கள்',
-    'Audit Trail': 'தணிக்கை', 'Profile': 'சுயவிவரம்', 'Ride': 'பயணம்',
+    'Audit Trail': 'தணிக்கை', 'Maintenance': 'பராமரிப்பு', 'Profile': 'சுயவிவரம்', 'Ride': 'பயணம்',
     'Track Bus': 'பேருந்து கண்காணி', 'Home': 'முகப்பு', 'Change Stop': 'நிறுத்தம் மாற்று',
 };
 
@@ -81,7 +81,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 { icon: CreditCard, label: 'Fees', href: '/parent/fees', disabled: !allow('fee_management') },
             ]},
             { section: 'GENERAL', items: [
-                { icon: MapPin, label: 'Change Stop', href: '/parent/request', disabled: !allow('stop_change_requests') },
+                { icon: MapPin, label: 'Change Stop', href: '/parent/requests', disabled: !allow('stop_change_requests') },
                 { icon: User, label: 'Profile', href: '/parent/profile' },
             ]},
         ];
@@ -97,6 +97,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 { icon: Locate, label: 'Tracking', href: '/admin/tracking', disabled: !allow('gps_tracking') },
                 { icon: CheckSquare, label: 'Attendance', href: '/admin/attendance', disabled: !allow('attendance') },
                 { icon: CreditCard, label: 'Fees', href: '/admin/fees', tourId: 'fees', disabled: !allow('fee_management') },
+                { icon: BookOpen, label: 'Maintenance', href: '/admin/maintenance' },
             ]},
             { section: 'GENERAL', items: [
                 { icon: Fuel, label: 'Fuel Requests', href: '/admin/fuel-requests', disabled: !allow('fuel_management') },

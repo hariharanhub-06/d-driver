@@ -18,6 +18,7 @@ const startTrip = async (req, res) => {
     if (!driver) return res.status(404).json({ error: 'Driver profile not found' });
 
     const bus_id = bodyBusId || driver.bus?.id || driver.assigned_bus_id;
+    if (!bus_id) return res.status(400).json({ error: 'No bus assigned to this driver' });
 
     const existing = await prisma.activeTrip.findUnique({ where: { route_id } });
     if (existing && existing.status === 'running') {
@@ -195,10 +196,9 @@ const getActiveTrips = async (req, res) => {
       where.school_id = req.user.school_id;
       const staffUser = await prisma.user.findUnique({ where: { id: req.user.id }, select: { assigned_bus_id: true } });
       if (staffUser?.assigned_bus_id) where.bus_id = staffUser.assigned_bus_id;
-    } else if (req.schoolId) {
-      where.school_id = req.schoolId;
-    } else if (req.user.role === 'super_admin' && !req.user.is_dev_sa) {
-      where.school = { assigned_sa_id: req.user.id };
+    } else {
+      const { getSchoolFilter } = require('../middleware/authMiddleware');
+      Object.assign(where, getSchoolFilter(req));
     }
 
     const trips = await prisma.activeTrip.findMany({
@@ -319,10 +319,10 @@ const getActiveTrips = async (req, res) => {
 // GET /api/v1/trips/history  (admin)
 const getTripHistory = async (req, res) => {
   try {
-    const schoolId = req.schoolId;
+    const { getSchoolFilter } = require('../middleware/authMiddleware');
     const { from, to, limit = 100 } = req.query;
 
-    const where = { school_id: schoolId };
+    const where = { ...getSchoolFilter(req) };
     if (from || to) {
       where.started_at = {};
       if (from) where.started_at.gte = new Date(from);

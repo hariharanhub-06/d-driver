@@ -10,9 +10,13 @@ import dynamic from 'next/dynamic';
 const FreeMap = dynamic(() => import('@/components/ui/FreeMap'), { ssr: false });
 
 interface ChildData {
+    id: string;
     name: string;
     stop?: { id?: string; name: string; latitude?: number; longitude?: number };
     route_id?: string;
+    bus?: { id?: string; bus_number?: string };
+    bus_id?: string;
+    route?: { bus?: { id?: string; bus_number?: string; drivers?: any[] } };
 }
 
 export default function ParentTracking() {
@@ -23,15 +27,20 @@ export default function ParentTracking() {
     const [driverPhone, setDriverPhone] = useState<string | null>(null);
     const [hasBusLive, setHasBusLive] = useState(false);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+    const [allChildren, setAllChildren] = useState<ChildData[]>([]);
+    const [activeChildId, setActiveChildId] = useState<string | null>(null);
     const [childData, setChildData] = useState<ChildData | null>(null);
     const [loading, setLoading] = useState(true);
     const [approaching, setApproaching] = useState(false);
     const [stopChangeModal, setStopChangeModal] = useState<{ id: string; name: string } | null>(null);
     const [stopChangeSubmitting, setStopChangeSubmitting] = useState(false);
     const [stopChangeSuccess, setStopChangeSuccess] = useState(false);
+    const [stopChangeError, setStopChangeError] = useState('');
 
     useEffect(() => {
-        fetchParentData();
+        const stored = typeof window !== 'undefined' ? localStorage.getItem('active_child_id') : null;
+        if (stored) setActiveChildId(stored);
+        fetchParentData(stored);
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 pos => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
@@ -83,19 +92,18 @@ export default function ParentTracking() {
             .catch(() => {});
     }, [user]);
 
-    const fetchParentData = async () => {
+    const fetchParentData = async (preferredChildId?: string | null) => {
         try {
             const { data: students } = await api.get('/students/my-children');
-            const student = Array.isArray(students) ? students[0] : null;
-            if (student) {
-                setChildData({
-                    name: student.name,
-                    stop: student.stop,
-                    route_id: student.route_id,
-                });
-                const foundBusId = student.bus?.id || student.bus_id || student.route?.bus_id || student.route?.bus?.id;
-                const foundBusNumber = student.bus?.bus_number || student.route?.bus?.bus_number || null;
-                const foundDriverPhone = student.route?.bus?.drivers?.[0]?.user?.phone || null;
+            const list: ChildData[] = Array.isArray(students) ? students : [];
+            setAllChildren(list);
+            const selected = (preferredChildId ? list.find(s => s.id === preferredChildId) : null) || list[0];
+            if (selected) {
+                setActiveChildId(selected.id);
+                setChildData(selected);
+                const foundBusId = selected.bus?.id || selected.bus_id || selected.route?.bus?.id;
+                const foundBusNumber = selected.bus?.bus_number || selected.route?.bus?.bus_number || null;
+                const foundDriverPhone = selected.route?.bus?.drivers?.[0]?.user?.phone || null;
                 if (foundDriverPhone) setDriverPhone(foundDriverPhone);
                 if (foundBusId) {
                     setBusId(String(foundBusId));
@@ -111,9 +119,29 @@ export default function ParentTracking() {
                 }
             }
         } catch {
-            // Fetch failed — show error state, no bus ID fallback
+            // Fetch failed — show error state
         } finally {
             setLoading(false);
+        }
+    };
+
+    const switchChild = async (child: ChildData) => {
+        setActiveChildId(child.id);
+        localStorage.setItem('active_child_id', child.id);
+        setChildData(child);
+        setBusId(null); setBusNumber(null); setHasBusLive(false); setDriverPhone(null);
+        const foundBusId = child.bus?.id || child.bus_id || child.route?.bus?.id;
+        const foundBusNumber = child.bus?.bus_number || child.route?.bus?.bus_number || null;
+        const foundDriverPhone = child.route?.bus?.drivers?.[0]?.user?.phone || null;
+        if (foundDriverPhone) setDriverPhone(foundDriverPhone);
+        if (foundBusId) {
+            setBusId(String(foundBusId));
+            setBusNumber(foundBusNumber ? String(foundBusNumber) : null);
+            connectSocket(String(foundBusId));
+            try {
+                const { data: loc } = await api.get(`/location/bus/${foundBusId}`);
+                if (loc?.latitude) { setBusPosition([loc.latitude, loc.longitude]); setHasBusLive(true); }
+            } catch { /* use default */ }
         }
     };
 
@@ -138,6 +166,7 @@ export default function ParentTracking() {
     const handleStopClick = (id: string, name: string) => {
         if (id === myStop?.id) return; // already their stop
         setStopChangeSuccess(false);
+        setStopChangeError('');
         setStopChangeModal({ id, name });
     };
 
@@ -155,7 +184,7 @@ export default function ParentTracking() {
             });
             setStopChangeSuccess(true);
         } catch {
-            // keep modal open to show error
+            setStopChangeError('Failed to submit request. Please try again.');
         } finally {
             setStopChangeSubmitting(false);
         }
@@ -186,7 +215,21 @@ export default function ParentTracking() {
             )}
 
             {/* Top info card */}
-            <div className="absolute top-4 left-4 right-16 z-10">
+            <div className="absolute top-4 left-4 right-16 z-10 space-y-2">
+                {/* Child selector — only when multiple children */}
+                {allChildren.length > 1 && (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 px-3 py-2 flex gap-2 overflow-x-auto">
+                        {allChildren.map(c => (
+                            <button
+                                key={c.id}
+                                onClick={() => switchChild(c)}
+                                className={`px-3 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${activeChildId === c.id ? 'bg-[var(--brand)] text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}
+                            >
+                                {c.name}
+                            </button>
+                        ))}
+                    </div>
+                )}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 flex items-center gap-3">
                     <div className="w-10 h-10 bg-[var(--brand)] text-white rounded-xl flex items-center justify-center shrink-0">
                         <Bus size={20} />
@@ -250,7 +293,7 @@ export default function ParentTracking() {
 
                 <div className="grid grid-cols-2 gap-3">
                     <a
-                        href="/parent/request"
+                        href="/parent/requests"
                         className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 justify-center"
                     >
                         <Navigation size={14} />
@@ -304,6 +347,11 @@ export default function ParentTracking() {
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
                                     After admin approval, your child will appear at <strong>{stopChangeModal.name}</strong> in the attendance and tracking views.
                                 </p>
+                                {stopChangeError && (
+                                    <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2 mb-3">
+                                        {stopChangeError}
+                                    </p>
+                                )}
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => setStopChangeModal(null)}

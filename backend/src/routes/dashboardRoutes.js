@@ -1,9 +1,12 @@
 const { Router } = require('express');
-const { getStats } = require('../controllers/dashboardController');
-const { authenticateToken, requireRole, requirePasswordChanged } = require('../middleware/authMiddleware');
+const { getStats, getFinancials } = require('../controllers/dashboardController');
+const { authenticateToken, requireRole, requireSchoolScope, requirePasswordChanged } = require('../middleware/authMiddleware');
 
 const router = Router();
 
-router.get('/stats', authenticateToken, requirePasswordChanged, requireRole('admin', 'super_admin'), getStats);
+router.use(authenticateToken, requirePasswordChanged);
+
+router.get('/stats',       requireRole('admin', 'super_admin'), requireSchoolScope, getStats);
+router.get('/financials',  requireRole('admin', 'super_admin'), requireSchoolScope, getFinancials);
 
 module.exports = router;

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { getSocket } from '@/lib/socket';
-import { Bell, AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
 
 export type NotificationType = 'info' | 'error' | 'success';
 
@@ -14,15 +15,17 @@ interface AppNotification {
 }
 
 export default function NotificationToast() {
+    const { user } = useAuth();
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
     useEffect(() => {
-        const s = getSocket();
+        if (!user?.id) return;
 
-        // Ensure socket is connected to receive global broadcasts
-        if (!s.connected) {
-            s.connect();
-        }
+        const s = getSocket();
+        if (!s.connected) s.connect();
+
+        // Join the user-specific room so notifyUser() emissions reach this client
+        s.emit('join-user-room', user.id);
 
         const handleNewNotification = (data: AppNotification) => {
             setNotifications(prev => [data, ...prev].slice(0, 3)); // Keep max 3 toasts
@@ -38,7 +41,7 @@ export default function NotificationToast() {
         return () => {
             s.off('new-notification', handleNewNotification);
         };
-    }, []);
+    }, [user?.id]);
 
     if (notifications.length === 0) return null;
 

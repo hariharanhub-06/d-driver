@@ -77,17 +77,10 @@ const computeDueDate = (feeStructure) => {
 
 const getFees = async (req, res) => {
     try {
+        const { getSchoolFilter } = require('../middleware/authMiddleware');
         const { student_id } = req.query;
-        let schoolId;
 
-        if (req.user.role === 'super_admin') {
-            schoolId = req.query.school_id || undefined;
-        } else {
-            schoolId = req.user.school_id;
-        }
-
-        const where = {};
-        if (schoolId) where.school_id = schoolId;
+        const where = { ...getSchoolFilter(req) };
         if (student_id) where.student_id = student_id;
 
         const fees = await prisma.fee.findMany({
@@ -145,6 +138,12 @@ const createFeeStructure = async (req, res) => {
         const { student_id, amount, frequency, due_day, academic_year, school_id } = req.body;
         const schoolId = req.user.role === 'super_admin' ? (school_id || req.query.school_id) : req.user.school_id;
 
+        const now = new Date();
+        const resolvedAcademicYear = academic_year ||
+            (now.getMonth() >= 5
+                ? `${now.getFullYear()}-${now.getFullYear() + 1}`
+                : `${now.getFullYear() - 1}-${now.getFullYear()}`);
+
         const feeStructure = await prisma.feeStructure.upsert({
             where: { student_id },
             create: {
@@ -153,14 +152,14 @@ const createFeeStructure = async (req, res) => {
                 amount: parseFloat(amount),
                 frequency,
                 due_day: parseInt(due_day) || 5,
-                academic_year,
+                academic_year: resolvedAcademicYear,
                 is_active: true,
             },
             update: {
                 amount: parseFloat(amount),
                 frequency,
                 due_day: parseInt(due_day) || 5,
-                academic_year,
+                academic_year: resolvedAcademicYear,
                 is_active: true,
             },
         });
@@ -294,8 +293,10 @@ const getRevenue = async (req, res) => {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
+        // Dev SA sees all; regular SA scoped to assigned schools
+        const schoolFilter = req.user.is_dev_sa ? {} : { school: { assigned_sa_id: req.user.id } };
         const payments = await prisma.payment.findMany({
-            where: { status: 'paid' },
+            where: { status: 'paid', ...schoolFilter },
             select: { amount: true, school_id: true },
         });
 
@@ -436,6 +437,7 @@ const verifyPayment = async (req, res) => {
                     status: 'paid',
                     payment_method: 'razorpay',
                     razorpay_payment_id,
+                    school_id: fee.school_id,
                 },
             }),
             prisma.fee.update({
@@ -451,6 +453,133 @@ const verifyPayment = async (req, res) => {
     }
 };
 
+// POST /finance/fee-delay — parent requests a due date extension
+const createFeeDelayRequest = async (req, res) => {
+    try {
+        const { fee_id, requested_date, reason } = req.body;
+        const userId = req.user.id;
+
+        const fee = await prisma.fee.findUnique({ where: { id: fee_id }, include: { student: true } });
+        if (!fee) return res.status(404).json({ error: 'Fee not found' });
+
+        const children = await prisma.student.findMany({ where: { parent_id: userId } });
+        if (!children.map(c => c.id).includes(fee.student_id)) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        const request = await prisma.feeDelayRequest.create({
+            data: {
+                fee_id,
+                parent_id: userId,
+                school_id: fee.school_id,
+                requested_date: new Date(requested_date),
+                reason,
+                status: 'pending',
+            },
+        });
+
+        const { notifyAdmins } = require('../utils/notifications');
+        await notifyAdmins(
+            fee.school_id,
+            `Fee delay requested for ${fee.student.name} — proposed date: ${new Date(requested_date).toLocaleDateString('en-IN')}. Reason: ${reason}`,
+            'alert'
+        );
+
+        res.status(201).json(request);
+    } catch (err) {
+        console.error('createFeeDelayRequest error:', err);
+        res.status(500).json({ error: 'Failed to submit delay request' });
+    }
+};
+
+// GET /finance/fee-delay — admin lists delay requests
+const getFeeDelayRequests = async (req, res) => {
+    try {
+        const { getSchoolFilter } = require('../middleware/authMiddleware');
+        const requests = await prisma.feeDelayRequest.findMany({
+            where: getSchoolFilter(req),
+            include: { fee: { include: { student: { select: { name: true } } } } },
+            orderBy: { created_at: 'desc' },
+        });
+
+        res.json(requests.map(r => ({
+            ...r,
+            student_name: r.fee?.student?.name,
+            fee_amount: r.fee?.total_amount,
+            current_due_date: r.fee?.due_date,
+        })));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch delay requests' });
+    }
+};
+
+// PUT /finance/fee-delay/:id — admin approves or rejects
+const updateFeeDelayRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, approved_due_date, admin_note } = req.body;
+
+        const request = await prisma.feeDelayRequest.findUnique({ where: { id } });
+        if (!request) return res.status(404).json({ error: 'Request not found' });
+
+        const updated = await prisma.feeDelayRequest.update({
+            where: { id },
+            data: {
+                status,
+                approved_due_date: approved_due_date ? new Date(approved_due_date) : null,
+                admin_note: admin_note || null,
+            },
+        });
+
+        if (status === 'approved' && approved_due_date) {
+            await prisma.fee.update({
+                where: { id: request.fee_id },
+                data: { due_date: new Date(approved_due_date) },
+            });
+        }
+
+        const { notifyUser } = require('../utils/notifications');
+        const msg = status === 'approved'
+            ? `Your fee delay request was approved. New due date: ${new Date(approved_due_date).toLocaleDateString('en-IN')}`
+            : `Your fee delay request was rejected.${admin_note ? ` Reason: ${admin_note}` : ''}`;
+        await notifyUser(request.parent_id, msg, status === 'approved' ? 'success' : 'alert', request.school_id);
+
+        res.json(updated);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update delay request' });
+    }
+};
+
+// POST /finance/fees/remind-all — admin bulk reminder to all parents with pending/overdue fees
+const remindAllFees = async (req, res) => {
+    try {
+        const schoolId = req.user.school_id;
+        const now = new Date();
+        const { notifyUser } = require('../utils/notifications');
+
+        const fees = await prisma.fee.findMany({
+            where: { school_id: schoolId, due_amount: { gt: 0 } },
+            include: { student: { include: { parent: { select: { id: true } } } } },
+        });
+
+        const parentsSent = new Set();
+        for (const fee of fees) {
+            const parentId = fee.student?.parent?.id;
+            if (!parentId) continue;
+            const isOverdue = new Date(fee.due_date) < now;
+            const msg = isOverdue
+                ? `Overdue: Transport fee ₹${fee.due_amount.toLocaleString('en-IN')} for ${fee.student.name} is overdue.`
+                : `Reminder: Transport fee ₹${fee.due_amount.toLocaleString('en-IN')} for ${fee.student.name} is due ${new Date(fee.due_date).toLocaleDateString('en-IN')}.`;
+            await notifyUser(parentId, msg, 'alert', schoolId);
+            parentsSent.add(parentId);
+        }
+
+        res.json({ reminded: parentsSent.size });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to send reminders' });
+    }
+};
+
 module.exports = {
     getFees,
     createFee,
@@ -462,4 +591,8 @@ module.exports = {
     getRevenue,
     getMyFees,
     generateFees,
+    createFeeDelayRequest,
+    getFeeDelayRequests,
+    updateFeeDelayRequest,
+    remindAllFees,
 };

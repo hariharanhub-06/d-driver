@@ -3,12 +3,9 @@ const prisma = require('../prisma');
 // GET /parents — admin lists all parents in their school
 const getAllParents = async (req, res) => {
   try {
-    const schoolId = req.user.role === 'super_admin'
-      ? (req.query.school_id || req.user.school_id)
-      : req.user.school_id;
-
+    const { getSchoolFilter } = require('../middleware/authMiddleware');
     const parents = await prisma.user.findMany({
-      where: { school_id: schoolId, role: 'parent' },
+      where: { ...getSchoolFilter(req), role: 'parent' },
       select: {
         id: true,
         name: true,

@@ -38,6 +38,9 @@ const reportRoutes = require('./routes/reportRoutes');
 const parentRoutes = require('./routes/parentRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const auditRoutes = require('./routes/auditRoutes');
+const sosRoutes = require('./routes/sosRoutes');
+const maintenanceRoutes = require('./routes/maintenanceRoutes');
+const platformRoutes = require('./routes/platformRoutes');
 
 const app = express();
 const httpServer = require('http').createServer(app);
@@ -96,6 +99,7 @@ io.on('connection', (socket) => {
   socket.on('join-driver-room',  (driverId) => socket.join(`driver-${driverId}`));
   socket.on('join-school-room',  (schoolId) => socket.join(`school-${schoolId}`));
   socket.on('join-admin-room',   (schoolId) => socket.join(`admin-${schoolId}`));
+  socket.on('join-user-room',    (userId)   => socket.join(`user-${userId}`));
 
   // Relay driver location to the school room — driver emits 'update-location',
   // parents and admin listen for 'location-updated'
@@ -129,6 +133,7 @@ io.on('connection', (socket) => {
             bus_id: busId,
             latitude: parseFloat(lat),
             longitude: parseFloat(lng),
+            heading: heading != null ? parseFloat(heading) : null,
             school_id: schoolId,
           },
         });
@@ -163,8 +168,18 @@ io.on('connection', (socket) => {
 // Expose io so controllers can emit events
 app.set('io', io);
 
+// Wire io into notification utility and feature controllers
+const { setIo: setNotifIo } = require('./utils/notifications');
+const { setIo: setSosIo } = require('./controllers/sosController');
+const { setIo: setMaintenanceIo } = require('./controllers/maintenanceController');
+setNotifIo(io);
+setSosIo(io);
+setMaintenanceIo(io);
+
 // ─── CRON JOBS ────────────────────────────────────────────────────────────────
 const cron = require('node-cron');
+const { startFeeAlertJob } = require('./jobs/feeAlertJob');
+startFeeAlertJob();
 
 // Monthly billing cron — runs at midnight on the 1st of each month
 // Also reads BillingConfig.billing_cycle_day to confirm
@@ -297,6 +312,9 @@ app.use('/api/v1/reports',       reportRoutes.default       || reportRoutes);
 app.use('/api/v1/parents',       parentRoutes.default       || parentRoutes);
 app.use('/api/v1/upload',        uploadRoutes.default       || uploadRoutes);
 app.use('/api/v1/audit',         auditRoutes.default        || auditRoutes);
+app.use('/api/v1/sos',           sosRoutes.default          || sosRoutes);
+app.use('/api/v1/maintenance',   maintenanceRoutes.default  || maintenanceRoutes);
+app.use('/api/v1/platform',      platformRoutes.default     || platformRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

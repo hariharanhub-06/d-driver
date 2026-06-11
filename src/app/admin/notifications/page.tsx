@@ -63,12 +63,12 @@ export default function NotificationsPage() {
 
     // Socket.io — real-time new notifications
     useEffect(() => {
-        if (!user?.school_id) return;
+        if (!user?.id) return;
         let socket: ReturnType<typeof getSocket> | null = null;
         try {
             socket = getSocket();
-            socket.emit('join-school-room', user.school_id);
-            socket.on('notification', (data: Notification) => {
+            socket.emit('join-user-room', user.id);
+            socket.on('new-notification', (data: Notification) => {
                 setNotifications(prev => [data, ...prev]);
             });
         } catch {
@@ -76,10 +76,10 @@ export default function NotificationsPage() {
         }
         return () => {
             if (socket) {
-                socket.off('notification');
+                socket.off('new-notification');
             }
         };
-    }, [user?.school_id]);
+    }, [user?.id]);
 
     const handleMarkRead = async (id: string) => {
         try {

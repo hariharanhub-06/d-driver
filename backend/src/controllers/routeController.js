@@ -2,9 +2,9 @@ const prisma = require('../prisma');
 
 const getAllRoutes = async (req, res) => {
     try {
-        const schoolId = req.schoolId || (req.user.role === 'super_admin' ? req.query.school_id : req.user.school_id);
+        const { getSchoolFilter } = require('../middleware/authMiddleware');
         const routes = await prisma.route.findMany({
-            where: schoolId ? { school_id: schoolId } : {},
+            where: getSchoolFilter(req),
             include: {
                 school: { select: { id: true, name: true } },
                 stops: { orderBy: { sequence: 'asc' } },
@@ -133,34 +133,38 @@ const bulkCreateRoutes = async (req, res) => {
     const schoolId = req.user.role === 'super_admin' ? req.body.school_id : req.user.school_id;
     if (!schoolId) return res.status(400).json({ error: 'school_id is required' });
 
-    const created = [];
-    const errors = [];
+    try {
+        const created = [];
+        const errors = [];
 
-    for (const row of routes) {
-        const { name, start_point, end_point, bus_id, route_type, is_active } = row;
-        if (!name) {
-            errors.push({ row, error: 'name is required' });
-            continue;
+        for (const row of routes) {
+            const { name, start_point, end_point, bus_id, route_type, is_active } = row;
+            if (!name) {
+                errors.push({ row, error: 'name is required' });
+                continue;
+            }
+            try {
+                const route = await prisma.route.create({
+                    data: {
+                        name,
+                        school_id: schoolId,
+                        start_point: start_point || null,
+                        end_point: end_point || null,
+                        bus_id: bus_id || null,
+                        route_type: route_type || 'morning',
+                        is_active: is_active !== undefined ? is_active : true,
+                    },
+                });
+                created.push(route);
+            } catch (err) {
+                errors.push({ row, error: err.message });
+            }
         }
-        try {
-            const route = await prisma.route.create({
-                data: {
-                    name,
-                    school_id: schoolId,
-                    start_point: start_point || null,
-                    end_point: end_point || null,
-                    bus_id: bus_id || null,
-                    route_type: route_type || 'morning',
-                    is_active: is_active !== undefined ? is_active : true,
-                },
-            });
-            created.push(route);
-        } catch (err) {
-            errors.push({ row, error: err.message });
-        }
+
+        res.status(201).json({ created: created.length, routes: created, errors });
+    } catch (error) {
+        res.status(500).json({ error: 'Bulk route creation failed', details: error.message });
     }
-
-    res.status(201).json({ created: created.length, routes: created, errors });
 };
 
 module.exports = {

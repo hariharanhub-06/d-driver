@@ -1,9 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { MapPin, Plus, Trash2, Edit, Search, X, Loader2, FileUp } from 'lucide-react';
+import { MapPin, Plus, Trash2, Edit, Search, X, Loader2, FileUp, Crosshair } from 'lucide-react';
 import api from '@/lib/api';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
+
+// Inline map picker — loaded only client-side
+const StopMapPicker = dynamic(() => import('@/components/ui/StopMapPicker'), { ssr: false, loading: () => <div className="h-64 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div> });
 
 type Stop = {
     id: string;
@@ -36,6 +40,7 @@ function StopsContent() {
     const [formData, setFormData] = useState({ ...EMPTY_FORM, route_id: initialRouteId });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [showMapPicker, setShowMapPicker] = useState(false);
     const importRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => { fetchRoutes(); }, []);
@@ -65,6 +70,7 @@ function StopsContent() {
     const openCreate = () => {
         setEditStop(null);
         setFormData({ ...EMPTY_FORM, route_id: filterRoute });
+        setShowMapPicker(false);
         setIsModalOpen(true);
     };
 
@@ -277,14 +283,31 @@ function StopsContent() {
                                     <input type="time" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors" value={formData.drop_time} onChange={e => setFormData({ ...formData, drop_time: e.target.value })} />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Latitude</label>
-                                    <input type="text" placeholder="12.9716" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" value={formData.latitude} onChange={e => setFormData({ ...formData, latitude: e.target.value })} />
+                            <div>
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Location</label>
+                                    <button type="button" onClick={() => setShowMapPicker(p => !p)} className="flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-3 py-1 rounded-lg hover:bg-[var(--brand)]/20 transition-all">
+                                        <Crosshair className="w-3.5 h-3.5" /> {showMapPicker ? 'Hide Map' : 'Pick on Map'}
+                                    </button>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Longitude</label>
-                                    <input type="text" placeholder="77.5946" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" value={formData.longitude} onChange={e => setFormData({ ...formData, longitude: e.target.value })} />
+                                {showMapPicker && (
+                                    <div className="mb-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600" style={{ height: 260 }}>
+                                        <StopMapPicker
+                                            initialLat={formData.latitude ? parseFloat(formData.latitude) : undefined}
+                                            initialLng={formData.longitude ? parseFloat(formData.longitude) : undefined}
+                                            onPick={(lat, lng) => setFormData(f => ({ ...f, latitude: String(lat), longitude: String(lng) }))}
+                                        />
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Latitude</label>
+                                        <input type="text" placeholder="12.9716" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" value={formData.latitude} onChange={e => setFormData({ ...formData, latitude: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Longitude</label>
+                                        <input type="text" placeholder="77.5946" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" value={formData.longitude} onChange={e => setFormData({ ...formData, longitude: e.target.value })} />
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex gap-3 pt-2">

@@ -18,11 +18,11 @@ async function reconcileAttendance(student_id, date_only, school_id, io) {
     const [driverMark, staffMark] = await Promise.all([
         prisma.attendance.findUnique({
             where: { student_id_date_only_marked_by_role: { student_id, date_only, marked_by_role: 'driver' } },
-            include: { student: { select: { name: true, parent_id: true } } },
+            include: { student: { select: { name: true, parent_id: true, stop: { select: { name: true } } } } },
         }),
         prisma.attendance.findUnique({
             where: { student_id_date_only_marked_by_role: { student_id, date_only, marked_by_role: 'bus_staff' } },
-            include: { student: { select: { name: true, parent_id: true } } },
+            include: { student: { select: { name: true, parent_id: true, stop: { select: { name: true } } } } },
         }),
     ]);
 
@@ -48,6 +48,9 @@ async function reconcileAttendance(student_id, date_only, school_id, io) {
 
     if (!student.parent_id) return;
 
+    const attendanceType = driverMark?.attendance_type || staffMark?.attendance_type || 'pickup';
+    const stopName = student.stop?.name;
+
     // Remove any prior same-day attendance notification for this student to avoid duplicates
     const startOfDay = new Date(date_only);
     startOfDay.setHours(0, 0, 0, 0);
@@ -60,9 +63,16 @@ async function reconcileAttendance(student_id, date_only, school_id, io) {
         },
     });
 
-    const msg = finalStatus === 'present'
-        ? `${student.name} is present in the bus today.`
-        : `${student.name} is marked absent today.`;
+    let msg;
+    if (attendanceType === 'dropoff') {
+        msg = finalStatus === 'present'
+            ? `${student.name} has been dropped off${stopName ? ` at ${stopName}` : ''}.`
+            : `${student.name} was marked absent for evening drop-off today.`;
+    } else {
+        msg = finalStatus === 'present'
+            ? `${student.name} is present in the bus today.`
+            : `${student.name} is marked absent today.`;
+    }
 
     await prisma.notification.create({
         data: {
@@ -86,13 +96,14 @@ async function reconcileAttendance(student_id, date_only, school_id, io) {
 // POST /attendance/mark — driver or bus_staff marks attendance for a student
 const markAttendance = async (req, res) => {
     try {
-        const { student_id, status, note, trip_id } = req.body;
+        const { student_id, status, note, trip_id, attendance_type } = req.body;
         if (!student_id || !status) {
             return res.status(400).json({ error: 'student_id and status are required' });
         }
         if (!['present', 'absent', 'missed'].includes(status)) {
             return res.status(400).json({ error: 'status must be present, absent, or missed' });
         }
+        const attendanceType = attendance_type === 'dropoff' ? 'dropoff' : 'pickup';
 
         // Determine school scope
         let schoolId = req.user.school_id;
@@ -123,11 +134,13 @@ const markAttendance = async (req, res) => {
                 school_id: schoolId,
                 marked_by_role: markedByRole,
                 trip_id: trip_id || null,
+                attendance_type: attendanceType,
             },
             update: {
                 status,
                 note: note || null,
                 marked_at: new Date(),
+                attendance_type: attendanceType,
             },
             include: {
                 student: { select: { id: true, name: true, parent_id: true, stop_id: true } },

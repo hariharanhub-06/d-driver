@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Lock, LogOut, Eye, EyeOff, CheckCircle, AlertCircle, ChevronRight, Bus } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Lock, LogOut, Eye, EyeOff, CheckCircle, AlertCircle, ChevronRight, Bus, Camera } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import { ta } from '@/lib/i18n';
@@ -18,12 +18,25 @@ export default function ParentProfile() {
     const [showCurrent, setShowCurrent] = useState(false);
     const [showNew, setShowNew] = useState(false);
     const [children, setChildren] = useState<Child[]>([]);
+    const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+    const [photoUploading, setPhotoUploading] = useState(false);
+    const photoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        api.get('/students/my-children')
-            .then(r => setChildren(Array.isArray(r.data) ? r.data : []))
-            .catch(() => {});
+        api.get('/students/my-children').then(r => setChildren(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+        api.get('/users/me').then(r => setPhotoUrl(r.data?.profile_photo_url || null)).catch(() => {});
     }, []);
+
+    const handlePhotoUpload = async (file: File) => {
+        setPhotoUploading(true);
+        try {
+            const fd = new FormData();
+            fd.append('photo', file);
+            const res = await api.post('/upload/profile-photo', fd, { headers: { 'Content-Type': undefined } });
+            setPhotoUrl(res.data.url);
+        } catch { alert('Photo upload failed'); }
+        finally { setPhotoUploading(false); }
+    };
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,8 +62,22 @@ export default function ParentProfile() {
         <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
             {/* Header with avatar */}
             <div className="bg-[var(--brand)] px-4 pt-10 pb-8 text-center">
-                <div className="w-20 h-20 rounded-full bg-white/20 border-4 border-white/40 flex items-center justify-center mx-auto mb-3">
-                    <span className="text-2xl font-black text-white">{initials}</span>
+                <div className="relative inline-block mb-3">
+                    {photoUrl ? (
+                        <img src={photoUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover border-4 border-white/40" />
+                    ) : (
+                        <div className="w-20 h-20 rounded-full bg-white/20 border-4 border-white/40 flex items-center justify-center">
+                            <span className="text-2xl font-black text-white">{initials}</span>
+                        </div>
+                    )}
+                    <button
+                        onClick={() => photoInputRef.current?.click()}
+                        disabled={photoUploading}
+                        className="absolute bottom-0 right-0 w-7 h-7 bg-white rounded-full flex items-center justify-center border-2 border-[var(--brand)] shadow-sm disabled:opacity-50"
+                    >
+                        {photoUploading ? <div className="w-3 h-3 border-2 border-[var(--brand)] border-t-transparent rounded-full animate-spin" /> : <Camera className="w-3.5 h-3.5 text-[var(--brand)]" />}
+                    </button>
+                    <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = ''; }} />
                 </div>
                 <h1 className="text-xl font-bold text-white">{user?.name || 'Parent'}</h1>
                 <p className="text-white/70 text-sm mt-0.5">Parent / {ta.parent}</p>

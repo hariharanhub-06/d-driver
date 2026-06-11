@@ -41,6 +41,7 @@ export default function RoutesPage() {
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [togglingId, setTogglingId] = useState<string | null>(null);
     const [fetchError, setFetchError] = useState('');
+    const [formError, setFormError] = useState('');
 
     // Stops state
     const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
@@ -167,12 +168,14 @@ export default function RoutesPage() {
     const openCreate = () => {
         setEditRoute(null);
         setFormData({ ...EMPTY_FORM });
+        setFormError('');
         setIsModalOpen(true);
     };
 
     const openEdit = (r: Route) => {
         setEditRoute(r);
         setFormData({ name: r.name, route_type: r.route_type || 'both', bus_id: r.bus_id || '' });
+        setFormError('');
         setIsModalOpen(true);
     };
 
@@ -189,8 +192,8 @@ export default function RoutesPage() {
                 setRoutes(prev => [...prev, data || { id: Date.now().toString(), ...payload, is_active: true, stops: [] }]);
             }
             setIsModalOpen(false);
-        } catch {
-            setIsModalOpen(false);
+        } catch (err: any) {
+            setFormError(err.response?.data?.error || 'Failed to save. Try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -424,6 +427,9 @@ export default function RoutesPage() {
                                     {buses.map(b => <option key={b.id} value={b.id}>{b.bus_number}</option>)}
                                 </select>
                             </div>
+                            {formError && (
+                                <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2.5">{formError}</div>
+                            )}
                             <div className="flex gap-3 pt-2">
                                 <button
                                     type="button"

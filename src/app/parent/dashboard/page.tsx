@@ -229,7 +229,7 @@ export default function ParentDashboard() {
                         <p className="text-[10px] text-slate-400">{ta.absent}</p>
                     </button>
 
-                    <Link href="/parent/request" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center active:scale-95 transition-all block">
+                    <Link href="/parent/requests" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center active:scale-95 transition-all block">
                         <div className="w-10 h-10 bg-[var(--brand)]/10 rounded-xl flex items-center justify-center mx-auto mb-2">
                             <MapPin className="w-5 h-5 text-[var(--brand)]" />
                         </div>

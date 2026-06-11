@@ -3,6 +3,7 @@ const {
   getFees, createFee, createFeeStructure,
   createOrder, handleWebhook, verifyPayment, recordManualPayment,
   getRevenue, getMyFees, generateFees,
+  createFeeDelayRequest, getFeeDelayRequests, updateFeeDelayRequest, remindAllFees,
 } = require('../controllers/financeController');
 const { authenticateToken, requireRole, requireSchoolScope, requirePasswordChanged } = require('../middleware/authMiddleware');
 const { requirePermission } = require('../middleware/permissionMiddleware');
@@ -26,5 +27,13 @@ router.post('/fees/fee-structure', requireRole('admin', 'super_admin'), requireP
 router.post('/fees/generate', requireRole('admin', 'super_admin'), requirePermission('fee_management'), generateFees);
 router.post('/payment/manual', requireRole('admin', 'super_admin'), requirePermission('fee_management'), recordManualPayment);
 router.get('/revenue', requireRole('super_admin'), getRevenue);
+
+// Fee delay requests
+router.post('/fee-delay', requireRole('parent'), createFeeDelayRequest);
+router.get('/fee-delay', requireRole('admin', 'super_admin'), getFeeDelayRequests);
+router.put('/fee-delay/:id', requireRole('admin', 'super_admin'), updateFeeDelayRequest);
+
+// Bulk reminder
+router.post('/fees/remind-all', requireRole('admin', 'super_admin'), remindAllFees);
 
 module.exports = router;

@@ -1,6 +1,15 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../prisma');
 
+// Helper: get school IDs visible to an SA user
+const getSASchoolIds = async (userId) => {
+    const schools = await prisma.school.findMany({
+        where: { assigned_sa_id: userId },
+        select: { id: true },
+    });
+    return schools.map(s => s.id);
+};
+
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -40,7 +49,7 @@ const authenticateToken = async (req, res, next) => {
         select: { status: true },
       });
       if (!school || school.status !== 'active') {
-        return res.status(403).json({ error: 'Account inactive. Contact your service provider.' });
+        return res.status(403).json({ error: 'Your school account has been suspended. Please contact your school administrator.', code: 'SCHOOL_SUSPENDED' });
       }
     }
 
@@ -70,17 +79,42 @@ const requireRole = (...roles) => {
 };
 
 // School-scope guard — ensures users only access their own school's data
-// SA bypasses this if they pass ?school_id=X (for drill-in access)
-const requireSchoolScope = (req, res, next) => {
+// Dev SA (is_dev_sa=true) sees all schools.
+// Regular SA sees only schools assigned to them (assigned_sa_id = SA's user id).
+const requireSchoolScope = async (req, res, next) => {
   if (req.user.role === 'super_admin') {
-    // SA can target any school via query param, or all schools if omitted
-    req.schoolId = req.query.school_id || null;
+    if (req.user.is_dev_sa) {
+      // Master Admin — unrestricted
+      req.schoolId = req.query.school_id || null;
+      req.saSchoolIds = null; // null = no restriction
+      return next();
+    }
+    // Regular SA — restrict to assigned schools
+    try {
+      if (req.query.school_id) {
+        const school = await prisma.school.findUnique({
+          where: { id: req.query.school_id },
+          select: { assigned_sa_id: true },
+        });
+        if (!school || school.assigned_sa_id !== req.user.id) {
+          return res.status(403).json({ error: 'Access denied to this school' });
+        }
+        req.schoolId = req.query.school_id;
+        req.saSchoolIds = [req.query.school_id];
+      } else {
+        req.schoolId = null;
+        req.saSchoolIds = await getSASchoolIds(req.user.id);
+      }
+    } catch (err) {
+      return res.status(500).json({ error: 'Scope verification failed' });
+    }
     return next();
   }
   if (!req.user.school_id) {
     return res.status(403).json({ error: 'No school context for this user' });
   }
   req.schoolId = req.user.school_id;
+  req.saSchoolIds = null;
   next();
 };
 
@@ -96,9 +130,23 @@ const requirePasswordChanged = (req, res, next) => {
   next();
 };
 
+/**
+ * Returns a Prisma WHERE filter for school_id based on the current user's scope.
+ * Use this in any controller that lists items across schools.
+ *   const filter = getSchoolFilter(req);
+ *   prisma.bus.findMany({ where: { ...filter, ... } })
+ */
+const getSchoolFilter = (req) => {
+  if (req.schoolId) return { school_id: req.schoolId };
+  if (req.saSchoolIds && req.saSchoolIds.length > 0) return { school_id: { in: req.saSchoolIds } };
+  if (req.saSchoolIds && req.saSchoolIds.length === 0) return { school_id: '__no_schools__' }; // SA with no schools
+  return {}; // dev SA — no restriction
+};
+
 module.exports = {
   authenticateToken,
   requireRole,
   requireSchoolScope,
   requirePasswordChanged,
+  getSchoolFilter,
 };

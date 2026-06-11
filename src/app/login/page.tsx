@@ -16,6 +16,7 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [currentSchool, setCurrentSchool] = useState<{ name: string; logo?: string; color?: string } | null>(null);
+    const [platformLogo, setPlatformLogo] = useState<string | null>(null);
     const { login } = useAuth();
     const router = useRouter();
 
@@ -57,6 +58,12 @@ export default function LoginPage() {
                     }
                 })
                 .catch(() => {});
+        } else {
+            // Main domain — fetch platform branding
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/platform/config`)
+                .then(r => r.json())
+                .then(data => { if (data?.platform_logo_url) setPlatformLogo(data.platform_logo_url); })
+                .catch(() => {});
         }
     }, []);
 
@@ -84,6 +91,8 @@ export default function LoginPage() {
             const msg = err.response?.data?.error || err.response?.data?.message;
             if (err.response?.status === 503) {
                 setError('Service temporarily unavailable. Please try again later.');
+            } else if (err.response?.status === 403 && (msg?.toLowerCase().includes('suspend') || msg?.toLowerCase().includes('not active') || msg?.toLowerCase().includes('inactive'))) {
+                setError('Your school account has been suspended. Please contact your school administrator or D-Driver support.');
             } else {
                 setError(msg || 'Invalid email or password.');
             }
@@ -114,6 +123,8 @@ export default function LoginPage() {
                 <div className="flex items-center gap-2 mb-10 lg:hidden">
                     {currentSchool?.logo ? (
                         <img src={currentSchool.logo} alt={currentSchool.name} className="w-9 h-9 rounded-xl object-cover" />
+                    ) : platformLogo ? (
+                        <img src={platformLogo} alt="D-Driver" className="h-9 object-contain" />
                     ) : (
                         <div
                             className="w-9 h-9 rounded-xl flex items-center justify-center"

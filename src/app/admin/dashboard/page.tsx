@@ -1,36 +1,93 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Bus, Map as MapIcon, GraduationCap, UserCheck } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState, useEffect, useCallback } from 'react';
+import { Bus, Map as MapIcon, GraduationCap, UserCheck, AlertTriangle, X, TrendingUp, TrendingDown, Loader2, CalendarRange } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import api from '@/lib/api';
 import Link from 'next/link';
 import OnboardingChecklist from '@/components/admin/OnboardingChecklist';
 
 const EMPTY_STATS = { students: 0, buses: 0, drivers: 0, routes: 0 };
 
-interface FeeChartPoint { month: string; collected: number; pending: number; }
+type Period = 'current' | 'past' | 'custom';
+
+interface SosAlert {
+    id: string;
+    status: string;
+    triggered_at: string;
+    latitude?: number;
+    longitude?: number;
+    driver?: { user?: { name: string; phone?: string } };
+    bus?: { bus_number: string };
+}
+
+interface FinancialPoint { date: string; income: number; expense: number; }
+interface FinancialSummary { total_income: number; total_expenses: number; net: number; period: string; from: string; to: string; }
+
 interface OverviewStats { feeCollectionRate: number; busUtilization: number; routeCoverage: number; }
+
+const todayStr = () => new Date().toLocaleDateString('en-CA');
+const firstOfMonth = () => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toLocaleDateString('en-CA');
+};
+const firstOfPastMonth = () => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth() - 1, 1).toLocaleDateString('en-CA');
+};
+const lastOfPastMonth = () => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 0).toLocaleDateString('en-CA');
+};
 
 export default function Dashboard() {
     const [stats, setStats] = useState(EMPTY_STATS);
     const [loading, setLoading] = useState(true);
     const [schoolData, setSchoolData] = useState<any>(null);
-    const [feeData, setFeeData] = useState<FeeChartPoint[]>([]);
     const [overview, setOverview] = useState<OverviewStats>({ feeCollectionRate: 0, busUtilization: 0, routeCoverage: 0 });
+
+    // SOS
+    const [sosAlerts, setSosAlerts] = useState<SosAlert[]>([]);
+    const [sosLoading, setSosLoading] = useState(false);
+    const [resolvingId, setResolvingId] = useState<string | null>(null);
+
+    // Financials
+    const [period, setPeriod] = useState<Period>('current');
+    const [customFrom, setCustomFrom] = useState(firstOfMonth());
+    const [customTo, setCustomTo] = useState(todayStr());
+    const [chartData, setChartData] = useState<FinancialPoint[]>([]);
+    const [summary, setSummary] = useState<FinancialSummary | null>(null);
+    const [chartLoading, setChartLoading] = useState(false);
+    const [showCustom, setShowCustom] = useState(false);
+
+    const fetchSos = useCallback(async () => {
+        setSosLoading(true);
+        try {
+            const { data } = await api.get('/sos');
+            setSosAlerts((Array.isArray(data) ? data : data.alerts || []).filter((a: SosAlert) => a.status === 'active'));
+        } catch { setSosAlerts([]); }
+        finally { setSosLoading(false); }
+    }, []);
+
+    const fetchFinancials = useCallback(async (p: Period, from?: string, to?: string) => {
+        setChartLoading(true);
+        try {
+            const params: Record<string, string> = { period: p };
+            if (p === 'custom' && from && to) { params.from = from; params.to = to; }
+            const { data } = await api.get('/dashboard/financials', { params });
+            setChartData(data.chart || []);
+            setSummary(data.summary || null);
+        } catch { setChartData([]); setSummary(null); }
+        finally { setChartLoading(false); }
+    }, []);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
                 const [studentsRes, busesRes, driversRes, routesRes, schoolRes, feesRes] = await Promise.allSettled([
-                    api.get('/students'),
-                    api.get('/buses'),
-                    api.get('/drivers'),
-                    api.get('/routes'),
-                    api.get('/schools/my'),
-                    api.get('/finance/fees'),
+                    api.get('/students'), api.get('/buses'), api.get('/drivers'), api.get('/routes'),
+                    api.get('/schools/my'), api.get('/finance/fees'),
                 ]);
-
                 const buses: any[] = busesRes.status === 'fulfilled' ? (busesRes.value.data || []) : [];
                 const routes: any[] = routesRes.status === 'fulfilled' ? (routesRes.value.data || []) : [];
                 const drivers: any[] = driversRes.status === 'fulfilled' ? (driversRes.value.data || []) : [];
@@ -38,58 +95,43 @@ export default function Dashboard() {
 
                 setStats({
                     students: studentsRes.status === 'fulfilled' ? (studentsRes.value.data?.length || 0) : 0,
-                    buses: buses.length,
-                    drivers: drivers.length,
-                    routes: routes.length,
+                    buses: buses.length, drivers: drivers.length, routes: routes.length,
                 });
+                if (schoolRes.status === 'fulfilled') setSchoolData(schoolRes.value.data);
 
-                if (schoolRes.status === 'fulfilled') {
-                    setSchoolData(schoolRes.value.data);
-                }
-
-                // Build monthly fee chart from real data
-                if (fees.length > 0) {
-                    const monthMap: Record<string, { month: string; order: number; collected: number; pending: number }> = {};
-                    fees.forEach((fee: any) => {
-                        const d = new Date(fee.due_date);
-                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                        const label = d.toLocaleDateString('en-US', { month: 'short' });
-                        if (!monthMap[key]) monthMap[key] = { month: label, order: d.getFullYear() * 100 + d.getMonth(), collected: 0, pending: 0 };
-                        const collected = Math.max(0, (fee.total_amount || 0) - (fee.due_amount || 0));
-                        monthMap[key].collected += collected;
-                        monthMap[key].pending += fee.due_amount || 0;
-                    });
-                    const chartData = Object.values(monthMap)
-                        .sort((a, b) => a.order - b.order)
-                        .slice(-6)
-                        .map(({ month, collected, pending }) => ({ month, collected: Math.round(collected), pending: Math.round(pending) }));
-                    setFeeData(chartData);
-
-                    const totalAmount = fees.reduce((s: number, f: any) => s + (f.total_amount || 0), 0);
-                    const totalCollected = fees.reduce((s: number, f: any) => s + Math.max(0, (f.total_amount || 0) - (f.due_amount || 0)), 0);
-                    const feeRate = totalAmount > 0 ? Math.round((totalCollected / totalAmount) * 100) : 0;
-
-                    const routesWithBus = routes.filter((r: any) => r.bus_id).length;
-                    const routeCoverage = routes.length > 0 ? Math.round((routesWithBus / routes.length) * 100) : 0;
-
-                    const busUtil = buses.length > 0 ? Math.min(100, Math.round((drivers.length / buses.length) * 100)) : 0;
-
-                    setOverview({ feeCollectionRate: feeRate, busUtilization: busUtil, routeCoverage });
-                } else {
-                    // No fees yet — still compute utilization from counts
-                    const routesWithBus = routes.filter((r: any) => r.bus_id).length;
-                    const routeCoverage = routes.length > 0 ? Math.round((routesWithBus / routes.length) * 100) : 0;
-                    const busUtil = buses.length > 0 ? Math.min(100, Math.round((drivers.length / buses.length) * 100)) : 0;
-                    setOverview({ feeCollectionRate: 0, busUtilization: busUtil, routeCoverage });
-                }
-            } catch {
-                setStats(EMPTY_STATS);
-            } finally {
-                setLoading(false);
-            }
+                const totalAmount = fees.reduce((s: number, f: any) => s + (f.total_amount || 0), 0);
+                const totalCollected = fees.reduce((s: number, f: any) => s + Math.max(0, (f.total_amount || 0) - (f.due_amount || 0)), 0);
+                const feeRate = totalAmount > 0 ? Math.round((totalCollected / totalAmount) * 100) : 0;
+                const routesWithBus = routes.filter((r: any) => r.bus_id).length;
+                const routeCoverage = routes.length > 0 ? Math.round((routesWithBus / routes.length) * 100) : 0;
+                const busUtil = buses.length > 0 ? Math.min(100, Math.round((drivers.length / buses.length) * 100)) : 0;
+                setOverview({ feeCollectionRate: feeRate, busUtilization: busUtil, routeCoverage });
+            } catch { setStats(EMPTY_STATS); }
+            finally { setLoading(false); }
         };
         fetchStats();
-    }, []);
+        fetchSos();
+        fetchFinancials('current');
+    }, [fetchSos, fetchFinancials]);
+
+    const resolvesSos = async (id: string) => {
+        setResolvingId(id);
+        try {
+            await api.put(`/sos/${id}/resolve`, { resolved_note: 'Resolved by admin' });
+            setSosAlerts(prev => prev.filter(a => a.id !== id));
+        } catch { alert('Failed to resolve SOS'); }
+        finally { setResolvingId(null); }
+    };
+
+    const handlePeriodChange = (p: Period) => {
+        setPeriod(p);
+        setShowCustom(p === 'custom');
+        if (p !== 'custom') fetchFinancials(p);
+        if (p === 'custom') {
+            setCustomFrom(firstOfPastMonth());
+            setCustomTo(lastOfPastMonth());
+        }
+    };
 
     const statCards = [
         { label: 'Total Students', value: stats.students, icon: GraduationCap, href: '/admin/students', filled: true },
@@ -120,6 +162,35 @@ export default function Dashboard() {
                 </div>
             </div>
 
+            {/* SOS Alerts */}
+            {!sosLoading && sosAlerts.length > 0 && (
+                <div className="space-y-2">
+                    {sosAlerts.map(alert => (
+                        <div key={alert.id} className="bg-red-600 text-white rounded-2xl p-4 flex items-start gap-4 animate-in shadow-lg shadow-red-900/20">
+                            <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center shrink-0">
+                                <AlertTriangle className="w-5 h-5 animate-pulse" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="font-bold text-sm">SOS EMERGENCY ALERT</p>
+                                <p className="text-red-100 text-sm mt-0.5">
+                                    {alert.driver?.user?.name || 'Driver'} · Bus {alert.bus?.bus_number || '—'}
+                                    {alert.driver?.user?.phone && <> · {alert.driver.user.phone}</>}
+                                </p>
+                                <p className="text-red-200 text-xs mt-1">
+                                    {new Date(alert.triggered_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                    {alert.latitude && alert.longitude && (
+                                        <> · <a href={`https://maps.google.com/?q=${alert.latitude},${alert.longitude}`} target="_blank" rel="noreferrer" className="underline">View Location</a></>
+                                    )}
+                                </p>
+                            </div>
+                            <button onClick={() => resolvesSos(alert.id)} disabled={resolvingId === alert.id} className="shrink-0 bg-white text-red-600 font-bold text-xs px-4 py-2 rounded-xl disabled:opacity-70 hover:bg-red-50 transition-all active:scale-95">
+                                {resolvingId === alert.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Resolve'}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* Onboarding checklist */}
             {schoolData && !schoolData.onboarding_dismissed && (
                 <OnboardingChecklist schoolData={schoolData} />
@@ -131,11 +202,9 @@ export default function Dashboard() {
                     <Link
                         key={card.label}
                         href={card.href}
-                        className={
-                            idx === 0
-                                ? 'bg-[var(--brand)] text-white rounded-2xl p-6 shadow-lg hover:opacity-95 transition-all'
-                                : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all'
-                        }
+                        className={idx === 0
+                            ? 'bg-[var(--brand)] text-white rounded-2xl p-6 shadow-lg hover:opacity-95 transition-all'
+                            : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all'}
                     >
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${idx === 0 ? 'bg-white/20' : 'bg-slate-50 dark:bg-slate-700'}`}>
                             <card.icon className={`w-5 h-5 ${idx === 0 ? 'text-white' : 'text-[var(--brand)]'}`} />
@@ -150,45 +219,81 @@ export default function Dashboard() {
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Fee Collection Chart */}
+                {/* Income / Expense Chart */}
                 <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
                         <div>
-                            <h3 className="text-base font-semibold text-slate-900 dark:text-white">Fee Collection</h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Monthly collected vs pending (₹)</p>
+                            <h3 className="text-base font-semibold text-slate-900 dark:text-white">Income vs Expenses</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Fees collected vs fuel + maintenance</p>
                         </div>
-                        <div className="flex items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
-                            <span className="flex items-center gap-1.5">
-                                <span className="w-3 h-3 bg-emerald-500 rounded-sm inline-block" />Collected
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                                <span className="w-3 h-3 bg-red-400 rounded-sm inline-block" />Pending
-                            </span>
+                        <div className="flex gap-1.5">
+                            {(['current', 'past'] as Period[]).map(p => (
+                                <button key={p} onClick={() => handlePeriodChange(p)} className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${period === p && !showCustom ? 'bg-[var(--brand)] text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'}`}>
+                                    {p === 'current' ? 'This Month' : 'Last Month'}
+                                </button>
+                            ))}
+                            <button onClick={() => handlePeriodChange('custom')} className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${showCustom ? 'bg-[var(--brand)] text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'}`}>
+                                <CalendarRange className="w-3 h-3" /> Custom
+                            </button>
                         </div>
                     </div>
-                    {loading ? (
-                        <div className="h-64 flex items-center justify-center">
-                            <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+
+                    {showCustom && (
+                        <div className="flex items-center gap-2 mb-4 flex-wrap">
+                            <input type="date" value={customFrom} max={customTo} onChange={e => setCustomFrom(e.target.value)} className="bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
+                            <span className="text-slate-400 text-sm">to</span>
+                            <input type="date" value={customTo} min={customFrom} max={todayStr()} onChange={e => setCustomTo(e.target.value)} className="bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
+                            <button onClick={() => fetchFinancials('custom', customFrom, customTo)} className="bg-[var(--brand)] text-white rounded-xl px-4 py-2 text-sm font-semibold">Apply</button>
                         </div>
-                    ) : feeData.length === 0 ? (
-                        <div className="h-64 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-2">
-                            <p className="text-sm font-medium">No fee data yet</p>
-                            <Link href="/admin/fees" className="text-xs text-[var(--brand)] hover:underline">Create fee records →</Link>
+                    )}
+
+                    {/* Summary pills */}
+                    {summary && (
+                        <div className="flex gap-3 mb-4 flex-wrap">
+                            <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl px-3 py-1.5">
+                                <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">₹{(summary.total_income || 0).toLocaleString('en-IN')} income</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 bg-red-50 dark:bg-red-900/20 rounded-xl px-3 py-1.5">
+                                <TrendingDown className="w-3.5 h-3.5 text-red-600" />
+                                <span className="text-xs font-bold text-red-700 dark:text-red-400">₹{(summary.total_expenses || 0).toLocaleString('en-IN')} expenses</span>
+                            </div>
+                            <div className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 ${(summary.net || 0) >= 0 ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-orange-50 dark:bg-orange-900/20'}`}>
+                                <span className={`text-xs font-bold ${(summary.net || 0) >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-orange-700 dark:text-orange-400'}`}>
+                                    Net ₹{Math.abs(summary.net || 0).toLocaleString('en-IN')} {(summary.net || 0) >= 0 ? 'profit' : 'loss'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {chartLoading ? (
+                        <div className="h-56 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-slate-300" /></div>
+                    ) : chartData.length === 0 ? (
+                        <div className="h-56 flex flex-col items-center justify-center text-slate-400 gap-2">
+                            <p className="text-sm">No financial data for this period</p>
                         </div>
                     ) : (
-                        <div className="h-64 w-full">
+                        <div className="h-56 w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={feeData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} barGap={4}>
+                                <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.15} />
+                                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                                        </linearGradient>
+                                        <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#f87171" stopOpacity={0.15} />
+                                            <stop offset="95%" stopColor="#f87171" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v) => `₹${v / 1000}K`} />
-                                    <Tooltip
-                                        formatter={(v) => [`₹${Number(v || 0).toLocaleString()}`, '']}
-                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: '12px' }}
-                                    />
-                                    <Bar dataKey="collected" name="Collected" fill="#22c55e" radius={[6, 6, 0, 0]} barSize={18} />
-                                    <Bar dataKey="pending" name="Pending" fill="#f87171" radius={[6, 6, 0, 0]} barSize={18} />
-                                </BarChart>
+                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={d => { try { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); } catch { return d; } }} interval="preserveStartEnd" />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={v => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v}`} />
+                                    <Tooltip formatter={(v: any, name: string) => [`₹${Number(v || 0).toLocaleString('en-IN')}`, name === 'income' ? 'Income' : 'Expenses']} labelFormatter={l => { try { return new Date(l).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' }); } catch { return l; } }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', fontSize: '12px' }} />
+                                    <Area type="monotone" dataKey="income" stroke="#22c55e" strokeWidth={2} fill="url(#incomeGrad)" dot={false} />
+                                    <Area type="monotone" dataKey="expense" stroke="#f87171" strokeWidth={2} fill="url(#expenseGrad)" dot={false} />
+                                    <Legend formatter={v => v === 'income' ? 'Income' : 'Expenses'} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                                </AreaChart>
                             </ResponsiveContainer>
                         </div>
                     )}

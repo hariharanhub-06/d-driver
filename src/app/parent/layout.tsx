@@ -8,14 +8,14 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { useSchoolBranding, useSetSchoolBranding } from '@/context/SchoolBrandingContext';
 import type { SchoolPermissions } from '@/context/SchoolBrandingContext';
+import { LanguageProvider, useLang } from '@/context/LanguageContext';
+import { biLabel, ta } from '@/lib/i18n';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
-import { ta } from '@/lib/i18n';
 
 const ParentTour = dynamic(() => import('@/components/tour/ParentTour'), { ssr: false });
 
-// Icons as inline SVGs to keep bundle tight
 function IconTrack({ active }: { active: boolean }) {
     return (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--brand)' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -24,13 +24,22 @@ function IconTrack({ active }: { active: boolean }) {
         </svg>
     );
 }
-function IconAttend({ active }: { active: boolean }) {
+function IconFees({ active }: { active: boolean }) {
     return (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--brand)' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-            <path d="M9 16l2 2 4-4"/>
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+            <line x1="1" y1="10" x2="23" y2="10"/>
+        </svg>
+    );
+}
+function IconRequests({ active }: { active: boolean }) {
+    return (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--brand)' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
         </svg>
     );
 }
@@ -58,14 +67,124 @@ function IconUser({ active }: { active: boolean }) {
     );
 }
 
+function LangToggle() {
+    const { lang, setLang } = useLang();
+    const options: Array<{ value: 'en' | 'ta' | 'both'; label: string }> = [
+        { value: 'en', label: 'EN' },
+        { value: 'ta', label: 'த' },
+        { value: 'both', label: 'EN+த' },
+    ];
+    const current = options.find(o => o.value === lang) || options[2];
+    const nextIndex = (options.findIndex(o => o.value === lang) + 1) % options.length;
+    return (
+        <button
+            onClick={() => setLang(options[nextIndex].value)}
+            className="w-12 flex flex-col items-center justify-center gap-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors border-l border-slate-100 dark:border-slate-700"
+            title="Switch language"
+        >
+            <span className="text-[11px] font-bold leading-none">{current.label}</span>
+            <span className="text-[7px] leading-none mt-0.5 text-slate-400">Lang</span>
+        </button>
+    );
+}
+
+function ParentNav() {
+    const pathname = usePathname();
+    const { lang } = useLang();
+    const { theme, setTheme } = useTheme();
+    const branding = useSchoolBranding();
+    const p = branding.permissions as SchoolPermissions | null;
+    const allow = (key: keyof SchoolPermissions) => !p || p[key] !== false;
+
+    const tabs = [
+        {
+            href: '/parent/dashboard',
+            labelEn: 'Track',
+            labelTa: ta.track,
+            icon: (active: boolean) => <IconTrack active={active} />,
+            disabled: !allow('gps_tracking'),
+        },
+        {
+            href: '/parent/fees',
+            labelEn: 'Fees',
+            labelTa: ta.fees,
+            icon: (active: boolean) => <IconFees active={active} />,
+            disabled: !allow('fee_management'),
+        },
+        {
+            href: '/parent/requests',
+            labelEn: 'Requests',
+            labelTa: ta.requests,
+            icon: (active: boolean) => <IconRequests active={active} />,
+            disabled: false,
+        },
+        {
+            href: '/parent/notifications',
+            labelEn: 'Alerts',
+            labelTa: ta.alerts,
+            icon: (active: boolean) => <IconBell active={active} />,
+            disabled: false,
+        },
+        {
+            href: '/parent/profile',
+            labelEn: 'Profile',
+            labelTa: ta.profile,
+            icon: (active: boolean) => <IconUser active={active} />,
+            disabled: false,
+        },
+    ];
+
+    return (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 safe-area-inset-bottom">
+            <div className="flex items-stretch h-16">
+                {tabs.map(tab => {
+                    const isActive = pathname === tab.href || pathname.startsWith(tab.href + '/');
+                    if (tab.disabled) {
+                        return (
+                            <div key={tab.href} className="flex-1 flex flex-col items-center justify-center gap-0.5 opacity-30 pointer-events-none select-none">
+                                {tab.icon(false)}
+                                <span className="text-[8px] font-semibold text-slate-400">{biLabel(lang, tab.labelEn, tab.labelTa)}</span>
+                            </div>
+                        );
+                    }
+                    return (
+                        <Link
+                            key={tab.href}
+                            href={tab.href}
+                            className={cn(
+                                'flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors',
+                                isActive ? 'text-[var(--brand)]' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+                            )}
+                        >
+                            {tab.icon(isActive)}
+                            <span className={cn('text-[8px] font-semibold leading-none text-center px-0.5', isActive ? 'text-[var(--brand)]' : 'text-slate-500 dark:text-slate-400')}>
+                                {lang === 'ta' ? tab.labelTa : tab.labelEn}
+                            </span>
+                            {lang === 'both' && (
+                                <span className={cn('text-[7px] leading-none', isActive ? 'text-[var(--brand)]/70' : 'text-slate-400 dark:text-slate-500')}>
+                                    {tab.labelTa}
+                                </span>
+                            )}
+                        </Link>
+                    );
+                })}
+                {/* Theme toggle */}
+                <button
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    className="w-10 flex flex-col items-center justify-center gap-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors border-l border-slate-100 dark:border-slate-700"
+                >
+                    {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+                </button>
+                <LangToggle />
+            </div>
+        </nav>
+    );
+}
+
 export default function ParentLayout({ children }: { children: React.ReactNode }) {
-    // ── ALL EXISTING LOGIC PRESERVED ──────────────────────────────────────────
     const { user, loading, logout } = useAuth();
     const router = useRouter();
-    const pathname = usePathname();
-    const branding = useSchoolBranding();
     const setSchoolBranding = useSetSchoolBranding();
-    const { theme, setTheme } = useTheme();
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
@@ -104,94 +223,15 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
         );
     }
 
-    const p = branding.permissions as SchoolPermissions | null;
-    const allow = (key: keyof SchoolPermissions) => !p || p[key] !== false;
-    // ─────────────────────────────────────────────────────────────────────────
-
-    // Bottom tabs — same routes as before, no changes
-    const tabs = [
-        {
-            href: '/parent/dashboard',
-            labelEn: 'Track',
-            labelTa: ta.track,
-            icon: (active: boolean) => <IconTrack active={active} />,
-            disabled: !allow('gps_tracking'),
-        },
-        {
-            href: '/parent/attendance',
-            labelEn: 'Attendance',
-            labelTa: ta.attendance,
-            icon: (active: boolean) => <IconAttend active={active} />,
-            disabled: !allow('attendance'),
-        },
-        {
-            href: '/parent/notifications',
-            labelEn: 'Alerts',
-            labelTa: ta.alerts,
-            icon: (active: boolean) => <IconBell active={active} badge={unreadCount} />,
-            disabled: false,
-        },
-        {
-            href: '/parent/profile',
-            labelEn: 'Profile',
-            labelTa: ta.profile,
-            icon: (active: boolean) => <IconUser active={active} />,
-            disabled: false,
-        },
-    ];
-
     return (
-        <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900">
-            {/* Page content — pb-20 so content never hides behind bottom tab bar */}
-            <main className="flex-1 overflow-y-auto pb-20">
-                {children}
-            </main>
-
-            {/* Bottom tab bar */}
-            <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 safe-area-inset-bottom">
-                <div className="flex items-stretch h-16">
-                    {tabs.map(tab => {
-                        const isActive = pathname === tab.href || pathname.startsWith(tab.href + '/');
-                        if (tab.disabled) {
-                            return (
-                                <div key={tab.href} className="flex-1 flex flex-col items-center justify-center gap-0.5 opacity-30 pointer-events-none select-none">
-                                    {tab.icon(false)}
-                                    <span className="text-[9px] font-semibold text-slate-400">{tab.labelEn}</span>
-                                    <span className="text-[8px] text-slate-300 leading-none">{tab.labelTa}</span>
-                                </div>
-                            );
-                        }
-                        return (
-                            <Link
-                                key={tab.href}
-                                href={tab.href}
-                                className={cn(
-                                    'flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors',
-                                    isActive ? 'text-[var(--brand)]' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
-                                )}
-                            >
-                                {tab.icon(isActive)}
-                                <span className={cn('text-[9px] font-semibold leading-none', isActive ? 'text-[var(--brand)]' : 'text-slate-500 dark:text-slate-400')}>
-                                    {tab.labelEn}
-                                </span>
-                                <span className={cn('text-[8px] leading-none', isActive ? 'text-[var(--brand)]/70' : 'text-slate-400 dark:text-slate-500')}>
-                                    {tab.labelTa}
-                                </span>
-                            </Link>
-                        );
-                    })}
-                    {/* Theme toggle */}
-                    <button
-                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                        className="w-12 flex flex-col items-center justify-center gap-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors border-l border-slate-100 dark:border-slate-700"
-                    >
-                        {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-                        <span className="text-[8px] leading-none">{theme === 'dark' ? 'Light' : 'Dark'}</span>
-                    </button>
-                </div>
-            </nav>
-
-            <ParentTour />
-        </div>
+        <LanguageProvider>
+            <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900">
+                <main className="flex-1 overflow-y-auto pb-20">
+                    {children}
+                </main>
+                <ParentNav />
+                <ParentTour />
+            </div>
+        </LanguageProvider>
     );
 }

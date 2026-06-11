@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { School, CreditCard, CheckCircle2, XCircle, Loader2, Eye, EyeOff, CheckSquare, Shield, Lock } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { School, CreditCard, CheckCircle2, XCircle, Loader2, Eye, EyeOff, CheckSquare, Shield, Lock, Camera, User } from 'lucide-react';
 import api from '@/lib/api';
 
 type SchoolInfo = {
@@ -45,7 +45,26 @@ export default function SettingsPage() {
     const [cpSuccess, setCpSuccess] = useState(false);
     const [cpLoading, setCpLoading] = useState(false);
 
-    useEffect(() => { fetchSchool(); }, []);
+    // Profile photo state
+    const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+    const [photoUploading, setPhotoUploading] = useState(false);
+    const photoInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        fetchSchool();
+        api.get('/users/me').then(r => setPhotoUrl(r.data?.profile_photo_url || null)).catch(() => {});
+    }, []);
+
+    const handlePhotoUpload = async (file: File) => {
+        setPhotoUploading(true);
+        try {
+            const fd = new FormData();
+            fd.append('photo', file);
+            const res = await api.post('/upload/profile-photo', fd, { headers: { 'Content-Type': undefined } });
+            setPhotoUrl(res.data.url);
+        } catch { alert('Photo upload failed'); }
+        finally { setPhotoUploading(false); }
+    };
 
     const fetchSchool = async () => {
         setLoading(true);
@@ -313,6 +332,46 @@ export default function SettingsPage() {
 
             {/* Security Tab */}
             {activeTab === 'security' && (
+                <div className="space-y-5">
+                {/* Profile Photo */}
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+                    <div className="flex items-center gap-3 mb-5">
+                        <div className="w-9 h-9 rounded-xl bg-[var(--brand)]/10 flex items-center justify-center">
+                            <User className="w-5 h-5 text-[var(--brand)]" />
+                        </div>
+                        <div>
+                            <h2 className="font-bold text-slate-900 dark:text-white">Profile Photo</h2>
+                            <p className="text-xs text-slate-400">Optional profile picture for your account</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-5">
+                        <div className="relative shrink-0">
+                            {photoUrl ? (
+                                <img src={photoUrl} alt="Profile" className="w-20 h-20 rounded-2xl object-cover border-2 border-slate-200 dark:border-slate-600" />
+                            ) : (
+                                <div className="w-20 h-20 rounded-2xl bg-[var(--brand)]/10 flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600">
+                                    <User className="w-8 h-8 text-slate-400" />
+                                </div>
+                            )}
+                            <button
+                                onClick={() => photoInputRef.current?.click()}
+                                disabled={photoUploading}
+                                className="absolute -bottom-1 -right-1 w-7 h-7 bg-[var(--brand)] rounded-xl flex items-center justify-center border-2 border-white dark:border-slate-800 shadow disabled:opacity-50"
+                            >
+                                {photoUploading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera className="w-3.5 h-3.5 text-white" />}
+                            </button>
+                            <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = ''; }} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Upload a photo</p>
+                            <p className="text-xs text-slate-400 mt-0.5">JPG, PNG or WEBP. Max 5MB.</p>
+                            <button onClick={() => photoInputRef.current?.click()} disabled={photoUploading} className="mt-3 flex items-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50">
+                                <Camera className="w-3.5 h-3.5" /> {photoUploading ? 'Uploading...' : 'Choose Photo'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
@@ -383,6 +442,7 @@ export default function SettingsPage() {
                             </button>
                         </div>
                     </form>
+                </div>
                 </div>
             )}
         </div>

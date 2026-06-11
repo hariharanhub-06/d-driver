@@ -306,8 +306,8 @@ export default function StudentsPage() {
     };
 
     const downloadTemplate = () => {
-        const headers = 'name,gr_no,grade,section,parent_name,parent_email,parent_phone';
-        const example = 'Arjun Kumar,GR-001,5,A,Suresh Kumar,suresh@example.com,9876543210';
+        const headers = 'name,gr_no,grade,section,route_name,stop_name,fee_amount,fee_frequency,parent_name,parent_email,parent_phone,parent_temp_password';
+        const example = 'Arjun Kumar,GR-001,5,A,Morning Route,Gandhi Nagar,2500,monthly,Suresh Kumar,suresh@example.com,9876543210,Pass@1234';
         const csv = `${headers}\n${example}`;
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);

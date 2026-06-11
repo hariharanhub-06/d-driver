@@ -42,6 +42,7 @@ interface LocationEntry {
     latitude: number;
     longitude: number;
     timestamp: string;
+    heading?: number;
 }
 
 interface StopPin {
@@ -112,6 +113,7 @@ export default function TrackingPage() {
                 latitude: item.latitude ?? item.location?.latitude,
                 longitude: item.longitude ?? item.location?.longitude,
                 timestamp: item.timestamp || item.location?.timestamp || '',
+                heading: item.heading ?? item.location?.heading ?? undefined,
             })).filter(l => l.bus_id && l.latitude != null && l.longitude != null);
             setLocations(parsed);
             setError('');
@@ -247,14 +249,18 @@ export default function TrackingPage() {
     // Only buses with GPS go on the map
     const mapBuses = busListItems
         .filter(b => b.hasGps)
-        .map(b => ({
-            bus_id: b.bus_id,
-            bus_number: b.bus_number,
-            latitude: b.latitude!,
-            longitude: b.longitude!,
-            timestamp: b.timestamp,
-            color: branding.primary_color || undefined,
-        }));
+        .map(b => {
+            const loc = locations.find(l => l.bus_id === b.bus_id);
+            return {
+                bus_id: b.bus_id,
+                bus_number: b.bus_number,
+                latitude: b.latitude!,
+                longitude: b.longitude!,
+                timestamp: b.timestamp,
+                heading: loc?.heading,
+                color: branding.primary_color || undefined,
+            };
+        });
 
     const mapCenter: [number, number] | undefined = mapBuses.length > 0
         ? [mapBuses[0].latitude, mapBuses[0].longitude]

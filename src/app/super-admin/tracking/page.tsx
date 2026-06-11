@@ -46,6 +46,7 @@ interface ActiveBus {
     school_color: string;
     latitude: number;
     longitude: number;
+    heading?: number;
     timestamp: string;
 }
 
@@ -136,6 +137,7 @@ export default function SATrackingPage() {
                 const lat = item.location?.latitude ?? item.latitude;
                 const lng = item.location?.longitude ?? item.longitude;
                 const ts = item.location?.timestamp || item.timestamp || '';
+                const hdg = item.location?.heading ?? item.heading ?? undefined;
                 return {
                     bus_id: busId,
                     bus_number: item.bus_number || busId,
@@ -145,6 +147,7 @@ export default function SATrackingPage() {
                     school_color: item.school_color || '',
                     latitude: lat,
                     longitude: lng,
+                    heading: hdg,
                     timestamp: ts,
                 };
             }).filter(b => b.bus_id && b.latitude != null && b.longitude != null);
@@ -293,6 +296,7 @@ export default function SATrackingPage() {
         bus_number: b.bus_number,
         latitude: b.latitude,
         longitude: b.longitude,
+        heading: b.heading,
         timestamp: b.timestamp,
         color: b.school_color || undefined,
     }));

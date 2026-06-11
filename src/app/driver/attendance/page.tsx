@@ -20,6 +20,7 @@ export default function DriverAttendancePage() {
     const [absences, setAbsences] = useState<AbsenceRecord[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [tripId, setTripId] = useState<string>('');
+    const [isEvening, setIsEvening] = useState(false);
     const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
     const [markingNote, setMarkingNote] = useState('');
 
@@ -33,6 +34,9 @@ export default function DriverAttendancePage() {
             const trip = trips[0];
             if (trip) {
                 setTripId(trip.id);
+                const savedType = typeof window !== 'undefined' ? localStorage.getItem('driver_trip_type') : null;
+                const tripType = savedType || trip.route?.route_type || trip.route_type || '';
+                setIsEvening(tripType === 'afternoon' || tripType === 'evening');
                 const route = trip.route || {};
                 // stops already have .students from Prisma include — use them directly.
                 // route.students (top-level) is NOT populated by the backend.
@@ -65,7 +69,13 @@ export default function DriverAttendancePage() {
 
     const handleMarkAttendance = async (student: Student, status: 'present' | 'absent') => {
         try {
-            await api.post('/attendance/mark', { student_id: student.id, status, trip_id: tripId || undefined, note: markingNote || undefined });
+            await api.post('/attendance/mark', {
+                student_id: student.id,
+                status,
+                trip_id: tripId || undefined,
+                note: markingNote || undefined,
+                attendance_type: isEvening ? 'dropoff' : 'pickup',
+            });
         } catch { alert('Failed to mark attendance. Please try again.'); return; }
         setAttendance(prev => ({ ...prev, [student.id]: status }));
         if (status === 'present') setAbsences(prev => prev.filter(a => a.student_id !== student.id));
@@ -176,11 +186,11 @@ export default function DriverAttendancePage() {
                                 </span>
                             ) : (
                                 <div className="flex gap-2">
-                                    <button onClick={() => handleMarkAttendance(student, 'absent')} className="w-9 h-9 bg-red-900/30 rounded-xl flex items-center justify-center active:scale-95 transition-all">
-                                        <X className="w-4 h-4 text-red-400" />
+                                    <button onClick={() => handleMarkAttendance(student, 'absent')} className="px-2.5 py-1.5 bg-red-900/30 rounded-xl flex items-center gap-1 active:scale-95 transition-all text-xs font-semibold text-red-400">
+                                        <X className="w-3.5 h-3.5" /> Absent
                                     </button>
-                                    <button onClick={() => handleMarkAttendance(student, 'present')} className="w-9 h-9 bg-emerald-900/30 rounded-xl flex items-center justify-center active:scale-95 transition-all">
-                                        <Check className="w-4 h-4 text-emerald-400" />
+                                    <button onClick={() => handleMarkAttendance(student, 'present')} className="px-2.5 py-1.5 bg-emerald-900/30 rounded-xl flex items-center gap-1 active:scale-95 transition-all text-xs font-semibold text-emerald-400">
+                                        <Check className="w-3.5 h-3.5" /> {isEvening ? 'Dropped' : 'Present'}
                                     </button>
                                 </div>
                             )}
@@ -208,7 +218,7 @@ export default function DriverAttendancePage() {
                             <div className="mb-4"><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Note (optional)</label><input type="text" value={markingNote} onChange={e => setMarkingNote(e.target.value)} placeholder="Add a note..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)]" /></div>
                             <div className="grid grid-cols-2 gap-3">
                                 <button onClick={() => handleMarkAttendance(activeStudent, 'absent')} className="py-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl font-bold flex flex-col items-center gap-2 border border-red-100 dark:border-red-800 active:scale-95"><X size={24} />{ta.absent}</button>
-                                <button onClick={() => handleMarkAttendance(activeStudent, 'present')} className="py-4 bg-[var(--brand)] text-white rounded-2xl font-bold flex flex-col items-center gap-2 active:scale-95"><Check size={24} />{ta.present}</button>
+                                <button onClick={() => handleMarkAttendance(activeStudent, 'present')} className="py-4 bg-[var(--brand)] text-white rounded-2xl font-bold flex flex-col items-center gap-2 active:scale-95"><Check size={24} />{isEvening ? 'Dropped' : ta.present}</button>
                             </div>
                             <button onClick={() => { setActiveStudentId(null); setMarkingNote(''); }} className="w-full mt-4 py-2.5 text-xs font-medium text-slate-400 transition-colors">Cancel</button>
                         </div>

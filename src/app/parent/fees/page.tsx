@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CreditCard, CheckCircle2, AlertCircle, Clock, IndianRupee } from 'lucide-react';
+import { CreditCard, CheckCircle2, AlertCircle, Clock, IndianRupee, Calendar, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 
@@ -23,6 +23,11 @@ interface SchoolConfig {
 
 type Tab = 'pending' | 'paid';
 
+const todayStr = () => new Date().toLocaleDateString('en-CA');
+function addDays(n: number) {
+    const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA');
+}
+
 const loadRazorpay = (): Promise<boolean> =>
     new Promise(resolve => {
         if ((window as any).Razorpay) { resolve(true); return; }
@@ -41,6 +46,11 @@ export default function ParentFees() {
     const [activeTab, setActiveTab] = useState<Tab>('pending');
     const [schoolConfig, setSchoolConfig] = useState<SchoolConfig>({});
     const [payingId, setPayingId] = useState<string | null>(null);
+    const [delayModal, setDelayModal] = useState<Fee | null>(null);
+    const [delayDate, setDelayDate] = useState('');
+    const [delayReason, setDelayReason] = useState('');
+    const [delaySubmitting, setDelaySubmitting] = useState(false);
+    const [delaySuccess, setDelaySuccess] = useState<string | null>(null);
 
     useEffect(() => {
         fetchFees();
@@ -120,6 +130,29 @@ export default function ParentFees() {
         }
     };
 
+    const openDelayModal = (fee: Fee) => {
+        setDelayModal(fee);
+        setDelayDate(addDays(7));
+        setDelayReason('');
+        setDelaySuccess(null);
+    };
+
+    const handleDelaySubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!delayModal) return;
+        setDelaySubmitting(true);
+        try {
+            await api.post('/finance/fee-delay', {
+                fee_id: delayModal.id,
+                requested_date: delayDate,
+                reason: delayReason || undefined,
+            });
+            setDelaySuccess('Delay request submitted! Admin will review and notify you.');
+        } catch (err: any) {
+            alert(err?.response?.data?.error || 'Failed to submit delay request');
+        } finally { setDelaySubmitting(false); }
+    };
+
     const filtered = fees.filter(f =>
         activeTab === 'pending' ? f.status === 'pending' || f.status === 'overdue' : f.status === 'paid'
     );
@@ -129,6 +162,7 @@ export default function ParentFees() {
         .reduce((sum, f) => sum + f.amount, 0);
 
     return (
+        <>
         <div className="space-y-4 p-4">
             {/* Header */}
             <div>
@@ -237,22 +271,27 @@ export default function ParentFees() {
                                                 }
                                             </div>
                                         )}
-                                        {schoolConfig.razorpay_configured && (
+                                        <div className="flex gap-2">
+                                            {schoolConfig.razorpay_configured && (
+                                                <button
+                                                    onClick={() => handlePayOnline(fee)}
+                                                    disabled={payingId === fee.id}
+                                                    className="flex-1 flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 justify-center disabled:opacity-60"
+                                                >
+                                                    {payingId === fee.id ? (
+                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                    ) : (
+                                                        <><CreditCard className="w-4 h-4" /> Pay</>
+                                                    )}
+                                                </button>
+                                            )}
                                             <button
-                                                onClick={() => handlePayOnline(fee)}
-                                                disabled={payingId === fee.id}
-                                                className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center disabled:opacity-60"
+                                                onClick={() => openDelayModal(fee)}
+                                                className="flex items-center gap-1.5 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                             >
-                                                {payingId === fee.id ? (
-                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                                ) : (
-                                                    <>
-                                                        <CreditCard className="w-4 h-4" />
-                                                        Pay Online
-                                                    </>
-                                                )}
+                                                <Calendar className="w-3.5 h-3.5" /> Delay
                                             </button>
-                                        )}
+                                        </div>
                                     </>
                                 )}
                             </div>
@@ -261,5 +300,51 @@ export default function ParentFees() {
                 </div>
             )}
         </div>
+
+            {/* Delay Request Modal */}
+            {delayModal && (
+                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={(e) => { if (e.target === e.currentTarget) { setDelayModal(null); } }}>
+                    <div className="bg-white dark:bg-slate-800 rounded-t-3xl w-full max-w-lg p-6 pb-8 shadow-2xl">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white">Request Payment Delay</h3>
+                            <button onClick={() => setDelayModal(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {delaySuccess ? (
+                            <div className="flex flex-col items-center py-6 text-center">
+                                <CheckCircle2 className="w-12 h-12 text-emerald-500 mb-3" />
+                                <p className="text-sm text-slate-600 dark:text-slate-300">{delaySuccess}</p>
+                                <button onClick={() => setDelayModal(null)} className="mt-4 bg-[var(--brand)] text-white rounded-xl px-5 py-2.5 font-semibold text-sm">Done</button>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleDelaySubmit} className="space-y-4">
+                                <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3">
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">Fee</p>
+                                    <p className="font-bold text-slate-900 dark:text-white text-sm mt-0.5">{delayModal.description || 'Transport Fee'}</p>
+                                    {delayModal.student_name && <p className="text-xs text-slate-400 mt-0.5">{delayModal.student_name}</p>}
+                                    <p className="text-base font-black text-[var(--brand)] mt-1">₹{delayModal.amount.toLocaleString('en-IN')}</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">New Requested Date / புதிய தேதி</label>
+                                    <input type="date" value={delayDate} min={addDays(1)} onChange={e => setDelayDate(e.target.value)} required className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Reason / காரணம் <span className="font-normal text-slate-400">(optional)</span></label>
+                                    <textarea value={delayReason} onChange={e => setDelayReason(e.target.value)} rows={3} placeholder="e.g. Salary delayed this month..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] resize-none" />
+                                </div>
+
+                                <button type="submit" disabled={delaySubmitting} className="w-full bg-[var(--brand)] text-white rounded-2xl py-3 font-semibold text-sm disabled:opacity-50 active:scale-95 transition-all">
+                                    {delaySubmitting ? 'Submitting...' : 'Submit Request / சமர்ப்பி'}
+                                </button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
+        </>
     );
 }

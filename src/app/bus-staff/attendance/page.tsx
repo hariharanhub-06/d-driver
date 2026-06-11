@@ -1,8 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect } from 'react';
-import { Check, X, Search, ChevronDown, LogOut, MapPin, Sun, Moon } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Check, X, Search, ChevronDown, LogOut, MapPin, Sun, Moon, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from 'next-themes';
@@ -36,6 +36,9 @@ export default function BusStaffAttendancePage() {
     const [stops, setStops] = useState<TripStop[]>([]);
     const [loading, setLoading] = useState(true);
     const [tripId, setTripId] = useState<string>('');
+    const [hasActiveTrip, setHasActiveTrip] = useState<boolean | null>(null);
+    const [isEvening, setIsEvening] = useState(false);
+    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
     const [attendance, setAttendance] = useState<Record<string, 'present' | 'absent'>>({});
     const [marking, setMarking] = useState<string | null>(null);
@@ -51,6 +54,7 @@ export default function BusStaffAttendancePage() {
             );
         }
         fetchData();
+        return () => { if (pollRef.current) clearInterval(pollRef.current); };
     }, []);
 
     const fetchData = async () => {
@@ -59,7 +63,24 @@ export default function BusStaffAttendancePage() {
             const trips = Array.isArray(tripsRes.data) ? tripsRes.data : [];
             const trip = trips[0];
 
-            if (!trip) return;
+            if (!trip) {
+                setHasActiveTrip(false);
+                // Start polling every 30s until a trip starts
+                if (!pollRef.current) {
+                    pollRef.current = setInterval(async () => {
+                        try {
+                            const r = await api.get('/trips/active');
+                            const t = (Array.isArray(r.data) ? r.data : [])[0];
+                            if (t) { clearInterval(pollRef.current!); pollRef.current = null; fetchData(); }
+                        } catch { /* keep polling */ }
+                    }, 30000);
+                }
+                return;
+            }
+            setHasActiveTrip(true);
+            if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+            const tripType = trip.route?.route_type || trip.route_type || '';
+            setIsEvening(tripType === 'afternoon' || tripType === 'evening');
 
             setTripId(trip.id);
             const route = trip.route || {};
@@ -111,6 +132,7 @@ export default function BusStaffAttendancePage() {
                 student_id: student.id,
                 status,
                 trip_id: tripId || undefined,
+                attendance_type: isEvening ? 'dropoff' : 'pickup',
             });
             setAttendance(prev => ({ ...prev, [student.id]: status }));
         } finally {
@@ -148,6 +170,20 @@ export default function BusStaffAttendancePage() {
     if (loading) return (
         <div className="h-screen bg-slate-50 flex items-center justify-center">
             <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+        </div>
+    );
+
+    if (hasActiveTrip === false) return (
+        <div className="h-screen bg-white dark:bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                <Lock className="w-9 h-9 text-slate-400" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Trip Not Started</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">Attendance is locked until the driver starts the trip. This page checks automatically every 30 seconds.</p>
+            <div className="mt-6 flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Waiting for trip…
+            </div>
         </div>
     );
 
@@ -328,13 +364,13 @@ export default function BusStaffAttendancePage() {
                                             <button
                                                 disabled={isMarkingThis}
                                                 onClick={() => handleMark(student, 'present')}
-                                                className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center hover:bg-emerald-200 transition-all active:scale-95 disabled:opacity-40"
-                                                aria-label="Mark present"
+                                                className="px-2.5 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center gap-1 text-xs font-semibold hover:bg-emerald-200 transition-all active:scale-95 disabled:opacity-40"
+                                                aria-label={isEvening ? 'Mark dropped' : 'Mark present'}
                                             >
                                                 {isMarkingThis ? (
                                                     <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
                                                 ) : (
-                                                    <Check className="w-4 h-4" />
+                                                    <><Check className="w-3.5 h-3.5" />{isEvening ? 'Dropped' : 'Present'}</>
                                                 )}
                                             </button>
                                         </div>

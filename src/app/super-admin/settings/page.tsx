@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings, Key, Calendar, Shield, Loader2, Check, AlertCircle, Lock, Link, User, Truck, Users, ShieldCheck } from 'lucide-react';
+import { Settings, Key, Calendar, Shield, Loader2, Check, AlertCircle, Lock, Link, User, Truck, Users, ShieldCheck, ImageIcon } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 
 interface BillingConfig {
@@ -46,6 +47,14 @@ function CopyButton({ url }: { url: string }) {
 }
 
 export default function SASettingsPage() {
+  const { user } = useAuth();
+  const isDevSA = (user as any)?.is_dev_sa === true;
+
+  // Platform branding state (DEV SA only)
+  const [platformLogo, setPlatformLogo] = useState('');
+  const [platformLogoSaving, setPlatformLogoSaving] = useState(false);
+  const [platformLogoMsg, setPlatformLogoMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   // Razorpay state
   const [rzKeyId, setRzKeyId] = useState('');
   const [rzKeySecret, setRzKeySecret] = useState('');
@@ -77,9 +86,10 @@ export default function SASettingsPage() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [rzRes, cfgRes] = await Promise.allSettled([
+      const [rzRes, cfgRes, platformRes] = await Promise.allSettled([
         api.get('/billing/platform-razorpay'),
         api.get('/billing/config'),
+        api.get('/platform/config'),
       ]);
       if (rzRes.status === 'fulfilled') {
         setRzConfigured(rzRes.value.data?.configured ?? false);
@@ -87,8 +97,24 @@ export default function SASettingsPage() {
       if (cfgRes.status === 'fulfilled' && cfgRes.value.data) {
         setConfig(prev => ({ ...prev, ...cfgRes.value.data }));
       }
+      if (platformRes.status === 'fulfilled' && platformRes.value.data?.platform_logo_url) {
+        setPlatformLogo(platformRes.value.data.platform_logo_url);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSavePlatformLogo = async () => {
+    setPlatformLogoSaving(true);
+    setPlatformLogoMsg(null);
+    try {
+      await api.put('/platform/config', { platform_logo_url: platformLogo.trim() });
+      setPlatformLogoMsg({ type: 'success', text: 'Platform logo updated.' });
+    } catch (err: any) {
+      setPlatformLogoMsg({ type: 'error', text: err.response?.data?.error || 'Failed to save.' });
+    } finally {
+      setPlatformLogoSaving(false);
     }
   };
 
@@ -168,6 +194,45 @@ export default function SASettingsPage() {
           </p>
         </div>
       </div>
+
+      {/* Platform Branding — DEV SA only */}
+      {isDevSA && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+            <ImageIcon className="w-5 h-5 text-[var(--brand)]" />
+            <div>
+              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Platform Branding</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Logo shown on the main D-Driver login page</p>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            {platformLogo && (
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                <img src={platformLogo} alt="Platform logo" className="w-12 h-12 rounded-xl object-contain bg-white p-1" />
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Current Logo</p>
+                  <p className="text-xs text-slate-400 font-mono truncate max-w-xs">{platformLogo}</p>
+                </div>
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Logo URL</label>
+              <input type="url" value={platformLogo} onChange={e => setPlatformLogo(e.target.value)} placeholder="https://imagekit.io/your-logo.png" className={inputCls} />
+              <p className="text-xs text-slate-400 mt-1.5">Upload your image to ImageKit and paste the URL here. Recommended: 200×60px PNG with transparent background.</p>
+            </div>
+            {platformLogoMsg && (
+              <div className={`flex items-center gap-2 text-sm rounded-xl px-4 py-2.5 ${platformLogoMsg.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>
+                {platformLogoMsg.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                {platformLogoMsg.text}
+              </div>
+            )}
+            <button onClick={handleSavePlatformLogo} disabled={platformLogoSaving || !platformLogo.trim()} className="bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-5 py-2.5 font-semibold text-sm transition-all disabled:opacity-50 flex items-center gap-2">
+              {platformLogoSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Save Logo
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Portal Login Links */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
