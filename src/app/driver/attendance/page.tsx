@@ -10,7 +10,55 @@ interface Student { id: string; name: string; photo_url?: string; grade?: string
 interface AbsenceRecord { student_id: string; status: string; }
 interface TripStop { id: string; name: string; sequence: number; students: Student[]; }
 
-// ── ALL EXISTING LOGIC PRESERVED — VERBATIM ───────────────────────────────
+function StudentCard({ student, marked, preAbsent, isEvening, onMark, t }: {
+    student: Student;
+    marked?: 'present' | 'absent';
+    preAbsent: boolean;
+    isEvening: boolean;
+    onMark: (student: Student, status: 'present' | 'absent') => void;
+    t: (en: string, ta: string) => string;
+}) {
+    const bgClass = marked === 'present'
+        ? 'bg-emerald-900/30 border-emerald-700/60'
+        : marked === 'absent'
+            ? 'bg-red-900/30 border-red-700/60'
+            : preAbsent
+                ? 'bg-amber-900/20 border-amber-700/40 opacity-75'
+                : 'bg-slate-800 border-slate-700';
+
+    return (
+        <div className={cn('rounded-2xl p-3.5 border flex items-center gap-3 transition-all', bgClass)}>
+            <div className="w-10 h-10 rounded-xl bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                {student.photo_url
+                    ? <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
+                    : <span className="text-sm font-bold text-slate-400">{student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</span>
+                }
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="font-bold text-white text-sm truncate">{student.name}</p>
+                <p className="text-xs text-slate-400">{student.grade || t('Student', 'மாணவர்')}</p>
+            </div>
+            {preAbsent && !marked ? (
+                <span className="bg-amber-900/30 text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0">{t('Pre-Absent', 'முன் வரவில்லை')}</span>
+            ) : marked ? (
+                <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold flex items-center gap-1 shrink-0', marked === 'present' ? 'bg-emerald-400/20 text-emerald-400' : 'bg-red-400/20 text-red-400')}>
+                    {marked === 'present' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                    {marked === 'present' ? (isEvening ? t('Dropped', 'இறங்கினர்') : t('Present', 'வந்தனர்')) : t('Absent', 'வரவில்லை')}
+                </span>
+            ) : (
+                <div className="flex gap-1.5 shrink-0">
+                    <button onClick={() => onMark(student, 'absent')} className="w-8 h-8 bg-red-900/40 rounded-xl flex items-center justify-center active:scale-90 transition-all text-red-400">
+                        <X className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => onMark(student, 'present')} className="w-8 h-8 bg-emerald-900/40 rounded-xl flex items-center justify-center active:scale-90 transition-all text-emerald-400">
+                        <Check className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function DriverAttendancePage() {
     const t = useT();
     const [stops, setStops] = useState<TripStop[]>([]);
@@ -89,9 +137,8 @@ export default function DriverAttendancePage() {
     };
 
     const isPreAbsent = (studentId: string) => absences.some(a => a.student_id === studentId && a.status === 'absent');
-    const currentStop = stops[currentStopIndex];
     const allStudents = stops.flatMap(s => s.students);
-    const filteredStudents = searchQuery ? allStudents.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())) : currentStop?.students || [];
+    const filteredStudents = searchQuery ? allStudents.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())) : [];
     const activeStudent = activeStudentId ? allStudents.find(s => s.id === activeStudentId) : null;
 
     const onBoard = allStudents.filter(s => attendance[s.id] === 'present').length;
@@ -137,70 +184,50 @@ export default function DriverAttendancePage() {
                 </div>
             </div>
 
-            {/* Stop tabs */}
-            {!searchQuery && stops.length > 0 && (
-                <div className="px-4 py-2 flex gap-2 overflow-x-auto">
-                    {stops.map((stop, i) => (
-                        <button key={stop.id} onClick={() => setCurrentStopIndex(i)} className={cn('shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all', i === currentStopIndex ? 'bg-[var(--brand)] text-white' : 'bg-white dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700')}>
-                            {stop.name}
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            {/* Current stop info */}
-            {!searchQuery && currentStop && (
-                <div className="mx-4 mt-2 mb-3 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                    <div className="p-2 bg-[var(--brand)]/20 rounded-xl"><MapPin className="w-4 h-4 text-[var(--brand)]" /></div>
-                    <div>
-                        <p className="font-bold text-white text-sm">{currentStop.name}</p>
-                        <p className="text-slate-400 text-xs">{currentStop.students.length} {t('Students', 'மாணவர்கள்')}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Student List */}
-            <div className="px-4 space-y-2 pb-6">
-                {filteredStudents.length === 0 ? (
-                    <div className="text-center py-10 text-slate-500 text-sm">
-                        {searchQuery
-                            ? t('No students match your search', 'தேடலில் மாணவர்கள் இல்லை')
-                            : t('No students at this stop', 'இந்த நிறுத்தத்தில் மாணவர்கள் இல்லை')}
-                    </div>
-                ) : filteredStudents.map(student => {
-                    const marked = attendance[student.id];
-                    const preAbsent = isPreAbsent(student.id);
-                    return (
-                        <div key={student.id} className={cn('bg-white dark:bg-slate-800 rounded-2xl p-4 border flex items-center gap-4 transition-all', marked === 'present' ? 'border-emerald-700' : marked === 'absent' ? 'border-red-800' : preAbsent ? 'border-amber-700 opacity-75' : 'border-slate-200 dark:border-slate-700')}>
-                            <div className="w-12 h-12 rounded-2xl bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
-                                {student.photo_url ? <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" /> : <span className="text-lg font-bold text-slate-400">{student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</span>}
+            {/* All stops with students grouped by stop */}
+            <div className="px-4 pb-8 space-y-5 mt-2">
+                {searchQuery ? (
+                    /* Search results — flat list */
+                    filteredStudents.length === 0 ? (
+                        <div className="text-center py-10 text-slate-500 text-sm">
+                            {t('No students match your search', 'தேடலில் மாணவர்கள் இல்லை')}
+                        </div>
+                    ) : filteredStudents.map(student => (
+                        <StudentCard key={student.id} student={student} marked={attendance[student.id]} preAbsent={isPreAbsent(student.id)} isEvening={isEvening} onMark={handleMarkAttendance} t={t} />
+                    ))
+                ) : (
+                    stops.map((stop, i) => (
+                        <div key={stop.id}>
+                            {/* Stop header */}
+                            <div className={cn('flex items-center gap-2.5 px-1 mb-2', i === currentStopIndex ? 'opacity-100' : 'opacity-60')}>
+                                <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0', i < currentStopIndex ? 'bg-slate-600 text-slate-300' : i === currentStopIndex ? 'bg-[var(--brand)] text-white' : 'bg-slate-700 text-slate-400')}>
+                                    {i + 1}
+                                </div>
+                                <div className="flex-1">
+                                    <p className={cn('text-sm font-bold', i === currentStopIndex ? 'text-white' : 'text-slate-400')}>{stop.name}</p>
+                                    <p className="text-[10px] text-slate-500">
+                                        {stop.students.length} {t('students', 'மாணவர்கள்')}
+                                        {i < currentStopIndex && ` · ${t('Passed', 'கடந்தது')}`}
+                                        {i === currentStopIndex && ` · ${t('Current', 'தற்போது')}`}
+                                    </p>
+                                </div>
+                                {i === currentStopIndex && (
+                                    <span className="text-[10px] font-bold bg-[var(--brand)]/20 text-[var(--brand)] px-2 py-0.5 rounded-full">{t('NOW', 'இப்போது')}</span>
+                                )}
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="font-bold text-white truncate">{student.name}</p>
-                                <p className="text-xs text-slate-400">{student.grade || t('Student', 'மாணவர்')}</p>
-                            </div>
-                            {preAbsent && !marked ? (
-                                <span className="bg-amber-900/30 text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium">{t('Absent', 'வரவில்லை')}</span>
-                            ) : marked ? (
-                                <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium flex items-center gap-1', marked === 'present' ? 'bg-emerald-900/30 text-emerald-400' : 'bg-red-900/30 text-red-400')}>
-                                    {marked === 'present' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                    {marked === 'present'
-                                        ? (isEvening ? t('Dropped', 'இறங்கினர்') : t('Present', 'வந்தனர்'))
-                                        : t('Absent', 'வரவில்லை')}
-                                </span>
+
+                            {stop.students.length === 0 ? (
+                                <p className="text-xs text-slate-600 px-3 pb-1">{t('No students at this stop', 'இந்த நிறுத்தத்தில் மாணவர்கள் இல்லை')}</p>
                             ) : (
-                                <div className="flex gap-2">
-                                    <button onClick={() => handleMarkAttendance(student, 'absent')} className="px-2.5 py-1.5 bg-red-900/30 rounded-xl flex items-center gap-1 active:scale-95 transition-all text-xs font-semibold text-red-400">
-                                        <X className="w-3.5 h-3.5" /> {t('Absent', 'வரவில்லை')}
-                                    </button>
-                                    <button onClick={() => handleMarkAttendance(student, 'present')} className="px-2.5 py-1.5 bg-emerald-900/30 rounded-xl flex items-center gap-1 active:scale-95 transition-all text-xs font-semibold text-emerald-400">
-                                        <Check className="w-3.5 h-3.5" /> {isEvening ? t('Dropped', 'இறங்கினர்') : t('Present', 'வந்தனர்')}
-                                    </button>
+                                <div className="space-y-2">
+                                    {stop.students.map(student => (
+                                        <StudentCard key={student.id} student={student} marked={attendance[student.id]} preAbsent={isPreAbsent(student.id)} isEvening={isEvening} onMark={handleMarkAttendance} t={t} />
+                                    ))}
                                 </div>
                             )}
                         </div>
-                    );
-                })}
+                    ))
+                )}
             </div>
 
             {/* Mark attendance overlay */}
