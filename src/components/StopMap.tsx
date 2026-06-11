@@ -297,7 +297,7 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
                                 <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shrink-0">
                                     <Plus className="w-3 h-3 text-white" />
                                 </div>
-                                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">New Stop</p>
+                                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{t('New Stop', 'புதிய நிறுத்தம்')}</p>
                             </div>
                             <button
                                 onClick={cancelDraft}
@@ -311,7 +311,7 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
                             <div>
                                 <input
                                     className={inputCls}
-                                    placeholder="Stop name *"
+                                    placeholder={t('Stop name *', 'நிறுத்த பெயர் *')}
                                     value={draftName}
                                     onChange={e => setDraftName(e.target.value)}
                                     onKeyDown={e => { if (e.key === 'Enter') handleSaveDraft(); if (e.key === 'Escape') cancelDraft(); }}
@@ -344,13 +344,13 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
                                     {saving
                                         ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                         : <Plus className="w-3.5 h-3.5" />}
-                                    Save
+                                    {t('Save', 'சேமி')}
                                 </button>
                                 <button
                                     onClick={cancelDraft}
                                     className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-white rounded-lg py-1.5 font-semibold text-xs hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                                 >
-                                    Cancel
+                                    {t('Cancel', 'ரத்து')}
                                 </button>
                             </div>
                         </div>
