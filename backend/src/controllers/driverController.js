@@ -44,7 +44,7 @@ const getDriverById = async (req, res) => {
 
 const createDriver = async (req, res) => {
     try {
-        const { user_id, license_no, assigned_bus_id, school_id, name, email: rawEmail, phone } = req.body;
+        const { user_id, license_no, assigned_bus_id, school_id, name, email: rawEmail, phone, password: providedPassword } = req.body;
         const effectiveSchoolId = req.user.role === 'super_admin' ? school_id : req.user.school_id;
 
         let resolvedUserId = user_id;
@@ -59,7 +59,7 @@ const createDriver = async (req, res) => {
                 if (existing.role === 'driver') {
                     const linked = await prisma.driver.findUnique({ where: { user_id: existing.id } });
                     if (!linked) {
-                        tempPassword = crypto.randomBytes(8).toString('base64url');
+                        tempPassword = providedPassword || crypto.randomBytes(8).toString('base64url');
                         const hashedPassword = await bcrypt.hash(tempPassword, 12);
                         await prisma.user.update({
                             where: { id: existing.id },
@@ -73,7 +73,7 @@ const createDriver = async (req, res) => {
                     return res.status(409).json({ error: `This email is already registered as a ${existing.role}. Use a different email.` });
                 }
             } else {
-                tempPassword = crypto.randomBytes(8).toString('base64url');
+                tempPassword = providedPassword || crypto.randomBytes(8).toString('base64url');
                 const hashedPassword = await bcrypt.hash(tempPassword, 12);
                 const newUser = await prisma.user.create({
                     data: { name, email, phone: phone || null, password: hashedPassword, role: 'driver', school_id: effectiveSchoolId, is_first_login: true, is_active: true },
