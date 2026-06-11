@@ -15,6 +15,7 @@ interface StopFromTrip {
     latitude: number;
     longitude: number;
     sequence: number;
+    students?: StudentFromTrip[];
 }
 
 interface StudentFromTrip {
@@ -53,6 +54,7 @@ interface StopPin {
     lng: number;
     sequence: number;
     student_count: number;
+    students?: StudentFromTrip[];
     color?: string;
 }
 
@@ -156,7 +158,13 @@ export default function TrackingPage() {
                     lat: s.latitude,
                     lng: s.longitude,
                     sequence: s.sequence,
-                    student_count: Array.isArray(s.students) ? s.students.length : 0,
+                    // Use backend-remapped stop.students first; fall back to flat route.students filtered by stop_id
+                    student_count: Array.isArray(s.students) && s.students.length > 0
+                        ? s.students.length
+                        : (trip.route?.students?.filter(st => st.stop_id === s.id).length ?? 0),
+                    students: Array.isArray(s.students) && s.students.length > 0
+                        ? s.students
+                        : (trip.route?.students?.filter(st => st.stop_id === s.id) ?? []),
                 }))
         );
         // Merge: keep fallback-only stops, update student_count for trip stops
@@ -193,7 +201,13 @@ export default function TrackingPage() {
         const trip = trips.find(t => t.bus_id === selectedBusId) ||
                      trips.find(t => t.route?.stops?.some(s => s.id === stopId));
         const stop = trip?.route?.stops?.find(s => s.id === stopId);
-        const students = Array.isArray(stop?.students) ? stop.students : (trip?.route?.students?.filter(s => s.stop_id === stopId) ?? []);
+        // Priority: stop.students (backend re-mapped) → route.students filtered → routeStops cache
+        const stopPin = routeStops.find(p => p.id === stopId);
+        const students: StudentFromTrip[] = (Array.isArray(stop?.students) && stop.students!.length > 0)
+            ? stop.students!
+            : (trip?.route?.students?.filter(s => s.stop_id === stopId)?.length ?? 0) > 0
+                ? trip!.route!.students!.filter(s => s.stop_id === stopId)
+                : (stopPin?.students ?? []);
         setSelectedStop({ id: stopId, name: stopName, students });
         setAssignStudentId('');
         setAssignSuccess(false);
@@ -204,7 +218,7 @@ export default function TrackingPage() {
                 setStudentsLoaded(true);
             }).catch(() => {});
         }
-    }, [trips, selectedBusId, studentsLoaded]);
+    }, [trips, selectedBusId, studentsLoaded, routeStops]);
 
     const handleAssignStudent = async () => {
         if (!assignStudentId || !selectedStop) return;
@@ -228,8 +242,13 @@ export default function TrackingPage() {
     // Refresh stop students after trips reload
     useEffect(() => {
         if (!selectedStop) return;
-        const trip = trips.find(t => t.bus_id === selectedBusId);
-        const students = trip?.route?.students?.filter(s => s.stop_id === selectedStop.id) ?? [];
+        const trip = trips.find(t => t.bus_id === selectedBusId) ||
+                     trips.find(t => t.route?.stops?.some(s => s.id === selectedStop.id));
+        if (!trip) return;
+        const stop = trip.route?.stops?.find(s => s.id === selectedStop.id);
+        const students: StudentFromTrip[] = (Array.isArray(stop?.students) && stop.students!.length > 0)
+            ? stop.students!
+            : (trip.route?.students?.filter(s => s.stop_id === selectedStop.id) ?? []);
         setSelectedStop(prev => prev ? { ...prev, students } : null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [trips]);
