@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Truck, Plus, Edit, Trash2, X } from 'lucide-react';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface Route {
     id: string;
@@ -26,6 +27,7 @@ const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-20
 
 export default function SchoolBusesPage() {
     const { id } = useParams<{ id: string }>();
+    const t = useT();
     const [buses, setBuses] = useState<Bus[]>([]);
     const [routes, setRoutes] = useState<Route[]>([]);
     const [loading, setLoading] = useState(true);
@@ -123,7 +125,7 @@ export default function SchoolBusesPage() {
     };
 
     const handleDelete = async (bus: Bus) => {
-        if (!window.confirm(`Delete bus "${bus.bus_number}"? This cannot be undone.`)) return;
+        if (!window.confirm(t('Delete this bus? This cannot be undone.', 'இந்த பேருந்தை நீக்கவா? இதை மீண்டும் செய்ய முடியாது.'))) return;
         try {
             await api.delete(`/buses/${bus.id}`);
             fetchAll();

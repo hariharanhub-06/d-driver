@@ -117,7 +117,7 @@ export default function RoutesPage() {
     };
 
     const handleDeleteStop = async (stopId: string) => {
-        if (!window.confirm('Delete this stop? This cannot be undone.')) return;
+        if (!window.confirm(t('Delete this stop? This cannot be undone.', 'இந்த நிறுத்தத்தை நீக்கவா? இதை மீண்டும் செய்ய முடியாது.'))) return;
         try {
             await api.delete(`/stops/${stopId}`);
             setStops(prev => prev.filter(s => s.id !== stopId));

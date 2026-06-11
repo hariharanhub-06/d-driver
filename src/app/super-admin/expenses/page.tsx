@@ -153,7 +153,7 @@ export default function SAExpensesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this expense record?')) return;
+    if (!confirm(t('Delete this expense record?', 'இந்த செலவு பதிவை நீக்கவா?'))) return;
     setDeletingId(id);
     try {
       await api.delete(`/billing/manual-expenses/${id}`);

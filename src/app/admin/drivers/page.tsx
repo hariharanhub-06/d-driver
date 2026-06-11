@@ -109,7 +109,7 @@ export default function DriversPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to remove this driver?')) return;
+        if (!confirm(t('Are you sure you want to remove this driver?', 'இந்த ஓட்டுனரை அகற்ற உறுதியாக இருக்கிறீர்களா?'))) return;
         try {
             await api.delete(`/drivers/${id}`);
             setDrivers(prev => prev.filter(d => d.id !== id));

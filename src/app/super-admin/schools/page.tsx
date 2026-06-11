@@ -142,7 +142,7 @@ export default function SchoolsManagement() {
     };
 
     const handleDeleteFixUser = async () => {
-        if (!fixUserResult || !confirm(`Delete user ${fixUserResult.email}? This cannot be undone.`)) return;
+        if (!fixUserResult || !confirm(t('Delete this user? This cannot be undone.', 'இந்த பயனரை நீக்கவா? இதை மீண்டும் செய்ய முடியாது.'))) return;
         try {
             await api.delete(`/users/${fixUserResult.id}`);
             setFixUserMsg(`✓ User ${fixUserResult.email} deleted.`);
@@ -321,7 +321,7 @@ export default function SchoolsManagement() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Permanently delete this school and all its data? This cannot be undone.')) return;
+        if (!confirm(t('Permanently delete this school and all its data? This cannot be undone.', 'இந்த பள்ளியையும் அனைத்து தரவையும் நிரந்தரமாக நீக்கவா? இதை மீண்டும் செய்ய முடியாது.'))) return;
         try {
             await api.delete(`/schools/${id}`);
             fetchSchools();
@@ -371,7 +371,7 @@ export default function SchoolsManagement() {
     };
 
     const handleDeleteAdmin = async (userId: string) => {
-        if (!confirm('Remove this admin?')) return;
+        if (!confirm(t('Remove this admin?', 'இந்த அட்மினை அகற்றவா?'))) return;
         try {
             await api.delete(`/users/${userId}`);
             setSchoolAdmins(p => p.filter(u => u.id !== userId));

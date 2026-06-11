@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Users, Plus, Trash2, X, Copy, CheckCircle2, Edit } from 'lucide-react';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface Bus {
     id: string;
@@ -23,6 +24,7 @@ const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-20
 
 export default function SchoolDriversPage() {
     const { id } = useParams<{ id: string }>();
+    const t = useT();
     const [drivers, setDrivers] = useState<Driver[]>([]);
     const [buses, setBuses] = useState<Bus[]>([]);
     const [loading, setLoading] = useState(true);
@@ -124,7 +126,7 @@ export default function SchoolDriversPage() {
     };
 
     const handleDelete = async (driver: Driver) => {
-        if (!window.confirm(`Delete driver "${driver.user.name}"? This cannot be undone.`)) return;
+        if (!window.confirm(t('Delete this driver? This cannot be undone.', 'இந்த ஓட்டுனரை நீக்கவா? இதை மீண்டும் செய்ய முடியாது.'))) return;
         try {
             await api.delete(`/drivers/${driver.id}`);
             fetchAll();

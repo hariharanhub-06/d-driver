@@ -246,7 +246,7 @@ function LandingPageTab() {
   };
 
   const handleDeletePartner = async (id: number) => {
-    if (!confirm('Delete this partner?')) return;
+    if (!confirm(t('Delete this partner?', 'இந்த கூட்டாளியை நீக்கவா?'))) return;
     try {
       await api.delete(`/platform/partners/${id}`);
       setPartnerMsg({ type: 'success', text: 'Partner deleted.' });
@@ -330,7 +330,7 @@ function LandingPageTab() {
   };
 
   const handleDeleteFounder = async (id: number) => {
-    if (!confirm('Delete this founder?')) return;
+    if (!confirm(t('Delete this founder?', 'இந்த நிறுவனரை நீக்கவா?'))) return;
     try {
       await api.delete(`/platform/founders/${id}`);
       setFounderMsg({ type: 'success', text: 'Founder deleted.' });

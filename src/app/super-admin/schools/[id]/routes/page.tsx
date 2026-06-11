@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { MapPin, Plus, Edit, Trash2, X, ChevronDown, ArrowUpDown } from 'lucide-react';
 import api from '@/lib/api';
 import type { StopPoint } from '@/components/StopMap';
+import { useT } from '@/lib/i18n';
 
 const StopMap = dynamic(() => import('@/components/StopMap'), { ssr: false });
 
@@ -33,6 +34,7 @@ const typeBadge: Record<string, string> = {
 
 export default function SchoolRoutesPage() {
     const { id } = useParams<{ id: string }>();
+    const t = useT();
     const [routes, setRoutes] = useState<Route[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -118,7 +120,7 @@ export default function SchoolRoutesPage() {
     };
 
     const handleDelete = async (route: Route) => {
-        if (!window.confirm(`Delete route "${route.name}"? This cannot be undone.`)) return;
+        if (!window.confirm(t('Delete this route? This cannot be undone.', 'இந்த வழியை நீக்கவா? இதை மீண்டும் செய்ய முடியாது.'))) return;
         try {
             await api.delete(`/routes/${route.id}`);
             if (selectedRouteId === route.id) setSelectedRouteId(null);
@@ -211,7 +213,7 @@ export default function SchoolRoutesPage() {
     };
 
     const handleDeleteStop = async (stopId: string) => {
-        if (!window.confirm('Delete this stop? This cannot be undone.')) return;
+        if (!window.confirm(t('Delete this stop? This cannot be undone.', 'இந்த நிறுத்தத்தை நீக்கவா? இதை மீண்டும் செய்ய முடியாது.'))) return;
         try {
             await api.delete(`/stops/${stopId}`);
             setStops(prev => prev.filter(s => s.id !== stopId));

@@ -71,7 +71,7 @@ export default function DriverDashboard() {
     };
 
     const handleTriggerSos = async () => {
-        if (!confirm('Send SOS alert to admin?')) return;
+        if (!confirm(t('Send SOS alert to admin?', 'அட்மினுக்கு SOS எச்சரிக்கை அனுப்பவா?'))) return;
         try {
             const res = await api.post('/sos/trigger', {});
             setActiveSos({ id: res.data?.id || res.data?.alert?.id });

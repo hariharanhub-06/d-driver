@@ -149,7 +149,7 @@ export default function BillingPage() {
     };
 
     const handleDeletePlan = async (id: string, name: string) => {
-        if (!confirm(`Delete the plan "${name}"? This cannot be undone.`)) return;
+        if (!confirm(t('Delete this plan? This cannot be undone.', 'இந்த திட்டத்தை நீக்கவா? இதை மீண்டும் செய்ய முடியாது.'))) return;
         setDeletingPlanId(id);
         try {
             await api.delete(`/billing/plans/${id}`);
@@ -177,7 +177,7 @@ export default function BillingPage() {
     };
 
     const handleGenerateAll = async () => {
-        if (!confirm('Generate invoices for all active schools this month?')) return;
+        if (!confirm(t('Generate invoices for all active schools this month?', 'இந்த மாதம் அனைத்து பள்ளிகளுக்கும் விலைப்பட்டியல் உருவாக்கவா?'))) return;
         setGeneratingAll(true);
         try {
             await api.post('/billing/generate-all', { billing_month: new Date().toISOString().slice(0, 7) });
@@ -191,7 +191,7 @@ export default function BillingPage() {
     };
 
     const handleRecordPayment = async (invoiceId: string) => {
-        if (!confirm('Mark this invoice as paid?')) return;
+        if (!confirm(t('Mark this invoice as paid?', 'இந்த விலைப்பட்டியலை செலுத்தியதாக குறிக்கவா?'))) return;
         try {
             await api.patch(`/billing/invoices/${invoiceId}/pay`);
             fetchAll();

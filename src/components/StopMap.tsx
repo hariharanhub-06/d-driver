@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 
 import { useEffect, useRef, useState } from 'react';
 import { MapPin, Plus, X } from 'lucide-react';
+import { useT } from '@/lib/i18n';
 
 export interface StopPoint {
     id: string;
@@ -32,12 +33,16 @@ interface Draft {
 const inputCls = 'w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors';
 
 export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Props) {
+    const t = useT();
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<any>(null);
     const LRef = useRef<any>(null);
     const markersRef = useRef<any[]>([]);
     const polylineRef = useRef<any>(null);
     const draftMarkerRef = useRef<any>(null);
+
+    const tRef = useRef(t);
+    useEffect(() => { tRef.current = t; }, [t]);
 
     const [ready, setReady] = useState(false);
     const [draft, setDraft] = useState<Draft | null>(null);
@@ -142,7 +147,7 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
             marker.on('popupopen', () => {
                 const btn = document.querySelector(`[data-stop-id="${stop.id}"]`);
                 if (btn) btn.addEventListener('click', () => {
-                    if (window.confirm(`Delete stop "${stop.name}"?`)) {
+                    if (window.confirm(tRef.current('Delete this stop?', 'இந்த நிறுத்தத்தை நீக்கவா?'))) {
                         onDeleteStop(stop.id);
                         map.closePopup();
                     }
