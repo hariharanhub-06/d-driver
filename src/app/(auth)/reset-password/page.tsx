@@ -2,12 +2,9 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Bus, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { Eye, EyeOff, KeyRound, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
-import dynamic from 'next/dynamic';
-
-const AuthBusPanel = dynamic(() => import('@/components/ui/AuthBusPanel'), { ssr: false });
 
 function ResetPasswordContent() {
   const [newPassword, setNewPassword] = useState('');
@@ -45,89 +42,112 @@ function ResetPasswordContent() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* ── Left panel — animated bus scene only ────────────────── */}
-      <div className="hidden lg:block lg:w-[48%] relative overflow-hidden" style={{ backgroundColor: 'var(--brand, #3B82F6)' }}>
-        <AuthBusPanel />
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-slate-50 dark:bg-slate-950">
+      <div className="w-full max-w-md mx-auto mb-4">
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Login
+        </Link>
       </div>
 
-      {/* ── Right panel ─────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-slate-900 px-6 py-12">
-        <div className="flex items-center gap-2 mb-8 lg:hidden">
-          <div className="w-9 h-9 rounded-xl bg-[var(--brand)] flex items-center justify-center">
-            <Bus className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-bold text-slate-900 dark:text-white text-lg">D-Driver</span>
-        </div>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 px-8 py-10 w-full max-w-md mx-auto">
 
-        <div className="w-full max-w-sm">
-          <div className="w-14 h-14 rounded-2xl bg-[var(--brand)] flex items-center justify-center mx-auto mb-6 shadow-lg">
+        {/* Icon + heading */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-14 h-14 rounded-2xl bg-green-500 flex items-center justify-center mb-4 shadow-md">
             <KeyRound className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-1">Reset Password</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-8">Create a new secure password for your account</p>
-
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-2.5 mb-4">{error}</div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">New Password</label>
-              <div className="relative">
-                <input
-                  type={showNew ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  autoComplete="new-password"
-                  className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors pr-10"
-                  placeholder="••••••••"
-                  required
-                  minLength={8}
-                  disabled={!token}
-                />
-                <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Confirm Password</label>
-              <div className="relative">
-                <input
-                  type={showConfirm ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  autoComplete="new-password"
-                  className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors pr-10"
-                  placeholder="••••••••"
-                  required
-                  minLength={8}
-                  disabled={!token}
-                />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={isLoading || !token}
-              className="w-full bg-[var(--brand)] hover:opacity-90 text-white rounded-xl py-3 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50 mt-2"
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Resetting…
-                </span>
-              ) : 'Reset Password'}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <Link href="/login" className="text-sm text-[var(--brand)] hover:underline font-medium">Back to Login</Link>
-          </div>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Reset Password</h1>
+          <p className="text-xs text-slate-400 mt-1 text-center">Create a new secure password for your account</p>
         </div>
+
+        <div className="border-t border-slate-100 dark:border-slate-800 mb-6" />
+
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center gap-2 mb-5">
+            <span className="shrink-0">⚠</span>
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+              New Password
+            </label>
+            <div className="relative">
+              <input
+                type={showNew ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                className="w-full border-0 border-b-2 border-slate-200 dark:border-slate-700 bg-transparent py-3 text-slate-900 dark:text-white text-sm outline-none transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600 pr-10"
+                onFocus={e => (e.currentTarget.style.borderBottomColor = '#22c55e')}
+                onBlur={e => (e.currentTarget.style.borderBottomColor = '')}
+                placeholder="••••••••"
+                required
+                minLength={8}
+                disabled={!token}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNew(!showNew)}
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
+                tabIndex={-1}
+              >
+                {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+              Confirm Password
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirm ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                className="w-full border-0 border-b-2 border-slate-200 dark:border-slate-700 bg-transparent py-3 text-slate-900 dark:text-white text-sm outline-none transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600 pr-10"
+                onFocus={e => (e.currentTarget.style.borderBottomColor = '#22c55e')}
+                onBlur={e => (e.currentTarget.style.borderBottomColor = '')}
+                placeholder="••••••••"
+                required
+                minLength={8}
+                disabled={!token}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
+                tabIndex={-1}
+              >
+                {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading || !token}
+            className="w-full py-3.5 text-white font-bold rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg bg-green-500"
+            style={{ boxShadow: '0 8px 24px #22c55e33' }}
+            onMouseEnter={e => !isLoading && (e.currentTarget.style.filter = 'brightness(0.9)')}
+            onMouseLeave={e => (e.currentTarget.style.filter = '')}
+          >
+            {isLoading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Resetting…
+              </>
+            ) : 'Reset Password'}
+          </button>
+        </form>
       </div>
     </div>
   );
@@ -136,8 +156,8 @@ function ResetPasswordContent() {
 export default function ResetPasswordPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[var(--brand)]/30 border-t-[var(--brand)] rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="w-8 h-8 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin" />
       </div>
     }>
       <ResetPasswordContent />

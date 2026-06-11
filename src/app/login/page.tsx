@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Bus, Eye, EyeOff, Lock } from 'lucide-react';
+import { Bus, Eye, EyeOff, Lock, ArrowLeft } from 'lucide-react';
 import api from '@/lib/api';
 
 export default function LoginPage() {
@@ -101,6 +101,15 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-slate-50 dark:bg-slate-950">
+            <div className="w-full max-w-md mx-auto mb-4">
+                <Link
+                    href="/"
+                    className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to Home
+                </Link>
+            </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 px-8 py-10 w-full max-w-md mx-auto">
 
                 {/* Logo + Brand */}
