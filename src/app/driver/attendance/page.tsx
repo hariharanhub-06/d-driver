@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Check, X, Search, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
-import { ta } from '@/lib/i18n';
+import { useT, ta } from '@/lib/i18n';
 
 interface Student { id: string; name: string; photo_url?: string; grade?: string; stop_id?: string; }
 interface AbsenceRecord { student_id: string; status: string; }
@@ -12,6 +12,7 @@ interface TripStop { id: string; name: string; sequence: number; students: Stude
 
 // ── ALL EXISTING LOGIC PRESERVED — VERBATIM ───────────────────────────────
 export default function DriverAttendancePage() {
+    const t = useT();
     const [stops, setStops] = useState<TripStop[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -38,8 +39,6 @@ export default function DriverAttendancePage() {
                 const tripType = savedType || trip.route?.route_type || trip.route_type || '';
                 setIsEvening(tripType === 'afternoon' || tripType === 'evening');
                 const route = trip.route || {};
-                // stops already have .students from Prisma include — use them directly.
-                // route.students (top-level) is NOT populated by the backend.
                 const stopsWithStudents: TripStop[] = (route.stops || []).map((stop: any) => ({
                     ...stop,
                     students: stop.students || [],
@@ -98,7 +97,6 @@ export default function DriverAttendancePage() {
     const onBoard = allStudents.filter(s => attendance[s.id] === 'present').length;
     const missing = allStudents.filter(s => !attendance[s.id] && !isPreAbsent(s.id)).length;
 
-    // ─── NEW BILINGUAL UI ────────────────────────────────────────────────────
     if (loading) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center"><div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" /></div>;
     if (error) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-6"><div className="bg-red-900/30 border border-red-800 text-red-400 rounded-2xl p-6 text-center">{error}</div></div>;
 
@@ -108,25 +106,24 @@ export default function DriverAttendancePage() {
             <div className="bg-white dark:bg-slate-800 px-4 pt-10 pb-4">
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <h1 className="text-xl font-bold text-white">Student Attendance</h1>
-                        <p className="text-slate-400 text-xs mt-0.5">{ta.studentAttendance}</p>
+                        <h1 className="text-xl font-bold text-white">{t('Student Attendance', 'மாணவர் வருகை பதிவு')}</h1>
+                        <p className="text-slate-400 text-xs mt-0.5">{t('Today\'s Attendance', 'இன்றைய வருகை')}</p>
                     </div>
                     <button onClick={handleMarkAll} className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all">
-                        <Check className="w-3.5 h-3.5" /> {ta.markAll}
+                        <Check className="w-3.5 h-3.5" /> {t('Mark All Present', 'அனைவரும் வந்தனர் என குறிக்கவும்')}
                     </button>
                 </div>
 
                 {/* Summary tiles */}
                 <div className="grid grid-cols-3 gap-2">
                     {[
-                        { label: 'On Board', labelTa: ta.onBoard, val: onBoard, color: 'text-emerald-400' },
-                        { label: 'Missing', labelTa: ta.missing, val: missing, color: 'text-red-400' },
-                        { label: 'Total', labelTa: ta.total, val: allStudents.length, color: 'text-white' },
-                    ].map(t => (
-                        <div key={t.label} className="bg-slate-700/50 rounded-xl p-3 text-center">
-                            <p className={`text-2xl font-black ${t.color}`}>{t.val}</p>
-                            <p className="text-slate-400 text-[10px] mt-0.5">{t.label}</p>
-                            <p className="text-slate-500 text-[9px]">{t.labelTa}</p>
+                        { label: t('On Board', 'பேருந்தில் உள்ளவர்'), val: onBoard, color: 'text-emerald-400' },
+                        { label: t('Missing', 'இல்லாதவர்'), val: missing, color: 'text-red-400' },
+                        { label: t('Total', 'மொத்தம்'), val: allStudents.length, color: 'text-white' },
+                    ].map(item => (
+                        <div key={item.label} className="bg-slate-700/50 rounded-xl p-3 text-center">
+                            <p className={`text-2xl font-black ${item.color}`}>{item.val}</p>
+                            <p className="text-slate-400 text-[10px] mt-0.5">{item.label}</p>
                         </div>
                     ))}
                 </div>
@@ -136,7 +133,7 @@ export default function DriverAttendancePage() {
             <div className="px-4 pt-3 pb-2">
                 <div className="relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="text" placeholder="Search student..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-2.5 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-[var(--brand)] transition-colors placeholder:text-slate-500" />
+                    <input type="text" placeholder={t('Search student...', 'மாணவரை தேடு...')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-2.5 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-[var(--brand)] transition-colors placeholder:text-slate-500" />
                 </div>
             </div>
 
@@ -157,7 +154,7 @@ export default function DriverAttendancePage() {
                     <div className="p-2 bg-[var(--brand)]/20 rounded-xl"><MapPin className="w-4 h-4 text-[var(--brand)]" /></div>
                     <div>
                         <p className="font-bold text-white text-sm">{currentStop.name}</p>
-                        <p className="text-slate-400 text-xs">{currentStop.students.length} {ta.students}</p>
+                        <p className="text-slate-400 text-xs">{currentStop.students.length} {t('Students', 'மாணவர்கள்')}</p>
                     </div>
                 </div>
             )}
@@ -165,7 +162,11 @@ export default function DriverAttendancePage() {
             {/* Student List */}
             <div className="px-4 space-y-2 pb-6">
                 {filteredStudents.length === 0 ? (
-                    <div className="text-center py-10 text-slate-500 text-sm">{searchQuery ? 'No students match your search' : 'No students at this stop'}</div>
+                    <div className="text-center py-10 text-slate-500 text-sm">
+                        {searchQuery
+                            ? t('No students match your search', 'தேடலில் மாணவர்கள் இல்லை')
+                            : t('No students at this stop', 'இந்த நிறுத்தத்தில் மாணவர்கள் இல்லை')}
+                    </div>
                 ) : filteredStudents.map(student => {
                     const marked = attendance[student.id];
                     const preAbsent = isPreAbsent(student.id);
@@ -176,21 +177,24 @@ export default function DriverAttendancePage() {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="font-bold text-white truncate">{student.name}</p>
-                                <p className="text-xs text-slate-400">{student.grade || 'Student'}</p>
+                                <p className="text-xs text-slate-400">{student.grade || t('Student', 'மாணவர்')}</p>
                             </div>
                             {preAbsent && !marked ? (
-                                <span className="bg-amber-900/30 text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium">{ta.absent}</span>
+                                <span className="bg-amber-900/30 text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium">{t('Absent', 'வரவில்லை')}</span>
                             ) : marked ? (
                                 <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium flex items-center gap-1', marked === 'present' ? 'bg-emerald-900/30 text-emerald-400' : 'bg-red-900/30 text-red-400')}>
-                                    {marked === 'present' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}{marked}
+                                    {marked === 'present' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                    {marked === 'present'
+                                        ? (isEvening ? t('Dropped', 'இறங்கினர்') : t('Present', 'வந்தனர்'))
+                                        : t('Absent', 'வரவில்லை')}
                                 </span>
                             ) : (
                                 <div className="flex gap-2">
                                     <button onClick={() => handleMarkAttendance(student, 'absent')} className="px-2.5 py-1.5 bg-red-900/30 rounded-xl flex items-center gap-1 active:scale-95 transition-all text-xs font-semibold text-red-400">
-                                        <X className="w-3.5 h-3.5" /> Absent
+                                        <X className="w-3.5 h-3.5" /> {t('Absent', 'வரவில்லை')}
                                     </button>
                                     <button onClick={() => handleMarkAttendance(student, 'present')} className="px-2.5 py-1.5 bg-emerald-900/30 rounded-xl flex items-center gap-1 active:scale-95 transition-all text-xs font-semibold text-emerald-400">
-                                        <Check className="w-3.5 h-3.5" /> {isEvening ? 'Dropped' : 'Present'}
+                                        <Check className="w-3.5 h-3.5" /> {isEvening ? t('Dropped', 'இறங்கினர்') : t('Present', 'வந்தனர்')}
                                     </button>
                                 </div>
                             )}
@@ -199,12 +203,12 @@ export default function DriverAttendancePage() {
                 })}
             </div>
 
-            {/* Mark attendance overlay — IDENTICAL to original */}
+            {/* Mark attendance overlay */}
             {activeStudent && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-200 dark:border-slate-700">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Mark Attendance</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Mark Attendance', 'வருகை குறி')}</h3>
                             <button onClick={() => { setActiveStudentId(null); setMarkingNote(''); }} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"><X className="w-5 h-5" /></button>
                         </div>
                         <div className="bg-[var(--brand)] p-8 flex flex-col items-center">
@@ -212,15 +216,15 @@ export default function DriverAttendancePage() {
                                 {activeStudent.photo_url ? <img src={activeStudent.photo_url} alt={activeStudent.name} className="w-full h-full object-cover" /> : <span className="text-3xl font-bold text-white">{activeStudent.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</span>}
                             </div>
                             <h3 className="text-xl font-bold text-white text-center">{activeStudent.name}</h3>
-                            <p className="text-white/70 text-sm mt-1">{activeStudent.grade || 'Student'}</p>
+                            <p className="text-white/70 text-sm mt-1">{activeStudent.grade || t('Student', 'மாணவர்')}</p>
                         </div>
                         <div className="p-6">
-                            <div className="mb-4"><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Note (optional)</label><input type="text" value={markingNote} onChange={e => setMarkingNote(e.target.value)} placeholder="Add a note..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)]" /></div>
+                            <div className="mb-4"><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Note (optional)', 'குறிப்பு (விருப்பமானது)')}</label><input type="text" value={markingNote} onChange={e => setMarkingNote(e.target.value)} placeholder={t('Add a note...', 'குறிப்பு சேர்...')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)]" /></div>
                             <div className="grid grid-cols-2 gap-3">
-                                <button onClick={() => handleMarkAttendance(activeStudent, 'absent')} className="py-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl font-bold flex flex-col items-center gap-2 border border-red-100 dark:border-red-800 active:scale-95"><X size={24} />{ta.absent}</button>
-                                <button onClick={() => handleMarkAttendance(activeStudent, 'present')} className="py-4 bg-[var(--brand)] text-white rounded-2xl font-bold flex flex-col items-center gap-2 active:scale-95"><Check size={24} />{isEvening ? 'Dropped' : ta.present}</button>
+                                <button onClick={() => handleMarkAttendance(activeStudent, 'absent')} className="py-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl font-bold flex flex-col items-center gap-2 border border-red-100 dark:border-red-800 active:scale-95"><X size={24} />{t('Absent', 'வரவில்லை')}</button>
+                                <button onClick={() => handleMarkAttendance(activeStudent, 'present')} className="py-4 bg-[var(--brand)] text-white rounded-2xl font-bold flex flex-col items-center gap-2 active:scale-95"><Check size={24} />{isEvening ? t('Dropped', 'இறங்கினர்') : t('Present', 'வந்தனர்')}</button>
                             </div>
-                            <button onClick={() => { setActiveStudentId(null); setMarkingNote(''); }} className="w-full mt-4 py-2.5 text-xs font-medium text-slate-400 transition-colors">Cancel</button>
+                            <button onClick={() => { setActiveStudentId(null); setMarkingNote(''); }} className="w-full mt-4 py-2.5 text-xs font-medium text-slate-400 transition-colors">{t('Cancel', 'ரத்து செய்')}</button>
                         </div>
                     </div>
                 </div>

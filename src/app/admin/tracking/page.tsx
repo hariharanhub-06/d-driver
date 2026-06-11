@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { Bus, Navigation, Clock, MapPin, Users, X, UserPlus, Loader2, Check, WifiOff } from 'lucide-react';
 import api from '@/lib/api';
 import { useSchoolBranding } from '@/context/SchoolBrandingContext';
+import { useT } from '@/lib/i18n';
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
 
@@ -76,6 +77,7 @@ function timeAgo(ts: string): string {
 }
 
 export default function TrackingPage() {
+    const t = useT();
     const branding = useSchoolBranding();
     const [trips, setTrips] = useState<Trip[]>([]);
     const [locations, setLocations] = useState<LocationEntry[]>([]);
@@ -277,15 +279,15 @@ export default function TrackingPage() {
         <div className="space-y-6 animate-in">
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Live Tracking</h1>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('Live Tracking', 'நேரடி கண்காணிப்பு')}</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Real-time GPS — click a stop pin to see students
+                        {t('Real-time GPS — click a stop pin to see students', 'நேரடி GPS — மாணவர்களை பார்க்க நிறுத்தத்தை கிளிக் செய்')}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
-                        {activeCount} Trip{activeCount !== 1 ? 's' : ''} · {gpsCount} GPS
+                        {activeCount} {t('Trip', 'பயணம்')}{activeCount !== 1 ? 's' : ''} · {gpsCount} GPS
                     </span>
                 </div>
             </div>
@@ -304,8 +306,8 @@ export default function TrackingPage() {
                     ) : busListItems.length === 0 ? (
                         <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
                             <Bus className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                            <p className="font-semibold">No Active Trips</p>
-                            <p className="text-xs mt-1">Buses appear when trips are started</p>
+                            <p className="font-semibold">{t('No Active Trips', 'செயல்பாட்டில் பயணங்கள் இல்லை')}</p>
+                            <p className="text-xs mt-1">{t('Buses appear when trips are started', 'பயணங்கள் தொடங்கியவுடன் பேருந்துகள் தோன்றும்')}</p>
                         </div>
                     ) : (
                         busListItems.map(bus => (
@@ -326,10 +328,10 @@ export default function TrackingPage() {
                                         <span className="font-bold text-sm text-slate-900 dark:text-white">{bus.bus_number}</span>
                                     </div>
                                     {bus.hasGps ? (
-                                        <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">Live</span>
+                                        <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">{t('Live', 'நேரடி')}</span>
                                     ) : (
                                         <span className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
-                                            <WifiOff className="w-3 h-3" /> No GPS
+                                            <WifiOff className="w-3 h-3" /> {t('No GPS', 'GPS இல்லை')}
                                         </span>
                                     )}
                                 </div>
@@ -351,7 +353,7 @@ export default function TrackingPage() {
                                 </div>
                                 {selectedBusId === bus.bus_id && routeStops.length > 0 && (
                                     <p className="text-xs text-[var(--brand)] mt-2 font-medium">
-                                        {routeStops.length} stops — tap a pin on map
+                                        {routeStops.length} {t('stops — tap a pin on map', 'நிறுத்தங்கள் — வரைபடத்தில் பின் தட்டவும்')}
                                     </p>
                                 )}
                             </button>
@@ -380,7 +382,7 @@ export default function TrackingPage() {
                                 </div>
                                 <div className="min-w-0">
                                     <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">{selectedStop.name}</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">{selectedStop.students.length} student{selectedStop.students.length !== 1 ? 's' : ''}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">{selectedStop.students.length} {t('student', 'மாணவர்')}{selectedStop.students.length !== 1 ? 's' : ''}</p>
                                 </div>
                             </div>
                             <button
@@ -395,7 +397,7 @@ export default function TrackingPage() {
                             {selectedStop.students.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-10 text-slate-400 dark:text-slate-500">
                                     <Users className="w-8 h-8 mb-2 opacity-30" />
-                                    <p className="text-xs font-medium">No students at this stop</p>
+                                    <p className="text-xs font-medium">{t('No students at this stop', 'இந்த நிறுத்தத்தில் மாணவர்கள் இல்லை')}</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -412,7 +414,7 @@ export default function TrackingPage() {
                                             )}
                                             <div className="min-w-0">
                                                 <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{s.name}</p>
-                                                {s.grade && <p className="text-xs text-slate-400">Grade {s.grade}</p>}
+                                                {s.grade && <p className="text-xs text-slate-400">{t('Grade', 'வகுப்பு')} {s.grade}</p>}
                                             </div>
                                         </div>
                                     ))}
@@ -423,12 +425,12 @@ export default function TrackingPage() {
                         <div className="border-t border-slate-100 dark:border-slate-700 p-4 space-y-3">
                             <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                                 <UserPlus className="w-3.5 h-3.5" />
-                                Assign Student to Stop
+                                {t('Assign Student to Stop', 'மாணவரை நிறுத்தத்தில் ஒதுக்கு')}
                             </div>
                             {!studentsLoaded ? (
                                 <div className="flex items-center gap-2 text-xs text-slate-400">
                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    Loading students...
+                                    {t('Loading students...', 'மாணவர்களை ஏற்றுகிறது...')}
                                 </div>
                             ) : (
                                 <>
@@ -437,7 +439,7 @@ export default function TrackingPage() {
                                         onChange={e => { setAssignStudentId(e.target.value); setAssignSuccess(false); }}
                                         className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/40"
                                     >
-                                        <option value="">Select a student...</option>
+                                        <option value="">{t('Select a student...', 'மாணவரை தேர்வு செய்...')}</option>
                                         {assignableStudents.map(s => (
                                             <option key={s.id} value={s.id}>
                                                 {s.name}{s.grade ? ` (Gr ${s.grade})` : ''}{s.stop?.name ? ` · ${s.stop.name}` : ''}
@@ -450,11 +452,11 @@ export default function TrackingPage() {
                                         className="w-full flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold bg-[var(--brand)] hover:bg-[var(--brand)]/90 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                     >
                                         {assignLoading ? (
-                                            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Assigning...</>
+                                            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('Assigning...', 'ஒதுக்குகிறது...')}</>
                                         ) : assignSuccess ? (
-                                            <><Check className="w-3.5 h-3.5" /> Assigned!</>
+                                            <><Check className="w-3.5 h-3.5" /> {t('Assigned!', 'ஒதுக்கப்பட்டது!')}</>
                                         ) : (
-                                            'Assign to This Stop'
+                                            t('Assign to This Stop', 'இந்த நிறுத்தத்தில் ஒதுக்கு')
                                         )}
                                     </button>
                                 </>

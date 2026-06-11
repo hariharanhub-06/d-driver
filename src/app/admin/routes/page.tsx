@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { Plus, Edit, Trash2, Map as MapIcon, X, Loader2, ToggleLeft, ToggleRight, MapPin, ChevronDown, ArrowUpDown } from 'lucide-react';
 import api from '@/lib/api';
 import type { StopPoint } from '@/components/StopMap';
+import { useT } from '@/lib/i18n';
 
 const StopMap = dynamic(() => import('@/components/StopMap'), { ssr: false });
 
@@ -31,6 +32,7 @@ const routeTypeBadge = (t?: string) => {
 const EMPTY_FORM = { name: '', route_type: 'both' as Route['route_type'], bus_id: '' };
 
 export default function RoutesPage() {
+    const t = useT();
     const [routes, setRoutes] = useState<Route[]>([]);
     const [buses, setBuses] = useState<Bus[]>([]);
     const [loading, setLoading] = useState(true);
@@ -224,21 +226,21 @@ export default function RoutesPage() {
             {fetchError && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-300 flex items-center justify-between">
                     <span>{fetchError}</span>
-                    <button onClick={fetchRoutes} className="font-medium underline ml-3">Retry</button>
+                    <button onClick={fetchRoutes} className="font-medium underline ml-3">{t('Retry', 'மீண்டும் முயற்சி')}</button>
                 </div>
             )}
 
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Routes & Stops</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage transport routes, bus assignments, and stops.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('Routes & Stops', 'வழிகள் & நிறுத்தங்கள்')}</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('Manage transport routes, bus assignments, and stops.', 'போக்குவரத்து வழிகள், பேருந்து ஒதுக்கீடுகள் மற்றும் நிறுத்தங்களை நிர்வகிக்கவும்.')}</p>
                 </div>
                 <button
                     onClick={openCreate}
                     className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
                 >
-                    <Plus className="w-4 h-4" /> Add Route
+                    <Plus className="w-4 h-4" /> {t('Add Route', 'வழி சேர்')}
                 </button>
             </div>
 
@@ -248,11 +250,11 @@ export default function RoutesPage() {
                     <table className="w-full text-sm">
                         <thead className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Route Name</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assigned Bus</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Route Name', 'வழி பெயர்')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Type', 'வகை')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Assigned Bus', 'ஒதுக்கப்பட்ட பேருந்து')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Active', 'செயல்பாட்டில்')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Actions', 'செயல்கள்')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -268,8 +270,8 @@ export default function RoutesPage() {
                                 <tr>
                                     <td colSpan={5} className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
                                         <MapIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                        <p className="font-medium">No routes defined</p>
-                                        <p className="text-xs mt-1">Create your first route to get started</p>
+                                        <p className="font-medium">{t('No routes defined', 'வழிகள் இல்லை')}</p>
+                                        <p className="text-xs mt-1">{t('Create your first route to get started', 'தொடங்க உங்கள் முதல் வழியை உருவாக்கவும்')}</p>
                                     </td>
                                 </tr>
                             ) : routes.map(route => (
@@ -284,13 +286,13 @@ export default function RoutesPage() {
                                     </td>
                                     <td className="px-4 py-3">
                                         <span className={routeTypeBadge(route.route_type)}>
-                                            {route.route_type === 'afternoon' ? 'Evening' : route.route_type === 'morning' ? 'Morning' : 'Both'}
+                                            {route.route_type === 'afternoon' ? t('Evening', 'மாலை') : route.route_type === 'morning' ? t('Morning', 'காலை') : t('Both', 'இரண்டும்')}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         {route.bus?.bus_number
                                             ? <span className="font-medium">{route.bus.bus_number}</span>
-                                            : <span className="text-slate-400 text-xs italic">Unassigned</span>}
+                                            : <span className="text-slate-400 text-xs italic">{t('Unassigned', 'ஒதுக்கப்படவில்லை')}</span>}
                                     </td>
                                     <td className="px-4 py-3">
                                         <button
@@ -310,13 +312,13 @@ export default function RoutesPage() {
                                                 className={`flex items-center gap-1.5 border rounded-xl px-3 py-1.5 font-semibold text-xs transition-colors ${selectedRouteId === route.id ? 'bg-[var(--brand)] border-[var(--brand)] text-white' : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-600'}`}
                                             >
                                                 <ChevronDown className="w-3 h-3" />
-                                                Stops ({route.stops?.length ?? route.stop_count ?? 0})
+                                                {t('Stops', 'நிறுத்தங்கள்')} ({route.stops?.length ?? route.stop_count ?? 0})
                                             </button>
                                             <button onClick={() => openEdit(route)} className="flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-3 py-1.5 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
-                                                <Edit className="w-3 h-3" /> Edit
+                                                <Edit className="w-3 h-3" /> {t('Edit', 'திருத்து')}
                                             </button>
                                             <button onClick={() => setDeleteId(route.id)} className="flex items-center gap-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl px-3 py-1.5 font-semibold text-xs hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
-                                                <Trash2 className="w-3 h-3" /> Delete
+                                                <Trash2 className="w-3 h-3" /> {t('Delete', 'நீக்கு')}
                                             </button>
                                         </div>
                                     </td>
@@ -334,7 +336,7 @@ export default function RoutesPage() {
                         <div className="flex items-center gap-2.5">
                             <MapPin className="w-4 h-4 text-[var(--brand)]" />
                             <span className="font-bold text-sm text-slate-900 dark:text-white">
-                                Stops — <span className="text-[var(--brand)]">{selectedRoute.name}</span>
+                                {t('Stops', 'நிறுத்தங்கள்')} — <span className="text-[var(--brand)]">{selectedRoute.name}</span>
                             </span>
                             <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-full px-2.5 py-0.5 font-medium">{stops.length}</span>
                         </div>
@@ -354,7 +356,7 @@ export default function RoutesPage() {
                                 onClick={() => setStopTab(tab)}
                                 className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all capitalize ${stopTab === tab ? 'bg-[var(--brand)] text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
                             >
-                                {tab === 'morning' ? '🌅 Morning' : '🌆 Evening'}
+                                {tab === 'morning' ? `🌅 ${t('Morning', 'காலை')}` : `🌆 ${t('Evening', 'மாலை')}`}
                                 <span className="ml-1.5 opacity-70">
                                     ({stops.filter(s => (s as any).trip_type === tab || (tab === 'morning' && !(s as any).trip_type)).length})
                                 </span>
@@ -367,7 +369,7 @@ export default function RoutesPage() {
                                 className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
                             >
                                 {reversingStops ? <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> : <ArrowUpDown className="w-3 h-3" />}
-                                Reverse
+                                {t('Reverse', 'தலைகீழ்')}
                             </button>
                             {stopTab === 'evening' && (
                                 <button
@@ -376,7 +378,7 @@ export default function RoutesPage() {
                                     className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 rounded-xl px-3 py-1.5 text-xs font-semibold hover:bg-amber-100 transition-colors disabled:opacity-50"
                                 >
                                     {copyingStops ? <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /> : '📋'}
-                                    Copy from Morning
+                                    {t('Copy from Morning', 'காலையிலிருந்து நகலெடு')}
                                 </button>
                             )}
                         </div>
@@ -404,26 +406,26 @@ export default function RoutesPage() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editRoute ? 'Edit Route' : 'Add Route'}</h2>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editRoute ? t('Edit Route', 'வழி திருத்து') : t('Add Route', 'வழி சேர்')}</h2>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div>
-                                <label className={labelCls}>Route Name *</label>
+                                <label className={labelCls}>{t('Route Name', 'வழி பெயர்')} *</label>
                                 <input required type="text" placeholder="e.g. North Morning Route" className={inputCls} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                             </div>
                             <div>
-                                <label className={labelCls}>Route Type</label>
+                                <label className={labelCls}>{t('Route Type', 'வழி வகை')}</label>
                                 <select className={inputCls} value={formData.route_type} onChange={e => setFormData({ ...formData, route_type: e.target.value as Route['route_type'] })}>
-                                    <option value="morning">Morning</option>
-                                    <option value="afternoon">Evening</option>
-                                    <option value="both">Both</option>
+                                    <option value="morning">{t('Morning', 'காலை')}</option>
+                                    <option value="afternoon">{t('Evening', 'மாலை')}</option>
+                                    <option value="both">{t('Both', 'இரண்டும்')}</option>
                                 </select>
                             </div>
                             <div>
-                                <label className={labelCls}>Assign Bus</label>
+                                <label className={labelCls}>{t('Assign Bus', 'பேருந்து ஒதுக்கு')}</label>
                                 <select className={inputCls} value={formData.bus_id} onChange={e => setFormData({ ...formData, bus_id: e.target.value })}>
-                                    <option value="">No bus assigned</option>
+                                    <option value="">{t('No bus assigned', 'பேருந்து ஒதுக்கப்படவில்லை')}</option>
                                     {buses.map(b => <option key={b.id} value={b.id}>{b.bus_number}</option>)}
                                 </select>
                             </div>
@@ -436,14 +438,14 @@ export default function RoutesPage() {
                                     onClick={() => setIsModalOpen(false)}
                                     className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
                                 >
-                                    Cancel
+                                    {t('Cancel', 'ரத்து செய்')}
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
                                     className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60"
                                 >
-                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editRoute ? 'Save Changes' : 'Create Route'}
+                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editRoute ? t('Save Changes', 'மாற்றங்களை சேமி') : t('Create Route', 'வழி உருவாக்கு')}
                                 </button>
                             </div>
                         </form>
@@ -456,7 +458,7 @@ export default function RoutesPage() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Delete this route?</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Delete this route?', 'இந்த வழியை நீக்கவா?')}</h3>
                             <button onClick={() => setDeleteId(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
@@ -465,19 +467,19 @@ export default function RoutesPage() {
                             <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
                                 <Trash2 className="w-6 h-6 text-red-500" />
                             </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">This will remove the route and its configuration.</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{t('This will remove the route and its configuration.', 'இது வழியையும் அதன் அமைப்பையும் அகற்றும்.')}</p>
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setDeleteId(null)}
                                     className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
                                 >
-                                    Cancel
+                                    {t('Cancel', 'ரத்து செய்')}
                                 </button>
                                 <button
                                     onClick={() => handleDelete(deleteId)}
                                     className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
                                 >
-                                    Delete
+                                    {t('Delete', 'நீக்கு')}
                                 </button>
                             </div>
                         </div>

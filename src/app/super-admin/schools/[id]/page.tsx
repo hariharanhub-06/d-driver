@@ -6,6 +6,7 @@ import { Building2, Loader2, Save, ChevronLeft, ExternalLink, Copy, Upload, User
 import dynamic from 'next/dynamic';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 const LogoCropModal = dynamic(() => import('@/components/ui/LogoCropModal'), { ssr: false });
 
@@ -65,6 +66,7 @@ interface AdminUser {
 const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
 
 export default function SchoolDetailPage() {
+    const t = useT();
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
 
@@ -231,16 +233,16 @@ export default function SchoolDetailPage() {
     if (!school) {
         return (
             <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
-                School not found.
+                {t('No data', 'தரவு இல்லை')}
             </div>
         );
     }
 
     const tabs: { key: Tab; label: string }[] = [
-        { key: 'overview', label: 'Overview' },
-        { key: 'permissions', label: 'Permissions' },
-        { key: 'billing', label: 'Billing' },
-        { key: 'admins', label: 'Admins' },
+        { key: 'overview', label: t('Overview', 'மேலோட்டம்') },
+        { key: 'permissions', label: t('Permissions', 'அனுமதிகள்') },
+        { key: 'billing', label: t('Billing', 'கட்டண விவரம்') },
+        { key: 'admins', label: t('Admins', 'நிர்வாகிகள்') },
     ];
 
     return (
@@ -272,14 +274,14 @@ export default function SchoolDetailPage() {
                         ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                         : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                 )}>
-                    {school.status}
+                    {school.status === 'Active' ? t('Active', 'செயல்பாட்டில்') : school.status === 'Suspended' ? t('Suspended', 'இடைநிறுத்தப்பட்டது') : school.status}
                 </span>
             </div>
 
             {/* Login links */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4">
                 <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">School Login Link</p>
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('School Login Link', 'பள்ளி உள்நுழைவு இணைப்பு')}</p>
                     <span className="text-xs text-slate-400 dark:text-slate-500">Admins, Drivers &amp; Parents all use the same page</span>
                 </div>
                 {(() => {
@@ -316,10 +318,10 @@ export default function SchoolDetailPage() {
             {/* Quick stats */}
             <div className="grid grid-cols-4 gap-3">
                 {[
-                    { label: 'Buses', value: school._count?.buses ?? 0 },
-                    { label: 'Students', value: school._count?.students ?? 0 },
-                    { label: 'Drivers', value: school._count?.drivers ?? 0 },
-                    { label: 'Routes', value: school._count?.routes ?? 0 },
+                    { label: t('Buses', 'பேருந்துகள்'), value: school._count?.buses ?? 0 },
+                    { label: t('Students', 'மாணவர்கள்'), value: school._count?.students ?? 0 },
+                    { label: t('Drivers', 'ஓட்டுநர்கள்'), value: school._count?.drivers ?? 0 },
+                    { label: t('Routes', 'வழிகள்'), value: school._count?.routes ?? 0 },
                 ].map(s => (
                     <div key={s.label} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center">
                         <p className="text-2xl font-bold text-slate-900 dark:text-white">{s.value}</p>
@@ -349,14 +351,14 @@ export default function SchoolDetailPage() {
             {/* Tab content */}
             {activeTab === 'overview' && (
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 space-y-5">
-                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">School Information</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{t('School Details', 'பள்ளி விவரங்கள்')}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {[
-                            { label: 'School Name', key: 'name' as const },
-                            { label: 'Portal Slug', key: 'slug' as const },
-                            { label: 'Address', key: 'address' as const },
-                            { label: 'Phone', key: 'phone' as const },
-                            { label: 'Email', key: 'email' as const },
+                            { label: t('School Name', 'பள்ளி பெயர்'), key: 'name' as const },
+                            { label: t('Portal Slug', 'போர்டல் சுருக்கம்'), key: 'slug' as const },
+                            { label: t('Address', 'முகவரி'), key: 'address' as const },
+                            { label: t('Phone', 'தொலைபேசி'), key: 'phone' as const },
+                            { label: t('Email', 'மின்னஞ்சல்'), key: 'email' as const },
                         ].map(field => (
                             <div key={field.key}>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{field.label}</label>
@@ -370,7 +372,7 @@ export default function SchoolDetailPage() {
                         ))}
                         {/* Logo upload */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">School Logo</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('School Logo', 'பள்ளி சின்னம்')}</label>
                             <div className="flex items-center gap-3">
                                 {editForm.logo_url ? (
                                     <img src={editForm.logo_url} alt="Logo" className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-600 overflow-hidden shrink-0" />
@@ -386,8 +388,8 @@ export default function SchoolDetailPage() {
                                     className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
                                 >
                                     {uploadingLogo
-                                        ? <><div className="w-4 h-4 border-2 border-[var(--brand)] border-t-transparent rounded-full animate-spin" /> Uploading…</>
-                                        : <><Upload className="w-4 h-4" /> Upload Logo</>}
+                                        ? <><div className="w-4 h-4 border-2 border-[var(--brand)] border-t-transparent rounded-full animate-spin" /> {t('Loading...', 'ஏற்றுகிறது...')}</>
+                                        : <><Upload className="w-4 h-4" /> {t('Upload Logo', 'சின்னம் பதிவேற்று')}</>}
                                 </button>
                                 <input
                                     ref={logoInputRef}
@@ -406,7 +408,7 @@ export default function SchoolDetailPage() {
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Primary Color</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Primary Color', 'முதன்மை நிறம்')}</label>
                             <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5">
                                 <input
                                     type="color"
@@ -418,7 +420,7 @@ export default function SchoolDetailPage() {
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Subscription Plan</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Subscription Plan', 'சந்தா திட்டம்')}</label>
                             <select
                                 value={selectedPlan}
                                 onChange={e => setSelectedPlan(e.target.value)}
@@ -438,14 +440,14 @@ export default function SchoolDetailPage() {
                         className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
                     >
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save Changes
+                        {t('Save Changes', 'மாற்றங்களை சேமி')}
                     </button>
                 </div>
             )}
 
             {activeTab === 'permissions' && (
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 space-y-5">
-                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Feature Permissions</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Feature Permissions', 'அம்சங்கள் அனுமதி')}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {PERMISSIONS.map(perm => (
                             <label
@@ -474,7 +476,7 @@ export default function SchoolDetailPage() {
                         className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
                     >
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save Permissions
+                        {t('Save Permissions', 'அனுமதிகளை சேமி')}
                     </button>
                 </div>
             )}
@@ -482,10 +484,10 @@ export default function SchoolDetailPage() {
             {activeTab === 'billing' && (
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
                     <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700">
-                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Invoices for {school.name}</h3>
+                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Invoices', 'விலைப்பட்டியல்கள்')} — {school.name}</h3>
                     </div>
                     {invoices.length === 0 ? (
-                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No invoices for this school</div>
+                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">{t('No invoices yet', 'விலைப்பட்டியல்கள் இல்லை')}</div>
                     ) : (
                         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
                             {invoices.map(inv => (
@@ -507,21 +509,21 @@ export default function SchoolDetailPage() {
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
                     <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                         <div>
-                            <h3 className="font-semibold text-slate-900 dark:text-white text-sm">School Admins</h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Users with admin access to this school</p>
+                            <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{t('School Admins', 'பள்ளி நிர்வாகிகள்')}</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('Users with admin access to this school', 'இந்த பள்ளியில் நிர்வாக அணுகல் உள்ள பயனர்கள்')}</p>
                         </div>
                         <button
                             onClick={() => { setShowAddAdmin(true); setAddAdminMsg(null); setAddAdminForm({ name: '', email: '', phone: '', temp_password: '' }); }}
                             className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
                         >
                             <UserPlus className="w-4 h-4" />
-                            Add Admin
+                            {t('Add Admin', 'நிர்வாகி சேர்')}
                         </button>
                     </div>
                     {adminsLoading ? (
                         <div className="flex justify-center py-10"><div className="w-6 h-6 border-3 border-[var(--brand)] border-t-transparent rounded-full animate-spin" /></div>
                     ) : admins.length === 0 ? (
-                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No admins found for this school</div>
+                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">{t('No data', 'தரவு இல்லை')}</div>
                     ) : (
                         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
                             {admins.map(admin => (
@@ -537,7 +539,7 @@ export default function SchoolDetailPage() {
                                         </p>
                                     </div>
                                     {admin.is_first_login && (
-                                        <span className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">Pending login</span>
+                                        <span className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">{t('Pending login', 'உள்நுழைவு நிலுவையில்')}</span>
                                     )}
                                 </div>
                             ))}
@@ -553,7 +555,7 @@ export default function SchoolDetailPage() {
                         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700">
                             <div className="flex items-center gap-3">
                                 <UserPlus className="w-5 h-5 text-[var(--brand)]" />
-                                <h2 className="font-bold text-slate-900 dark:text-white text-base">Add Admin</h2>
+                                <h2 className="font-bold text-slate-900 dark:text-white text-base">{t('Add Admin', 'நிர்வாகி சேர்')}</h2>
                             </div>
                             <button onClick={() => setShowAddAdmin(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
                                 <X className="w-5 h-5" />
@@ -586,11 +588,11 @@ export default function SchoolDetailPage() {
                             )}
                             <div className="flex gap-3 pt-1">
                                 <button onClick={() => setShowAddAdmin(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                    Cancel
+                                    {t('Cancel', 'ரத்து செய்')}
                                 </button>
                                 <button onClick={handleAddAdmin} disabled={addAdminSaving} className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl py-2.5 font-semibold text-sm transition-all disabled:opacity-50">
                                     {addAdminSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                                    Add Admin
+                                    {t('Add Admin', 'நிர்வாகி சேர்')}
                                 </button>
                             </div>
                         </div>

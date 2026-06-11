@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { School, CreditCard, CheckCircle2, XCircle, Loader2, Eye, EyeOff, CheckSquare, Shield, Lock, Camera, User } from 'lucide-react';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 type SchoolInfo = {
     name?: string;
@@ -25,6 +26,7 @@ const ONBOARDING_STEPS = [
 type ActiveTab = 'school' | 'razorpay' | 'security';
 
 export default function SettingsPage() {
+    const t = useT();
     const [activeTab, setActiveTab] = useState<ActiveTab>('school');
     const [school, setSchool] = useState<SchoolInfo>({});
     const [loading, setLoading] = useState(true);
@@ -143,17 +145,17 @@ export default function SettingsPage() {
     }
 
     const tabs: { key: ActiveTab; label: string; icon: React.ReactNode }[] = [
-        { key: 'school', label: 'School Info', icon: <School className="w-4 h-4" /> },
+        { key: 'school', label: t('School Info', 'பள்ளி தகவல்'), icon: <School className="w-4 h-4" /> },
         { key: 'razorpay', label: 'Razorpay', icon: <CreditCard className="w-4 h-4" /> },
-        { key: 'security', label: 'Security', icon: <Shield className="w-4 h-4" /> },
+        { key: 'security', label: t('Security', 'பாதுகாப்பு'), icon: <Shield className="w-4 h-4" /> },
     ];
 
     return (
         <div className="space-y-6 animate-in max-w-3xl">
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Settings</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage school information, integrations and onboarding.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('Settings', 'அமைப்புகள்')}</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('Manage school information, integrations and onboarding.', 'பள்ளி தகவல், ஒருங்கிணைப்புகள் மற்றும் ஆரம்ப அமைப்பை நிர்வகி.')}</p>
                 </div>
             </div>
 
@@ -187,8 +189,8 @@ export default function SettingsPage() {
                                         <CheckSquare className="w-5 h-5 text-[var(--brand)]" />
                                     </div>
                                     <div>
-                                        <h2 className="font-bold text-slate-900 dark:text-white">Getting Started</h2>
-                                        <p className="text-xs text-slate-400">Complete these steps to set up your portal</p>
+                                        <h2 className="font-bold text-slate-900 dark:text-white">{t('Getting Started', 'தொடங்குதல்')}</h2>
+                                        <p className="text-xs text-slate-400">{t('Complete these steps to set up your portal', 'உங்கள் போர்டலை அமைக்க இந்த படிகளை முடிக்கவும்')}</p>
                                     </div>
                                 </div>
                                 <button
@@ -196,7 +198,7 @@ export default function SettingsPage() {
                                     disabled={isDismissing}
                                     className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-semibold transition-all"
                                 >
-                                    {isDismissing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Dismiss'}
+                                    {isDismissing ? <Loader2 className="w-4 h-4 animate-spin" /> : t('Dismiss', 'மூடு')}
                                 </button>
                             </div>
                             <div className="space-y-3">
@@ -222,41 +224,41 @@ export default function SettingsPage() {
                                 <School className="w-5 h-5 text-[var(--brand)]" />
                             </div>
                             <div>
-                                <h2 className="font-bold text-slate-900 dark:text-white">School Information</h2>
-                                <p className="text-xs text-slate-400">Basic details shown on invoices and notifications</p>
+                                <h2 className="font-bold text-slate-900 dark:text-white">{t('School Information', 'பள்ளி தகவல்')}</h2>
+                                <p className="text-xs text-slate-400">{t('Basic details shown on invoices and notifications', 'விலைப்பட்டியல்கள் மற்றும் அறிவிப்புகளில் காட்டப்படும் அடிப்படை தகவல்')}</p>
                             </div>
                         </div>
                         <form onSubmit={handleSaveInfo} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">School Name</label>
-                                <input type="text" placeholder="e.g. Sunrise Public School" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" value={infoForm.name} onChange={e => setInfoForm({ ...infoForm, name: e.target.value })} />
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('School Name', 'பள்ளி பெயர்')}</label>
+                                <input type="text" placeholder={t('e.g. Sunrise Public School', 'எ.கா. சன்ரைஸ் பொதுப்பள்ளி')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" value={infoForm.name} onChange={e => setInfoForm({ ...infoForm, name: e.target.value })} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Address</label>
-                                <textarea rows={2} placeholder="School address..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none" value={infoForm.address} onChange={e => setInfoForm({ ...infoForm, address: e.target.value })} />
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Address', 'முகவரி')}</label>
+                                <textarea rows={2} placeholder={t('School address...', 'பள்ளி முகவரி...')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none" value={infoForm.address} onChange={e => setInfoForm({ ...infoForm, address: e.target.value })} />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Phone', 'தொலைபேசி')}</label>
                                     <input type="tel" placeholder="+91 98765 43210" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" value={infoForm.phone} onChange={e => setInfoForm({ ...infoForm, phone: e.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Contact Email</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Contact Email', 'தொடர்பு மின்னஞ்சல்')}</label>
                                     <input type="email" placeholder="admin@school.com" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" value={infoForm.email_contact} onChange={e => setInfoForm({ ...infoForm, email_contact: e.target.value })} />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Notification Email</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Notification Email', 'அறிவிப்பு மின்னஞ்சல்')}</label>
                                 <input type="email" placeholder="notifications@school.com" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" value={infoForm.notification_email} onChange={e => setInfoForm({ ...infoForm, notification_email: e.target.value })} />
                             </div>
                             <div className="flex items-center gap-3 pt-2">
                                 <button type="submit" disabled={isSavingInfo} className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60">
                                     {isSavingInfo ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                                    Save Changes
+                                    {t('Save Changes', 'மாற்றங்கள் சேமி')}
                                 </button>
                                 {infoSaved && (
                                     <span className="flex items-center gap-1.5 text-emerald-600 text-sm font-semibold">
-                                        <CheckCircle2 className="w-4 h-4" /> Saved
+                                        <CheckCircle2 className="w-4 h-4" /> {t('Saved', 'சேமிக்கப்பட்டது')}
                                     </span>
                                 )}
                             </div>
@@ -274,23 +276,23 @@ export default function SettingsPage() {
                                 <CreditCard className="w-5 h-5 text-[var(--brand)]" />
                             </div>
                             <div>
-                                <h2 className="font-bold text-slate-900 dark:text-white">Razorpay Integration</h2>
-                                <p className="text-xs text-slate-400">Enable online fee collection via Razorpay</p>
+                                <h2 className="font-bold text-slate-900 dark:text-white">{t('Razorpay Integration', 'Razorpay ஒருங்கிணைப்பு')}</h2>
+                                <p className="text-xs text-slate-400">{t('Enable online fee collection via Razorpay', 'Razorpay மூலம் ஆன்லைன் கட்டண வசூலை இயக்கு')}</p>
                             </div>
                         </div>
                         {school.razorpay_configured ? (
                             <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium gap-1">
-                                <CheckCircle2 className="w-3.5 h-3.5" /> Connected
+                                <CheckCircle2 className="w-3.5 h-3.5" /> {t('Connected', 'இணைக்கப்பட்டது')}
                             </span>
                         ) : (
                             <span className="inline-flex items-center bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full px-2.5 py-0.5 text-xs font-medium gap-1">
-                                <XCircle className="w-3.5 h-3.5" /> Not configured
+                                <XCircle className="w-3.5 h-3.5" /> {t('Not configured', 'அமைக்கப்படவில்லை')}
                             </span>
                         )}
                     </div>
                     <form onSubmit={handleSaveRzp} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Key ID</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Key ID', 'முக்கிய ID')}</label>
                             <input
                                 type="text"
                                 placeholder="rzp_live_..."
@@ -300,11 +302,11 @@ export default function SettingsPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Key Secret</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Key Secret', 'முக்கிய ரகசியம்')}</label>
                             <div className="relative">
                                 <input
                                     type={showSecret ? 'text' : 'password'}
-                                    placeholder="Your Razorpay secret"
+                                    placeholder={t('Your Razorpay secret', 'உங்கள் Razorpay ரகசியம்')}
                                     className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors font-mono"
                                     value={rzpForm.key_secret}
                                     onChange={e => setRzpForm({ ...rzpForm, key_secret: e.target.value })}
@@ -317,15 +319,15 @@ export default function SettingsPage() {
                         <div className="flex items-center gap-3 pt-2">
                             <button type="submit" disabled={isSavingRzp || !rzpForm.key_id || !rzpForm.key_secret} className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60">
                                 {isSavingRzp ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                                Save Keys
+                                {t('Save Keys', 'சாவிகள் சேமி')}
                             </button>
                             {rzpSaved && (
                                 <span className="flex items-center gap-1.5 text-emerald-600 text-sm font-semibold">
-                                    <CheckCircle2 className="w-4 h-4" /> Saved
+                                    <CheckCircle2 className="w-4 h-4" /> {t('Saved', 'சேமிக்கப்பட்டது')}
                                 </span>
                             )}
                         </div>
-                        <p className="text-xs text-slate-400">Keys are stored securely and never exposed to the client after saving.</p>
+                        <p className="text-xs text-slate-400">{t('Keys are stored securely and never exposed to the client after saving.', 'சாவிகள் பாதுகாப்பாக சேமிக்கப்படுகின்றன மற்றும் சேமித்த பிறகு வாடிக்கையாளருக்கு ஒருபோதும் காட்டப்படாது.')}</p>
                     </form>
                 </div>
             )}
@@ -340,8 +342,8 @@ export default function SettingsPage() {
                             <User className="w-5 h-5 text-[var(--brand)]" />
                         </div>
                         <div>
-                            <h2 className="font-bold text-slate-900 dark:text-white">Profile Photo</h2>
-                            <p className="text-xs text-slate-400">Optional profile picture for your account</p>
+                            <h2 className="font-bold text-slate-900 dark:text-white">{t('Profile Photo', 'சுயவிவர புகைப்படம்')}</h2>
+                            <p className="text-xs text-slate-400">{t('Optional profile picture for your account', 'உங்கள் கணக்கிற்கான விருப்ப சுயவிவர படம்')}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-5">
@@ -363,10 +365,10 @@ export default function SettingsPage() {
                             <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = ''; }} />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Upload a photo</p>
-                            <p className="text-xs text-slate-400 mt-0.5">JPG, PNG or WEBP. Max 5MB.</p>
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('Upload a photo', 'புகைப்படம் பதிவேற்று')}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{t('JPG, PNG or WEBP. Max 5MB.', 'JPG, PNG அல்லது WEBP. அதிகபட்சம் 5MB.')}</p>
                             <button onClick={() => photoInputRef.current?.click()} disabled={photoUploading} className="mt-3 flex items-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50">
-                                <Camera className="w-3.5 h-3.5" /> {photoUploading ? 'Uploading...' : 'Choose Photo'}
+                                <Camera className="w-3.5 h-3.5" /> {photoUploading ? t('Uploading...', 'பதிவேற்றுகிறது...') : t('Choose Photo', 'புகைப்படம் தேர்வு')}
                             </button>
                         </div>
                     </div>
@@ -378,17 +380,17 @@ export default function SettingsPage() {
                             <Shield className="w-5 h-5 text-[var(--brand)]" />
                         </div>
                         <div>
-                            <h2 className="font-bold text-slate-900 dark:text-white">Change Password</h2>
-                            <p className="text-xs text-slate-400">Update your account password</p>
+                            <h2 className="font-bold text-slate-900 dark:text-white">{t('Change Password', 'கடவுச்சொல் மாற்று')}</h2>
+                            <p className="text-xs text-slate-400">{t('Update your account password', 'உங்கள் கணக்கு கடவுச்சொல்லை புதுப்பி')}</p>
                         </div>
                     </div>
 
                     <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Password</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Current Password', 'தற்போதைய கடவுச்சொல்')}</label>
                             <input
                                 type="password"
-                                placeholder="Enter current password"
+                                placeholder={t('Enter current password', 'தற்போதைய கடவுச்சொல்லை உள்ளிடு')}
                                 required
                                 className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                                 value={cpForm.current}
@@ -396,10 +398,10 @@ export default function SettingsPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">New Password</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('New Password', 'புதிய கடவுச்சொல்')}</label>
                             <input
                                 type="password"
-                                placeholder="At least 8 characters"
+                                placeholder={t('At least 8 characters', 'குறைந்தது 8 எழுத்துகள்')}
                                 required
                                 className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                                 value={cpForm.new}
@@ -407,10 +409,10 @@ export default function SettingsPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Confirm Password</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Confirm Password', 'கடவுச்சொல் உறுதிப்படுத்து')}</label>
                             <input
                                 type="password"
-                                placeholder="Repeat new password"
+                                placeholder={t('Repeat new password', 'புதிய கடவுச்சொல்லை மீண்டும் உள்ளிடு')}
                                 required
                                 className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                                 value={cpForm.confirm}
@@ -427,7 +429,7 @@ export default function SettingsPage() {
                         {cpSuccess && (
                             <p className="text-emerald-600 text-sm bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-700/30 rounded-xl px-4 py-2.5 flex items-center gap-2">
                                 <CheckCircle2 className="w-4 h-4" />
-                                Password updated successfully.
+                                {t('Password updated successfully.', 'கடவுச்சொல் வெற்றிகரமாக புதுப்பிக்கப்பட்டது.')}
                             </p>
                         )}
 
@@ -438,7 +440,7 @@ export default function SettingsPage() {
                                 className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60"
                             >
                                 {cpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                                Update Password
+                                {t('Update Password', 'கடவுச்சொல் புதுப்பி')}
                             </button>
                         </div>
                     </form>

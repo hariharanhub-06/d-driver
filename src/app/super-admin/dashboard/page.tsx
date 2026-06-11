@@ -5,6 +5,7 @@ import { Building2, Users, Bus, TrendingUp, AlertCircle, Activity, ShieldCheck }
 import api from '@/lib/api';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 interface School {
     id: string;
@@ -30,6 +31,7 @@ interface RevenueData {
 }
 
 export default function SuperAdminDashboard() {
+    const t = useT();
     const [schools, setSchools] = useState<School[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [revenue, setRevenue] = useState<RevenueData>({});
@@ -61,11 +63,11 @@ export default function SuperAdminDashboard() {
     const totalBuses    = schools.reduce((sum, s) => sum + (s._count?.buses    || s.buses?.length    || 0), 0);
 
     const statCards = [
-        { label: 'Total Schools', value: schools.length, icon: Building2, iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
-        { label: 'Total Students', value: totalStudents.toLocaleString('en-IN'), icon: Users, iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
-        { label: 'Total Buses', value: totalBuses, icon: Bus, iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30' },
-        { label: 'Monthly Revenue', value: revenue.total_collected ? `₹${(revenue.total_collected / 1000).toFixed(0)}K` : '—', icon: TrendingUp, iconColor: 'text-[var(--brand)]', bg: 'bg-[var(--brand)]/10' },
-        { label: 'Total Overdue', value: revenue.total_overdue ? `₹${(revenue.total_overdue / 1000).toFixed(0)}K` : '—', icon: AlertCircle, iconColor: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30' },
+        { label: t('Total Schools', 'மொத்த பள்ளிகள்'), value: schools.length, icon: Building2, iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
+        { label: t('Total Students', 'மொத்த மாணவர்கள்'), value: totalStudents.toLocaleString('en-IN'), icon: Users, iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
+        { label: t('Total Buses', 'மொத்த பேருந்துகள்'), value: totalBuses, icon: Bus, iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30' },
+        { label: t('Monthly Revenue', 'மாதாந்திர வருவாய்'), value: revenue.total_collected ? `₹${(revenue.total_collected / 1000).toFixed(0)}K` : '—', icon: TrendingUp, iconColor: 'text-[var(--brand)]', bg: 'bg-[var(--brand)]/10' },
+        { label: t('Total Overdue', 'மொத்த நிலுவை'), value: revenue.total_overdue ? `₹${(revenue.total_overdue / 1000).toFixed(0)}K` : '—', icon: AlertCircle, iconColor: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30' },
     ];
 
     const getInvoiceStatusStyle = (status: string) => {
@@ -83,7 +85,7 @@ export default function SuperAdminDashboard() {
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                         <ShieldCheck className="w-7 h-7 text-[var(--brand)]" />
-                        Platform Dashboard
+                        {t('Platform Dashboard', 'தளக் கட்டுப்பாட்டகம்')}
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                         {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -91,7 +93,7 @@ export default function SuperAdminDashboard() {
                 </div>
                 <div className="flex items-center gap-2">
                     <Activity className="w-4 h-4 text-emerald-500 animate-pulse" />
-                    <span className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider">Live Data</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider">{t('LIVE DATA', 'நேரடி தரவு')}</span>
                 </div>
             </div>
 
@@ -115,15 +117,15 @@ export default function SuperAdminDashboard() {
                 {/* Schools list */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                     <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Schools</h3>
-                        <Link href="/super-admin/schools" className="text-[var(--brand)] text-xs font-semibold hover:opacity-80">View all →</Link>
+                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Schools', 'பள்ளிகள்')}</h3>
+                        <Link href="/super-admin/schools" className="text-[var(--brand)] text-xs font-semibold hover:opacity-80">{t('View all', 'அனைத்தையும் காண்க')} →</Link>
                     </div>
                     {loading ? (
                         <div className="flex justify-center py-16">
                             <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                         </div>
                     ) : schools.length === 0 ? (
-                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No schools registered</div>
+                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">{t('No data', 'தரவு இல்லை')}</div>
                     ) : (
                         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
                             {schools.slice(0, 6).map(school => (
@@ -141,7 +143,7 @@ export default function SuperAdminDashboard() {
                                             ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                                             : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                                     )}>
-                                        {school.status}
+                                        {school.status === 'Active' ? t('Active', 'செயல்பாட்டில்') : school.status === 'Suspended' ? t('Suspended', 'இடைநிறுத்தப்பட்டது') : school.status}
                                     </span>
                                 </div>
                             ))}
@@ -152,15 +154,15 @@ export default function SuperAdminDashboard() {
                 {/* Recent Invoices */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                     <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Recent Invoices</h3>
-                        <Link href="/super-admin/billing" className="text-[var(--brand)] text-xs font-semibold hover:opacity-80">View all →</Link>
+                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Recent Invoices', 'சமீபத்திய விலைப்பட்டியல்கள்')}</h3>
+                        <Link href="/super-admin/billing" className="text-[var(--brand)] text-xs font-semibold hover:opacity-80">{t('View all', 'அனைத்தையும் காண்க')} →</Link>
                     </div>
                     {loading ? (
                         <div className="flex justify-center py-16">
                             <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                         </div>
                     ) : invoices.length === 0 ? (
-                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No invoices yet</div>
+                        <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">{t('No invoices yet', 'விலைப்பட்டியல்கள் இல்லை')}</div>
                     ) : (
                         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
                             {invoices.map(inv => (

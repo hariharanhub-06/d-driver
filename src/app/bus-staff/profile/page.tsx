@@ -4,10 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import { Lock, LogOut, Eye, EyeOff, CheckCircle, AlertCircle, Camera, Pencil } from 'lucide-react';
-import { ta } from '@/lib/i18n';
+import { useT, ta } from '@/lib/i18n';
 
 export default function BusStaffProfilePage() {
     const { user, logout } = useAuth();
+    const t = useT();
     const [cpForm, setCpForm] = useState({ current: '', newPw: '', confirm: '' });
     const [cpError, setCpError] = useState('');
     const [cpSuccess, setCpSuccess] = useState(false);
@@ -87,7 +88,7 @@ export default function BusStaffProfilePage() {
             <div className="bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 pt-12 pb-8 text-center">
                 <div className="relative inline-block mb-3">
                     {photoUrl ? (
-                        <img src={photoUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover border-4 border-[var(--brand)]/40" />
+                        <img src={photoUrl} alt={t('Profile', 'சுயவிவரம்')} className="w-20 h-20 rounded-full object-cover border-4 border-[var(--brand)]/40" />
                     ) : (
                         <div className="w-20 h-20 rounded-full bg-[var(--brand)]/20 border-4 border-[var(--brand)]/40 flex items-center justify-center">
                             <span className="text-2xl font-black text-[var(--brand)]">{initials}</span>
@@ -103,7 +104,7 @@ export default function BusStaffProfilePage() {
                     <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = ''; }} />
                 </div>
                 <h1 className="text-xl font-bold text-slate-900 dark:text-white">{displayName}</h1>
-                <p className="text-slate-500 text-sm mt-0.5">Bus Staff / {ta.busStaff}</p>
+                <p className="text-slate-500 text-sm mt-0.5">{t('Bus Staff', 'பேருந்து ஊழியர்')}</p>
                 {displayPhone && <p className="text-slate-500 text-sm mt-0.5">{displayPhone}</p>}
             </div>
 
@@ -113,39 +114,39 @@ export default function BusStaffProfilePage() {
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2.5">
                             <Pencil className="w-5 h-5 text-[var(--brand)]" />
-                            <h2 className="text-base font-semibold text-slate-900 dark:text-white">Edit Profile</h2>
+                            <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t('Edit Profile', 'சுயவிவரம் திருத்து')}</h2>
                         </div>
                         {!isEditing && (
-                            <button onClick={() => { setEditForm({ name: displayName, phone: displayPhone }); setIsEditing(true); setEditError(''); setEditSuccess(false); }} className="text-xs text-[var(--brand)] font-semibold">Edit</button>
+                            <button onClick={() => { setEditForm({ name: displayName, phone: displayPhone }); setIsEditing(true); setEditError(''); setEditSuccess(false); }} className="text-xs text-[var(--brand)] font-semibold">{t('Edit', 'திருத்து')}</button>
                         )}
                     </div>
                     {isEditing ? (
                         <form onSubmit={handleEditProfile} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">Name</label>
-                                <input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} required className={inputCls} placeholder="Your name" />
+                                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">{t('Name', 'பெயர்')}</label>
+                                <input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} required className={inputCls} placeholder={t('Your name', 'உங்கள் பெயர்')} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">Phone</label>
-                                <input value={editForm.phone} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))} className={inputCls} placeholder="Phone number" />
+                                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">{t('Phone', 'தொலைபேசி')}</label>
+                                <input value={editForm.phone} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))} className={inputCls} placeholder={t('Phone number', 'தொலைபேசி எண்')} />
                             </div>
                             {editError && <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2.5"><AlertCircle className="w-4 h-4 shrink-0" />{editError}</div>}
-                            {editSuccess && <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl px-4 py-2.5"><CheckCircle className="w-4 h-4 shrink-0" />Profile updated!</div>}
+                            {editSuccess && <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl px-4 py-2.5"><CheckCircle className="w-4 h-4 shrink-0" />{t('Profile updated!', 'சுயவிவரம் புதுப்பிக்கப்பட்டது!')}</div>}
                             <div className="flex gap-3">
-                                <button type="button" onClick={() => { setIsEditing(false); setEditError(''); }} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-semibold">Cancel</button>
+                                <button type="button" onClick={() => { setIsEditing(false); setEditError(''); }} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-semibold">{t('Cancel', 'ரத்து செய்')}</button>
                                 <button type="submit" disabled={editLoading} className="flex-1 bg-[var(--brand)] text-white rounded-xl py-2.5 font-semibold text-sm disabled:opacity-50 active:scale-95 transition-all">
-                                    {editLoading ? 'Saving...' : 'Save Changes'}
+                                    {editLoading ? t('Saving...', 'சேமிக்கிறது...') : t('Save Changes', 'மாற்றங்கள் சேமி')}
                                 </button>
                             </div>
                         </form>
                     ) : (
                         <div className="space-y-2">
                             <div className="flex items-center justify-between py-1">
-                                <span className="text-sm text-slate-500">Name</span>
+                                <span className="text-sm text-slate-500">{t('Name', 'பெயர்')}</span>
                                 <span className="text-sm text-slate-900 dark:text-white font-medium">{displayName}</span>
                             </div>
                             <div className="flex items-center justify-between py-1">
-                                <span className="text-sm text-slate-500">Phone</span>
+                                <span className="text-sm text-slate-500">{t('Phone', 'தொலைபேசி')}</span>
                                 <span className="text-sm text-slate-900 dark:text-white font-medium">{displayPhone || '—'}</span>
                             </div>
                         </div>
@@ -156,38 +157,38 @@ export default function BusStaffProfilePage() {
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5">
                     <div className="flex items-center gap-2.5 mb-4">
                         <Lock className="w-5 h-5 text-[var(--brand)]" />
-                        <h2 className="text-base font-semibold text-slate-900 dark:text-white">Change Password / {ta.changePassword}</h2>
+                        <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t('Change Password', 'கடவுச்சொல் மாற்று')}</h2>
                     </div>
                     <form onSubmit={handleChangePassword} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">Current Password</label>
+                            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">{t('Current Password', 'தற்போதைய கடவுச்சொல்')}</label>
                             <div className="relative">
-                                <input type={showCurrent ? 'text' : 'password'} value={cpForm.current} onChange={e => setCpForm(p => ({ ...p, current: e.target.value }))} required className={inputCls + ' pr-10'} placeholder="Enter current password" autoComplete="current-password" />
+                                <input type={showCurrent ? 'text' : 'password'} value={cpForm.current} onChange={e => setCpForm(p => ({ ...p, current: e.target.value }))} required className={inputCls + ' pr-10'} placeholder={t('Enter current password', 'தற்போதைய கடவுச்சொல் உள்ளிடு')} autoComplete="current-password" />
                                 <button type="button" onClick={() => setShowCurrent(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">New Password</label>
+                            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">{t('New Password', 'புதிய கடவுச்சொல்')}</label>
                             <div className="relative">
-                                <input type={showNew ? 'text' : 'password'} value={cpForm.newPw} onChange={e => setCpForm(p => ({ ...p, newPw: e.target.value }))} required className={inputCls + ' pr-10'} placeholder="Min 8 characters" autoComplete="new-password" />
+                                <input type={showNew ? 'text' : 'password'} value={cpForm.newPw} onChange={e => setCpForm(p => ({ ...p, newPw: e.target.value }))} required className={inputCls + ' pr-10'} placeholder={t('Min 8 characters', 'குறைந்தது 8 எழுத்துகள்')} autoComplete="new-password" />
                                 <button type="button" onClick={() => setShowNew(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">Confirm Password</label>
-                            <input type="password" value={cpForm.confirm} onChange={e => setCpForm(p => ({ ...p, confirm: e.target.value }))} required className={inputCls} placeholder="Repeat new password" autoComplete="new-password" />
+                            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">{t('Confirm Password', 'கடவுச்சொல் உறுதிப்படுத்து')}</label>
+                            <input type="password" value={cpForm.confirm} onChange={e => setCpForm(p => ({ ...p, confirm: e.target.value }))} required className={inputCls} placeholder={t('Repeat new password', 'புதிய கடவுச்சொல் மீண்டும் உள்ளிடு')} autoComplete="new-password" />
                         </div>
                         {cpError && <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2.5"><AlertCircle className="w-4 h-4 shrink-0" />{cpError}</div>}
-                        {cpSuccess && <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl px-4 py-2.5"><CheckCircle className="w-4 h-4 shrink-0" />Password updated!</div>}
+                        {cpSuccess && <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl px-4 py-2.5"><CheckCircle className="w-4 h-4 shrink-0" />{t('Password updated!', 'கடவுச்சொல் புதுப்பிக்கப்பட்டது!')}</div>}
                         <button type="submit" disabled={cpLoading} className="w-full bg-[var(--brand)] text-white rounded-xl py-2.5 font-semibold text-sm disabled:opacity-50 active:scale-95 transition-all">
-                            {cpLoading ? 'Updating...' : 'Update Password'}
+                            {cpLoading ? t('Updating...', 'புதுப்பிக்கிறது...') : t('Update Password', 'கடவுச்சொல் புதுப்பி')}
                         </button>
                     </form>
                 </div>
 
                 {/* Logout */}
                 <button onClick={logout} className="w-full flex items-center justify-center gap-2 py-3.5 text-sm font-bold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-2xl transition-colors active:scale-95">
-                    <LogOut className="w-4 h-4" /> Logout / {ta.logout}
+                    <LogOut className="w-4 h-4" /> {t('Logout', 'வெளியேறு')}
                 </button>
 
                 <p className="text-center text-slate-400 text-[10px] uppercase tracking-widest py-2">D-Driver v1.0.0</p>

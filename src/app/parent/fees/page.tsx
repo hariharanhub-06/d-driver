@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { CreditCard, CheckCircle2, AlertCircle, Clock, IndianRupee, Calendar, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface Fee {
     id: string;
@@ -39,6 +40,7 @@ const loadRazorpay = (): Promise<boolean> =>
     });
 
 export default function ParentFees() {
+    const t = useT();
     const [fees, setFees] = useState<Fee[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -166,8 +168,8 @@ export default function ParentFees() {
         <div className="space-y-4 p-4">
             {/* Header */}
             <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Fee Management</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Track and pay your children's transport fees</p>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('Fee Management', 'கட்டண நிர்வாகம்')}</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t("Track and pay your children's transport fees", 'உங்கள் குழந்தைகளின் போக்குவரத்து கட்டணங்களை கண்காணி')}</p>
             </div>
 
             {/* Pending total hero */}
@@ -176,7 +178,7 @@ export default function ParentFees() {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
-                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Total due</span>
+                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('Total Due', 'மொத்த நிலுவை')}</span>
                         </div>
                         <span className="text-xl font-bold text-amber-600 dark:text-amber-400">₹{pendingTotal.toLocaleString('en-IN')}</span>
                     </div>
@@ -196,7 +198,7 @@ export default function ParentFees() {
                                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                         )}
                     >
-                        {tab === 'paid' ? 'Paid' : 'Pending'}
+                        {tab === 'paid' ? t('Paid', 'செலுத்தப்பட்டது') : t('Pending', 'நிலுவையில்')}
                     </button>
                 ))}
             </div>
@@ -209,18 +211,18 @@ export default function ParentFees() {
             ) : permissionDenied ? (
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl p-6 text-center">
                     <CreditCard className="w-10 h-10 text-amber-400 mx-auto mb-3" />
-                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Fee management is not enabled for your school.</p>
-                    <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">Please contact your school administrator.</p>
+                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">{t('Fee management is not enabled for your school.', 'உங்கள் பள்ளிக்கு கட்டண நிர்வாகம் இயக்கப்படவில்லை.')}</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">{t('Please contact your school administrator.', 'உங்கள் பள்ளி நிர்வாகியை தொடர்பு கொள்ளுங்கள்.')}</p>
                 </div>
             ) : error ? (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl p-5 text-sm font-semibold text-center flex flex-col items-center gap-3">
                     <span>{error}</span>
-                    <button onClick={fetchFees} className="text-xs font-medium underline hover:no-underline">Try Again</button>
+                    <button onClick={fetchFees} className="text-xs font-medium underline hover:no-underline">{t('Try Again', 'மீண்டும் முயற்சி')}</button>
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="text-center py-16">
                     <IndianRupee className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
-                    <p className="text-sm text-slate-500 dark:text-slate-400">No fees in this category</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('No fees in this category', 'இந்த பிரிவில் கட்டணங்கள் இல்லை')}</p>
                 </div>
             ) : (
                 <div className="space-y-3">
@@ -237,7 +239,7 @@ export default function ParentFees() {
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
                                         <h3 className="font-bold text-slate-800 dark:text-white text-base">
-                                            {fee.description || 'Transport Fee'}
+                                            {fee.description || t('Transport Fee', 'போக்குவரத்து கட்டணம்')}
                                         </h3>
                                         {fee.student_name && (
                                             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{fee.student_name}</p>
@@ -252,7 +254,7 @@ export default function ParentFees() {
                                     <div className="flex items-center gap-2 text-xs font-medium">
                                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                                         <span className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
-                                            Paid{fee.paid_date ? ` on ${new Date(fee.paid_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                                            {t('Paid', 'செலுத்தப்பட்டது')}{fee.paid_date ? ` on ${new Date(fee.paid_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
                                         </span>
                                     </div>
                                 ) : (
@@ -266,8 +268,8 @@ export default function ParentFees() {
                                             )}>
                                                 <Clock className="w-3.5 h-3.5 shrink-0" />
                                                 {isOverdue
-                                                    ? `${daysOverdue} day${daysOverdue > 1 ? 's' : ''} overdue`
-                                                    : `Due by ${new Date(fee.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+                                                    ? `${daysOverdue} ${t('day', 'நாள்')}${daysOverdue > 1 ? 's' : ''} ${t('overdue', 'தாமதமானது')}`
+                                                    : `${t('Due by', 'கட்டண தேதி')} ${new Date(fee.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
                                                 }
                                             </div>
                                         )}
@@ -281,7 +283,7 @@ export default function ParentFees() {
                                                     {payingId === fee.id ? (
                                                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                                     ) : (
-                                                        <><CreditCard className="w-4 h-4" /> Pay</>
+                                                        <><CreditCard className="w-4 h-4" /> {t('Pay Now', 'இப்போது செலுத்து')}</>
                                                     )}
                                                 </button>
                                             )}
@@ -289,7 +291,7 @@ export default function ParentFees() {
                                                 onClick={() => openDelayModal(fee)}
                                                 className="flex items-center gap-1.5 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                             >
-                                                <Calendar className="w-3.5 h-3.5" /> Delay
+                                                <Calendar className="w-3.5 h-3.5" /> {t('Delay', 'தாமதம்')}
                                             </button>
                                         </div>
                                     </>
@@ -306,7 +308,7 @@ export default function ParentFees() {
                 <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={(e) => { if (e.target === e.currentTarget) { setDelayModal(null); } }}>
                     <div className="bg-white dark:bg-slate-800 rounded-t-3xl w-full max-w-lg p-6 pb-8 shadow-2xl">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-base font-bold text-slate-900 dark:text-white">Request Payment Delay</h3>
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white">{t('Request Payment Delay', 'கட்டண தாமதம் கோரு')}</h3>
                             <button onClick={() => setDelayModal(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400">
                                 <X className="w-4 h-4" />
                             </button>
@@ -316,29 +318,29 @@ export default function ParentFees() {
                             <div className="flex flex-col items-center py-6 text-center">
                                 <CheckCircle2 className="w-12 h-12 text-emerald-500 mb-3" />
                                 <p className="text-sm text-slate-600 dark:text-slate-300">{delaySuccess}</p>
-                                <button onClick={() => setDelayModal(null)} className="mt-4 bg-[var(--brand)] text-white rounded-xl px-5 py-2.5 font-semibold text-sm">Done</button>
+                                <button onClick={() => setDelayModal(null)} className="mt-4 bg-[var(--brand)] text-white rounded-xl px-5 py-2.5 font-semibold text-sm">{t('Done', 'முடிந்தது')}</button>
                             </div>
                         ) : (
                             <form onSubmit={handleDelaySubmit} className="space-y-4">
                                 <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3">
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">Fee</p>
-                                    <p className="font-bold text-slate-900 dark:text-white text-sm mt-0.5">{delayModal.description || 'Transport Fee'}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('Fee', 'கட்டணம்')}</p>
+                                    <p className="font-bold text-slate-900 dark:text-white text-sm mt-0.5">{delayModal.description || t('Transport Fee', 'போக்குவரத்து கட்டணம்')}</p>
                                     {delayModal.student_name && <p className="text-xs text-slate-400 mt-0.5">{delayModal.student_name}</p>}
                                     <p className="text-base font-black text-[var(--brand)] mt-1">₹{delayModal.amount.toLocaleString('en-IN')}</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">New Requested Date / புதிய தேதி</label>
+                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('New Requested Date', 'புதிய கோரிய தேதி')}</label>
                                     <input type="date" value={delayDate} min={addDays(1)} onChange={e => setDelayDate(e.target.value)} required className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Reason / காரணம் <span className="font-normal text-slate-400">(optional)</span></label>
+                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('Reason', 'காரணம்')} <span className="font-normal text-slate-400">({t('optional', 'விருப்பமானது')})</span></label>
                                     <textarea value={delayReason} onChange={e => setDelayReason(e.target.value)} rows={3} placeholder="e.g. Salary delayed this month..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] resize-none" />
                                 </div>
 
                                 <button type="submit" disabled={delaySubmitting} className="w-full bg-[var(--brand)] text-white rounded-2xl py-3 font-semibold text-sm disabled:opacity-50 active:scale-95 transition-all">
-                                    {delaySubmitting ? 'Submitting...' : 'Submit Request / சமர்ப்பி'}
+                                    {delaySubmitting ? t('Submitting...', 'சமர்ப்பிக்கிறது...') : t('Submit Request', 'கோரிக்கை சமர்ப்பி')}
                                 </button>
                             </form>
                         )}

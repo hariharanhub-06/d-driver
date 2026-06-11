@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Edit, Trash2, GraduationCap, Phone, MapPin, X, Loader2, FileUp, ChevronRight, ChevronLeft, Image, Download, Camera, UserCircle2, Save } from 'lucide-react';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 type Student = {
     id: string;
@@ -37,6 +38,7 @@ const EMPTY_EDIT = {
 };
 
 export default function StudentsPage() {
+    const t = useT();
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -338,8 +340,8 @@ export default function StudentsPage() {
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Students</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage student profiles, parents and bus assignments.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('Students', 'மாணவர்கள்')}</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('Manage student profiles, parents and bus assignments.', 'மாணவர் சுயவிவரங்கள், பெற்றோர் மற்றும் பேருந்து ஒதுக்கீடுகளை நிர்வகிக்கவும்.')}</p>
                 </div>
                 <div className="flex gap-2">
                     <input ref={importRef} type="file" className="hidden" accept=".csv" onChange={handleImport} />
@@ -348,19 +350,19 @@ export default function StudentsPage() {
                         className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
                         title="Download CSV template"
                     >
-                        <Download className="w-4 h-4" /> Template
+                        <Download className="w-4 h-4" /> {t('Template', 'வார்ப்புரு')}
                     </button>
                     <button
                         onClick={() => importRef.current?.click()}
                         className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
                     >
-                        <FileUp className="w-4 h-4" /> Import CSV
+                        <FileUp className="w-4 h-4" /> {t('Import CSV', 'CSV இறக்குமதி')}
                     </button>
                     <button
                         onClick={openCreate}
                         className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
                     >
-                        <Plus className="w-4 h-4" /> Add Student
+                        <Plus className="w-4 h-4" /> {t('Add Student', 'மாணவர் சேர்')}
                     </button>
                 </div>
             </div>
@@ -372,7 +374,7 @@ export default function StudentsPage() {
                         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search name or GR no..."
+                            placeholder={t('Search name or GR no...', 'பெயர் அல்லது GR எண் தேடு...')}
                             className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 pl-9 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
@@ -383,7 +385,7 @@ export default function StudentsPage() {
                         value={filterRoute}
                         onChange={e => setFilterRoute(e.target.value)}
                     >
-                        <option value="">All Routes</option>
+                        <option value="">{t('All Routes', 'அனைத்து வழிகள்')}</option>
                         {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                     </select>
                 </div>
@@ -395,11 +397,11 @@ export default function StudentsPage() {
                     <table className="w-full text-sm">
                         <thead className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Grade</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Parent</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Route / Stop</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Student', 'மாணவர்')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Grade', 'வகுப்பு')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Parent', 'பெற்றோர்')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Route / Stop', 'வழி / நிறுத்தம்')}</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Actions', 'செயல்கள்')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -415,7 +417,7 @@ export default function StudentsPage() {
                                 <tr>
                                     <td colSpan={5} className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
                                         <GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                        <p className="font-medium">No students found</p>
+                                        <p className="font-medium">{t('No students found', 'மாணவர்கள் இல்லை')}</p>
                                     </td>
                                 </tr>
                             ) : filtered.map(s => (
@@ -454,7 +456,7 @@ export default function StudentsPage() {
                                                 <MapPin className="w-3.5 h-3.5 text-orange-400" />
                                                 {s.stop.name}
                                             </span>
-                                        ) : <span className="text-slate-400 text-xs italic">Unassigned</span>}
+                                        ) : <span className="text-slate-400 text-xs italic">{t('Unassigned', 'ஒதுக்கப்படவில்லை')}</span>}
                                         {s.route?.name && (
                                             <p className="text-xs text-[var(--brand)] font-medium uppercase mt-0.5">{s.route.name}</p>
                                         )}
@@ -478,8 +480,8 @@ export default function StudentsPage() {
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
                             <div>
-                                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Enroll Student</h2>
-                                <p className="text-xs text-slate-400 mt-0.5">Step {step + 1} of {STEPS.length}: {STEPS[step]}</p>
+                                <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('Enroll Student', 'மாணவரை சேர்க்கவும்')}</h2>
+                                <p className="text-xs text-slate-400 mt-0.5">{t('Step', 'படி')} {step + 1} {t('of', 'இல்')} {STEPS.length}: {STEPS[step]}</p>
                             </div>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
                         </div>
@@ -496,7 +498,7 @@ export default function StudentsPage() {
                                 {step === 0 && (
                                     <div className="space-y-4">
                                         <div>
-                                            <label className={labelCls}>Full Name *</label>
+                                            <label className={labelCls}>{t('Full Name', 'முழு பெயர்')} *</label>
                                             <input required type="text" placeholder="e.g. Arjun Kumar" className={inputCls} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                                         </div>
                                         <div className="grid grid-cols-3 gap-3">
@@ -505,11 +507,11 @@ export default function StudentsPage() {
                                                 <input type="text" placeholder="GR-001" className={inputCls} value={formData.gr_no} onChange={e => setFormData({ ...formData, gr_no: e.target.value })} />
                                             </div>
                                             <div>
-                                                <label className={labelCls}>Grade</label>
+                                                <label className={labelCls}>{t('Grade', 'வகுப்பு')}</label>
                                                 <input type="text" placeholder="5" className={inputCls} value={formData.grade} onChange={e => setFormData({ ...formData, grade: e.target.value })} />
                                             </div>
                                             <div>
-                                                <label className={labelCls}>Section</label>
+                                                <label className={labelCls}>{t('Section', 'பிரிவு')}</label>
                                                 <input type="text" placeholder="A" className={inputCls} value={formData.section} onChange={e => setFormData({ ...formData, section: e.target.value })} />
                                             </div>
                                         </div>
@@ -523,14 +525,14 @@ export default function StudentsPage() {
                                             {(['new', 'existing'] as const).map(mode => (
                                                 <button key={mode} type="button" onClick={() => setFormData({ ...formData, parent_mode: mode })}
                                                     className={`flex-1 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${formData.parent_mode === mode ? 'bg-white dark:bg-slate-600 text-[var(--brand)] shadow-sm' : 'text-slate-400'}`}>
-                                                    {mode === 'new' ? 'Create New' : 'Existing Parent'}
+                                                    {mode === 'new' ? t('Create New', 'புதிதாக உருவாக்கு') : t('Existing Parent', 'ஏற்கனவே உள்ள பெற்றோர்')}
                                                 </button>
                                             ))}
                                         </div>
                                         {formData.parent_mode === 'existing' ? (
                                             <div>
-                                                <label className={labelCls}>Search Parent</label>
-                                                <input type="text" placeholder="Type name or email..." className={`${inputCls} mb-2`} value={parentSearch} onChange={e => searchParents(e.target.value)} />
+                                                <label className={labelCls}>{t('Search Parent', 'பெற்றோரை தேடு')}</label>
+                                                <input type="text" placeholder={t('Type name or email...', 'பெயர் அல்லது மின்னஞ்சல் தட்டச்சு செய்யவும்...')} className={`${inputCls} mb-2`} value={parentSearch} onChange={e => searchParents(e.target.value)} />
                                                 {parents.length > 0 && (
                                                     <div className="border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden">
                                                         {parents.map(p => (
@@ -542,30 +544,30 @@ export default function StudentsPage() {
                                                         ))}
                                                     </div>
                                                 )}
-                                                {formData.parent_id && <p className="text-xs text-emerald-600 font-medium mt-1">Selected: {formData.parent_name}</p>}
+                                                {formData.parent_id && <p className="text-xs text-emerald-600 font-medium mt-1">{t('Selected', 'தேர்ந்தெடுக்கப்பட்டது')}: {formData.parent_name}</p>}
                                             </div>
                                         ) : (
                                             <>
                                                 <div>
-                                                    <label className={labelCls}>Parent Name</label>
+                                                    <label className={labelCls}>{t('Parent Name', 'பெற்றோர் பெயர்')}</label>
                                                     <input type="text" placeholder="e.g. Suresh Kumar" className={inputCls} value={formData.parent_name} onChange={e => setFormData({ ...formData, parent_name: e.target.value })} />
                                                 </div>
                                                 <div>
                                                     <label className={labelCls}>
-                                                        Email (Login ID){formData.parent_name ? ' *' : ''}
+                                                        {t('Email (Login ID)', 'மின்னஞ்சல் (உள்நுழைவு ID)')}{formData.parent_name ? ' *' : ''}
                                                     </label>
                                                     <input type="email" placeholder="parent@email.com" className={`${inputCls} ${formData.parent_name && !formData.parent_email ? 'border-red-400 focus:border-red-400' : ''}`} value={formData.parent_email} onChange={e => setFormData({ ...formData, parent_email: e.target.value })} />
                                                     {formData.parent_name && !formData.parent_email && (
-                                                        <p className="text-xs text-red-500 mt-1">Email is required to create the parent account.</p>
+                                                        <p className="text-xs text-red-500 mt-1">{t('Email is required to create the parent account.', 'பெற்றோர் கணக்கை உருவாக்க மின்னஞ்சல் தேவை.')}</p>
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <label className={labelCls}>Phone</label>
+                                                    <label className={labelCls}>{t('Phone', 'தொலைபேசி')}</label>
                                                     <input type="tel" placeholder="+91 98765 43210" className={inputCls} value={formData.parent_phone} onChange={e => setFormData({ ...formData, parent_phone: e.target.value })} />
                                                 </div>
                                                 <div>
-                                                    <label className={labelCls}>Password <span className="text-slate-400 font-normal">(leave blank to auto-generate)</span></label>
-                                                    <input type="text" placeholder="Set a password (min 8 chars)" className={inputCls} value={formData.parent_password} onChange={e => setFormData({ ...formData, parent_password: e.target.value })} autoComplete="off" />
+                                                    <label className={labelCls}>{t('Password', 'கடவுச்சொல்')} <span className="text-slate-400 font-normal">({t('leave blank to auto-generate', 'தானாக உருவாக்க காலியாக விடவும்')})</span></label>
+                                                    <input type="text" placeholder={t('Set a password (min 8 chars)', 'கடவுச்சொல் அமை (குறைந்தது 8 எழுத்துக்கள்)')} className={inputCls} value={formData.parent_password} onChange={e => setFormData({ ...formData, parent_password: e.target.value })} autoComplete="off" />
                                                 </div>
                                             </>
                                         )}
@@ -576,25 +578,25 @@ export default function StudentsPage() {
                                 {step === 2 && (
                                     <div className="space-y-4">
                                         <div>
-                                            <label className={labelCls}>Route</label>
+                                            <label className={labelCls}>{t('Route', 'வழி')}</label>
                                             <select className={inputCls} value={formData.route_id} onChange={e => { setFormData({ ...formData, route_id: e.target.value, stop_id: '' }); fetchStops(e.target.value); }}>
-                                                <option value="">Select route...</option>
+                                                <option value="">{t('Select route...', 'வழி தேர்ந்தெடு...')}</option>
                                                 {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                             </select>
                                         </div>
                                         <div>
-                                            <label className={labelCls}>Stop</label>
+                                            <label className={labelCls}>{t('Stop', 'நிறுத்தம்')}</label>
                                             <select className={inputCls} value={formData.stop_id} onChange={e => setFormData({ ...formData, stop_id: e.target.value })} disabled={!formData.route_id}>
-                                                <option value="">Select stop...</option>
+                                                <option value="">{t('Select stop...', 'நிறுத்தம் தேர்ந்தெடு...')}</option>
                                                 {stops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                             </select>
                                         </div>
                                         <div>
-                                            <label className={labelCls}>Photo (optional)</label>
+                                            <label className={labelCls}>{t('Photo (optional)', 'படம் (விருப்பத்தேர்வு)')}</label>
                                             <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
                                             <button type="button" onClick={() => photoRef.current?.click()} className="w-full py-6 border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl flex flex-col items-center gap-2 text-slate-400 hover:border-[var(--brand)] hover:text-[var(--brand)] transition-all">
                                                 <Image className="w-6 h-6" />
-                                                <span className="text-xs font-medium">{photoFile ? photoFile.name : 'Click to upload photo'}</span>
+                                                <span className="text-xs font-medium">{photoFile ? photoFile.name : t('Click to upload photo', 'படம் பதிவேற்ற கிளிக் செய்யவும்')}</span>
                                             </button>
                                         </div>
                                     </div>
@@ -605,31 +607,31 @@ export default function StudentsPage() {
                                     <div className="space-y-4">
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                <label className={labelCls}>Fee Amount (₹) *</label>
+                                                <label className={labelCls}>{t('Fee Amount (₹)', 'கட்டண தொகை (₹)')} *</label>
                                                 <input type="number" placeholder="2500" className={inputCls} value={formData.fee_amount} onChange={e => setFormData({ ...formData, fee_amount: e.target.value })} />
                                             </div>
                                             <div>
-                                                <label className={labelCls}>Frequency</label>
+                                                <label className={labelCls}>{t('Frequency', 'அலைவெண்')}</label>
                                                 <select className={inputCls} value={formData.fee_frequency} onChange={e => setFormData({ ...formData, fee_frequency: e.target.value })}>
-                                                    <option value="monthly">Monthly</option>
-                                                    <option value="weekly">Weekly</option>
-                                                    <option value="quarterly">Quarterly</option>
-                                                    <option value="half-yearly">Half-Yearly</option>
-                                                    <option value="yearly">Yearly</option>
+                                                    <option value="monthly">{t('Monthly', 'மாதாந்திர')}</option>
+                                                    <option value="weekly">{t('Weekly', 'வாராந்திர')}</option>
+                                                    <option value="quarterly">{t('Quarterly', 'காலாண்டு')}</option>
+                                                    <option value="half-yearly">{t('Half-Yearly', 'அரையாண்டு')}</option>
+                                                    <option value="yearly">{t('Yearly', 'ஆண்டு')}</option>
                                                 </select>
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                <label className={labelCls}>Due Day</label>
+                                                <label className={labelCls}>{t('Due Day', 'நிலுவை நாள்')}</label>
                                                 <input type="number" min="1" max="31" placeholder="5" className={inputCls} value={formData.fee_due_day} onChange={e => setFormData({ ...formData, fee_due_day: e.target.value })} />
                                             </div>
                                             <div>
-                                                <label className={labelCls}>Academic Year</label>
+                                                <label className={labelCls}>{t('Academic Year', 'கல்வியாண்டு')}</label>
                                                 <input type="text" placeholder="2024" className={inputCls} value={formData.academic_year} onChange={e => setFormData({ ...formData, academic_year: e.target.value })} />
                                             </div>
                                         </div>
-                                        <p className="text-xs text-slate-400">Fee amount is required to enroll the student.</p>
+                                        <p className="text-xs text-slate-400">{t('Fee amount is required to enroll the student.', 'மாணவரை சேர்க்க கட்டண தொகை தேவை.')}</p>
                                     </div>
                                 )}
 
@@ -642,16 +644,16 @@ export default function StudentsPage() {
                                 <div className="flex gap-3 mt-6">
                                     {step > 0 && (
                                         <button type="button" onClick={() => setStep(s => s - 1)} className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all">
-                                            <ChevronLeft className="w-4 h-4" /> Back
+                                            <ChevronLeft className="w-4 h-4" /> {t('Back', 'திரும்பு')}
                                         </button>
                                     )}
                                     {step < STEPS.length - 1 ? (
                                         <button type="button" disabled={!canProceed()} onClick={() => setStep(s => s + 1)} className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50">
-                                            Next <ChevronRight className="w-4 h-4" />
+                                            {t('Next', 'அடுத்து')} <ChevronRight className="w-4 h-4" />
                                         </button>
                                     ) : (
                                         <button type="submit" disabled={isSubmitting || !formData.fee_amount} className="flex-1 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2">
-                                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enroll Student'}
+                                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t('Enroll Student', 'மாணவரை சேர்க்கவும்')}
                                         </button>
                                     )}
                                 </div>
@@ -666,7 +668,7 @@ export default function StudentsPage() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Edit Student</h2>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('Edit Student', 'மாணவரை திருத்து')}</h2>
                             <button onClick={() => setEditModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
                         </div>
 
@@ -706,13 +708,13 @@ export default function StudentsPage() {
                                         }}
                                     />
                                 </div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">Tap camera to change photo</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">{t('Tap camera to change photo', 'படத்தை மாற்ற கேமரா தட்டவும்')}</p>
                             </div>
 
-                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student Details</p>
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Student Details', 'மாணவர் விவரங்கள்')}</p>
                             <div>
-                                <label className={labelCls}>Name <span className="text-red-500">*</span></label>
-                                <input className={inputCls} placeholder="Full name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                                <label className={labelCls}>{t('Name', 'பெயர்')} <span className="text-red-500">*</span></label>
+                                <input className={inputCls} placeholder={t('Full name', 'முழு பெயர்')} value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
                             </div>
                             <div className="grid grid-cols-3 gap-3">
                                 <div>
@@ -720,21 +722,21 @@ export default function StudentsPage() {
                                     <input className={inputCls} placeholder="GR-001" value={editForm.gr_no} onChange={e => setEditForm(f => ({ ...f, gr_no: e.target.value }))} />
                                 </div>
                                 <div>
-                                    <label className={labelCls}>Grade</label>
+                                    <label className={labelCls}>{t('Grade', 'வகுப்பு')}</label>
                                     <input className={inputCls} placeholder="5" value={editForm.grade} onChange={e => setEditForm(f => ({ ...f, grade: e.target.value }))} />
                                 </div>
                                 <div>
-                                    <label className={labelCls}>Section</label>
+                                    <label className={labelCls}>{t('Section', 'பிரிவு')}</label>
                                     <input className={inputCls} placeholder="A" value={editForm.section} onChange={e => setEditForm(f => ({ ...f, section: e.target.value }))} />
                                 </div>
                             </div>
 
-                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Parent / Guardian</p>
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">{t('Parent / Guardian', 'பெற்றோர் / பாதுகாவலர்')}</p>
                             <div className="relative">
-                                <label className={labelCls}>Search & Select Parent</label>
+                                <label className={labelCls}>{t('Search & Select Parent', 'பெற்றோரை தேடி தேர்ந்தெடு')}</label>
                                 <input
                                     className={inputCls}
-                                    placeholder="Type name → click result to link"
+                                    placeholder={t('Type name → click result to link', 'பெயர் தட்டச்சு → இணைக்க முடிவை கிளிக் செய்')}
                                     value={editParentSearch}
                                     onChange={async e => {
                                         setEditParentSearch(e.target.value);
@@ -759,26 +761,26 @@ export default function StudentsPage() {
                                     </div>
                                 )}
                                 {editForm.parent_id
-                                    ? <p className="text-xs text-emerald-600 font-medium mt-1">✓ Linked: {editForm.parent_name}</p>
-                                    : editParentSearch && <p className="text-xs text-amber-500 mt-1">⚠ Type and click a name from the list to link the parent</p>
+                                    ? <p className="text-xs text-emerald-600 font-medium mt-1">✓ {t('Linked', 'இணைக்கப்பட்டது')}: {editForm.parent_name}</p>
+                                    : editParentSearch && <p className="text-xs text-amber-500 mt-1">⚠ {t('Type and click a name from the list to link the parent', 'பெற்றோரை இணைக்க பட்டியலிலிருந்து பெயரை தட்டச்சு செய்து கிளிக் செய்யவும்')}</p>
                                 }
                             </div>
                             <div>
-                                <label className={labelCls}>Parent Phone</label>
+                                <label className={labelCls}>{t('Parent Phone', 'பெற்றோர் தொலைபேசி')}</label>
                                 <input type="tel" className={inputCls} placeholder="+91 9876543210" value={editForm.parent_phone} onChange={e => setEditForm(f => ({ ...f, parent_phone: e.target.value }))} />
                             </div>
                             {editForm.parent_id && (
                                 <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 space-y-3">
                                     <div>
-                                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Parent Login</p>
+                                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">{t('Parent Login', 'பெற்றோர் உள்நுழைவு')}</p>
                                         <p className="text-sm text-slate-500 dark:text-slate-400">{editForm.parent_email}</p>
                                     </div>
                                     <div className="pt-2 border-t border-slate-200 dark:border-slate-600 space-y-2">
-                                        <p className="text-xs text-slate-400">Set a new temporary password — parent must change it on first login.</p>
+                                        <p className="text-xs text-slate-400">{t('Set a new temporary password — parent must change it on first login.', 'புதிய தற்காலிக கடவுச்சொல் அமை — முதல் உள்நுழைவில் பெற்றோர் மாற்ற வேண்டும்.')}</p>
                                         <div className="flex gap-2">
                                             <input
                                                 type="text"
-                                                placeholder="New temp password (min 8 chars)"
+                                                placeholder={t('New temp password (min 8 chars)', 'புதிய தற்காலிக கடவுச்சொல் (குறைந்தது 8 எழுத்துக்கள்)')}
                                                 value={newParentPassword}
                                                 onChange={e => { setNewParentPassword(e.target.value); setPasswordMsg(''); }}
                                                 className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)]"
@@ -789,7 +791,7 @@ export default function StudentsPage() {
                                                 disabled={settingPassword || !newParentPassword}
                                                 className="px-4 py-2 text-xs font-semibold rounded-xl bg-[var(--brand)] text-white hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0"
                                             >
-                                                {settingPassword ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Set Password'}
+                                                {settingPassword ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t('Set Password', 'கடவுச்சொல் அமை')}
                                             </button>
                                         </div>
                                         {passwordMsg && (
@@ -801,50 +803,50 @@ export default function StudentsPage() {
                                 </div>
                             )}
 
-                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Transport Assignment</p>
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">{t('Transport Assignment', 'போக்குவரத்து ஒதுக்கீடு')}</p>
                             <div>
-                                <label className={labelCls}>Route</label>
+                                <label className={labelCls}>{t('Route', 'வழி')}</label>
                                 <select className={inputCls} value={editForm.route_id} onChange={e => { setEditForm(f => ({ ...f, route_id: e.target.value, stop_id: '' })); fetchEditStops(e.target.value); }}>
-                                    <option value="">No Route</option>
+                                    <option value="">{t('No Route', 'வழி இல்லை')}</option>
                                     {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className={labelCls}>Stop</label>
+                                <label className={labelCls}>{t('Stop', 'நிறுத்தம்')}</label>
                                 <select className={`${inputCls} disabled:opacity-40`} value={editForm.stop_id} onChange={e => setEditForm(f => ({ ...f, stop_id: e.target.value }))} disabled={!editForm.route_id}>
-                                    <option value="">No Stop</option>
+                                    <option value="">{t('No Stop', 'நிறுத்தம் இல்லை')}</option>
                                     {editStops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
                             </div>
 
-                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Fee Setup</p>
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">{t('Fee Setup', 'கட்டண அமைப்பு')}</p>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className={labelCls}>Fee Amount (₹)</label>
+                                    <label className={labelCls}>{t('Fee Amount (₹)', 'கட்டண தொகை (₹)')}</label>
                                     <input type="number" min="0" className={inputCls} placeholder="e.g. 2500" value={editForm.fee_amount} onChange={e => setEditForm(f => ({ ...f, fee_amount: e.target.value }))} />
                                 </div>
                                 <div>
-                                    <label className={labelCls}>Frequency</label>
+                                    <label className={labelCls}>{t('Frequency', 'அலைவெண்')}</label>
                                     <select className={inputCls} value={editForm.fee_frequency} onChange={e => setEditForm(f => ({ ...f, fee_frequency: e.target.value }))}>
-                                        <option value="monthly">Monthly</option>
-                                        <option value="weekly">Weekly</option>
-                                        <option value="quarterly">Quarterly</option>
-                                        <option value="half-yearly">Half-Yearly</option>
-                                        <option value="yearly">Yearly</option>
+                                        <option value="monthly">{t('Monthly', 'மாதாந்திர')}</option>
+                                        <option value="weekly">{t('Weekly', 'வாராந்திர')}</option>
+                                        <option value="quarterly">{t('Quarterly', 'காலாண்டு')}</option>
+                                        <option value="half-yearly">{t('Half-Yearly', 'அரையாண்டு')}</option>
+                                        <option value="yearly">{t('Yearly', 'ஆண்டு')}</option>
                                     </select>
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className={labelCls}>Due Day</label>
+                                    <label className={labelCls}>{t('Due Day', 'நிலுவை நாள்')}</label>
                                     <input type="number" min="1" max="31" placeholder="5" className={inputCls} value={editForm.fee_due_day} onChange={e => setEditForm(f => ({ ...f, fee_due_day: e.target.value }))} />
                                 </div>
                                 <div>
-                                    <label className={labelCls}>Academic Year</label>
+                                    <label className={labelCls}>{t('Academic Year', 'கல்வியாண்டு')}</label>
                                     <input type="text" placeholder="2024" className={inputCls} value={editForm.academic_year} onChange={e => setEditForm(f => ({ ...f, academic_year: e.target.value }))} />
                                 </div>
                             </div>
-                            <p className="text-xs text-slate-400">Leave fee amount blank to keep existing fee settings.</p>
+                            <p className="text-xs text-slate-400">{t('Leave fee amount blank to keep existing fee settings.', 'தற்போதைய கட்டண அமைப்பை வைக்க கட்டண தொகையை காலியாக விடவும்.')}</p>
 
                             {editError && (
                                 <div className="px-4 py-2.5 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl text-sm text-red-700 dark:text-red-400">
@@ -858,7 +860,7 @@ export default function StudentsPage() {
                                 onClick={() => setEditModalOpen(false)}
                                 className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                             >
-                                Cancel
+                                {t('Cancel', 'ரத்து செய்')}
                             </button>
                             <button
                                 onClick={handleEditSubmit}
@@ -866,7 +868,7 @@ export default function StudentsPage() {
                                 className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
                             >
                                 {editSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                Save Changes
+                                {t('Save Changes', 'மாற்றங்களை சேமி')}
                             </button>
                         </div>
                     </div>
@@ -878,7 +880,7 @@ export default function StudentsPage() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Remove this student?</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Remove this student?', 'இந்த மாணவரை நீக்கவா?')}</h3>
                             <button onClick={() => setDeleteId(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
@@ -887,10 +889,10 @@ export default function StudentsPage() {
                             <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
                                 <Trash2 className="w-6 h-6 text-red-500" />
                             </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">This will permanently remove the student record.</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{t('This will permanently remove the student record.', 'இது மாணவர் பதிவை நிரந்தரமாக நீக்கும்.')}</p>
                             <div className="flex gap-3">
-                                <button onClick={() => setDeleteId(null)} className="flex-1 flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all justify-center">Cancel</button>
-                                <button onClick={() => handleDelete(deleteId)} className="flex-1 flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 justify-center">Delete</button>
+                                <button onClick={() => setDeleteId(null)} className="flex-1 flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all justify-center">{t('Cancel', 'ரத்து செய்')}</button>
+                                <button onClick={() => handleDelete(deleteId)} className="flex-1 flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 justify-center">{t('Delete', 'நீக்கு')}</button>
                             </div>
                         </div>
                     </div>
@@ -905,27 +907,27 @@ export default function StudentsPage() {
                             <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                         </div>
                         <div>
-                            <h3 className="text-base font-bold text-slate-900 dark:text-white">Parent Account Created</h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Share these login credentials with the parent. Password must be changed on first login.</p>
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white">{t('Parent Account Created', 'பெற்றோர் கணக்கு உருவாக்கப்பட்டது')}</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('Share these login credentials with the parent. Password must be changed on first login.', 'இந்த உள்நுழைவு சான்றுகளை பெற்றோருடன் பகிரவும். முதல் உள்நுழைவில் கடவுச்சொல் மாற்றப்பட வேண்டும்.')}</p>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 text-left space-y-2">
                             <div className="flex justify-between text-xs">
-                                <span className="text-slate-500 dark:text-slate-400">Name</span>
+                                <span className="text-slate-500 dark:text-slate-400">{t('Name', 'பெயர்')}</span>
                                 <span className="font-semibold text-slate-800 dark:text-white">{parentCreds.name}</span>
                             </div>
                             <div className="flex justify-between text-xs">
-                                <span className="text-slate-500 dark:text-slate-400">Email</span>
+                                <span className="text-slate-500 dark:text-slate-400">{t('Email', 'மின்னஞ்சல்')}</span>
                                 <span className="font-semibold text-slate-800 dark:text-white">{parentCreds.email}</span>
                             </div>
                             <div className="flex justify-between items-center text-xs">
-                                <span className="text-slate-500 dark:text-slate-400">Temp Password</span>
+                                <span className="text-slate-500 dark:text-slate-400">{t('Temp Password', 'தற்காலிக கடவுச்சொல்')}</span>
                                 <div className="flex items-center gap-2">
                                     <span className="font-mono font-bold text-[var(--brand)] text-sm">{parentCreds.password}</span>
                                     <button
                                         onClick={() => navigator.clipboard.writeText(parentCreds.password)}
                                         className="text-[10px] bg-[var(--brand)]/10 text-[var(--brand)] px-2 py-0.5 rounded-md font-semibold hover:bg-[var(--brand)]/20 transition-colors"
                                     >
-                                        Copy
+                                        {t('Copy', 'நகலெடு')}
                                     </button>
                                 </div>
                             </div>
@@ -934,7 +936,7 @@ export default function StudentsPage() {
                             onClick={() => setParentCreds(null)}
                             className="w-full bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
                         >
-                            Done
+                            {t('Done', 'முடிந்தது')}
                         </button>
                     </div>
                 </div>

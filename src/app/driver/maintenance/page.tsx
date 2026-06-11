@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, CheckCircle, AlertCircle, Loader2, Wrench } from 'lucide-react';
 import api from '@/lib/api';
-import { ta } from '@/lib/i18n';
+import { useT } from '@/lib/i18n';
 
 interface MaintenanceItem {
     part: string;
@@ -29,6 +29,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function DriverMaintenancePage() {
+    const t = useT();
     const [view, setView] = useState<'list' | 'form'>('list');
     const [records, setRecords] = useState<MaintenanceRecord[]>([]);
     const [loading, setLoading] = useState(true);
@@ -91,12 +92,12 @@ export default function DriverMaintenancePage() {
             {/* Header */}
             <div className="bg-slate-800 px-4 pt-12 pb-4 flex items-center justify-between">
                 <div>
-                    <h1 className="text-xl font-bold text-white">Maintenance / {ta.maintenance}</h1>
-                    <p className="text-slate-400 text-sm mt-0.5">Expense records & submissions</p>
+                    <h1 className="text-xl font-bold text-white">{t('Maintenance', 'பராமரிப்பு')}</h1>
+                    <p className="text-slate-400 text-sm mt-0.5">{t('Expense records & submissions', 'செலவு பதிவுகள் & சமர்ப்பிப்புகள்')}</p>
                 </div>
                 {view === 'list' && (
                     <button onClick={() => setView('form')} className="flex items-center gap-2 bg-[var(--brand)] text-white px-4 py-2 rounded-xl text-sm font-semibold active:scale-95 transition-all">
-                        <Plus className="w-4 h-4" /> Add
+                        <Plus className="w-4 h-4" /> {t('Add Record', 'பதிவு சேர்')}
                     </button>
                 )}
             </div>
@@ -107,16 +108,16 @@ export default function DriverMaintenancePage() {
                         <div className="w-20 h-20 bg-emerald-900/30 rounded-full flex items-center justify-center mb-4">
                             <CheckCircle className="w-12 h-12 text-emerald-400" />
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-2">Submitted!</h3>
-                        <p className="text-sm text-slate-400 mb-6">Admin will review and approve your maintenance record.</p>
+                        <h3 className="text-xl font-bold text-white mb-2">{t('Submitted!', 'சமர்ப்பிக்கப்பட்டது!')}</h3>
+                        <p className="text-sm text-slate-400 mb-6">{t('Admin will review and approve your maintenance record.', 'நிர்வாகி உங்கள் பராமரிப்பு பதிவை ஆய்வு செய்து அனுமதிப்பார்.')}</p>
                         <button onClick={resetForm} className="bg-slate-700 border border-slate-600 text-white rounded-xl px-5 py-2.5 font-semibold text-sm">
-                            Back to Records
+                            {t('Back to Records', 'பதிவுகளுக்கு திரும்பு')}
                         </button>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
                         <button type="button" onClick={() => setView('list')} className="text-sm text-slate-400 hover:text-white flex items-center gap-1 mb-2">
-                            ← Back to list
+                            ← {t('Back to list', 'பட்டியலுக்கு திரும்பு')}
                         </button>
 
                         {submitError && (
@@ -127,11 +128,11 @@ export default function DriverMaintenancePage() {
 
                         <div className="bg-slate-800 rounded-2xl border border-slate-700 p-5 space-y-4">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Date / தேதி</label>
+                                <label className="block text-sm font-semibold text-slate-300 mb-2">{t('Date', 'தேதி')}</label>
                                 <input type="date" value={date} max={todayStr()} onChange={e => setDate(e.target.value)} required className={inputCls} />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">Description / விவரம்</label>
+                                <label className="block text-sm font-semibold text-slate-300 mb-2">{t('Description', 'விவரம்')}</label>
                                 <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="e.g. Tyre replacement, oil change..." required className={inputCls + ' resize-none'} />
                             </div>
                         </div>
@@ -139,16 +140,16 @@ export default function DriverMaintenancePage() {
                         {/* Items table */}
                         <div className="bg-slate-800 rounded-2xl border border-slate-700 p-5">
                             <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-sm font-bold text-white">Items / பாகங்கள்</h3>
+                                <h3 className="text-sm font-bold text-white">{t('Items', 'பாகங்கள்')}</h3>
                                 <button type="button" onClick={addItem} className="flex items-center gap-1 text-xs text-[var(--brand)] font-semibold">
-                                    <Plus className="w-3.5 h-3.5" /> Add Row
+                                    <Plus className="w-3.5 h-3.5" /> {t('Add Row', 'வரிசை சேர்')}
                                 </button>
                             </div>
 
                             {/* Header */}
                             <div className="grid grid-cols-[1fr_100px_32px] gap-2 mb-2">
-                                <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">Part Name</span>
-                                <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">Cost (₹)</span>
+                                <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">{t('Part Name', 'பாகம் பெயர்')}</span>
+                                <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">{t('Cost', 'விலை')} (₹)</span>
                                 <span />
                             </div>
 
@@ -176,15 +177,15 @@ export default function DriverMaintenancePage() {
                             ))}
 
                             <div className="border-t border-slate-700 mt-3 pt-3 flex items-center justify-between">
-                                <span className="text-sm font-bold text-white">Total / மொத்தம்</span>
+                                <span className="text-sm font-bold text-white">{t('Total', 'மொத்தம்')}</span>
                                 <span className="text-base font-black text-[var(--brand)]">₹{totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
 
                         <button type="submit" disabled={submitting} className="w-full bg-[var(--brand)] text-white rounded-2xl py-3 font-semibold text-sm disabled:opacity-50 active:scale-95 transition-all">
                             {submitting ? (
-                                <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</span>
-                            ) : 'Submit for Approval / அனுமதிக்கு சமர்ப்பி'}
+                                <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> {t('Submitting...', 'சமர்ப்பிக்கிறது...')}</span>
+                            ) : t('Submit for Approval', 'அனுமதிக்கு சமர்ப்பி')}
                         </button>
                     </form>
                 )
@@ -200,8 +201,8 @@ export default function DriverMaintenancePage() {
                             <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
                                 <Wrench className="w-8 h-8 text-slate-500" />
                             </div>
-                            <p className="text-slate-400 text-sm">No maintenance records yet.</p>
-                            <p className="text-slate-500 text-xs mt-1">Tap "Add" to submit an expense.</p>
+                            <p className="text-slate-400 text-sm">{t('No records', 'பதிவுகள் இல்லை')}</p>
+                            <p className="text-slate-500 text-xs mt-1">{t('Tap "Add Record" to submit an expense.', '"பதிவு சேர்" ஐ தட்டி செலவை சமர்ப்பிக்கவும்.')}</p>
                         </div>
                     ) : (
                         records.map(rec => (
@@ -228,13 +229,13 @@ export default function DriverMaintenancePage() {
                                 )}
 
                                 <div className="flex items-center justify-between border-t border-slate-700 pt-2 mt-2">
-                                    <span className="text-xs text-slate-400">Total</span>
+                                    <span className="text-xs text-slate-400">{t('Total', 'மொத்தம்')}</span>
                                     <span className="text-sm font-bold text-white">₹{rec.total_cost.toLocaleString('en-IN')}</span>
                                 </div>
 
                                 {rec.admin_note && (
                                     <div className="mt-2 bg-slate-700/50 rounded-xl px-3 py-2 text-xs text-slate-300">
-                                        <span className="font-semibold text-slate-400">Admin note: </span>{rec.admin_note}
+                                        <span className="font-semibold text-slate-400">{t('Admin note: ', 'நிர்வாகி குறிப்பு: ')}</span>{rec.admin_note}
                                     </div>
                                 )}
                             </div>

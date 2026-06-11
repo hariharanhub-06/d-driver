@@ -5,6 +5,7 @@ import { Bell, AlertCircle, Info, CheckCircle, Clock } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { getSocket } from '@/lib/socket';
+import { useT } from '@/lib/i18n';
 
 interface Notification {
     id: string;
@@ -38,6 +39,7 @@ function iconBg(type: Notification['type']) {
 }
 
 export default function NotificationsPage() {
+    const t = useT();
     const { user } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
@@ -113,9 +115,9 @@ export default function NotificationsPage() {
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
     const tabs: { key: Filter; label: string }[] = [
-        { key: 'all', label: 'All' },
-        { key: 'unread', label: `Unread${unreadCount > 0 ? ` (${unreadCount})` : ''}` },
-        { key: 'alerts', label: 'Alerts' },
+        { key: 'all', label: t('All', 'அனைத்தும்') },
+        { key: 'unread', label: `${t('Unread', 'படிக்காதவை')}${unreadCount > 0 ? ` (${unreadCount})` : ''}` },
+        { key: 'alerts', label: t('Alerts', 'அறிவிப்புகள்') },
     ];
 
     return (
@@ -123,9 +125,9 @@ export default function NotificationsPage() {
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Notifications</h1>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('Notifications', 'அறிவிப்புகள்')}</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Live alerts and system updates
+                        {t('Live alerts and system updates', 'நேரடி அறிவிப்புகள் மற்றும் கணினி புதுப்பிப்புகள்')}
                     </p>
                 </div>
                 {unreadCount > 0 && (
@@ -134,7 +136,7 @@ export default function NotificationsPage() {
                         disabled={markingAll}
                         className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm disabled:opacity-60"
                     >
-                        {markingAll ? 'Marking...' : 'Mark All Read'}
+                        {markingAll ? t('Marking...', 'குறிக்கிறது...') : t('Mark All Read', 'அனைத்தையும் படித்ததாக குறிக்கவும்')}
                     </button>
                 )}
             </div>
@@ -164,7 +166,7 @@ export default function NotificationsPage() {
             ) : filtered.length === 0 ? (
                 <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
                     <Bell className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    <p>{filter === 'unread' ? 'No unread notifications' : filter === 'alerts' ? 'No alerts' : 'No notifications yet'}</p>
+                    <p>{filter === 'unread' ? t('No unread notifications', 'படிக்காத அறிவிப்புகள் இல்லை') : filter === 'alerts' ? t('No alerts', 'அறிவிப்புகள் இல்லை') : t('No notifications yet', 'அறிவிப்புகள் இல்லை')}</p>
                 </div>
             ) : (
                 <div className="space-y-3">
@@ -205,7 +207,7 @@ export default function NotificationsPage() {
                                         onClick={e => { e.stopPropagation(); handleMarkRead(n.id); }}
                                         className="mt-2 text-xs font-semibold text-[var(--brand)] hover:opacity-80 uppercase tracking-wide"
                                     >
-                                        Mark as read
+                                        {t('Mark as read', 'படித்ததாக குறிக்கவும்')}
                                     </button>
                                 )}
                             </div>

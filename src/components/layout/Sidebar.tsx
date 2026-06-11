@@ -25,11 +25,13 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useSchoolBranding } from '@/context/SchoolBrandingContext';
+import { useLang } from '@/context/LanguageContext';
 
 export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const pathname = usePathname();
     const { user, logout } = useAuth();
     const branding = useSchoolBranding();
+    const { lang } = useLang();
 
     const getNavItems = () => {
         const role = user?.role || 'admin';
@@ -159,8 +161,16 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                                             >
                                                 <item.icon className="w-4 h-4 shrink-0" />
                                                 <span className="flex-1 min-w-0">
-                                                    <span className="block truncate">{item.label}</span>
-                                                    {LABEL_TA[item.label] && <span className="block text-[9px] opacity-60 truncate leading-tight">{LABEL_TA[item.label]}</span>}
+                                                    {lang === 'ta' ? (
+                                                        <span className="block truncate">{LABEL_TA[item.label] || item.label}</span>
+                                                    ) : lang === 'both' && LABEL_TA[item.label] ? (
+                                                        <>
+                                                            <span className="block truncate">{item.label}</span>
+                                                            <span className="block text-[9px] opacity-60 truncate leading-tight">{LABEL_TA[item.label]}</span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="block truncate">{item.label}</span>
+                                                    )}
                                                 </span>
                                             </div>
                                         );
@@ -175,8 +185,16 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                                         >
                                             <item.icon className="w-4 h-4 shrink-0" />
                                             <span className="flex-1 min-w-0">
-                                                <span className="block truncate">{item.label}</span>
-                                                {LABEL_TA[item.label] && <span className="block text-[9px] opacity-60 truncate leading-tight">{LABEL_TA[item.label]}</span>}
+                                                {lang === 'ta' ? (
+                                                    <span className="block truncate">{LABEL_TA[item.label] || item.label}</span>
+                                                ) : lang === 'both' && LABEL_TA[item.label] ? (
+                                                    <>
+                                                        <span className="block truncate">{item.label}</span>
+                                                        <span className="block text-[9px] opacity-60 truncate leading-tight">{LABEL_TA[item.label]}</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="block truncate">{item.label}</span>
+                                                )}
                                             </span>
                                         </Link>
                                     );
@@ -202,7 +220,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
                     >
                         <LogOut className="w-4 h-4" />
-                        Logout
+                        {lang === 'ta' ? 'வெளியேறு' : 'Logout'}
                     </button>
                 </div>
             </aside>

@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { connectSocket, getSocket } from '@/lib/socket';
 import api from '@/lib/api';
 import dynamic from 'next/dynamic';
+import { useT } from '@/lib/i18n';
 
 const DriverMap = dynamic(() => import('@/components/ui/DriverMap'), { ssr: false });
 
@@ -38,6 +39,7 @@ interface TripData {
 }
 
 function EndTripSlider({ onConfirm, onCancel, isEnding }: { onConfirm: () => void; onCancel: () => void; isEnding: boolean }) {
+    const t = useT();
     const [filled, setFilled] = useState(0);
     const filledRef = useRef(0);
     const trackRef = useRef<HTMLDivElement>(null);
@@ -86,8 +88,8 @@ function EndTripSlider({ onConfirm, onCancel, isEnding }: { onConfirm: () => voi
                 <div className="w-12 h-12 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
                     <AlertTriangle className="w-6 h-6 text-red-500" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white text-center mb-1">End Trip?</h3>
-                <p className="text-xs text-slate-400 dark:text-slate-500 text-center mb-5">Slide all the way to confirm</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white text-center mb-1">{t('End Trip?', 'பயணம் முடிவா?')}</h3>
+                <p className="text-xs text-slate-400 dark:text-slate-500 text-center mb-5">{t('Slide all the way to confirm', 'உறுதிப்படுத்த நழுவுங்கள்')}</p>
 
                 <div
                     ref={trackRef}
@@ -106,7 +108,7 @@ function EndTripSlider({ onConfirm, onCancel, isEnding }: { onConfirm: () => voi
                     {/* Label */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <span className="text-xs font-bold text-red-500 uppercase tracking-widest">
-                            {filled >= 98 ? 'Ending trip…' : 'Slide to End →'}
+                            {filled >= 98 ? t('Ending trip…', 'முடிவு செய்கிறது…') : t('Slide to End →', 'முடிவுக்கு நழுவுங்கள் →')}
                         </span>
                     </div>
                     {/* Thumb */}
@@ -125,7 +127,7 @@ function EndTripSlider({ onConfirm, onCancel, isEnding }: { onConfirm: () => voi
                     onClick={onCancel}
                     className="w-full mt-4 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 py-2 transition-colors text-center"
                 >
-                    Cancel
+                    {t('Cancel', 'ரத்து செய்')}
                 </button>
             </div>
         </div>
@@ -133,6 +135,7 @@ function EndTripSlider({ onConfirm, onCancel, isEnding }: { onConfirm: () => voi
 }
 
 export default function ActiveRide() {
+    const t = useT();
     const { user } = useAuth();
     const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
     const [heading, setHeading] = useState<number | null>(null);
@@ -552,10 +555,10 @@ export default function ActiveRide() {
                 <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                     <Navigation className="w-8 h-8 text-slate-400" />
                 </div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No Active Trip</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Start a trip from your dashboard to use the live map.</p>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{t('No Active Trip', 'செயல்பாட்டில் பயணம் இல்லை')}</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{t('Start a trip from your dashboard to use the live map.', 'நேரடி வரைபடத்தைப் பயன்படுத்த டாஷ்போர்டில் பயணம் தொடங்குங்கள்.')}</p>
                 <a href="/driver/dashboard" className="bg-[var(--brand)] text-white rounded-xl px-6 py-3 font-semibold text-sm">
-                    Go to Dashboard
+                    {t('Go to Dashboard', 'டாஷ்போர்டுக்கு செல்')}
                 </a>
             </div>
         );
@@ -567,33 +570,33 @@ export default function ActiveRide() {
                 <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mb-6">
                     <AlertTriangle className="w-10 h-10 text-amber-400" />
                 </div>
-                <h2 className="text-xl font-bold text-white mb-3">Location Access Required</h2>
+                <h2 className="text-xl font-bold text-white mb-3">{t('Location Access Required', 'இருப்பிட அணுகல் தேவை')}</h2>
                 <p className="text-slate-400 text-sm mb-6 max-w-xs">
-                    D-Driver needs your location to track the bus and show parents where you are. Please enable location and reload.
+                    {t('D-Driver needs your location to track the bus and show parents where you are. Please enable location and reload.', 'D-Driver பேருந்தை கண்காணிக்கவும் பெற்றோருக்கு நிலையை காட்டவும் உங்கள் இருப்பிடம் தேவை. இருப்பிடத்தை இயக்கி மீண்டும் ஏற்றவும்.')}
                 </p>
                 <div className="bg-slate-800 rounded-2xl p-5 text-left mb-6 w-full max-w-xs space-y-3">
-                    <p className="text-white text-sm font-semibold">How to enable:</p>
+                    <p className="text-white text-sm font-semibold">{t('How to enable:', 'எவ்வாறு இயக்குவது:')}</p>
                     <div className="flex items-start gap-3 text-slate-400 text-sm">
                         <span className="w-5 h-5 rounded-full bg-[var(--brand)] text-white text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
-                        <span>Tap the <strong className="text-white">lock icon</strong> or <strong className="text-white">ⓘ</strong> in your browser's address bar</span>
+                        <span>{t('Tap the ', 'உலாவியின் முகவரி பட்டியில் ')}<strong className="text-white">{t('lock icon', 'பூட்டு ஐகான்')}</strong>{t(' or ', ' அல்லது ')}<strong className="text-white">ⓘ</strong>{t(' in your browser\'s address bar', ' ஐ தட்டவும்')}</span>
                     </div>
                     <div className="flex items-start gap-3 text-slate-400 text-sm">
                         <span className="w-5 h-5 rounded-full bg-[var(--brand)] text-white text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
-                        <span>Tap <strong className="text-white">Location</strong> → set to <strong className="text-white">Allow</strong></span>
+                        <span>{t('Tap ', 'தட்டவும் ')}<strong className="text-white">{t('Location', 'இருப்பிடம்')}</strong>{t(' → set to ', ' → ')}<strong className="text-white">{t('Allow', 'அனுமதி')}</strong>{t(' ', ' என அமைக்கவும்')}</span>
                     </div>
                     <div className="flex items-start gap-3 text-slate-400 text-sm">
                         <span className="w-5 h-5 rounded-full bg-[var(--brand)] text-white text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
-                        <span>Reload this page</span>
+                        <span>{t('Reload this page', 'இந்த பக்கத்தை மீண்டும் ஏற்றவும்')}</span>
                     </div>
                 </div>
                 <button
                     onClick={() => window.location.reload()}
                     className="bg-[var(--brand)] text-white rounded-xl px-8 py-3 font-semibold text-sm w-full max-w-xs"
                 >
-                    Reload Page
+                    {t('Reload Page', 'பக்கத்தை மீண்டும் ஏற்று')}
                 </button>
                 <a href="/driver/dashboard" className="mt-4 text-sm text-slate-500 hover:text-slate-300">
-                    ← Back to Dashboard
+                    {t('← Back to Dashboard', '← டாஷ்போர்டுக்கு திரும்பு')}
                 </a>
             </div>
         );
@@ -606,10 +609,10 @@ export default function ActiveRide() {
                 <div className="fixed top-0 left-0 right-0 z-[600] bg-red-600 text-white px-4 py-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                         <AlertTriangle className="w-5 h-5 animate-pulse shrink-0" />
-                        <span className="text-sm font-bold">SOS ACTIVE — Admin notified</span>
+                        <span className="text-sm font-bold">{t('SOS ACTIVE — Admin notified', 'அவசரநிலை செயல்பாட்டில் — நிர்வாகிக்கு தெரிவிக்கப்பட்டது')}</span>
                     </div>
                     <button onClick={handleCancelSos} disabled={cancellingsos} className="bg-white/20 border border-white/40 text-white text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-white/30 transition-all disabled:opacity-50">
-                        {cancellingsos ? '…' : 'Cancel SOS'}
+                        {cancellingsos ? '…' : t('Cancel SOS', 'அவசர நிலை ரத்து செய்')}
                     </button>
                 </div>
             )}
@@ -636,13 +639,13 @@ export default function ActiveRide() {
                         href="/driver/dashboard"
                         className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white px-3 py-2 rounded-xl flex items-center gap-1.5 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 shadow-sm"
                     >
-                        <ArrowLeft className="w-4 h-4" /> Dashboard
+                        <ArrowLeft className="w-4 h-4" /> {t('Dashboard', 'டாஷ்போர்டு')}
                     </a>
                     <button
                         onClick={openBusSwitch}
                         className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white px-3 py-2 rounded-xl flex items-center gap-1.5 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 shadow-sm"
                     >
-                        <Wrench className="w-4 h-4" /> Switch Bus
+                        <Wrench className="w-4 h-4" /> {t('Switch Bus', 'பேருந்து மாற்றம்')}
                     </button>
                 </div>
             </div>
@@ -663,14 +666,14 @@ export default function ActiveRide() {
                         <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
                             <Check className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                         </div>
-                        <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">All Stops Completed!</h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">The route is complete. Slide below to end the trip.</p>
+                        <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">{t('All Stops Completed!', 'அனைத்து நிறுத்தங்களும் முடிந்தது!')}</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">{t('The route is complete. Slide below to end the trip.', 'வழி முடிந்தது. பயணத்தை முடிக்க கீழே நழுவுங்கள்.')}</p>
                         <button
                             onClick={() => setShowEndTrip(true)}
                             disabled={endingTrip}
                             className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white rounded-xl px-4 py-3 font-bold text-sm transition-all active:scale-95 w-full disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            End Trip
+                            {t('End Trip', 'பயணம் முடிவு')}
                         </button>
                     </div>
                 ) : (
@@ -678,7 +681,7 @@ export default function ActiveRide() {
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-0.5">
-                                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Heading to</p>
+                                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('Heading to', 'சென்று கொண்டிருக்கும் நிறுத்தம்')}</p>
                                     <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 rounded-full px-2 py-0.5">
                                         Stop {currentStop?.sequence ?? (currentStopIndex + 1)} of {stops.length}
                                     </span>
@@ -703,7 +706,7 @@ export default function ActiveRide() {
                             disabled={endingTrip}
                             className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            End Trip
+                            {t('End Trip', 'பயணம் முடிவு')}
                         </button>
                     </>
                 )}
@@ -728,7 +731,7 @@ export default function ActiveRide() {
                             <div>
                                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">{currentStop?.name}</h3>
                                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                                    Tap to mark · auto-advancing in {popupCountdown}s
+                                    {t('Tap to mark · auto-advancing in', 'குறிக்க தட்டவும் · தானாக முன்னேறும்')} {popupCountdown}s
                                 </p>
                             </div>
                             <button onClick={handleDoneWithStop} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
@@ -761,7 +764,7 @@ export default function ActiveRide() {
                                         {student.grade && <p className="text-[9px] text-slate-400 dark:text-slate-500">{student.grade}</p>}
                                         {marked && (
                                             <span className={`text-[9px] font-bold ${marked === 'present' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                {marked === 'present' ? '✓ Present' : '✗ Absent'}
+                                                {marked === 'present' ? `✓ ${t('Present', 'வந்தனர்')}` : `✗ ${t('Absent', 'வரவில்லை')}`}
                                             </span>
                                         )}
                                     </button>
@@ -771,7 +774,7 @@ export default function ActiveRide() {
 
                         <div className="px-4 pb-4 shrink-0">
                             <button onClick={handleDoneWithStop} className="w-full bg-[var(--brand)] hover:opacity-90 text-white rounded-xl py-2.5 font-bold text-sm active:scale-95 transition-all">
-                                Done — Next Stop
+                                {t('Done — Next Stop', 'முடிந்தது — அடுத்த நிறுத்தம்')}
                             </button>
                         </div>
                     </div>
@@ -783,7 +786,7 @@ export default function ActiveRide() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Send SOS Alert?</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Send SOS Alert?', 'அவசரநிலை எச்சரிக்கை அனுப்பவா?')}</h3>
                             <button onClick={() => setShowSosConfirm(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
@@ -792,11 +795,11 @@ export default function ActiveRide() {
                             <div className="w-14 h-14 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <AlertTriangle className="w-7 h-7 text-red-500" />
                             </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">This will immediately notify school administration of an emergency.</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">{t('This will immediately notify school administration of an emergency.', 'இது உடனடியாக பள்ளி நிர்வாகத்திற்கு அவசரநிலையை தெரிவிக்கும்.')}</p>
                             <div className="flex gap-3">
-                                <button onClick={() => setShowSosConfirm(false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm">Cancel</button>
+                                <button onClick={() => setShowSosConfirm(false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm">{t('Cancel', 'ரத்து செய்')}</button>
                                 <button onClick={handleSOS} disabled={submitting} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold disabled:opacity-50 text-sm active:scale-95 transition-all">
-                                    {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Send SOS'}
+                                    {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : t('Send SOS', 'அவசரநிலை அனுப்பு')}
                                 </button>
                             </div>
                         </div>
@@ -810,7 +813,7 @@ export default function ActiveRide() {
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-5">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <Bus className="w-5 h-5 text-[var(--brand)]" /> Switch Bus
+                                <Bus className="w-5 h-5 text-[var(--brand)]" /> {t('Switch Bus', 'பேருந்து மாற்றம்')}
                             </h3>
                             <button onClick={() => setShowBusSwitch(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all">
                                 <X className="w-5 h-5 text-slate-400" />
@@ -818,40 +821,40 @@ export default function ActiveRide() {
                         </div>
                         {busNumber && (
                             <div className="mb-4 px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
-                                <p className="text-xs text-slate-500 dark:text-slate-400">Current Bus</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">{t('Current Bus', 'தற்போதைய பேருந்து')}</p>
                                 <p className="text-sm font-bold text-slate-900 dark:text-white">{busNumber}</p>
                             </div>
                         )}
                         <div className="space-y-4 mb-5">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Reason</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Reason', 'காரணம்')}</label>
                                 <select value={switchForm.reason} onChange={e => setSwitchForm({ ...switchForm, reason: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors">
-                                    <option value="breakdown">Breakdown</option>
-                                    <option value="accident">Accident</option>
-                                    <option value="maintenance">Maintenance</option>
-                                    <option value="other">Other</option>
+                                    <option value="breakdown">{t('Breakdown', 'செயலிழப்பு')}</option>
+                                    <option value="accident">{t('Accident', 'விபத்து')}</option>
+                                    <option value="maintenance">{t('Maintenance', 'பராமரிப்பு')}</option>
+                                    <option value="other">{t('Other', 'மற்றவை')}</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Notes</label>
-                                <textarea value={switchForm.notes} onChange={e => setSwitchForm({ ...switchForm, notes: e.target.value })} placeholder="Describe the issue..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none h-20" />
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Notes', 'குறிப்புகள்')}</label>
+                                <textarea value={switchForm.notes} onChange={e => setSwitchForm({ ...switchForm, notes: e.target.value })} placeholder={t('Describe the issue...', 'சிக்கலை விவரிக்கவும்...')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors resize-none h-20" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Replacement Bus <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Replacement Bus', 'மாற்று பேருந்து')} <span className="text-red-500">*</span></label>
                                 <select value={switchForm.new_bus_id} onChange={e => setSwitchForm({ ...switchForm, new_bus_id: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors">
-                                    <option value="">Select a bus…</option>
+                                    <option value="">{t('Select a bus…', 'பேருந்தை தேர்வு செய்யுங்கள்…')}</option>
                                     {schoolBuses.map(b => (
                                         <option key={b.id} value={b.id}>{b.bus_number}</option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km) — optional</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Current Odometer (km) — optional', 'தற்போதைய ஒடோமீட்டர் (கி.மீ) — விரும்பினால்')}</label>
                                 <input type="number" value={switchForm.km_at_switch} onChange={e => setSwitchForm({ ...switchForm, km_at_switch: e.target.value })} placeholder="e.g. 45230" className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors" />
                             </div>
                         </div>
                         <button onClick={handleBusSwitch} disabled={submitting} className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 w-full justify-center disabled:opacity-50">
-                            {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Submit Switch Request'}
+                            {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : t('Submit Switch Request', 'மாற்று கோரிக்கை சமர்ப்பி')}
                         </button>
                     </div>
                 </div>

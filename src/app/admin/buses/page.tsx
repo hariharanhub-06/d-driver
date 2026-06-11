@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Edit, Trash2, Bus as BusIcon, Users as UsersIcon, X, Loader2, Droplets, FileUp } from 'lucide-react';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 type Bus = {
     id: string;
@@ -32,6 +33,7 @@ function fuelDot(liters?: number) {
 }
 
 export default function BusesPage() {
+    const t = useT();
     const [buses, setBuses] = useState<Bus[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -138,14 +140,14 @@ export default function BusesPage() {
             {fetchError && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-300 flex items-center justify-between">
                     <span>{fetchError}</span>
-                    <button onClick={fetchBuses} className="font-medium underline ml-3">Retry</button>
+                    <button onClick={fetchBuses} className="font-medium underline ml-3">{t('Retry', 'மீண்டும் முயற்சி')}</button>
                 </div>
             )}
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Buses</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage vehicles, capacity, fuel levels and assigned drivers.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('Buses', 'பேருந்துகள்')}</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('Manage vehicles, capacity, fuel levels and assigned drivers.', 'வாகனங்கள், இடக்கொள்ளல், எரிபொருள் மட்டங்கள் மற்றும் ஒதுக்கப்பட்ட ஓட்டுநர்களை நிர்வகிக்கவும்.')}</p>
                 </div>
                 <div className="flex gap-2">
                     <input ref={importRef} type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleImport} />
@@ -153,13 +155,13 @@ export default function BusesPage() {
                         onClick={() => importRef.current?.click()}
                         className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
                     >
-                        <FileUp className="w-4 h-4" /> Import
+                        <FileUp className="w-4 h-4" /> {t('Import', 'இறக்குமதி')}
                     </button>
                     <button
                         onClick={openCreate}
                         className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
                     >
-                        <Plus className="w-4 h-4" /> Add Bus
+                        <Plus className="w-4 h-4" /> {t('Add Bus', 'பேருந்து சேர்')}
                     </button>
                 </div>
             </div>
@@ -171,14 +173,14 @@ export default function BusesPage() {
                         <BusIcon className="w-5 h-5 text-white" />
                     </div>
                     <p className="text-3xl font-bold">{loading ? '—' : buses.length}</p>
-                    <p className="text-sm text-white/80 mt-1">Total Buses</p>
+                    <p className="text-sm text-white/80 mt-1">{t('Total Buses', 'மொத்த பேருந்துகள்')}</p>
                 </div>
                 <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
                     <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mb-4">
                         <BusIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <p className="text-3xl font-bold text-slate-900 dark:text-white">{loading ? '—' : activeBuses}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Active Buses</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('Active Buses', 'செயல்பாட்டில் பேருந்துகள்')}</p>
                 </div>
             </div>
 
@@ -189,26 +191,26 @@ export default function BusesPage() {
                         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search by bus number..."
+                            placeholder={t('Search by bus number...', 'பேருந்து எண்ணால் தேடு...')}
                             className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 pl-9 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                         />
                     </div>
-                    <span className="text-xs text-slate-400 font-medium ml-auto">{filtered.length} buses</span>
+                    <span className="text-xs text-slate-400 font-medium ml-auto">{filtered.length} {t('buses', 'பேருந்துகள்')}</span>
                 </div>
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Bus</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Registration</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Capacity</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mileage</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Fuel</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Driver</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Bus', 'பேருந்து')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Registration', 'பதிவு எண்')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Capacity', 'இடக்கொள்ளல்')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Mileage', 'மைலேஜ்')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Fuel', 'எரிபொருள்')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Driver', 'ஓட்டுநர்')}</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Actions', 'செயல்கள்')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -224,8 +226,8 @@ export default function BusesPage() {
                                 <tr>
                                     <td colSpan={7} className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
                                         <BusIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                        <p className="font-medium">No buses found</p>
-                                        <p className="text-xs mt-1">Add your first bus to get started</p>
+                                        <p className="font-medium">{t('No buses found', 'பேருந்துகள் இல்லை')}</p>
+                                        <p className="text-xs mt-1">{t('Add your first bus to get started', 'தொடங்க உங்கள் முதல் பேருந்தை சேர்க்கவும்')}</p>
                                     </td>
                                 </tr>
                             ) : filtered.map(bus => (
@@ -268,7 +270,7 @@ export default function BusesPage() {
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                         {bus.drivers && bus.drivers.length > 0
                                             ? <span className="font-medium">{bus.drivers[0].user?.name}</span>
-                                            : <span className="text-slate-400 italic text-xs">Unassigned</span>}
+                                            : <span className="text-slate-400 italic text-xs">{t('Unassigned', 'ஒதுக்கப்படவில்லை')}</span>}
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 text-right">
                                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -298,14 +300,14 @@ export default function BusesPage() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editBus ? 'Edit Bus' : 'Add New Bus'}</h2>
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{editBus ? t('Edit Bus', 'பேருந்து திருத்து') : t('Add New Bus', 'புதிய பேருந்து சேர்')}</h2>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 transition-all">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div>
-                                <label className={labelCls}>Bus Number *</label>
+                                <label className={labelCls}>{t('Bus Number', 'பேருந்து எண்')} *</label>
                                 <input
                                     required
                                     type="text"
@@ -317,7 +319,7 @@ export default function BusesPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className={labelCls}>Capacity *</label>
+                                    <label className={labelCls}>{t('Capacity', 'இடக்கொள்ளல்')} *</label>
                                     <input
                                         required
                                         type="number"
@@ -329,7 +331,7 @@ export default function BusesPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className={labelCls}>Registration No.</label>
+                                    <label className={labelCls}>{t('Registration No.', 'பதிவு எண்.')}</label>
                                     <input
                                         type="text"
                                         placeholder="TN-01-AB-1234"
@@ -341,7 +343,7 @@ export default function BusesPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className={labelCls}>Mileage (km/L)</label>
+                                    <label className={labelCls}>{t('Mileage (km/L)', 'மைலேஜ் (km/L)')}</label>
                                     <input
                                         type="number"
                                         step="0.1"
@@ -352,7 +354,7 @@ export default function BusesPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className={labelCls}>Initial Fuel (L)</label>
+                                    <label className={labelCls}>{t('Initial Fuel (L)', 'ஆரம்ப எரிபொருள் (L)')}</label>
                                     <input
                                         type="number"
                                         step="0.1"
@@ -372,14 +374,14 @@ export default function BusesPage() {
                                     onClick={() => setIsModalOpen(false)}
                                     className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
                                 >
-                                    Cancel
+                                    {t('Cancel', 'ரத்து செய்')}
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
                                     className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60"
                                 >
-                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editBus ? 'Save Changes' : 'Add Bus'}
+                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editBus ? t('Save Changes', 'மாற்றங்களை சேமி') : t('Add Bus', 'பேருந்து சேர்')}
                                 </button>
                             </div>
                         </form>
@@ -392,7 +394,7 @@ export default function BusesPage() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Remove this bus?</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Remove this bus?', 'இந்த பேருந்தை நீக்கவா?')}</h3>
                             <button onClick={() => setDeleteId(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
@@ -401,19 +403,19 @@ export default function BusesPage() {
                             <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
                                 <Trash2 className="w-6 h-6 text-red-500" />
                             </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">This action cannot be undone.</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{t('This action cannot be undone.', 'இந்த செயலை திரும்பப் பெற முடியாது.')}</p>
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setDeleteId(null)}
                                     className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
                                 >
-                                    Cancel
+                                    {t('Cancel', 'ரத்து செய்')}
                                 </button>
                                 <button
                                     onClick={() => handleDelete(deleteId)}
                                     className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
                                 >
-                                    Delete
+                                    {t('Delete', 'நீக்கு')}
                                 </button>
                             </div>
                         </div>

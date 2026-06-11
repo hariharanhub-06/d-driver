@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, X, DollarSign, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
-import { ta } from '@/lib/i18n';
+import { useT, ta } from '@/lib/i18n';
 
 interface DriverRoute { id: string; name: string; route_type?: string; }
 interface DriverInfo {
@@ -21,6 +21,7 @@ interface ActiveTrip { id: string; route_id: string; status: string; current_sto
 export default function DriverDashboard() {
     const { user, logout } = useAuth();
     const router = useRouter();
+    const t = useT();
     const [currentTime, setCurrentTime] = useState(new Date());
     const [driverInfo, setDriverInfo] = useState<DriverInfo | null>(null);
     const [activeTrips, setActiveTrips] = useState<ActiveTrip[]>([]);
@@ -140,13 +141,12 @@ export default function DriverDashboard() {
         finally { setFillSubmitting(false); }
     };
 
-    const getActiveTrip = (routeId: string) => activeTrips.find(t => t.route_id === routeId);
+    const getActiveTrip = (routeId: string) => activeTrips.find(tr => tr.route_id === routeId);
     const routes = driverInfo?.bus?.routes || [];
     const fuelLevel = driverInfo?.bus?.fuel_liters ?? null;
     const driverName = driverInfo?.user?.name || user?.name || 'Driver';
     const hasAnyActiveTrip = activeTrips.length > 0;
 
-    // ─── NEW BILINGUAL UI ────────────────────────────────────────────────────
     const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
 
     return (
@@ -180,10 +180,10 @@ export default function DriverDashboard() {
                     <div className="mt-3 bg-red-600 rounded-xl px-4 py-3 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                             <AlertTriangle className="w-4 h-4 text-white animate-pulse shrink-0" />
-                            <p className="text-white text-sm font-bold">SOS ACTIVE — Admin notified</p>
+                            <p className="text-white text-sm font-bold">SOS ACTIVE — {t('Admin notified', 'நிர்வாகி அறிவிக்கப்பட்டார்')}</p>
                         </div>
                         <button onClick={handleCancelSos} disabled={cancellingsos} className="bg-white/20 border border-white/40 text-white text-xs font-bold px-3 py-1 rounded-xl disabled:opacity-50">
-                            {cancellingsos ? '…' : 'Cancel'}
+                            {cancellingsos ? '…' : t('Cancel', 'ரத்து செய்')}
                         </button>
                     </div>
                 )}
@@ -192,7 +192,7 @@ export default function DriverDashboard() {
                 {absenceCount > 0 && (
                     <div className="mt-3 bg-amber-500/20 border border-amber-500/30 rounded-xl px-4 py-3 flex items-center gap-2">
                         <Bell className="w-4 h-4 text-amber-400 shrink-0" />
-                        <p className="text-amber-300 text-sm font-medium">{absenceCount} student{absenceCount > 1 ? 's' : ''} absent today</p>
+                        <p className="text-amber-300 text-sm font-medium">{absenceCount} {t('student', 'மாணவர்')}{absenceCount > 1 ? 's' : ''} {t('absent today', 'இன்று வரவில்லை')}</p>
                     </div>
                 )}
                 {error && (
@@ -208,7 +208,9 @@ export default function DriverDashboard() {
                     <div className="flex items-center gap-2 mb-1">
                         <div className={`w-2 h-2 rounded-full ${hasAnyActiveTrip ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
                         <p className={`text-xs font-bold uppercase tracking-widest ${hasAnyActiveTrip ? 'text-emerald-400' : 'text-slate-400'}`}>
-                            {hasAnyActiveTrip ? `TRIP IN PROGRESS / ${ta.tripInProgress}` : `TRIP NOT STARTED / ${ta.tripNotStarted}`}
+                            {hasAnyActiveTrip
+                                ? t('TRIP IN PROGRESS', 'பயணம் நடக்கிறது')
+                                : t('TRIP NOT STARTED', 'பயணம் தொடங்கவில்லை')}
                         </p>
                     </div>
                 </div>
@@ -219,7 +221,11 @@ export default function DriverDashboard() {
                 ) : routes.length === 0 ? (
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center">
                         <Navigation className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                        <p className="text-slate-400 text-sm">{driverInfo?.bus ? 'No routes assigned to your bus yet' : 'No bus assigned to you yet'}</p>
+                        <p className="text-slate-400 text-sm">
+                            {driverInfo?.bus
+                                ? t('No routes assigned to your bus yet', 'உங்கள் பேருந்திற்கு வழிகள் ஒதுக்கப்படவில்லை')
+                                : t('No bus assigned to you yet', 'உங்களுக்கு பேருந்து ஒதுக்கப்படவில்லை')}
+                        </p>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -230,21 +236,21 @@ export default function DriverDashboard() {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-white font-bold">{route.name}</p>
-                                            <p className="text-slate-400 text-xs mt-0.5">{ta.todayRoute}</p>
+                                            <p className="text-slate-400 text-xs mt-0.5">{t('Current Route', 'தற்போதைய வழி')}</p>
                                         </div>
                                         <span className={`text-xs font-bold px-3 py-1 rounded-full ${activeTrip ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>
-                                            {activeTrip ? '● Running' : '○ Ready'}
+                                            {activeTrip ? `● ${t('Running', 'இயங்குகிறது')}` : `○ ${t('Ready', 'தயார்')}`}
                                         </span>
                                     </div>
                                     {activeTrip ? (
                                         <div className="space-y-2">
                                             <div className="flex gap-2">
                                                 <a href="/driver/ride" className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] text-white rounded-2xl px-4 py-4 font-black text-base active:scale-95 transition-all">
-                                                    <Navigation className="w-5 h-5" /> Live Map
+                                                    <Navigation className="w-5 h-5" /> {t('Live Map', 'நேரடி வரைபடம்')}
                                                 </a>
                                                 <button
                                                     onClick={async () => {
-                                                        if (!confirm('End this trip?')) return;
+                                                        if (!confirm(t('End this trip?', 'இந்த பயணத்தை முடிக்கவா?'))) return;
                                                         try {
                                                             await api.post(`/trips/${activeTrip.id}/complete`);
                                                             localStorage.removeItem('driver_trip_type');
@@ -255,18 +261,18 @@ export default function DriverDashboard() {
                                                     }}
                                                     className="flex items-center justify-center gap-1 bg-red-500 hover:bg-red-600 text-white rounded-2xl px-4 py-4 font-black text-sm active:scale-95 transition-all shrink-0"
                                                 >
-                                                    ■ End Trip
+                                                    ■ {t('End Trip', 'பயணம் முடிவு')}
                                                 </button>
                                             </div>
                                             {!activeSos && (
                                                 <button onClick={handleTriggerSos} className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white rounded-2xl px-4 py-3 font-black text-sm active:scale-95 transition-all">
-                                                    <AlertTriangle className="w-4 h-4" /> SOS — Emergency
+                                                    <AlertTriangle className="w-4 h-4" /> SOS — {t('Emergency', 'அவசரநிலை')}
                                                 </button>
                                             )}
                                         </div>
                                     ) : (
                                         <button onClick={() => handleStartTrip(route.id)} className="flex items-center justify-center gap-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl px-4 py-4 font-black text-base active:scale-95 transition-all">
-                                            ▶ {ta.startTrip}
+                                            ▶ {t('Start Trip', 'பயணம் தொடங்கு')}
                                         </button>
                                     )}
                                 </div>
@@ -280,17 +286,17 @@ export default function DriverDashboard() {
                     <div className="grid grid-cols-3 gap-3">
                         <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 text-center">
                             <p className="text-slate-900 dark:text-white font-black text-xl">{fuelLevel != null ? `${Math.round(fuelLevel)}L` : '—'}</p>
-                            <p className="text-slate-400 text-xs mt-0.5">Fuel</p>
+                            <p className="text-slate-400 text-xs mt-0.5">{t('Fuel', 'எரிபொருள்')}</p>
                         </div>
                         <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 text-center">
                             <p className="text-slate-900 dark:text-white font-black text-xl">{routes.length}</p>
-                            <p className="text-slate-400 text-xs mt-0.5">Routes</p>
+                            <p className="text-slate-400 text-xs mt-0.5">{t('Routes', 'வழிகள்')}</p>
                         </div>
                         <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 text-center">
                             <p className={`font-black text-xl ${(fuelLevel ?? 100) < 10 ? 'text-red-400' : (fuelLevel ?? 100) < 30 ? 'text-amber-400' : 'text-emerald-400'}`}>
                                 {fuelLevel != null ? ((fuelLevel / (driverInfo?.bus?.mileage ? driverInfo.bus.mileage * 10 : 100)) * 100).toFixed(0) + '%' : '—'}
                             </p>
-                            <p className="text-slate-400 text-xs mt-0.5">Fuel %</p>
+                            <p className="text-slate-400 text-xs mt-0.5">{t('Fuel %', 'எரிபொருள் %')}</p>
                         </div>
                     </div>
                 )}
@@ -299,39 +305,39 @@ export default function DriverDashboard() {
                 {driverInfo?.bus && (
                     <div className="grid grid-cols-2 gap-3">
                         <button onClick={() => { setShowFuelFillModal(true); setFillSuccess(false); setFillLiters(''); setFillKm(''); }} className="bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-2xl p-4 font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all">
-                            <Fuel className="w-4 h-4" /> Log Fuel Fill
+                            <Fuel className="w-4 h-4" /> {t('Log Fuel Fill', 'எரிபொருள் நிரப்பல்')}
                         </button>
                         <button onClick={() => { setShowFuelModal(true); setFuelSuccess(false); }} className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-2xl p-4 font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all">
-                            <DollarSign className="w-4 h-4" /> Request Fund
+                            <DollarSign className="w-4 h-4" /> {t('Request Fund', 'நிதி கோரிக்கை')}
                         </button>
                     </div>
                 )}
             </div>
 
-            {/* ── MODALS — IDENTICAL to original ─────────────────────────────────── */}
+            {/* ── MODALS ─────────────────────────────────── */}
             {showFuelModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Request Fuel Fund</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Request Fuel Fund', 'நிதி கோரிக்கை')}</h3>
                             <button onClick={() => setShowFuelModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"><X className="w-5 h-5" /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             {fuelSuccess ? (
                                 <div className="flex flex-col items-center py-6 gap-3">
                                     <CheckCircle className="w-12 h-12 text-emerald-500" />
-                                    <p className="text-base font-bold text-slate-900 dark:text-white">Request Sent!</p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Admin will review your request</p>
+                                    <p className="text-base font-bold text-slate-900 dark:text-white">{t('Request Sent!', 'கோரிக்கை அனுப்பப்பட்டது!')}</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('Admin will review your request', 'நிர்வாகி உங்கள் கோரிக்கையை பரிசீலிப்பார்')}</p>
                                 </div>
                             ) : (
                                 <>
-                                    <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount Requested (₹) *</label><input type="number" value={fuelAmount} onChange={e => setFuelAmount(e.target.value)} placeholder="e.g. 2000" className={inputCls} /></div>
-                                    <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km)</label><input type="number" min="0" value={fuelKm} onChange={e => setFuelKm(e.target.value)} placeholder="e.g. 45230" className={inputCls} /></div>
-                                    <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Reason (optional)</label><input type="text" value={fuelReason} onChange={e => setFuelReason(e.target.value)} placeholder="e.g. Low fuel" className={inputCls} /></div>
+                                    <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Amount Requested (₹) *', 'கோரப்பட்ட தொகை (₹) *')}</label><input type="number" value={fuelAmount} onChange={e => setFuelAmount(e.target.value)} placeholder="e.g. 2000" className={inputCls} /></div>
+                                    <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Current Odometer (km)', 'தற்போதைய ஒடோமீட்டர் (கி.மீ)')}</label><input type="number" min="0" value={fuelKm} onChange={e => setFuelKm(e.target.value)} placeholder="e.g. 45230" className={inputCls} /></div>
+                                    <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Reason (optional)', 'காரணம் (விருப்பமானது)')}</label><input type="text" value={fuelReason} onChange={e => setFuelReason(e.target.value)} placeholder="e.g. Low fuel" className={inputCls} /></div>
                                     <div className="flex gap-3 pt-2">
-                                        <button onClick={() => setShowFuelModal(false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm">Cancel</button>
+                                        <button onClick={() => setShowFuelModal(false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm">{t('Cancel', 'ரத்து செய்')}</button>
                                         <button onClick={handleFuelRequest} disabled={!fuelAmount || fuelSubmitting} className="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-4 py-2.5 font-semibold text-sm disabled:opacity-50">
-                                            {fuelSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Submit Request'}
+                                            {fuelSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : t('Submit Request', 'கோரிக்கை சமர்ப்பி')}
                                         </button>
                                     </div>
                                 </>
@@ -345,24 +351,24 @@ export default function DriverDashboard() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><Fuel className="w-5 h-5 text-amber-500" /> Log Fuel Fill</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><Fuel className="w-5 h-5 text-amber-500" /> {t('Log Fuel Fill', 'எரிபொருள் நிரப்பல்')}</h3>
                             <button onClick={() => setShowFuelFillModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"><X className="w-5 h-5" /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             {fillSuccess ? (
                                 <div className="flex flex-col items-center py-6 gap-3">
                                     <CheckCircle className="w-12 h-12 text-emerald-500" />
-                                    <p className="text-base font-bold text-slate-900 dark:text-white">Fuel Logged!</p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Bus fuel level updated</p>
+                                    <p className="text-base font-bold text-slate-900 dark:text-white">{t('Fuel Logged!', 'எரிபொருள் பதிவு செய்யப்பட்டது!')}</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('Bus fuel level updated', 'பேருந்து எரிபொருள் நிலை புதுப்பிக்கப்பட்டது')}</p>
                                 </div>
                             ) : (
                                 <>
-                                    <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Litres Filled <span className="text-red-500">*</span></label><input type="number" value={fillLiters} onChange={e => setFillLiters(e.target.value)} placeholder="e.g. 40" className={inputCls} autoFocus /></div>
-                                    <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Current Odometer (km)</label><input type="number" min="0" value={fillKm} onChange={e => setFillKm(e.target.value)} placeholder="e.g. 45230" className={inputCls} /></div>
+                                    <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Litres Filled', 'நிரப்பிய லிட்டர்')} <span className="text-red-500">*</span></label><input type="number" value={fillLiters} onChange={e => setFillLiters(e.target.value)} placeholder="e.g. 40" className={inputCls} autoFocus /></div>
+                                    <div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Current Odometer (km)', 'தற்போதைய ஒடோமீட்டர் (கி.மீ)')}</label><input type="number" min="0" value={fillKm} onChange={e => setFillKm(e.target.value)} placeholder="e.g. 45230" className={inputCls} /></div>
                                     <div className="flex gap-3 pt-2">
-                                        <button onClick={() => setShowFuelFillModal(false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm">Cancel</button>
+                                        <button onClick={() => setShowFuelFillModal(false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm">{t('Cancel', 'ரத்து செய்')}</button>
                                         <button onClick={handleFuelFill} disabled={!fillLiters || fillSubmitting} className="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-4 py-2.5 font-semibold text-sm disabled:opacity-50">
-                                            {fillSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Log Fill'}
+                                            {fillSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : t('Log Fill', 'நிரப்பல் பதிவு')}
                                         </button>
                                     </div>
                                 </>
@@ -375,21 +381,21 @@ export default function DriverDashboard() {
             {showRouteTypeModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-xs p-6">
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-1">Select Trip Type</h2>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">Which route are you running?</p>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center mb-1">{t('Select Trip Type', 'பயண வகை தேர்வு')}</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">{t('Which route are you running?', 'எந்த வழியில் பயணிக்கிறீர்கள்?')}</p>
                         <div className="grid grid-cols-2 gap-3 mb-4">
                             <button onClick={() => confirmStartTrip('morning')} disabled={!!startingTripType} className="flex flex-col items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-700 hover:border-amber-400 rounded-xl p-4 transition-all active:scale-95 disabled:opacity-60">
                                 {startingTripType === 'morning' ? <Loader2 className="w-7 h-7 text-amber-600 animate-spin" /> : <span className="text-2xl">🌅</span>}
-                                <span className="text-sm font-bold text-amber-700 dark:text-amber-400">Morning</span>
-                                <span className="text-xs text-slate-500">Pickup route</span>
+                                <span className="text-sm font-bold text-amber-700 dark:text-amber-400">{t('Morning', 'காலை')}</span>
+                                <span className="text-xs text-slate-500">{t('Pickup route', 'ஏற்றும் வழி')}</span>
                             </button>
                             <button onClick={() => confirmStartTrip('afternoon')} disabled={!!startingTripType} className="flex flex-col items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 hover:border-blue-400 rounded-xl p-4 transition-all active:scale-95 disabled:opacity-60">
                                 {startingTripType === 'afternoon' ? <Loader2 className="w-7 h-7 text-blue-600 animate-spin" /> : <span className="text-2xl">🌆</span>}
-                                <span className="text-sm font-bold text-blue-700 dark:text-blue-400">Evening</span>
-                                <span className="text-xs text-slate-500">Drop route</span>
+                                <span className="text-sm font-bold text-blue-700 dark:text-blue-400">{t('Evening', 'மாலை')}</span>
+                                <span className="text-xs text-slate-500">{t('Drop route', 'இறக்கும் வழி')}</span>
                             </button>
                         </div>
-                        <button onClick={() => { setShowRouteTypeModal(false); setStartingTripType(null); }} disabled={!!startingTripType} className="w-full py-2.5 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 disabled:opacity-40">Cancel</button>
+                        <button onClick={() => { setShowRouteTypeModal(false); setStartingTripType(null); }} disabled={!!startingTripType} className="w-full py-2.5 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 disabled:opacity-40">{t('Cancel', 'ரத்து செய்')}</button>
                     </div>
                 </div>
             )}

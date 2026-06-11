@@ -5,7 +5,7 @@ import { Bus, AlertTriangle, MapPin, Phone, X, Navigation } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
-import { ta } from '@/lib/i18n';
+import { useT, ta } from '@/lib/i18n';
 
 interface Child {
     id: string;
@@ -31,6 +31,7 @@ interface Notification {
 // ── ALL EXISTING LOGIC PRESERVED ──────────────────────────────────────────
 export default function ParentDashboard() {
     const { user } = useAuth();
+    const t = useT();
     const [children, setChildren] = useState<Child[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
@@ -104,14 +105,13 @@ export default function ParentDashboard() {
     const hour = new Date().getHours();
     const greeting = hour < 12 ? '🌅' : hour < 17 ? '☀️' : '🌙';
 
-    // ─── NEW BILINGUAL UI ────────────────────────────────────────────────────
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
             {/* ── Header bar ── */}
             <div className="bg-[var(--brand)] px-4 pt-10 pb-5">
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-white/80 text-xs font-medium">{greeting} {ta.goodMorning},</p>
+                        <p className="text-white/80 text-xs font-medium">{greeting} {t('Hello', 'வணக்கம்')},</p>
                         <h1 className="text-xl font-bold text-white leading-tight">{user?.name?.split(' ')[0] || 'Parent'}!</h1>
                     </div>
                     {/* SOS button */}
@@ -135,11 +135,11 @@ export default function ParentDashboard() {
                                 </div>
                                 <div>
                                     <p className="text-white font-bold text-base">{primaryChild.bus.bus_number}</p>
-                                    <p className="text-white/70 text-xs">{primaryChild.route?.name || 'Route'}</p>
+                                    <p className="text-white/70 text-xs">{primaryChild.route?.name || t('Route', 'வழி')}</p>
                                 </div>
                             </div>
                             <Link href="/parent/tracking" className="bg-white text-[var(--brand)] rounded-xl px-3 py-2 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all">
-                                <Navigation className="w-3 h-3" /> Track
+                                <Navigation className="w-3 h-3" /> {t('Track', 'கண்காணி')}
                             </Link>
                         </div>
                     </div>
@@ -163,7 +163,7 @@ export default function ParentDashboard() {
                 {!loading && primaryChild?.route?.stops && primaryChild.route.stops.length > 0 && (
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
                         <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-1">
-                            {ta.busStops} <span className="text-slate-400 font-normal text-xs">/ Bus Stops</span>
+                            {t('Bus Stops', 'நிறுத்தங்கள்')}
                         </h2>
                         <div className="mt-3 space-y-0">
                             {(primaryChild.route.stops as any[]).map((stop, idx, arr) => {
@@ -178,7 +178,7 @@ export default function ParentDashboard() {
                                         </div>
                                         <div className={`pb-3 flex-1 min-w-0 ${isYours ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>
                                             <p className="text-sm leading-tight">
-                                                {isYours ? `👇 ${ta.yourStop} — ` : ''}{stop.name}
+                                                {isYours ? `👇 ${t('Your Stop', 'உங்கள் நிறுத்தம்')} — ` : ''}{stop.name}
                                             </p>
                                             {stop.pickup_time && (
                                                 <p className="text-xs text-slate-400 mt-0.5">{stop.pickup_time}</p>
@@ -194,7 +194,7 @@ export default function ParentDashboard() {
                 {/* Multiple children selector */}
                 {children.length > 1 && (
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4">
-                        <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-3">{ta.myChild}</h2>
+                        <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-3">{t('My Child', 'என் குழந்தை')}</h2>
                         <div className="flex gap-2 overflow-x-auto pb-1">
                             {children.map(child => (
                                 <button
@@ -225,16 +225,16 @@ export default function ParentDashboard() {
                         <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex items-center justify-center mx-auto mb-2">
                             <AlertTriangle className="w-5 h-5 text-amber-500" />
                         </div>
-                        <p className="text-xs font-semibold text-slate-700 dark:text-white leading-tight">Report</p>
-                        <p className="text-[10px] text-slate-400">{ta.absent}</p>
+                        <p className="text-xs font-semibold text-slate-700 dark:text-white leading-tight">{t('Report', 'தெரிவி')}</p>
+                        <p className="text-[10px] text-slate-400">{t('Absent', 'வரவில்லை')}</p>
                     </button>
 
                     <Link href="/parent/requests" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center active:scale-95 transition-all block">
                         <div className="w-10 h-10 bg-[var(--brand)]/10 rounded-xl flex items-center justify-center mx-auto mb-2">
                             <MapPin className="w-5 h-5 text-[var(--brand)]" />
                         </div>
-                        <p className="text-xs font-semibold text-slate-700 dark:text-white leading-tight">Change</p>
-                        <p className="text-[10px] text-slate-400">Stop</p>
+                        <p className="text-xs font-semibold text-slate-700 dark:text-white leading-tight">{t('Change', 'மாற்று')}</p>
+                        <p className="text-[10px] text-slate-400">{t('Stop', 'நிறுத்தம்')}</p>
                     </Link>
 
                     {driverPhone ? (
@@ -242,16 +242,16 @@ export default function ParentDashboard() {
                             <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mx-auto mb-2">
                                 <Phone className="w-5 h-5 text-emerald-500" />
                             </div>
-                            <p className="text-xs font-semibold text-slate-700 dark:text-white leading-tight">Call</p>
-                            <p className="text-[10px] text-slate-400">{ta.driver}</p>
+                            <p className="text-xs font-semibold text-slate-700 dark:text-white leading-tight">{t('Call', 'அழை')}</p>
+                            <p className="text-[10px] text-slate-400">{t('Driver', 'ஓட்டுநர்')}</p>
                         </a>
                     ) : (
                         <Link href="/parent/fees" className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center active:scale-95 transition-all block">
                             <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mx-auto mb-2">
                                 <span className="text-emerald-500 font-black text-sm">₹</span>
                             </div>
-                            <p className="text-xs font-semibold text-slate-700 dark:text-white leading-tight">Pay</p>
-                            <p className="text-[10px] text-slate-400">Fees</p>
+                            <p className="text-xs font-semibold text-slate-700 dark:text-white leading-tight">{t('Pay', 'செலுத்து')}</p>
+                            <p className="text-[10px] text-slate-400">{t('Fees', 'கட்டணம்')}</p>
                         </Link>
                     )}
                 </div>
@@ -260,7 +260,7 @@ export default function ParentDashboard() {
                 {notifications.length > 0 && (
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
                         <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-3">
-                            Today's Activity <span className="text-slate-400 font-normal text-xs">/ இன்றைய நடவடிக்கை</span>
+                            {t("Today's Activity", 'இன்றைய நடவடிக்கை')}
                         </h2>
                         <div className="space-y-3">
                             {notifications.slice(0, 5).map(notif => (
@@ -281,17 +281,17 @@ export default function ParentDashboard() {
                 {!loading && !primaryChild && (
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8 text-center">
                         <Bus className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                        <p className="text-sm text-slate-500 dark:text-slate-400">No children linked to your account</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{t('No children linked to your account', 'உங்கள் கணக்கில் குழந்தைகள் இணைக்கப்படவில்லை')}</p>
                     </div>
                 )}
             </div>
 
-            {/* ── Report Absent Modal — IDENTICAL to original ── */}
+            {/* ── Report Absent Modal ── */}
             {showAbsentModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Report Absence</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Report Absence', 'வராமல் தெரிவிக்கவும்')}</h3>
                             <button onClick={() => setShowAbsentModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400">
                                 <X className="w-5 h-5" />
                             </button>
@@ -300,32 +300,32 @@ export default function ParentDashboard() {
                             <div className="space-y-4 mb-6">
                                 {children.length > 1 && (
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Student</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Student', 'மாணவர்')}</label>
                                         <select value={absentForm.student_id} onChange={e => setAbsentForm({ ...absentForm, student_id: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]">
-                                            <option value="">Select child</option>
+                                            <option value="">{t('Select child', 'குழந்தையை தேர்வு செய்யுங்கள்')}</option>
                                             {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                         </select>
                                     </div>
                                 )}
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">From</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('From', 'இலிருந்து')}</label>
                                         <input type="date" value={absentForm.from_date} min={tomorrow} onChange={e => setAbsentForm({ ...absentForm, from_date: e.target.value, to_date: e.target.value > absentForm.to_date ? e.target.value : absentForm.to_date })} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">To</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('To', 'வரை')}</label>
                                         <input type="date" value={absentForm.to_date} min={absentForm.from_date || tomorrow} onChange={e => setAbsentForm({ ...absentForm, to_date: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)]" />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Reason</label>
-                                    <textarea value={absentForm.reason} onChange={e => setAbsentForm({ ...absentForm, reason: e.target.value })} placeholder="Reason for absence..." className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] resize-none h-20" />
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Reason', 'காரணம்')}</label>
+                                    <textarea value={absentForm.reason} onChange={e => setAbsentForm({ ...absentForm, reason: e.target.value })} placeholder={t('Reason for absence...', 'வராமல் இருப்பதற்கான காரணம்...')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] resize-none h-20" />
                                 </div>
                             </div>
                             <div className="flex gap-3">
-                                <button onClick={() => setShowAbsentModal(false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm">Cancel</button>
+                                <button onClick={() => setShowAbsentModal(false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm">{t('Cancel', 'ரத்து செய்')}</button>
                                 <button onClick={handleReportAbsent} disabled={submitting || !absentForm.reason || !absentForm.from_date || !absentForm.to_date || (children.length > 1 && !absentForm.student_id)} className="flex-1 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm disabled:opacity-50 active:scale-95">
-                                    {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : 'Submit'}
+                                    {submitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" /> : t('Submit', 'சமர்ப்பி')}
                                 </button>
                             </div>
                         </div>
