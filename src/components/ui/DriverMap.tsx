@@ -43,8 +43,6 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     const routeLineRef        = useRef<any>(null);
     const stopMarkersRef      = useRef<any[]>([]);
     const userDraggedRef      = useRef(false);
-    const lastRouteStopsKeyRef = useRef('');
-    const lastRoutedPosRef    = useRef<[number, number] | null>(null);
     const currentPosRef       = useRef(userPosition);
     // Accumulated (unwrapped) heading — avoids CSS transition going the long way round 0↔360
     const accHeadingRef       = useRef<number>(0);
@@ -68,7 +66,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             });
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                maxZoom: 20, minZoom: 3, subdomains: 'abcd', keepBuffer: 4,
+                maxZoom: 20, minZoom: 3, subdomains: 'abcd', keepBuffer: 8,
             }).addTo(map);
 
             map.on('dragstart', () => {
@@ -199,79 +197,22 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         });
     }, [stops, nextStopIndex, mapReady]);
 
-    // ── OSRM route line ──────────────────────────────────────────────────────
+    // ── Route line to next stop (straight line) ─────────────────────────────
     useEffect(() => {
         if (!mapReady) return;
 
-        // Only draw path to the NEXT stop — advances stop by stop as driver moves
         const nextStop = stops[nextStopIndex];
-        const remainingStops = (nextStop?.lat && nextStop?.lng) ? [nextStop] : [];
-        const stopsKey = remainingStops.map(s => s.id).join(',');
 
-        import('leaflet').then(async L => {
+        import('leaflet').then(L => {
             const map = mapRef.current;
             if (!map) return;
 
-            if (remainingStops.length === 0) {
-                if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
-                lastRoutedPosRef.current = null;
-                lastRouteStopsKeyRef.current = '';
-                return;
-            }
+            if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
+            if (!nextStop?.lat || !nextStop?.lng) return;
 
             const [uLat, uLng] = userPosition;
-            const stopsChanged = stopsKey !== lastRouteStopsKeyRef.current;
-            let positionMoved = !lastRoutedPosRef.current;
-            if (!positionMoved && lastRoutedPosRef.current) {
-                const [rLat, rLng] = lastRoutedPosRef.current;
-                const dLat = (uLat - rLat) * Math.PI / 180;
-                const dLng = (uLng - rLng) * Math.PI / 180;
-                const a = Math.sin(dLat / 2) ** 2 +
-                    Math.cos(rLat * Math.PI / 180) * Math.cos(uLat * Math.PI / 180) *
-                    Math.sin(dLng / 2) ** 2;
-                positionMoved = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) > 80;
-            }
-            if (!stopsChanged && !positionMoved) return;
-
-            lastRouteStopsKeyRef.current = stopsKey;
-            lastRoutedPosRef.current = [uLat, uLng];
-
-            const waypoints = [
-                `${uLng},${uLat}`,
-                ...remainingStops.map(s => `${s.lng},${s.lat}`),
-            ].join(';');
-
-            const lineStyle = { color: '#2563EB', weight: 5, opacity: 0.85, lineJoin: 'round' as const, lineCap: 'round' as const };
-            const pts: [number, number][] = [[uLat, uLng], ...remainingStops.map(s => [s.lat, s.lng] as [number, number])];
-
-            // Draw straight line IMMEDIATELY so the driver sees a line with zero delay,
-            // then silently replace it with the OSRM road-following path once it loads.
-            if (mapRef.current) {
-                if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
-                routeLineRef.current = L.polyline(pts, lineStyle).addTo(mapRef.current);
-            }
-
-            // Try OSRM and upgrade to road-following path if it responds quickly
-            try {
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 4000);
-                const res = await fetch(
-                    `https://router.project-osrm.org/route/v1/driving/${waypoints}?geometries=geojson&overview=full`,
-                    { signal: controller.signal },
-                );
-                clearTimeout(timeout);
-                if (!res.ok) throw new Error('OSRM error');
-                const data = await res.json();
-                const coords: [number, number][] = (data.routes?.[0]?.geometry?.coordinates ?? []).map(
-                    ([lng, lat]: [number, number]) => [lat, lng] as [number, number],
-                );
-                if (mapRef.current && coords.length > 0) {
-                    if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
-                    routeLineRef.current = L.polyline(coords, lineStyle).addTo(mapRef.current);
-                }
-            } catch {
-                // straight line already drawn above — nothing more to do
-            }
+            const lineStyle = { color: '#2563EB', weight: 5, opacity: 0.85, lineJoin: 'round' as const, lineCap: 'round' as const, dashArray: '10 6' };
+            routeLineRef.current = L.polyline([[uLat, uLng], [nextStop.lat, nextStop.lng]], lineStyle).addTo(map);
         });
     }, [userPosition, stops, nextStopIndex, mapReady]);
 
@@ -295,9 +236,10 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                     top: '-21%', left: '-21%',
                     transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
                     willChange: 'transform',
+                    background: '#e8e0d8',
                 }}
             >
-                <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+                <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: '#e8e0d8' }} />
             </div>
 
             {/* ── UI overlay (never rotates) ── */}
