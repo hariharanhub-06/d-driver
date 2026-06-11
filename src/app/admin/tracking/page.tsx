@@ -156,7 +156,7 @@ export default function TrackingPage() {
                     lat: s.latitude,
                     lng: s.longitude,
                     sequence: s.sequence,
-                    student_count: trip.route?.students?.filter(st => st.stop_id === s.id).length ?? 0,
+                    student_count: Array.isArray(s.students) ? s.students.length : 0,
                 }))
         );
         // Merge: keep fallback-only stops, update student_count for trip stops
@@ -192,7 +192,8 @@ export default function TrackingPage() {
     const handleStopClick = useCallback((stopId: string, stopName: string) => {
         const trip = trips.find(t => t.bus_id === selectedBusId) ||
                      trips.find(t => t.route?.stops?.some(s => s.id === stopId));
-        const students = trip?.route?.students?.filter(s => s.stop_id === stopId) ?? [];
+        const stop = trip?.route?.stops?.find(s => s.id === stopId);
+        const students = Array.isArray(stop?.students) ? stop.students : (trip?.route?.students?.filter(s => s.stop_id === stopId) ?? []);
         setSelectedStop({ id: stopId, name: stopName, students });
         setAssignStudentId('');
         setAssignSuccess(false);
