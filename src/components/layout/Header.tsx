@@ -1,6 +1,6 @@
 'use client';
 
-import { Menu, Search, Bell, User, Sun, Moon, LogOut, Settings, HelpCircle, Globe } from 'lucide-react';
+import { Menu, Search, Bell, User, Sun, Moon, LogOut, Settings, Globe } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -141,17 +141,6 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                         </div>
                     )}
                 </div>
-
-                {/* Tour help button (admin / super_admin only) */}
-                {(user?.role === 'admin' || user?.role === 'super_admin') && (
-                    <button
-                        onClick={() => startTour('admin')}
-                        title="Take a guided tour"
-                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 hover:text-[var(--brand)] transition-colors"
-                    >
-                        <HelpCircle size={18} />
-                    </button>
-                )}
 
                 {/* Notifications */}
                 <div className="relative">
