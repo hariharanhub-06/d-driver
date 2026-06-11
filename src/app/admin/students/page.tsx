@@ -507,7 +507,7 @@ export default function StudentsPage() {
                                             <div className="flex flex-col gap-1.5 min-w-[200px]">
                                                 <select
                                                     value={quickAssign.routeId}
-                                                    onChange={e => setQuickAssign({ ...quickAssign, routeId: e.target.value, stopId: '' })}
+                                                    onChange={e => { setQuickAssign({ ...quickAssign, routeId: e.target.value, stopId: '' }); fetchStops(e.target.value); }}
                                                     className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-[var(--brand)]"
                                                 >
                                                     <option value="">{t('Select Route', 'வழி தேர்ந்தெடு')}</option>
@@ -520,7 +520,7 @@ export default function StudentsPage() {
                                                     className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-[var(--brand)] disabled:opacity-40"
                                                 >
                                                     <option value="">{t('Select Stop', 'நிறுத்தம் தேர்ந்தெடு')}</option>
-                                                    {stops.filter(st => st.route?.id === quickAssign.routeId || st.route_id === quickAssign.routeId).map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+                                                    {stops.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
                                                 </select>
                                                 <div className="flex gap-1">
                                                     <button
