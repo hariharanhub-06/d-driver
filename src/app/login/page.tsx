@@ -4,9 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Bus, Eye, EyeOff, CheckCircle2, MapPin, Users, BarChart3 } from 'lucide-react';
-import dynamic from 'next/dynamic';
-const AuthBusPanel = dynamic(() => import('@/components/ui/AuthBusPanel'), { ssr: false });
+import { Bus, Eye, EyeOff, Lock } from 'lucide-react';
 import api from '@/lib/api';
 
 export default function LoginPage() {
@@ -67,7 +65,7 @@ export default function LoginPage() {
         }
     }, []);
 
-    const brandColor = currentSchool?.color || 'var(--brand)';
+    const brandColor = currentSchool?.color || '#22c55e';
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -101,139 +99,147 @@ export default function LoginPage() {
         }
     };
 
-    const features = [
-        { icon: MapPin, text: 'Live GPS tracking for every bus' },
-        { icon: Users, text: 'Manage students, drivers & parents' },
-        { icon: BarChart3, text: 'Attendance, fees & reports in one place' },
-    ];
-
     return (
-        <div className="min-h-screen flex">
-            {/* ── Left panel — animated bus scene only ─────────── */}
-            <div
-                className="hidden lg:block lg:w-[52%] relative overflow-hidden"
-                style={{ backgroundColor: currentSchool?.color || 'var(--brand)' }}
-            >
-                <AuthBusPanel brandColor={currentSchool?.color} />
-            </div>
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-slate-50 dark:bg-slate-950">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 px-8 py-10 w-full max-w-md mx-auto">
 
-            {/* ── Right form panel ─────────────────────────────── */}
-            <div className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-slate-900 px-6 py-12">
-                {/* Mobile-only logo */}
-                <div className="flex items-center gap-2 mb-10 lg:hidden">
-                    {currentSchool?.logo ? (
-                        <img src={currentSchool.logo} alt={currentSchool.name} className="w-9 h-9 rounded-xl object-cover" />
-                    ) : platformLogo ? (
-                        <img src={platformLogo} alt="D-Driver" className="h-9 object-contain" />
-                    ) : (
-                        <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center"
-                            style={{ backgroundColor: currentSchool?.color || 'var(--brand)' }}
-                        >
-                            <Bus className="w-5 h-5 text-white" />
-                        </div>
-                    )}
-                    <span className="font-bold text-slate-900 dark:text-white text-lg">
-                        {currentSchool?.name || 'D-Driver'}
-                    </span>
+                {/* Logo + Brand */}
+                <div className="flex flex-col items-center mb-6">
+                    <div
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-md"
+                        style={{ backgroundColor: brandColor }}
+                    >
+                        {currentSchool?.logo ? (
+                            <img
+                                src={currentSchool.logo}
+                                alt={currentSchool.name}
+                                className="w-10 h-10 rounded-xl object-cover"
+                            />
+                        ) : platformLogo ? (
+                            <img
+                                src={platformLogo}
+                                alt="ONLIVE"
+                                className="w-10 h-10 object-contain rounded-lg"
+                            />
+                        ) : (
+                            <Bus className="w-7 h-7 text-white" />
+                        )}
+                    </div>
+
+                    <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                        {currentSchool?.name || 'ONLIVE'}
+                    </h1>
+                    <p className="text-xs text-slate-400 tracking-widest uppercase mt-1">
+                        {currentSchool ? 'School Bus Portal' : 'School Bus Management Platform'}
+                    </p>
                 </div>
 
-                <div className="w-full max-w-sm">
-                    {/* Heading */}
-                    <div className="mb-8">
-                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                            Welcome back
-                        </h2>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm">
-                            Sign in to your account to continue
-                        </p>
+                {/* Divider */}
+                <div className="border-t border-slate-100 dark:border-slate-800 my-6" />
+
+                {/* Form heading */}
+                <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6">
+                    Sign in to your account
+                </h2>
+
+                {/* Form */}
+                <form onSubmit={handleLogin} className="space-y-6">
+
+                    {/* Email */}
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                            Email
+                        </label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full border-0 border-b-2 border-slate-200 dark:border-slate-700 focus:border-[#22c55e] bg-transparent py-3 text-slate-900 dark:text-white text-sm outline-none transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                            style={{ '--focus-color': brandColor } as React.CSSProperties}
+                            onFocus={e => (e.currentTarget.style.borderBottomColor = brandColor)}
+                            onBlur={e => (e.currentTarget.style.borderBottomColor = '')}
+                            placeholder="you@school.com"
+                            required
+                            autoComplete="email"
+                        />
+                    </div>
+
+                    {/* Password */}
+                    <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                Password
+                            </label>
+                            <Link
+                                href="/forgot-password"
+                                className="text-xs font-semibold hover:underline"
+                                style={{ color: brandColor }}
+                            >
+                                Forgot?
+                            </Link>
+                        </div>
+                        <div className="relative">
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full border-0 border-b-2 border-slate-200 dark:border-slate-700 focus:border-[#22c55e] bg-transparent py-3 text-slate-900 dark:text-white text-sm outline-none transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600 pr-10"
+                                onFocus={e => (e.currentTarget.style.borderBottomColor = brandColor)}
+                                onBlur={e => (e.currentTarget.style.borderBottomColor = '')}
+                                placeholder="••••••••"
+                                required
+                                autoComplete="current-password"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
+                                tabIndex={-1}
+                            >
+                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                        </div>
                     </div>
 
                     {/* Error */}
                     {error && (
-                        <div className="flex items-start gap-2.5 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 mb-5">
-                            <span className="mt-0.5 shrink-0">⚠</span>
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+                            <span className="shrink-0">⚠</span>
                             <span>{error}</span>
                         </div>
                     )}
 
-                    {/* Form */}
-                    <form onSubmit={handleLogin} className="space-y-5">
-                        {/* Email */}
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                Email address
-                            </label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all"
-                                style={{ '--tw-ring-color': currentSchool?.color || 'var(--brand)' } as React.CSSProperties}
-                                placeholder="you@school.com"
-                                required
-                                autoComplete="email"
-                            />
-                        </div>
+                    {/* Submit */}
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full py-3.5 text-white font-bold rounded-xl mt-6 transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg"
+                        style={{
+                            backgroundColor: isLoading ? brandColor : brandColor,
+                            boxShadow: `0 8px 24px ${brandColor}33`,
+                        }}
+                        onMouseEnter={e => !isLoading && (e.currentTarget.style.filter = 'brightness(0.9)')}
+                        onMouseLeave={e => (e.currentTarget.style.filter = '')}
+                    >
+                        {isLoading ? (
+                            <>
+                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Signing in…
+                            </>
+                        ) : (
+                            'Sign in'
+                        )}
+                    </button>
+                </form>
 
-                        {/* Password */}
-                        <div>
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                    Password
-                                </label>
-                                <Link
-                                    href="/forgot-password"
-                                    className="text-xs font-medium hover:underline"
-                                    style={{ color: currentSchool?.color || 'var(--brand)' }}
-                                >
-                                    Forgot password?
-                                </Link>
-                            </div>
-                            <div className="relative">
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all pr-11"
-                                    style={{ '--tw-ring-color': currentSchool?.color || 'var(--brand)' } as React.CSSProperties}
-                                    placeholder="••••••••"
-                                    required
-                                    autoComplete="current-password"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
-                                >
-                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                </button>
-                            </div>
-                        </div>
+                {/* Divider */}
+                <div className="border-t border-slate-100 dark:border-slate-800 mt-8 mb-4" />
 
-                        {/* Submit */}
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full text-white rounded-xl py-3 font-semibold text-sm transition-all active:scale-[0.98] disabled:opacity-60 mt-1 flex items-center justify-center gap-2"
-                            style={{ backgroundColor: currentSchool?.color || 'var(--brand)' }}
-                        >
-                            {isLoading ? (
-                                <>
-                                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    Signing in…
-                                </>
-                            ) : (
-                                'Sign in'
-                            )}
-                        </button>
-                    </form>
-
-                    {/* Footer */}
-                    <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-8">
-                        D-Driver · School Bus Management Platform
-                    </p>
-                </div>
+                {/* Footer */}
+                <p className="text-center text-xs text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1.5">
+                    <Lock size={11} />
+                    Secure · School Bus Management
+                </p>
             </div>
         </div>
     );

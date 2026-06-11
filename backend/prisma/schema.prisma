@@ -450,14 +450,46 @@ model BlockedToken {
 // ─── PLATFORM CONFIG (SINGLETON) ─────────────────────────────────────────────
 
 model PlatformConfig {
-  id                  String   @id @default("singleton")
-  razorpay_key_id     String?  // AES-256-GCM encrypted — overrides .env
-  razorpay_key_secret String?  // AES-256-GCM encrypted — overrides .env
-  razorpay_configured Boolean  @default(false)
-  default_from_email  String?
-  platform_logo_url   String?  // ONLIVE logo — uploaded by Dev SA
-  created_at          DateTime @default(now())
-  updated_at          DateTime @updatedAt
+  id                      String   @id @default("singleton")
+  razorpay_key_id         String?
+  razorpay_key_secret     String?
+  razorpay_configured     Boolean  @default(false)
+  default_from_email      String?
+  platform_logo_url       String?
+  // Landing page content — editable by Dev SA
+  product_name            String   @default("ONLIVE")
+  landing_badge           String   @default("School Transport OS")
+  landing_title           String   @default("Every Mile, Every Child, Safe.")
+  landing_subtitle        String   @default("Complete school bus management — live GPS tracking for parents, digital attendance for drivers, and full ERP control for admins.")
+  landing_cta_text        String   @default("Get Started Free")
+  landing_footer_tagline  String   @default("The complete school bus ERP — built for safety, transparency, and operational efficiency.")
+  landing_footer_email    String   @default("support@onlive.app")
+  landing_footer_phone    String?
+  landing_footer_address  String?
+  landing_footer_copyright String  @default("ONLIVE. All rights reserved.")
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+}
+
+model LandingPartner {
+  id         String   @id @default(uuid())
+  name       String
+  logo_url   String?
+  website    String?
+  sort_order Int      @default(0)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+}
+
+model LandingFounder {
+  id         String   @id @default(uuid())
+  name       String
+  title      String?
+  photo_url  String?
+  linkedin   String?
+  sort_order Int      @default(0)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
 }
 
 model BillingConfig {

@@ -1,220 +1,557 @@
 'use client';
 
-import { Bus, Users, Locate, CheckCircle2, CreditCard, MapPin, Bell, BarChart3, Navigation, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
+import {
+  Bus,
+  Users,
+  Locate,
+  CheckCircle2,
+  CreditCard,
+  MapPin,
+  Bell,
+  BarChart3,
+  Navigation,
+  Menu,
+  X,
+  Linkedin,
+  Mail,
+  Phone,
+  ChevronRight,
+} from 'lucide-react';
 
-const BusScene = dynamic(() => import('@/components/ui/BusScene'), { ssr: false });
+// ─── TypeScript interfaces ────────────────────────────────────────────────────
+
+interface Config {
+  product_name: string;
+  platform_logo_url: string | null;
+  landing_badge: string;
+  landing_title: string;
+  landing_subtitle: string;
+  landing_cta_text: string;
+  landing_footer_tagline: string;
+  landing_footer_email: string | null;
+  landing_footer_phone: string | null;
+  landing_footer_address: string | null;
+  landing_footer_copyright: string;
+}
+
+interface Stats {
+  schools: number;
+  parents: number;
+  buses_live: number;
+  drivers: number;
+  staff_admins: number;
+}
+
+interface Partner {
+  id: string;
+  name: string;
+  logo_url: string | null;
+}
+
+interface Founder {
+  id: string;
+  name: string;
+  title: string;
+  photo_url: string | null;
+  linkedin: string | null;
+}
+
+interface School {
+  id: string;
+  name: string;
+  logo_url: string | null;
+}
+
+interface LandingData {
+  config: Config;
+  stats: Stats;
+  partners: Partner[];
+  founders: Founder[];
+  schools: School[];
+}
+
+// ─── Default / fallback values ────────────────────────────────────────────────
+
+const DEFAULT_CONFIG: Config = {
+  product_name: 'ONLIVE',
+  platform_logo_url: null,
+  landing_badge: 'School Transport OS',
+  landing_title: 'Every Mile, Every Child, Safe.',
+  landing_subtitle:
+    'Complete school bus management — live GPS tracking for parents, digital attendance for drivers, and full ERP control for admins.',
+  landing_cta_text: 'Get Started Free',
+  landing_footer_tagline:
+    'The complete school bus ERP — built for safety, transparency, and operational efficiency.',
+  landing_footer_email: 'support@onlive.app',
+  landing_footer_phone: null,
+  landing_footer_address: null,
+  landing_footer_copyright: 'ONLIVE. All rights reserved.',
+};
+
+const DEFAULT_STATS: Stats = {
+  schools: 0,
+  parents: 0,
+  buses_live: 0,
+  drivers: 0,
+  staff_admins: 0,
+};
+
+// ─── Helper: initials avatar ──────────────────────────────────────────────────
+
+function InitialsAvatar({
+  name,
+  size = 'md',
+  className = '',
+}: {
+  name: string;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}) {
+  const initials = name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  const sizeClasses = {
+    sm: 'w-10 h-10 text-sm',
+    md: 'w-14 h-14 text-base',
+    lg: 'w-20 h-20 text-xl',
+  };
+
+  return (
+    <div
+      className={`${sizeClasses[size]} rounded-full bg-[#0F172A] flex items-center justify-center text-white font-bold flex-shrink-0 ${className}`}
+    >
+      {initials}
+    </div>
+  );
+}
+
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+
+function LoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-white animate-pulse">
+      {/* Nav skeleton */}
+      <div className="h-16 bg-gray-100 border-b border-gray-200" />
+      {/* Hero skeleton */}
+      <div className="max-w-7xl mx-auto px-6 md:px-20 py-24 grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="space-y-5">
+          <div className="h-6 w-40 bg-gray-200 rounded-full" />
+          <div className="h-14 w-full bg-gray-200 rounded-xl" />
+          <div className="h-14 w-3/4 bg-gray-200 rounded-xl" />
+          <div className="h-5 w-full bg-gray-100 rounded" />
+          <div className="h-5 w-4/5 bg-gray-100 rounded" />
+          <div className="flex gap-6 pt-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="space-y-1">
+                <div className="h-8 w-16 bg-gray-200 rounded" />
+                <div className="h-3 w-16 bg-gray-100 rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-4 pt-2">
+            <div className="h-12 w-44 bg-gray-200 rounded-2xl" />
+            <div className="h-12 w-44 bg-gray-100 rounded-2xl" />
+          </div>
+        </div>
+        <div className="h-64 bg-gray-100 rounded-3xl" />
+      </div>
+    </div>
+  );
+}
+
+// ─── Main page component ──────────────────────────────────────────────────────
 
 export default function LandingPage() {
+  const [data, setData] = useState<LandingData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiUrl) {
+      setData({
+        config: DEFAULT_CONFIG,
+        stats: DEFAULT_STATS,
+        partners: [],
+        founders: [],
+        schools: [],
+      });
+      setLoading(false);
+      return;
+    }
+
+    fetch(`${apiUrl}/platform/landing`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch landing data');
+        return res.json();
+      })
+      .then((json: LandingData) => {
+        setData({
+          config: { ...DEFAULT_CONFIG, ...json.config },
+          stats: { ...DEFAULT_STATS, ...json.stats },
+          partners: json.partners ?? [],
+          founders: json.founders ?? [],
+          schools: json.schools ?? [],
+        });
+      })
+      .catch(() => {
+        setData({
+          config: DEFAULT_CONFIG,
+          stats: DEFAULT_STATS,
+          partners: [],
+          founders: [],
+          schools: [],
+        });
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <LoadingSkeleton />;
+
+  const { config, stats, partners, founders, schools } = data!;
+
+  const statItems = [
+    { value: stats.schools, label: 'Schools' },
+    { value: stats.parents, label: 'Parents Enrolled' },
+    { value: stats.buses_live, label: 'Buses Live Now' },
+    { value: stats.drivers, label: 'Drivers' },
+    { value: stats.staff_admins, label: 'Staff & Admins' },
+  ];
+
   return (
     <div className="min-h-screen bg-white font-sans">
 
-      {/* ── Navigation ───────────────────────────────────────────── */}
-      <nav className="flex items-center justify-between px-6 md:px-20 py-6 bg-white/90 backdrop-blur-md sticky top-0 z-[100] border-b border-gray-100">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-[#22c55e] rounded-xl shadow-lg shadow-green-500/25">
-            <Bus className="w-5 h-5 text-white" />
+      {/* ── NAVBAR ──────────────────────────────────────────────────────── */}
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-[#22c55e] rounded-full flex items-center justify-center shadow shadow-green-400/30 flex-shrink-0">
+              <Bus className="w-4.5 h-4.5 text-white w-[18px] h-[18px]" />
+            </div>
+            <span className="text-xl font-bold text-[#0F172A] tracking-tight">
+              {config.product_name}
+            </span>
           </div>
-          <span className="text-xl font-bold text-gray-900 tracking-tight">
-            D-DRIVER<span className="text-[#22c55e]">365</span>
-          </span>
+
+          {/* Desktop nav links */}
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
+            <Link href="#features" className="hover:text-[#22c55e] transition-colors">
+              Features
+            </Link>
+            <Link href="#how-it-works" className="hover:text-[#22c55e] transition-colors">
+              How It Works
+            </Link>
+            <Link href="#schools" className="hover:text-[#22c55e] transition-colors">
+              Schools
+            </Link>
+            <Link
+              href="/login"
+              className="ml-2 bg-[#22c55e] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-green-600 transition-colors shadow shadow-green-400/20"
+            >
+              Sign In
+            </Link>
+          </div>
+
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden p-2 rounded-lg text-gray-600 hover:text-[#0F172A] hover:bg-gray-50 transition-colors"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
-        <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-600">
-          <Link href="#features" className="hover:text-[#22c55e] transition-colors">Features</Link>
-          <Link href="#how-it-works" className="hover:text-[#22c55e] transition-colors">How It Works</Link>
-          <Link href="/login" className="bg-[#22c55e] text-white px-6 py-2.5 rounded-full hover:bg-green-600 transition-all shadow-md shadow-green-500/20 font-semibold">
-            Sign In
-          </Link>
-        </div>
-        {/* Mobile Sign In */}
-        <Link href="/login" className="md:hidden bg-[#22c55e] text-white px-4 py-2 rounded-full text-sm font-semibold">
-          Sign In
-        </Link>
+
+        {/* Mobile dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-100 bg-white px-6 py-4 space-y-3">
+            {['#features', '#how-it-works', '#schools'].map((href) => (
+              <Link
+                key={href}
+                href={href}
+                className="block text-sm font-medium text-gray-600 py-2 hover:text-[#22c55e] transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {href === '#features'
+                  ? 'Features'
+                  : href === '#how-it-works'
+                  ? 'How It Works'
+                  : 'Schools'}
+              </Link>
+            ))}
+            <Link
+              href="/login"
+              className="block w-full text-center bg-[#22c55e] text-white py-2.5 rounded-full text-sm font-semibold hover:bg-green-600 transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Sign In
+            </Link>
+          </div>
+        )}
       </nav>
 
-      {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-white pt-12 pb-0 px-6 md:px-20">
-        {/* Subtle background road texture pattern */}
-        <div className="absolute inset-0 pointer-events-none" style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,0,0,0.015) 40px, rgba(0,0,0,0.015) 41px)',
-        }} />
+      {/* ── HERO ────────────────────────────────────────────────────────── */}
+      <section className="bg-white pt-16 pb-20 px-6 md:px-10">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-end">
           {/* Left — copy */}
-          <div className="z-10 pb-12 lg:pb-20 space-y-7">
+          <div className="space-y-8">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-green-200 bg-green-50">
-              <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse" />
-              <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Live Fleet Tracking</span>
+              <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
+              <span className="text-xs font-bold text-green-700 uppercase tracking-wider">
+                {config.landing_badge}
+              </span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-[1.08]">
-              Every Mile,<br />
-              Every Child,{' '}
-              <span className="relative inline-block text-[#22c55e]">
-                Safe.
-                {/* Underline accent */}
-                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 10" preserveAspectRatio="none">
-                  <path d="M0,8 Q50,0 100,8 Q150,16 200,8" stroke="#22c55e" strokeWidth="3" fill="none" strokeLinecap="round"/>
-                </svg>
-              </span>
+            {/* Title */}
+            <h1 className="text-5xl md:text-6xl font-bold text-[#0F172A] leading-[1.08] tracking-tight">
+              {config.landing_title}
             </h1>
 
-            <p className="text-lg text-gray-500 leading-relaxed max-w-md">
-              Complete school bus management — live GPS tracking for parents, digital attendance for drivers, and full ERP control for admins.
+            {/* Subtitle */}
+            <p className="text-lg text-gray-500 leading-relaxed max-w-lg">
+              {config.landing_subtitle}
             </p>
 
-            {/* Stats row */}
-            <div className="flex flex-wrap gap-6 pt-2">
-              {[
-                { n: '500+', l: 'Schools' },
-                { n: '25K+', l: 'Students' },
-                { n: '1200+', l: 'Buses' },
-              ].map(({ n, l }) => (
-                <div key={l}>
-                  <p className="text-2xl font-bold text-gray-900">{n}</p>
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">{l}</p>
+            {/* Real stats row */}
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 py-2 border-t border-b border-gray-100">
+              {statItems.map(({ value, label }) => (
+                <div key={label} className="text-center sm:text-left">
+                  <p className="text-2xl font-bold text-[#0F172A]">{value.toLocaleString()}</p>
+                  <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide leading-tight mt-0.5">
+                    {label}
+                  </p>
                 </div>
               ))}
             </div>
 
+            {/* CTA buttons */}
             <div className="flex flex-wrap gap-4">
               <Link
                 href="/login"
-                className="px-8 py-4 bg-[#22c55e] text-white rounded-2xl font-bold shadow-xl shadow-green-500/25 hover:scale-105 hover:bg-green-600 transition-all"
+                className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#22c55e] text-white rounded-2xl font-bold shadow-lg shadow-green-500/20 hover:bg-green-600 transition-colors"
               >
-                Get Started Free
+                {config.landing_cta_text}
+                <ChevronRight className="w-4 h-4" />
               </Link>
               <Link
                 href="#how-it-works"
-                className="px-8 py-4 bg-white text-gray-700 border-2 border-gray-200 rounded-2xl font-bold hover:border-[#22c55e] hover:text-[#22c55e] transition-all"
+                className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-[#0F172A] border-2 border-gray-200 rounded-2xl font-bold hover:border-[#22c55e] hover:text-[#22c55e] transition-colors"
               >
                 See How It Works
               </Link>
             </div>
           </div>
 
-          {/* Right — animated bus landscape scene */}
-          <div className="relative lg:h-auto">
-            {/* Floating info card — overlaid on scene */}
-            <div className="absolute top-6 right-6 z-20 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg px-5 py-4 border border-gray-100 hidden md:block">
-              <div className="flex items-center gap-3 mb-2.5">
-                <div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center">
-                  <Navigation className="w-4 h-4 text-[#22c55e]" />
+          {/* Right — dashboard mockup card */}
+          <div className="relative flex items-center justify-center">
+            {/* Main card */}
+            <div className="w-full max-w-sm bg-[#0F172A] rounded-2xl shadow-2xl shadow-slate-900/40 p-6 space-y-5">
+              {/* Card header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                    LIVE
+                  </span>
+                  <span className="text-white font-semibold text-sm">Route A</span>
+                </div>
+                <Navigation className="w-4 h-4 text-green-400" />
+              </div>
+
+              {/* Student count */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-slate-400" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-gray-800">Route A — Live</p>
-                  <p className="text-[11px] text-gray-400">28 students onboard</p>
+                  <p className="text-white font-bold text-lg leading-none">28 Students</p>
+                  <p className="text-slate-400 text-xs mt-0.5">on board</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                <Clock className="w-3 h-3" />
-                <span>Next stop in <span className="font-bold text-gray-700">4 min</span></span>
+
+              {/* Divider */}
+              <div className="border-t border-slate-700" />
+
+              {/* Stop info */}
+              <div className="flex items-center justify-between text-sm">
+                <div>
+                  <p className="text-slate-400 text-xs uppercase tracking-wider">Stop</p>
+                  <p className="text-white font-semibold mt-0.5">3 of 8</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-slate-400 text-xs uppercase tracking-wider">ETA</p>
+                  <p className="text-green-400 font-semibold mt-0.5">4 min away</p>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="relative h-2 bg-slate-700 rounded-full">
+                <div
+                  className="absolute left-0 top-0 h-full bg-[#22c55e] rounded-full"
+                  style={{ width: '37.5%' }}
+                />
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-[#22c55e] rounded-full border-2 border-[#0F172A] shadow"
+                  style={{ left: 'calc(37.5% - 8px)' }}
+                />
+              </div>
+
+              {/* Driver + Bus row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-800 rounded-xl px-3 py-2.5">
+                  <p className="text-slate-400 text-[10px] uppercase tracking-wider">Driver</p>
+                  <p className="text-white text-sm font-medium mt-0.5">Ravi Kumar</p>
+                </div>
+                <div className="bg-slate-800 rounded-xl px-3 py-2.5">
+                  <p className="text-slate-400 text-[10px] uppercase tracking-wider">Bus No.</p>
+                  <p className="text-white text-sm font-medium mt-0.5">TN-01 AB-1234</p>
+                </div>
               </div>
             </div>
 
-            {/* The animated bus scene fills the right column */}
-            <BusScene className="w-full rounded-t-3xl" style={{ height: 320 } as any} />
+            {/* Floating attendance badge */}
+            <div className="absolute -bottom-4 -right-4 md:bottom-4 md:-right-8 bg-white rounded-xl shadow-lg border border-gray-100 px-4 py-3 flex items-center gap-2.5">
+              <CheckCircle2 className="w-5 h-5 text-[#22c55e] flex-shrink-0" />
+              <div>
+                <p className="text-xs font-bold text-[#0F172A]">Attendance</p>
+                <p className="text-[11px] text-gray-500">26 / 28 marked</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Road divider stripe ───────────────────────────────────── */}
-      <div className="h-3 bg-gray-900 relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center">
-          <div className="flex w-full gap-8 px-8">
-            {Array.from({ length: 30 }).map((_, i) => (
-              <div key={i} className="h-1 w-10 bg-yellow-400 rounded-full opacity-60 shrink-0" />
+      {/* ── SCHOOLS ─────────────────────────────────────────────────────── */}
+      {schools.length > 0 && (
+        <section id="schools" className="py-16 bg-gray-50 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-6 md:px-10">
+            <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-10">
+              Trusted by Schools
+            </p>
+          </div>
+          {/* Marquee row */}
+          <div className="flex gap-10 overflow-x-auto no-scrollbar px-6 md:px-10 pb-2">
+            {schools.map((school) => (
+              <div
+                key={school.id}
+                className="flex-shrink-0 flex flex-col items-center gap-3 min-w-[100px]"
+              >
+                {school.logo_url ? (
+                  <img
+                    src={school.logo_url}
+                    alt={school.name}
+                    className="w-16 h-16 rounded-full object-contain bg-white border border-gray-200 shadow-sm"
+                  />
+                ) : (
+                  <InitialsAvatar name={school.name} size="md" />
+                )}
+                <p className="text-xs font-medium text-gray-600 text-center leading-tight max-w-[90px]">
+                  {school.name}
+                </p>
+              </div>
             ))}
           </div>
-        </div>
-      </div>
+        </section>
+      )}
 
-      {/* ── Features ─────────────────────────────────────────────── */}
+      {/* ── FEATURES ────────────────────────────────────────────────────── */}
       <section id="features" className="py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 md:px-20">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-200 mb-5">
-              <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">Platform Features</span>
+        <div className="max-w-7xl mx-auto px-6 md:px-10">
+          {/* Section heading */}
+          <div className="text-center mb-16 space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-200">
+              <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                Platform Features
+              </span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">Built for the road ahead</h2>
-            <p className="text-gray-500 max-w-xl mx-auto text-lg">Every feature designed for the real-world needs of school transport operations.</p>
+            <h2 className="text-4xl md:text-5xl font-bold text-[#0F172A] tracking-tight">
+              Built for the road ahead
+            </h2>
+            <p className="text-gray-500 max-w-xl mx-auto text-lg">
+              Every feature designed for the real-world needs of school transport operations.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Feature 1 — GPS Tracking */}
-            <div className="group bg-white rounded-3xl p-8 border border-gray-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 overflow-hidden relative">
-              {/* Background bus route art */}
-              <svg className="absolute -right-6 -bottom-6 w-40 h-40 text-green-50 group-hover:text-green-100 transition-colors" viewBox="0 0 100 100" fill="currentColor">
-                <circle cx="50" cy="50" r="48" />
-                <path d="M10,50 Q30,20 50,50 Q70,80 90,50" stroke="#22c55e" strokeWidth="3" fill="none" opacity="0.3"/>
-                <circle cx="50" cy="50" r="5" fill="#22c55e" opacity="0.3"/>
-                <circle cx="20" cy="50" r="4" fill="#22c55e" opacity="0.2"/>
-                <circle cx="80" cy="50" r="4" fill="#22c55e" opacity="0.2"/>
-              </svg>
-              <div className="relative z-10">
-                <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-[#22c55e] group-hover:shadow-lg group-hover:shadow-green-500/30 transition-all">
-                  <Locate className="w-7 h-7 text-[#22c55e] group-hover:text-white transition-colors" />
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 border border-green-100 mb-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
-                  <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">Real-time</span>
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-900">Live GPS Tracking</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">Parents watch their child's bus on a live map. Auto-alert when bus is 1km from their stop — no more waiting outside.</p>
+          {/* 3 main cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* GPS Tracking */}
+            <div className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-5">
+                <Locate className="w-6 h-6 text-[#22c55e]" />
               </div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-50 border border-green-100 mb-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
+                <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">
+                  Real-time
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-[#0F172A] mb-2">Live GPS Tracking</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                Parents watch their child&apos;s bus on a live map. Auto-alert when bus is 1 km from
+                their stop — no more waiting outside.
+              </p>
             </div>
 
-            {/* Feature 2 — Attendance */}
-            <div className="group bg-white rounded-3xl p-8 border border-gray-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 overflow-hidden relative">
-              <svg className="absolute -right-4 -bottom-4 w-36 h-36 text-blue-50 group-hover:text-blue-100 transition-colors" viewBox="0 0 100 100" fill="currentColor">
-                <circle cx="50" cy="50" r="48"/>
-                <path d="M20,70 L30,60 L50,75 L80,40" stroke="#3B82F6" strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.3"/>
-              </svg>
-              <div className="relative z-10">
-                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-500 group-hover:shadow-lg group-hover:shadow-blue-500/30 transition-all">
-                  <CheckCircle2 className="w-7 h-7 text-blue-500 group-hover:text-white transition-colors" />
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 border border-blue-100 mb-3">
-                  <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Stop by stop</span>
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-900">Smart Attendance</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">Driver sees each student's photo card at every stop. One tap to mark present or absent. Parents notified instantly on any changes.</p>
+            {/* Smart Attendance */}
+            <div className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-5">
+                <CheckCircle2 className="w-6 h-6 text-blue-500" />
               </div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-100 mb-3">
+                <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">
+                  Stop by stop
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-[#0F172A] mb-2">Smart Attendance</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                Driver sees each student&apos;s photo card at every stop. One tap to mark present or
+                absent. Parents notified instantly on any changes.
+              </p>
             </div>
 
-            {/* Feature 3 — Fee Management */}
-            <div className="group bg-white rounded-3xl p-8 border border-gray-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 overflow-hidden relative">
-              <svg className="absolute -right-4 -bottom-4 w-36 h-36 text-orange-50 group-hover:text-orange-100 transition-colors" viewBox="0 0 100 100" fill="currentColor">
-                <circle cx="50" cy="50" r="48"/>
-                <rect x="22" y="35" width="56" height="35" rx="5" stroke="#F97316" strokeWidth="3" fill="none" opacity="0.3"/>
-                <line x1="22" y1="50" x2="78" y2="50" stroke="#F97316" strokeWidth="2" opacity="0.3"/>
-              </svg>
-              <div className="relative z-10">
-                <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-500 group-hover:shadow-lg group-hover:shadow-orange-500/30 transition-all">
-                  <CreditCard className="w-7 h-7 text-orange-500 group-hover:text-white transition-colors" />
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-orange-50 border border-orange-100 mb-3">
-                  <span className="text-[10px] font-bold text-orange-700 uppercase tracking-wider">Automated</span>
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-900">Fee Management</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">Auto-generate fees per student schedule. Online Razorpay payments, cash recording, and instant digital receipts — all in one place.</p>
+            {/* Fee Management */}
+            <div className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+              <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center mb-5">
+                <CreditCard className="w-6 h-6 text-orange-500" />
               </div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-50 border border-orange-100 mb-3">
+                <span className="text-[10px] font-bold text-orange-700 uppercase tracking-wider">
+                  Automated
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-[#0F172A] mb-2">Fee Management</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                Auto-generate fees per student schedule. Online payments, cash recording, and instant
+                digital receipts — all in one place.
+              </p>
             </div>
           </div>
 
-          {/* Secondary features row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          {/* 4 secondary pills */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
             {[
-              { icon: Bell,       color: 'purple', label: 'Push Notifications',  sub: 'Bus approaching, boarded, arrived' },
-              { icon: BarChart3,  color: 'teal',   label: 'Reports & Analytics', sub: 'Attendance, fuel, shift logs' },
-              { icon: MapPin,     color: 'red',    label: 'Stop Management',     sub: 'Sequence, timing, requests' },
-              { icon: Users,      color: 'indigo', label: 'Multi-role Access',   sub: 'Admin, Driver, Parent' },
-            ].map(({ icon: Icon, color, label, sub }) => (
-              <div key={label} className="bg-white rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
-                <Icon className={`w-6 h-6 text-${color}-500 mb-3`} />
-                <p className="text-sm font-bold text-gray-800 mb-1">{label}</p>
+              { icon: Bell, color: 'text-purple-500', bg: 'bg-purple-50', label: 'Push Notifications', sub: 'Bus approaching, boarded, arrived' },
+              { icon: BarChart3, color: 'text-teal-500', bg: 'bg-teal-50', label: 'Reports & Analytics', sub: 'Attendance, fuel, shift logs' },
+              { icon: MapPin, color: 'text-red-500', bg: 'bg-red-50', label: 'Stop Management', sub: 'Sequence, timing, requests' },
+              { icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-50', label: 'Multi-role Access', sub: 'Admin, Driver, Parent' },
+            ].map(({ icon: Icon, color, bg, label, sub }) => (
+              <div
+                key={label}
+                className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow"
+              >
+                <div className={`w-9 h-9 ${bg} rounded-lg flex items-center justify-center mb-3`}>
+                  <Icon className={`w-5 h-5 ${color}`} />
+                </div>
+                <p className="text-sm font-bold text-[#0F172A] mb-1">{label}</p>
                 <p className="text-xs text-gray-400">{sub}</p>
               </div>
             ))}
@@ -222,101 +559,172 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── How It Works ─────────────────────────────────────────── */}
+      {/* ── HOW IT WORKS ────────────────────────────────────────────────── */}
       <section id="how-it-works" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6 md:px-20">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-100 mb-5">
-              <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">The Journey</span>
+        <div className="max-w-7xl mx-auto px-6 md:px-10">
+          {/* Section heading */}
+          <div className="text-center mb-16 space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-100">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                The Journey
+              </span>
             </div>
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">From setup to live in minutes</h2>
-            <p className="text-gray-500 max-w-xl mx-auto">Three simple steps to transform how your school manages student transport.</p>
+            <h2 className="text-4xl font-bold text-[#0F172A]">From setup to live in minutes</h2>
+            <p className="text-gray-500 max-w-xl mx-auto">
+              Three simple steps to transform how your school manages student transport.
+            </p>
           </div>
 
-          {/* Steps with bus route connecting them */}
-          <div className="relative">
-            {/* Connecting road line */}
-            <div className="hidden md:block absolute top-16 left-[16.66%] right-[16.66%] h-1 bg-gray-200 z-0">
-              <div className="absolute inset-0 flex items-center gap-4 px-4">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="h-1 w-6 bg-[#22c55e] rounded-full opacity-40 shrink-0" />
-                ))}
-              </div>
-            </div>
+          {/* Steps */}
+          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-10">
+            {/* Connector line (desktop only) */}
+            <div className="hidden md:block absolute top-8 left-[22%] right-[22%] h-px bg-gradient-to-r from-green-200 via-blue-200 to-orange-200 z-0" />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 relative z-10">
-              {[
-                {
-                  step: '01',
-                  icon: Bus,
-                  title: 'Admin Sets Up Routes',
-                  desc: 'Add buses, assign drivers, create routes with stops in order. Students are linked to their boarding stop automatically.',
-                  color: 'green',
-                },
-                {
-                  step: '02',
-                  icon: Navigation,
-                  title: 'Driver Starts Trip',
-                  desc: 'Driver selects Morning or Evening route, starts trip. GPS goes live. Parents receive "Bus Started" notification instantly.',
-                  color: 'blue',
-                },
-                {
-                  step: '03',
-                  icon: Bell,
-                  title: 'Parents Track Live',
-                  desc: 'Parents watch the bus on a real-time map. Get "Bus 1km away" alert. See their child marked as boarded. Peace of mind — every mile.',
-                  color: 'orange',
-                },
-              ].map(({ step, icon: Icon, title, desc, color }) => (
-                <div key={step} className="flex flex-col items-center text-center">
-                  <div className={`w-14 h-14 bg-${color === 'green' ? 'green' : color === 'blue' ? 'blue' : 'orange'}-100 rounded-2xl flex items-center justify-center mb-5 shadow-sm`}>
-                    <Icon className={`w-7 h-7 text-${color === 'green' ? '[#22c55e]' : color === 'blue' ? 'blue-500' : 'orange-500'}`} />
-                  </div>
-                  <div className={`text-xs font-black ${color === 'green' ? 'text-green-400' : color === 'blue' ? 'text-blue-400' : 'text-orange-400'} mb-2 tracking-widest`}>
-                    STEP {step}
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
+            {[
+              {
+                step: '01',
+                icon: Bus,
+                iconBg: 'bg-green-100',
+                iconColor: 'text-[#22c55e]',
+                stepColor: 'text-green-400',
+                title: 'Admin Sets Up Routes',
+                desc: 'Add buses, assign drivers, create routes with stops in order. Students are linked to their boarding stop automatically.',
+              },
+              {
+                step: '02',
+                icon: Navigation,
+                iconBg: 'bg-blue-50',
+                iconColor: 'text-blue-500',
+                stepColor: 'text-blue-400',
+                title: 'Driver Starts Trip',
+                desc: 'Driver selects Morning or Evening route and starts the trip. GPS goes live — parents receive a "Bus Started" notification instantly.',
+              },
+              {
+                step: '03',
+                icon: Bell,
+                iconBg: 'bg-orange-50',
+                iconColor: 'text-orange-500',
+                stepColor: 'text-orange-400',
+                title: 'Parents Track Live',
+                desc: 'Parents watch the bus on a real-time map. Get a "Bus 1 km away" alert. See their child marked as boarded — every mile, every child.',
+              },
+            ].map(({ step, icon: Icon, iconBg, iconColor, stepColor, title, desc }) => (
+              <div key={step} className="relative z-10 flex flex-col items-center text-center">
+                <div
+                  className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center mb-5 shadow-sm`}
+                >
+                  <Icon className={`w-7 h-7 ${iconColor}`} />
                 </div>
-              ))}
-            </div>
+                <p className={`text-xs font-black ${stepColor} mb-2 tracking-widest`}>
+                  STEP {step}
+                </p>
+                <h3 className="text-lg font-bold text-[#0F172A] mb-2">{title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed max-w-xs">{desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ── CTA Banner ───────────────────────────────────────────── */}
-      <section className="relative bg-gray-900 py-20 px-6 md:px-20 overflow-hidden">
-        {/* Road stripe decoration */}
-        <div className="absolute bottom-0 left-0 right-0 h-3">
-          <div className="flex items-center h-full gap-6 px-6">
-            {Array.from({ length: 30 }).map((_, i) => (
-              <div key={i} className="h-1.5 w-10 bg-yellow-400 rounded-full opacity-40 shrink-0" />
-            ))}
+      {/* ── PARTNERS ────────────────────────────────────────────────────── */}
+      {partners.length > 0 && (
+        <section className="py-20 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-6 md:px-10">
+            <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-12">
+              Our Partners
+            </p>
+            <div className="flex flex-wrap justify-center gap-8">
+              {partners.map((partner) => (
+                <div
+                  key={partner.id}
+                  className="flex flex-col items-center gap-3"
+                >
+                  {partner.logo_url ? (
+                    <img
+                      src={partner.logo_url}
+                      alt={partner.name}
+                      className="h-12 w-auto object-contain grayscale hover:grayscale-0 transition-all"
+                    />
+                  ) : (
+                    <span className="text-base font-semibold text-gray-500">{partner.name}</span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        {/* Decorative bus silhouette */}
-        <div className="absolute right-0 top-0 bottom-0 w-64 flex items-center justify-center opacity-5">
-          <Bus className="w-48 h-48" strokeWidth={0.5} />
-        </div>
+        </section>
+      )}
 
-        <div className="max-w-3xl mx-auto text-center relative z-10">
-          <p className="text-green-400 font-bold text-sm uppercase tracking-widest mb-4">Ready to roll?</p>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-            Transform your school's transport today
-          </h2>
-          <p className="text-gray-400 text-lg mb-10 max-w-xl mx-auto">
-            Join hundreds of schools running safer, smarter bus operations with D-Driver365.
+      {/* ── FOUNDERS / TEAM ─────────────────────────────────────────────── */}
+      {founders.length > 0 && (
+        <section className="py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-6 md:px-10">
+            <div className="text-center mb-14 space-y-3">
+              <h2 className="text-4xl font-bold text-[#0F172A]">Meet the Team</h2>
+              <p className="text-gray-500 max-w-md mx-auto">
+                The people building {config.product_name}.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-8">
+              {founders.map((founder) => (
+                <div
+                  key={founder.id}
+                  className="flex flex-col items-center text-center w-44 space-y-3"
+                >
+                  {founder.photo_url ? (
+                    <img
+                      src={founder.photo_url}
+                      alt={founder.name}
+                      className="w-20 h-20 rounded-full object-cover border-2 border-gray-100 shadow"
+                    />
+                  ) : (
+                    <InitialsAvatar name={founder.name} size="lg" />
+                  )}
+                  <div>
+                    <p className="text-sm font-bold text-[#0F172A]">{founder.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{founder.title}</p>
+                  </div>
+                  {founder.linkedin && (
+                    <a
+                      href={founder.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                      <Linkedin className="w-3.5 h-3.5" />
+                      LinkedIn
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── CTA BANNER ──────────────────────────────────────────────────── */}
+      <section className="bg-[#0F172A] py-24 px-6 md:px-10">
+        <div className="max-w-3xl mx-auto text-center space-y-6">
+          <p className="text-green-400 font-bold text-xs uppercase tracking-widest">
+            Ready to roll?
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
+          <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+            Transform your school&apos;s transport today
+          </h2>
+          <p className="text-slate-400 text-lg max-w-xl mx-auto">
+            Join schools running safer, smarter bus operations with {config.product_name}.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 pt-2">
             <Link
               href="/login"
-              className="px-10 py-4 bg-[#22c55e] text-white rounded-2xl font-bold shadow-xl shadow-green-500/20 hover:scale-105 transition-transform"
+              className="inline-flex items-center gap-2 px-10 py-4 bg-[#22c55e] text-white rounded-2xl font-bold shadow-xl shadow-green-500/20 hover:bg-green-600 transition-colors"
             >
-              Start for Free
+              Sign In
+              <ChevronRight className="w-4 h-4" />
             </Link>
             <Link
               href="#features"
-              className="px-10 py-4 bg-white/10 text-white border border-white/20 rounded-2xl font-bold hover:bg-white/20 transition-colors"
+              className="px-10 py-4 bg-white/10 text-white border border-white/20 rounded-2xl font-bold hover:bg-white/15 transition-colors"
             >
               Explore Features
             </Link>
@@ -324,39 +732,87 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer ───────────────────────────────────────────────── */}
-      <footer className="bg-[#111827] text-white py-16 px-6 md:px-20">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
-          <div className="col-span-2 space-y-5">
+      {/* ── FOOTER ──────────────────────────────────────────────────────── */}
+      <footer className="bg-[#020617] text-white py-16 px-6 md:px-10">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
+          {/* Brand column */}
+          <div className="space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-[#22c55e] rounded-xl">
-                <Bus className="w-5 h-5 text-white" />
+              <div className="w-9 h-9 bg-[#22c55e] rounded-full flex items-center justify-center flex-shrink-0">
+                <Bus className="w-[18px] h-[18px] text-white" />
               </div>
-              <span className="text-2xl font-bold">D-DRIVER<span className="text-[#22c55e]">365</span></span>
+              <span className="text-xl font-bold">{config.product_name}</span>
             </div>
-            <p className="text-gray-400 max-w-xs leading-relaxed text-sm">
-              The complete school bus ERP — built for safety, transparency, and operational efficiency.
+            <p className="text-slate-400 max-w-xs leading-relaxed text-sm">
+              {config.landing_footer_tagline}
             </p>
           </div>
+
+          {/* Portal links */}
           <div>
-            <h4 className="font-bold mb-5 text-[#22c55e] uppercase tracking-widest text-xs">Portal</h4>
-            <ul className="space-y-3 text-gray-400 text-sm">
-              <li><Link href="/login" className="hover:text-white transition-colors">School Admin</Link></li>
-              <li><Link href="/login" className="hover:text-white transition-colors">Driver App</Link></li>
-              <li><Link href="/login" className="hover:text-white transition-colors">Parent App</Link></li>
+            <h4 className="font-bold mb-5 text-[#22c55e] uppercase tracking-widest text-xs">
+              Portal
+            </h4>
+            <ul className="space-y-3 text-slate-400 text-sm">
+              <li>
+                <Link href="/login" className="hover:text-white transition-colors">
+                  School Admin
+                </Link>
+              </li>
+              <li>
+                <Link href="/login" className="hover:text-white transition-colors">
+                  Driver App
+                </Link>
+              </li>
+              <li>
+                <Link href="/login" className="hover:text-white transition-colors">
+                  Parent App
+                </Link>
+              </li>
             </ul>
           </div>
+
+          {/* Contact */}
           <div>
-            <h4 className="font-bold mb-5 text-[#22c55e] uppercase tracking-widest text-xs">Support</h4>
-            <ul className="space-y-3 text-gray-400 text-sm">
-              <li>support@ddriver365.com</li>
-              <li>Available Mon–Sat</li>
-              <li>9 AM – 6 PM IST</li>
+            <h4 className="font-bold mb-5 text-[#22c55e] uppercase tracking-widest text-xs">
+              Contact
+            </h4>
+            <ul className="space-y-3 text-slate-400 text-sm">
+              {config.landing_footer_email && (
+                <li className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 flex-shrink-0 text-slate-500" />
+                  <a
+                    href={`mailto:${config.landing_footer_email}`}
+                    className="hover:text-white transition-colors"
+                  >
+                    {config.landing_footer_email}
+                  </a>
+                </li>
+              )}
+              {config.landing_footer_phone && (
+                <li className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 flex-shrink-0 text-slate-500" />
+                  <a
+                    href={`tel:${config.landing_footer_phone}`}
+                    className="hover:text-white transition-colors"
+                  >
+                    {config.landing_footer_phone}
+                  </a>
+                </li>
+              )}
+              {config.landing_footer_address && (
+                <li className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 flex-shrink-0 text-slate-500 mt-0.5" />
+                  <span>{config.landing_footer_address}</span>
+                </li>
+              )}
             </ul>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-10 pt-8 border-t border-white/10 text-center text-gray-600 text-xs">
-          © {new Date().getFullYear()} D-Driver365. All rights reserved.
+
+        {/* Bottom bar */}
+        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-white/10 text-center text-slate-600 text-xs">
+          &copy; {new Date().getFullYear()} {config.landing_footer_copyright}
         </div>
       </footer>
     </div>
