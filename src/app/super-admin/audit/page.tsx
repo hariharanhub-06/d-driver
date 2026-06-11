@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ClipboardList, Copy, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 interface AuditLog {
   id: string;
@@ -110,6 +111,7 @@ function SkeletonRow() {
 }
 
 export default function AuditTrailPage() {
+  const t = useT();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -169,25 +171,25 @@ export default function AuditTrailPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
             <ClipboardList className="w-7 h-7 text-[var(--brand)]" />
-            Audit Trail
+            {t('Audit Trail', 'தணிக்கை பதிவு')}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">All changes made across the platform with user IDs</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t('All changes made across the platform with user IDs', 'தளம் முழுவதும் செய்யப்பட்ட மாற்றங்கள்')}</p>
         </div>
       </div>
 
       {/* Filter bar */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 flex flex-wrap items-end gap-3">
         <div>
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Action Type</label>
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Action Type', 'செயல் வகை')}</label>
           <select value={actionType} onChange={e => setActionType(e.target.value)} className={inputCls}>
-            <option value="all">All Actions</option>
-            <option value="create">Create</option>
-            <option value="update">Update</option>
-            <option value="delete">Delete</option>
+            <option value="all">{t('All Actions', 'அனைத்து செயல்களும்')}</option>
+            <option value="create">{t('Create', 'உருவாக்கு')}</option>
+            <option value="update">{t('Update', 'புதுப்பி')}</option>
+            <option value="delete">{t('Delete', 'நீக்கு')}</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Target Type</label>
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Target Type', 'இலக்கு வகை')}</label>
           <select value={targetType} onChange={e => setTargetType(e.target.value)} className={inputCls}>
             <option value="all">All Targets</option>
             <option value="student">Student</option>
@@ -199,18 +201,18 @@ export default function AuditTrailPage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Date From</label>
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Date From', 'தேதி முதல்')}</label>
           <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Date To</label>
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Date To', 'தேதி வரை')}</label>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className={inputCls} />
         </div>
         <button
           onClick={handleApply}
           className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2 font-semibold text-sm transition-all active:scale-95"
         >
-          Apply Filters
+          {t('Apply Filters', 'வடிகட்டிகள் பயன்படுத்து')}
         </button>
       </div>
 
@@ -220,7 +222,15 @@ export default function AuditTrailPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-700">
-                {['Time', 'Actor', 'Action', 'Target Type', 'Target ID', 'School', 'IP'].map(h => (
+                {[
+                  t('Time', 'நேரம்'),
+                  t('Actor', 'செயல்படுத்தியவர்'),
+                  t('Action', 'செயல்'),
+                  t('Target Type', 'இலக்கு வகை'),
+                  t('Target ID', 'இலக்கு அடையாளம்'),
+                  'School',
+                  t('IP', 'IP'),
+                ].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50 whitespace-nowrap">
                     {h}
                   </th>
@@ -234,8 +244,8 @@ export default function AuditTrailPage() {
                 <tr>
                   <td colSpan={7} className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
                     <ClipboardList className="w-12 h-12 mx-auto text-slate-200 dark:text-slate-700 mb-4" />
-                    <p className="font-medium">No audit events found</p>
-                    <p className="text-xs mt-1">Try adjusting your filters.</p>
+                    <p className="font-medium">{t('No audit events found', 'தணிக்கை நிகழ்வுகள் இல்லை')}</p>
+                    <p className="text-xs mt-1">{t('Try adjusting your filters', 'வடிகட்டிகளை சரிசெய்யவும்')}.</p>
                   </td>
                 </tr>
               ) : (

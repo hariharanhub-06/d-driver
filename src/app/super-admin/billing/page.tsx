@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee, Pencil, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 interface Plan {
     id: string;
@@ -52,6 +53,7 @@ const DEFAULT_EXPENSE_ITEMS: ExpenseItem[] = [
 ];
 
 export default function BillingPage() {
+    const t = useT();
     const [plans, setPlans] = useState<Plan[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [schools, setSchools] = useState<School[]>([]);
@@ -229,6 +231,15 @@ export default function BillingPage() {
         }
     };
 
+    const getStatusLabel = (status: string) => {
+        switch (status?.toLowerCase()) {
+            case 'paid': return t('Paid', 'செலுத்தப்பட்டது');
+            case 'overdue': return t('Overdue', 'தாமதமானது');
+            case 'pending': return t('Pending', 'நிலுவையில்');
+            default: return t('Pending', 'நிலுவையில்');
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in">
             {/* Header */}
@@ -236,21 +247,21 @@ export default function BillingPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                         <CreditCard className="w-7 h-7 text-[var(--brand)]" />
-                        Billing
+                        {t('Billing', 'பில்லிங்')}
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Pricing plans and invoice management</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t('School billing management', 'பள்ளி பில்லிங் மேலாண்மை')}</p>
                 </div>
             </div>
 
             {/* Pricing Plans */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
                 <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Pricing Plans</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Pricing Plans', 'விலை நிர்ணய திட்டங்கள்')}</h3>
                     <button
                         onClick={() => setShowPlanModal(true)}
                         className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
                     >
-                        <Plus className="w-4 h-4" /> Create Plan
+                        <Plus className="w-4 h-4" /> {t('Add Plan', 'திட்டம் சேர்க்கவும்')}
                     </button>
                 </div>
                 {loading ? (
@@ -258,7 +269,7 @@ export default function BillingPage() {
                         <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                     </div>
                 ) : plans.length === 0 ? (
-                    <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No pricing plans yet</div>
+                    <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">{t('No billing records', 'பில்லிங் பதிவுகள் இல்லை')}</div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
                         {plans.map(plan => {
@@ -272,7 +283,7 @@ export default function BillingPage() {
                                         <div className="flex items-center gap-1 shrink-0">
                                             <button
                                                 onClick={() => openEditModal(plan)}
-                                                title="Edit plan"
+                                                title={t('Edit', 'திருத்து')}
                                                 className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-400 hover:text-[var(--brand)] transition-colors"
                                             >
                                                 <Pencil className="w-3.5 h-3.5" />
@@ -280,7 +291,7 @@ export default function BillingPage() {
                                             <button
                                                 onClick={() => handleDeletePlan(plan.id, plan.name)}
                                                 disabled={deletingPlanId === plan.id}
-                                                title="Delete plan"
+                                                title={t('Delete', 'நீக்கு')}
                                                 className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-50"
                                             >
                                                 {deletingPlanId === plan.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
@@ -324,28 +335,28 @@ export default function BillingPage() {
             {/* Invoices */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
                 <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex flex-wrap gap-3 items-center justify-between">
-                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Invoices</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Invoices', 'விலைப்பட்டியல்கள்')}</h3>
                     <div className="flex flex-wrap gap-2 items-center">
                         <input
-                            type="text" placeholder="Filter by school..." value={filterSchool}
+                            type="text" placeholder={t('Filter by school...', 'பள்ளி மூலம் வடிகட்டு...')} value={filterSchool}
                             onChange={e => setFilterSchool(e.target.value)}
                             className="bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-[var(--brand)] w-40"
                         />
                         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
                             className="bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-1.5 text-sm text-slate-900 dark:text-white outline-none focus:border-[var(--brand)]">
-                            <option value="">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="paid">Paid</option>
-                            <option value="overdue">Overdue</option>
+                            <option value="">{t('All Schools', 'அனைத்து பள்ளிகள்')}</option>
+                            <option value="pending">{t('Pending', 'நிலுவையில்')}</option>
+                            <option value="paid">{t('Paid', 'செலுத்தப்பட்டது')}</option>
+                            <option value="overdue">{t('Overdue', 'தாமதமானது')}</option>
                         </select>
                         <button onClick={() => setShowInvoiceModal(true)}
                             className="flex items-center gap-1.5 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-3 py-1.5 text-sm font-semibold transition-all active:scale-95">
-                            <Plus className="w-3.5 h-3.5" /> Generate Invoice
+                            <Plus className="w-3.5 h-3.5" /> {t('Generate Invoice', 'விலைப்பட்டியல் உருவாக்கு')}
                         </button>
                         <button onClick={handleGenerateAll} disabled={generatingAll}
                             className="flex items-center gap-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-3 py-1.5 text-sm font-semibold transition-all active:scale-95 disabled:opacity-50">
                             {generatingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Building2 className="w-3.5 h-3.5" />}
-                            Generate All
+                            {t('Generate All', 'அனைத்தும் உருவாக்கு')}
                         </button>
                     </div>
                 </div>
@@ -355,13 +366,19 @@ export default function BillingPage() {
                         <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                     </div>
                 ) : filteredInvoices.length === 0 ? (
-                    <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No invoices found</div>
+                    <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">{t('No billing records', 'பில்லிங் பதிவுகள் இல்லை')}</div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-slate-100 dark:border-slate-700">
-                                    {['School', 'Billing Month', 'Amount', 'Status', 'Actions'].map(h => (
+                                    {[
+                                        t('School', 'பள்ளி'),
+                                        t('Billing Month', 'பில்லிங் மாதம்'),
+                                        t('Amount', 'தொகை'),
+                                        t('Status', 'நிலை'),
+                                        t('Actions', 'செயல்கள்'),
+                                    ].map(h => (
                                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">{h}</th>
                                     ))}
                                 </tr>
@@ -372,12 +389,12 @@ export default function BillingPage() {
                                         <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">{inv.school?.name || '—'}</td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{inv.billing_month}</td>
                                         <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">₹{(inv.total_amount || 0).toLocaleString('en-IN')}</td>
-                                        <td className="px-4 py-3"><span className={getStatusBadge(inv.status)}>{inv.status || 'pending'}</span></td>
+                                        <td className="px-4 py-3"><span className={getStatusBadge(inv.status)}>{getStatusLabel(inv.status || 'pending')}</span></td>
                                         <td className="px-4 py-3">
                                             {inv.status !== 'paid' && (
                                                 <button onClick={() => handleRecordPayment(inv.id)}
                                                     className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-200 dark:border-emerald-800 transition-all active:scale-95">
-                                                    <Check className="w-3 h-3" /> Record Payment
+                                                    <Check className="w-3 h-3" /> {t('Mark as Paid', 'செலுத்தியதாக குறி')}
                                                 </button>
                                             )}
                                         </td>
@@ -389,12 +406,12 @@ export default function BillingPage() {
                 )}
             </div>
 
-            {/* Create Plan Modal */}
+            {/* Create / Edit Plan Modal */}
             {showPlanModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{editingPlanId ? 'Edit Pricing Plan' : 'Create Pricing Plan'}</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{editingPlanId ? t('Edit Plan', 'திட்டம் திருத்து') : t('Add Plan', 'திட்டம் சேர்க்கவும்')}</h3>
                             <button onClick={resetPlanModal} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"><X className="w-5 h-5" /></button>
                         </div>
 
@@ -402,13 +419,13 @@ export default function BillingPage() {
                             {/* Name & Description */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Plan Name *</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Plan Name', 'திட்டப் பெயர்')} *</label>
                                     <input type="text" value={planForm.name}
                                         onChange={e => setPlanForm({ ...planForm, name: e.target.value })}
                                         placeholder="e.g. Standard" className={inputCls} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Description</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Description', 'விளக்கம்')}</label>
                                     <input type="text" value={planForm.description}
                                         onChange={e => setPlanForm({ ...planForm, description: e.target.value })}
                                         placeholder="Optional" className={inputCls} />
@@ -419,14 +436,14 @@ export default function BillingPage() {
                             <div>
                                 <div className="flex items-center justify-between mb-3">
                                     <div>
-                                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Revenue Line Items</p>
-                                        <p className="text-xs text-slate-400 dark:text-slate-500">What you charge each school</p>
+                                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('Revenue Line Items', 'வருவாய் வரி உருப்படிகள்')}</p>
+                                        <p className="text-xs text-slate-400 dark:text-slate-500">{t('What you charge each school', 'ஒவ்வொரு பள்ளிக்கும் நீங்கள் வசூலிப்பது')}</p>
                                     </div>
                                     <button
                                         onClick={() => setRevenueItems(p => [...p, { label: '', metric: 'per_bus', unit_rate: '' }])}
                                         className="text-xs font-semibold text-[var(--brand)] hover:opacity-80 flex items-center gap-1"
                                     >
-                                        <Plus className="w-3 h-3" /> Add Row
+                                        <Plus className="w-3 h-3" /> {t('Add Row', 'வரிசை சேர்')}
                                     </button>
                                 </div>
                                 <div className="space-y-2">
@@ -461,15 +478,15 @@ export default function BillingPage() {
                                 <div className="flex items-center justify-between mb-3">
                                     <div>
                                         <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                                            <TrendingDown className="w-4 h-4 text-red-400" /> Monthly Operating Expenses
+                                            <TrendingDown className="w-4 h-4 text-red-400" /> {t('Monthly Operating Expenses', 'மாதாந்திர செயல்பாட்டு செலவுகள்')}
                                         </p>
-                                        <p className="text-xs text-slate-400 dark:text-slate-500">Your infrastructure costs (for planning only — not billed to schools)</p>
+                                        <p className="text-xs text-slate-400 dark:text-slate-500">{t('Your infrastructure costs (for planning only — not billed to schools)', 'உங்கள் உள்கட்டமைப்பு செலவுகள் (திட்டமிடலுக்கு மட்டும்)')}</p>
                                     </div>
                                     <button
                                         onClick={() => setExpenseItems(p => [...p, { label: '', unit_rate: '' }])}
                                         className="text-xs font-semibold text-red-400 hover:opacity-80 flex items-center gap-1"
                                     >
-                                        <Plus className="w-3 h-3" /> Add Row
+                                        <Plus className="w-3 h-3" /> {t('Add Row', 'வரிசை சேர்')}
                                     </button>
                                 </div>
                                 <div className="space-y-2">
@@ -495,7 +512,7 @@ export default function BillingPage() {
                             {/* ── Profit Target ── */}
                             <div className="border-t border-slate-100 dark:border-slate-700 pt-5">
                                 <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2 mb-3">
-                                    <IndianRupee className="w-4 h-4 text-emerald-500" /> Profit Target
+                                    <IndianRupee className="w-4 h-4 text-emerald-500" /> {t('Profit Target', 'லாப இலக்கு')}
                                 </p>
                                 <div className="flex items-center gap-3">
                                     <div className="relative flex-1 max-w-[200px]">
@@ -504,13 +521,13 @@ export default function BillingPage() {
                                             onChange={e => setProfitAmount(e.target.value)}
                                             className={cn(inputCls, 'pl-7')} />
                                     </div>
-                                    <p className="text-xs text-slate-400 dark:text-slate-500">desired profit per school per month</p>
+                                    <p className="text-xs text-slate-400 dark:text-slate-500">{t('desired profit per school per month', 'ஒரு பள்ளிக்கு மாதம் விரும்பிய லாபம்')}</p>
                                 </div>
                             </div>
 
                             {/* ── Live Calculation Preview ── */}
                             <div className="border-t border-slate-100 dark:border-slate-700 pt-5">
-                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Live Calculation Preview</p>
+                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">{t('Live Calculation Preview', 'நேரடி கணக்கீட்டு முன்னோட்டம்')}</p>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                                     {[
                                         { key: 'buses', label: 'Buses', icon: '🚌' },
@@ -529,29 +546,29 @@ export default function BillingPage() {
 
                                 <div className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-4 space-y-2 text-sm">
                                     <div className="flex justify-between">
-                                        <span className="text-slate-500 dark:text-slate-400">Revenue from line items (this school)</span>
+                                        <span className="text-slate-500 dark:text-slate-400">{t('Revenue from line items (this school)', 'வரி உருப்படிகளிலிருந்து வருவாய் (இந்த பள்ளி)')}</span>
                                         <span className="font-semibold text-slate-900 dark:text-white">₹{sampleRevenue.toLocaleString('en-IN')}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-slate-500 dark:text-slate-400">
-                                            − Expenses shared per school (÷ {totalSchools})
+                                            − {t('Expenses shared per school', 'பள்ளிக்கு பகிரப்பட்ட செலவுகள்')} (÷ {totalSchools})
                                         </span>
                                         <span className="font-semibold text-red-500 dark:text-red-400">− ₹{Math.round(perSchoolExpense).toLocaleString('en-IN')}</span>
                                     </div>
                                     {profitTarget > 0 && (
                                         <div className="flex justify-between">
-                                            <span className="text-slate-500 dark:text-slate-400">− Profit target</span>
+                                            <span className="text-slate-500 dark:text-slate-400">− {t('Profit target', 'லாப இலக்கு')}</span>
                                             <span className="font-semibold text-slate-500 dark:text-slate-400">− ₹{profitTarget.toLocaleString('en-IN')}</span>
                                         </div>
                                     )}
                                     <div className="border-t border-slate-200 dark:border-slate-600 pt-2 flex justify-between items-center">
-                                        <span className="font-semibold text-slate-700 dark:text-slate-300">Net surplus / deficit</span>
+                                        <span className="font-semibold text-slate-700 dark:text-slate-300">{t('Net surplus / deficit', 'நிகர உபரி / பற்றாக்குறை')}</span>
                                         <span className={cn('font-bold text-base', netSurplus >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400')}>
                                             {netSurplus >= 0 ? '✅' : '❌'} ₹{Math.round(netSurplus).toLocaleString('en-IN')}
                                         </span>
                                     </div>
                                     <div className="flex justify-between text-xs">
-                                        <span className="text-slate-400 dark:text-slate-500">Effective margin</span>
+                                        <span className="text-slate-400 dark:text-slate-500">{t('Effective margin', 'பயனுள்ள விளிம்பு')}</span>
                                         <span className={cn('font-semibold', margin >= 50 ? 'text-emerald-600 dark:text-emerald-400' : margin >= 0 ? 'text-amber-500' : 'text-red-500')}>
                                             {margin.toFixed(1)}%
                                         </span>
@@ -564,11 +581,11 @@ export default function BillingPage() {
                             <div className="flex gap-3">
                                 <button onClick={resetPlanModal}
                                     className="flex-1 flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
-                                    Cancel
+                                    {t('Cancel', 'ரத்து செய்')}
                                 </button>
                                 <button onClick={handleSavePlan} disabled={submitting || !planForm.name}
                                     className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50">
-                                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : editingPlanId ? 'Save Changes' : 'Create Plan'}
+                                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : editingPlanId ? t('Save Changes', 'மாற்றங்களை சேமி') : t('Add Plan', 'திட்டம் சேர்க்கவும்')}
                                 </button>
                             </div>
                         </div>
@@ -581,31 +598,31 @@ export default function BillingPage() {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm">
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Generate Invoice</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Generate Invoice', 'விலைப்பட்டியல் உருவாக்கு')}</h3>
                             <button onClick={() => setShowInvoiceModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"><X className="w-5 h-5" /></button>
                         </div>
                         <div className="p-6 space-y-5">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">School</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('School', 'பள்ளி')}</label>
                                 <select value={invoiceForm.school_id}
                                     onChange={e => setInvoiceForm({ ...invoiceForm, school_id: e.target.value })}
                                     className={inputCls}>
-                                    <option value="">Select school</option>
+                                    <option value="">{t('Select school', 'பள்ளி தேர்வு செய்யுங்கள்')}</option>
                                     {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Billing Month</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Billing Month', 'பில்லிங் மாதம்')}</label>
                                 <input type="month" value={invoiceForm.billing_month}
                                     onChange={e => setInvoiceForm({ ...invoiceForm, billing_month: e.target.value })}
                                     className={inputCls} />
                             </div>
                         </div>
                         <div className="px-6 pb-6 flex gap-3">
-                            <button onClick={() => setShowInvoiceModal(false)} className="flex-1 flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">Cancel</button>
+                            <button onClick={() => setShowInvoiceModal(false)} className="flex-1 flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">{t('Cancel', 'ரத்து செய்')}</button>
                             <button onClick={handleGenerateInvoice} disabled={submitting || !invoiceForm.school_id}
                                 className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50">
-                                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Generate'}
+                                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t('Generate', 'உருவாக்கு')}
                             </button>
                         </div>
                     </div>

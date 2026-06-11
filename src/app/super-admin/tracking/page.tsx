@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Bus, Navigation, Clock, MapPin, Users, X, UserPlus, Loader2, Check, Building2 } from 'lucide-react';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
 
@@ -87,6 +88,7 @@ function timeAgo(ts: string): string {
 }
 
 export default function SATrackingPage() {
+    const t = useT();
     const [schools, setSchools] = useState<School[]>([]);
     const [selectedSchoolId, setSelectedSchoolId] = useState<string>('');
     const [activeBuses, setActiveBuses] = useState<ActiveBus[]>([]);
@@ -309,9 +311,9 @@ export default function SATrackingPage() {
         <div className="space-y-4 animate-in">
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Live Tracking</h1>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('Live Tracking', 'நேரடி கண்காணிப்பு')}</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Real-time GPS — select a bus then click a stop pin to manage students
+                        {t('Real-time bus tracking', 'நிகழ்நேர பேருந்து கண்காணிப்பு')} — select a bus then click a stop pin to manage students
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -323,7 +325,7 @@ export default function SATrackingPage() {
                                 onChange={e => { setSelectedSchoolId(e.target.value); setSelectedBusId(null); }}
                                 className="text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/40"
                             >
-                                <option value="">All Schools</option>
+                                <option value="">{t('All Schools', 'அனைத்து பள்ளிகள்')}</option>
                                 {schools.map(s => (
                                     <option key={s.id} value={s.id}>{s.name}</option>
                                 ))}
@@ -333,7 +335,7 @@ export default function SATrackingPage() {
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
-                            {activeBuses.length} Active
+                            {activeBuses.length} {t('Active Trips', 'செயலில் உள்ள பயணங்கள்')}
                         </span>
                     </div>
                 </div>
@@ -353,7 +355,7 @@ export default function SATrackingPage() {
                     ) : activeBuses.length === 0 ? (
                         <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
                             <Bus className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                            <p className="font-semibold">No Active Buses</p>
+                            <p className="font-semibold">{t('No active trips', 'செயலில் உள்ள பயணங்கள் இல்லை')}</p>
                             <p className="text-xs mt-1">Positions appear when trips begin</p>
                         </div>
                     ) : (
@@ -374,7 +376,7 @@ export default function SATrackingPage() {
                                         </div>
                                         <span className="font-bold text-sm text-slate-900 dark:text-white">{bus.bus_number}</span>
                                     </div>
-                                    <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">Live</span>
+                                    <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">{t('Running', 'இயக்கத்தில்')}</span>
                                 </div>
                                 <div className="space-y-1.5 pl-1">
                                     {bus.school_name && (
@@ -429,7 +431,7 @@ export default function SATrackingPage() {
                                 </div>
                                 <div className="min-w-0">
                                     <p className="font-semibold text-sm text-slate-900 dark:text-white truncate">{selectedStop.name}</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">{selectedStop.students.length} student{selectedStop.students.length !== 1 ? 's' : ''}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">{selectedStop.students.length} {t('Students', 'மாணவர்கள்').toLowerCase()}{selectedStop.students.length !== 1 ? 's' : ''}</p>
                                 </div>
                             </div>
                             <button
@@ -477,7 +479,7 @@ export default function SATrackingPage() {
                             {!studentsLoaded ? (
                                 <div className="flex items-center gap-2 text-xs text-slate-400">
                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    Loading students...
+                                    {t('Loading...', 'ஏற்றுகிறது...')}
                                 </div>
                             ) : (
                                 <>

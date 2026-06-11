@@ -9,6 +9,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import ImageUpload from '@/components/ui/ImageUpload';
+import { useT } from '@/lib/i18n';
 
 interface BillingConfig {
   overdue_grace_days?: number;
@@ -63,6 +64,7 @@ const PORTAL_LINKS = [
 ];
 
 function CopyButton({ url }: { url: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(url).then(() => {
@@ -76,7 +78,7 @@ function CopyButton({ url }: { url: string }) {
       className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 transition-all active:scale-95"
     >
       <Check className={`w-3.5 h-3.5 transition-colors ${copied ? 'text-emerald-500' : 'opacity-0'}`} />
-      {copied ? 'Copied!' : 'Copy'}
+      {copied ? t('Copied!', 'நகலெடுக்கப்பட்டது!') : t('Copy', 'நகலெடு')}
     </button>
   );
 }
@@ -97,6 +99,8 @@ function MsgBanner({ msg }: { msg: { type: 'success' | 'error'; text: string } }
 // ─── Landing Page Tab ────────────────────────────────────────────────────────
 
 function LandingPageTab() {
+  const t = useT();
+
   // Hero & Footer
   const [heroForm, setHeroForm] = useState<LandingConfig>({});
   const [heroLoading, setHeroLoading] = useState(true);
@@ -381,7 +385,7 @@ function LandingPageTab() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Hero Title</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Hero Title', 'முகப்பு தலைப்பு')}</label>
               <textarea
                 rows={2}
                 value={heroForm.landing_title ?? ''}
@@ -392,7 +396,7 @@ function LandingPageTab() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Hero Subtitle</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Hero Subtitle', 'முகப்பு உரை')}</label>
               <textarea
                 rows={2}
                 value={heroForm.landing_subtitle ?? ''}
@@ -403,7 +407,7 @@ function LandingPageTab() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">CTA Button Text</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('CTA Text', 'CTA உரை')}</label>
               <input
                 type="text"
                 value={heroForm.landing_cta_text ?? ''}
@@ -417,7 +421,7 @@ function LandingPageTab() {
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">Footer</p>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Footer Tagline</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Footer Tagline', 'அடிக்குறிப்பு வரி')}</label>
                   <textarea
                     rows={2}
                     value={heroForm.landing_footer_tagline ?? ''}
@@ -429,7 +433,7 @@ function LandingPageTab() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Footer Email</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Footer Email', 'அடிக்குறிப்பு மின்னஞ்சல்')}</label>
                     <input
                       type="email"
                       value={heroForm.landing_footer_email ?? ''}
@@ -440,7 +444,7 @@ function LandingPageTab() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      Footer Phone <span className="text-slate-400 font-normal">(optional)</span>
+                      {t('Footer Phone', 'அடிக்குறிப்பு தொலைபேசி')} <span className="text-slate-400 font-normal">(optional)</span>
                     </label>
                     <input
                       type="text"
@@ -454,7 +458,7 @@ function LandingPageTab() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    Footer Address <span className="text-slate-400 font-normal">(optional)</span>
+                    {t('Footer Address', 'அடிக்குறிப்பு முகவரி')} <span className="text-slate-400 font-normal">(optional)</span>
                   </label>
                   <textarea
                     rows={2}
@@ -466,7 +470,7 @@ function LandingPageTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Footer Copyright</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Footer Copyright', 'அடிக்குறிப்பு காப்புரிமை')}</label>
                   <input
                     type="text"
                     value={heroForm.landing_footer_copyright ?? ''}
@@ -486,7 +490,7 @@ function LandingPageTab() {
               className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-95"
             >
               {heroSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              Save Changes
+              {t('Save Changes', 'மாற்றங்கள் சேமி')}
             </button>
           </div>
         )}
@@ -498,7 +502,7 @@ function LandingPageTab() {
           <div className="flex items-center gap-3">
             <Building2 className="w-5 h-5 text-[var(--brand)]" />
             <div>
-              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Partners</h2>
+              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Partners', 'கூட்டாளிகள்')}</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Logos shown in the partners section of the landing page</p>
             </div>
           </div>
@@ -507,7 +511,7 @@ function LandingPageTab() {
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--brand)]/10 hover:bg-[var(--brand)]/20 text-[var(--brand)] rounded-xl text-xs font-semibold transition-all"
           >
             {showAddPartner ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-            {showAddPartner ? 'Cancel' : 'Add Partner'}
+            {showAddPartner ? t('Cancel', 'ரத்து செய்') : t('Add Partner', 'கூட்டாளி சேர்க்கவும்')}
           </button>
         </div>
 
@@ -520,7 +524,7 @@ function LandingPageTab() {
               <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">New Partner</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Name *</label>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Name', 'பெயர்')} *</label>
                   <input type="text" value={partnerForm.name} onChange={e => setPartnerForm(p => ({ ...p, name: e.target.value }))} placeholder="Acme Corp" className={inputCls} />
                 </div>
                 <div>
@@ -534,11 +538,11 @@ function LandingPageTab() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Website</label>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Website', 'வலைத்தளம்')}</label>
                   <input type="url" value={partnerForm.website} onChange={e => setPartnerForm(p => ({ ...p, website: e.target.value }))} placeholder="https://acme.com" className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Sort Order</label>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Sort Order', 'வரிசை')}</label>
                   <input type="number" value={partnerForm.sort_order} onChange={e => setPartnerForm(p => ({ ...p, sort_order: e.target.value }))} placeholder="1" className={inputCls} />
                 </div>
               </div>
@@ -548,7 +552,7 @@ function LandingPageTab() {
                 className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 disabled:opacity-50 text-white rounded-xl px-4 py-2 text-xs font-semibold transition-all active:scale-95"
               >
                 {partnerSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                Add Partner
+                {t('Add Partner', 'கூட்டாளி சேர்க்கவும்')}
               </button>
             </div>
           )}
@@ -566,10 +570,10 @@ function LandingPageTab() {
                 <div key={p.id} className="border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden">
                   {editingPartner?.id === p.id ? (
                     <div className="bg-slate-50 dark:bg-slate-700/40 p-4 space-y-3">
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Edit Partner</p>
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('Edit', 'திருத்து')} Partner</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Name *</label>
+                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Name', 'பெயர்')} *</label>
                           <input type="text" value={editPartnerForm.name} onChange={e => setEditPartnerForm(f => ({ ...f, name: e.target.value }))} className={inputCls} />
                         </div>
                         <div>
@@ -583,11 +587,11 @@ function LandingPageTab() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Website</label>
+                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Website', 'வலைத்தளம்')}</label>
                           <input type="url" value={editPartnerForm.website} onChange={e => setEditPartnerForm(f => ({ ...f, website: e.target.value }))} className={inputCls} />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Sort Order</label>
+                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Sort Order', 'வரிசை')}</label>
                           <input type="number" value={editPartnerForm.sort_order} onChange={e => setEditPartnerForm(f => ({ ...f, sort_order: e.target.value }))} className={inputCls} />
                         </div>
                       </div>
@@ -598,13 +602,13 @@ function LandingPageTab() {
                           className="flex items-center gap-1.5 bg-[var(--brand)] hover:opacity-90 disabled:opacity-50 text-white rounded-xl px-3 py-2 text-xs font-semibold transition-all active:scale-95"
                         >
                           {editPartnerSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                          Save
+                          {t('Save', 'சேமி')}
                         </button>
                         <button
                           onClick={() => setEditingPartner(null)}
                           className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-2 text-xs font-semibold transition-all"
                         >
-                          <X className="w-3.5 h-3.5" /> Cancel
+                          <X className="w-3.5 h-3.5" /> {t('Cancel', 'ரத்து செய்')}
                         </button>
                       </div>
                     </div>
@@ -627,12 +631,14 @@ function LandingPageTab() {
                         <button
                           onClick={() => handleStartEditPartner(p)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-all"
+                          title={t('Edit', 'திருத்து')}
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeletePartner(p.id)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-500 transition-all"
+                          title={t('Delete', 'நீக்கு')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -652,7 +658,7 @@ function LandingPageTab() {
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-[var(--brand)]" />
             <div>
-              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Founders</h2>
+              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Founders', 'நிறுவனர்கள்')}</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Shown in the "Meet the team" section of the landing page</p>
             </div>
           </div>
@@ -661,7 +667,7 @@ function LandingPageTab() {
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--brand)]/10 hover:bg-[var(--brand)]/20 text-[var(--brand)] rounded-xl text-xs font-semibold transition-all"
           >
             {showAddFounder ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-            {showAddFounder ? 'Cancel' : 'Add Founder'}
+            {showAddFounder ? t('Cancel', 'ரத்து செய்') : t('Add Founder', 'நிறுவனர் சேர்க்கவும்')}
           </button>
         </div>
 
@@ -674,11 +680,11 @@ function LandingPageTab() {
               <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">New Founder</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Name *</label>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Name', 'பெயர்')} *</label>
                   <input type="text" value={founderForm.name} onChange={e => setFounderForm(f => ({ ...f, name: e.target.value }))} placeholder="Jane Doe" className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Title</label>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Title', 'தலைப்பு')}</label>
                   <input type="text" value={founderForm.title} onChange={e => setFounderForm(f => ({ ...f, title: e.target.value }))} placeholder="Co-Founder & CEO" className={inputCls} />
                 </div>
                 <div>
@@ -692,11 +698,11 @@ function LandingPageTab() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">LinkedIn URL</label>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('LinkedIn URL', 'LinkedIn URL')}</label>
                   <input type="url" value={founderForm.linkedin} onChange={e => setFounderForm(f => ({ ...f, linkedin: e.target.value }))} placeholder="https://linkedin.com/in/..." className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Sort Order</label>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Sort Order', 'வரிசை')}</label>
                   <input type="number" value={founderForm.sort_order} onChange={e => setFounderForm(f => ({ ...f, sort_order: e.target.value }))} placeholder="1" className={inputCls} />
                 </div>
               </div>
@@ -706,7 +712,7 @@ function LandingPageTab() {
                 className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 disabled:opacity-50 text-white rounded-xl px-4 py-2 text-xs font-semibold transition-all active:scale-95"
               >
                 {founderSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                Add Founder
+                {t('Add Founder', 'நிறுவனர் சேர்க்கவும்')}
               </button>
             </div>
           )}
@@ -724,14 +730,14 @@ function LandingPageTab() {
                 <div key={f.id} className="border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden">
                   {editingFounder?.id === f.id ? (
                     <div className="bg-slate-50 dark:bg-slate-700/40 p-4 space-y-3">
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Edit Founder</p>
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('Edit', 'திருத்து')} Founder</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Name *</label>
+                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Name', 'பெயர்')} *</label>
                           <input type="text" value={editFounderForm.name} onChange={e => setEditFounderForm(ef => ({ ...ef, name: e.target.value }))} className={inputCls} />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Title</label>
+                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Title', 'தலைப்பு')}</label>
                           <input type="text" value={editFounderForm.title} onChange={e => setEditFounderForm(ef => ({ ...ef, title: e.target.value }))} className={inputCls} />
                         </div>
                         <div>
@@ -745,11 +751,11 @@ function LandingPageTab() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">LinkedIn URL</label>
+                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('LinkedIn URL', 'LinkedIn URL')}</label>
                           <input type="url" value={editFounderForm.linkedin} onChange={e => setEditFounderForm(ef => ({ ...ef, linkedin: e.target.value }))} className={inputCls} />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Sort Order</label>
+                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('Sort Order', 'வரிசை')}</label>
                           <input type="number" value={editFounderForm.sort_order} onChange={e => setEditFounderForm(ef => ({ ...ef, sort_order: e.target.value }))} className={inputCls} />
                         </div>
                       </div>
@@ -760,13 +766,13 @@ function LandingPageTab() {
                           className="flex items-center gap-1.5 bg-[var(--brand)] hover:opacity-90 disabled:opacity-50 text-white rounded-xl px-3 py-2 text-xs font-semibold transition-all active:scale-95"
                         >
                           {editFounderSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                          Save
+                          {t('Save', 'சேமி')}
                         </button>
                         <button
                           onClick={() => setEditingFounder(null)}
                           className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-2 text-xs font-semibold transition-all"
                         >
-                          <X className="w-3.5 h-3.5" /> Cancel
+                          <X className="w-3.5 h-3.5" /> {t('Cancel', 'ரத்து செய்')}
                         </button>
                       </div>
                     </div>
@@ -791,12 +797,14 @@ function LandingPageTab() {
                         <button
                           onClick={() => handleStartEditFounder(f)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-all"
+                          title={t('Edit', 'திருத்து')}
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteFounder(f.id)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-500 transition-all"
+                          title={t('Delete', 'நீக்கு')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -817,12 +825,13 @@ function LandingPageTab() {
 
 export default function SASettingsPage() {
   const { user } = useAuth();
+  const t = useT();
   const isDevSA = (user as any)?.is_dev_sa === true;
 
   // Tab state
   const tabs = [
-    { id: 'general', label: 'General' },
-    ...(isDevSA ? [{ id: 'landing', label: 'Landing Page' }] : []),
+    { id: 'general', label: t('General', 'பொதுவான') },
+    ...(isDevSA ? [{ id: 'landing', label: t('Landing Page', 'முகப்புப் பக்கம்') }] : []),
   ];
   const [activeTab, setActiveTab] = useState('general');
 
@@ -963,7 +972,7 @@ export default function SASettingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
             <Settings className="w-7 h-7 text-[var(--brand)]" />
-            Platform Settings
+            {t('Settings', 'அமைப்புகள்')}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             Razorpay credentials and billing configuration
@@ -999,8 +1008,8 @@ export default function SASettingsPage() {
               <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
                 <ImageIcon className="w-5 h-5 text-[var(--brand)]" />
                 <div>
-                  <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Platform Branding</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Logo shown on the main D-Driver login page</p>
+                  <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Platform Branding', 'தள பிராண்டிங்')}</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('Logo shown on the main login page', 'முதன்மை உள்நுழைவு பக்கத்தில் காட்டப்படும் லோகோ')}</p>
                 </div>
               </div>
               <div className="p-6 space-y-4">
@@ -1015,7 +1024,7 @@ export default function SASettingsPage() {
                 {platformLogoMsg && <MsgBanner msg={platformLogoMsg} />}
                 <button onClick={handleSavePlatformLogo} disabled={platformLogoSaving || !platformLogo.trim()} className="bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-5 py-2.5 font-semibold text-sm transition-all disabled:opacity-50 flex items-center gap-2">
                   {platformLogoSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  Save Logo
+                  {t('Save Logo', 'லோகோ சேமி')}
                 </button>
               </div>
             </div>
@@ -1026,8 +1035,8 @@ export default function SASettingsPage() {
             <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
               <Link className="w-5 h-5 text-[var(--brand)]" />
               <div>
-                <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Portal Login Links</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Share these URLs with your users to access their dashboards</p>
+                <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Portal Login Links', 'போர்டல் உள்நுழைவு இணைப்புகள்')}</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('Share these URLs with your users', 'இந்த URLகளை உங்கள் பயனர்களுடன் பகிரவும்')}</p>
               </div>
             </div>
             <div className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -1053,7 +1062,7 @@ export default function SASettingsPage() {
             <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Key className="w-5 h-5 text-[var(--brand)]" />
-                <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Razorpay Platform Keys</h2>
+                <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Razorpay Platform Keys', 'ரேஸர்பே தள சாவிகள்')}</h2>
               </div>
               <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                 rzConfigured
@@ -1061,9 +1070,9 @@ export default function SASettingsPage() {
                   : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
               }`}>
                 {rzConfigured ? (
-                  <><Check className="w-3 h-3" /> Configured</>
+                  <><Check className="w-3 h-3" /> {t('Configured', 'உள்ளமைக்கப்பட்டது')}</>
                 ) : (
-                  <><AlertCircle className="w-3 h-3" /> Not Configured</>
+                  <><AlertCircle className="w-3 h-3" /> {t('Not configured', 'உள்ளமைக்கப்படவில்லை')}</>
                 )}
               </span>
             </div>
@@ -1075,7 +1084,7 @@ export default function SASettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                  Platform Razorpay Key ID
+                  {t('Key ID', 'சாவி அடையாளம்')}
                 </label>
                 <input
                   type="text"
@@ -1089,7 +1098,7 @@ export default function SASettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                  Platform Razorpay Secret Key
+                  {t('Secret Key', 'ரகசிய சாவி')}
                 </label>
                 <input
                   type="password"
@@ -1109,7 +1118,7 @@ export default function SASettingsPage() {
                 className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-95"
               >
                 {rzSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
-                Save Keys
+                {t('Save Keys', 'சாவிகள் சேமி')}
               </button>
             </div>
           </div>
@@ -1118,13 +1127,13 @@ export default function SASettingsPage() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
             <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
               <Calendar className="w-5 h-5 text-[var(--brand)]" />
-              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Billing Configuration</h2>
+              <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Billing', 'பில்லிங்')} Configuration</h2>
             </div>
 
             <div className="px-6 py-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                  Grace Days Before Overdue Penalty
+                  {t('Grace Days', 'கருணை நாட்கள்')} Before Overdue Penalty
                 </label>
                 <div className="flex items-center gap-3">
                   <input
@@ -1142,7 +1151,7 @@ export default function SASettingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    Penalty Type
+                    {t('Rate Type', 'விகித வகை')}
                   </label>
                   <select
                     value={config.overdue_rate_type ?? 'percentage'}
@@ -1155,7 +1164,7 @@ export default function SASettingsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    Penalty Rate {config.overdue_rate_type === 'percentage' ? '(%)' : '(₹)'}
+                    {t('Rate', 'விகிதம்')} {config.overdue_rate_type === 'percentage' ? '(%)' : '(₹)'}
                   </label>
                   <input
                     type="number"
@@ -1198,7 +1207,7 @@ export default function SASettingsPage() {
                 className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-95"
               >
                 {cfgSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
-                Save Config
+                {t('Save Settings', 'அமைப்புகள் சேமி')}
               </button>
             </div>
           </div>

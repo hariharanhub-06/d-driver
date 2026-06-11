@@ -5,6 +5,7 @@ import { TrendingUp, Users, Bus, AlertCircle, Building2, IndianRupee } from 'luc
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 interface PerSchoolEntry {
     school_id: string;
@@ -26,6 +27,7 @@ interface RevenueData {
 }
 
 export default function RevenuePage() {
+    const t = useT();
     const [data, setData] = useState<RevenueData>({});
     const [schools, setSchools] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -56,11 +58,11 @@ export default function RevenuePage() {
         : schools.reduce((sum, s) => sum + (s._count?.students || 0), 0);
 
     const heroMetrics = [
-        { label: 'MRR', value: `₹${(mrr / 1000).toFixed(1)}K`, icon: IndianRupee, iconColor: 'text-[var(--brand)]', bg: 'bg-[var(--brand)]/10' },
-        { label: 'ARR Projection', value: `₹${(arr / 100000).toFixed(2)}L`, icon: TrendingUp, iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
-        { label: 'Active Schools', value: activeSchoolCount, icon: Building2, iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
-        { label: 'Total Overdue', value: `₹${(overdue / 1000).toFixed(1)}K`, icon: AlertCircle, iconColor: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30' },
-        { label: 'Total Students', value: totalStudents.toLocaleString('en-IN'), icon: Users, iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30' },
+        { label: t('MRR', 'மாத வருவாய்'), value: `₹${(mrr / 1000).toFixed(1)}K`, icon: IndianRupee, iconColor: 'text-[var(--brand)]', bg: 'bg-[var(--brand)]/10' },
+        { label: t('ARR Projection', 'ஆண்டு வருவாய் கணிப்பு'), value: `₹${(arr / 100000).toFixed(2)}L`, icon: TrendingUp, iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
+        { label: t('Active Schools', 'செயலில் பள்ளிகள்'), value: activeSchoolCount, icon: Building2, iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
+        { label: t('Total Overdue', 'மொத்த தாமதம்'), value: `₹${(overdue / 1000).toFixed(1)}K`, icon: AlertCircle, iconColor: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30' },
+        { label: t('Total Students', 'மொத்த மாணவர்கள்'), value: totalStudents.toLocaleString('en-IN'), icon: Users, iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30' },
     ];
 
     const monthlyData = data.monthly_revenue && data.monthly_revenue.length > 0
@@ -86,9 +88,9 @@ export default function RevenuePage() {
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                         <TrendingUp className="w-7 h-7 text-[var(--brand)]" />
-                        Revenue Dashboard
+                        {t('Revenue Dashboard', 'வருவாய் டாஷ்போர்டு')}
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Platform-wide financial overview</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t('Platform-wide financial overview', 'தளம் முழுவதும் நிதி மேலோட்டம்')}</p>
                 </div>
             </div>
 
@@ -111,8 +113,8 @@ export default function RevenuePage() {
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Monthly Revenue</h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">Last 6 months (₹)</p>
+                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Monthly Revenue', 'மாத வருவாய்')}</h3>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">{t('Last 6 months', 'கடந்த 6 மாதங்கள்')} (₹)</p>
                     </div>
                 </div>
                 <div className="h-56">
@@ -122,7 +124,7 @@ export default function RevenuePage() {
                             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={v => `₹${Math.round(v / 1000)}K`} />
                             <Tooltip
-                                formatter={(v: any) => [`₹${Number(v).toLocaleString('en-IN')}`, 'Revenue']}
+                                formatter={(v: any) => [`₹${Number(v).toLocaleString('en-IN')}`, t('Revenue', 'வருவாய்')]}
                                 contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', color: '#0f172a', fontSize: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
                             />
                             <Bar dataKey="amount" fill="var(--brand)" radius={[6, 6, 0, 0]} barSize={28} />
@@ -134,20 +136,27 @@ export default function RevenuePage() {
             {/* Per-school table */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
                 <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700">
-                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Per-School Breakdown</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Per-School Breakdown', 'பள்ளி வாரியான பகுப்பாய்வு')}</h3>
                 </div>
                 {loading ? (
                     <div className="flex justify-center py-16">
                         <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                     </div>
                 ) : perSchool.length === 0 ? (
-                    <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No school data</div>
+                    <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">{t('No school data', 'பள்ளி தரவு இல்லை')}</div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-slate-100 dark:border-slate-700">
-                                    {['School', 'Plan', 'Buses', 'Students', 'This Month', 'Status'].map(h => (
+                                    {[
+                                        t('School', 'பள்ளி'),
+                                        t('Plan', 'திட்டம்'),
+                                        t('Buses', 'பேருந்துகள்'),
+                                        t('Students', 'மாணவர்கள்'),
+                                        t('This Month', 'இந்த மாதம்'),
+                                        t('Status', 'நிலை'),
+                                    ].map(h => (
                                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">{h}</th>
                                     ))}
                                 </tr>
@@ -190,7 +199,13 @@ export default function RevenuePage() {
                                                     ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
                                                     : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                                             )}>
-                                                {s.status === 'no_invoice' ? 'No Invoice' : s.status}
+                                                {s.status === 'active'
+                                                    ? t('Active', 'செயலில்')
+                                                    : s.status === 'suspended'
+                                                    ? t('Suspended', 'இடைநிறுத்தம்')
+                                                    : s.status === 'no_invoice'
+                                                    ? 'No Invoice'
+                                                    : s.status}
                                             </span>
                                         </td>
                                     </tr>

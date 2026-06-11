@@ -8,6 +8,7 @@ import {
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { useT } from '@/lib/i18n';
 
 interface PlatformUsage {
   resend: { used: number; limit: number; unit: string };
@@ -88,6 +89,7 @@ function ProgressBar({ pct }: { pct: number }) {
 const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors";
 
 export default function SAExpensesPage() {
+  const t = useT();
   const { user } = useAuth();
   const isDevSA = (user as any)?.is_dev_sa === true;
 
@@ -194,10 +196,10 @@ export default function SAExpensesPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
             <TrendingUp className="w-7 h-7 text-[var(--brand)]" />
-            Platform Expenses
+            {t('Platform Expenses', 'தளச் செலவுகள்')}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-            Service usage, revenue vs costs, and manual expense log
+            {t('Service usage, revenue vs costs', 'சேவை பயன்பாடு, வருவாய் vs செலவுகள்')}
           </p>
         </div>
       </div>
@@ -228,7 +230,7 @@ export default function SAExpensesPage() {
               </div>
               <div>
                 <p className="text-slate-900 dark:text-white font-semibold text-xs">Resend</p>
-                <p className="text-slate-500 dark:text-slate-400 text-xs">Email service</p>
+                <p className="text-slate-500 dark:text-slate-400 text-xs">{t('Email service', 'மின்னஞ்சல் சேவை')}</p>
               </div>
             </div>
             <p className={cn('text-2xl font-bold', resendPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white')}>
@@ -251,7 +253,7 @@ export default function SAExpensesPage() {
               </div>
               <div>
                 <p className="text-slate-900 dark:text-white font-semibold text-xs">ImageKit</p>
-                <p className="text-slate-500 dark:text-slate-400 text-xs">Media storage</p>
+                <p className="text-slate-500 dark:text-slate-400 text-xs">{t('Media storage', 'மீடியா சேமிப்பு')}</p>
               </div>
             </div>
             <p className={cn('text-2xl font-bold', imagekitPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white')}>
@@ -274,13 +276,13 @@ export default function SAExpensesPage() {
               </div>
               <div>
                 <p className="text-slate-900 dark:text-white font-semibold text-xs">Razorpay</p>
-                <p className="text-slate-500 dark:text-slate-400 text-xs">Payment fees (~2%)</p>
+                <p className="text-slate-500 dark:text-slate-400 text-xs">{t('Payment fees', 'கட்டண கட்டணங்கள்')} (~2%)</p>
               </div>
             </div>
             <p className="text-2xl font-bold text-slate-900 dark:text-white">
               ₹{(usage?.razorpay.fees_this_month ?? 0).toLocaleString('en-IN')}
             </p>
-            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">estimated this month</p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{t('Estimated usage', 'மதிப்பிடப்பட்ட பயன்பாடு')}</p>
             <div className="mt-3 text-xs font-medium text-slate-400 dark:text-slate-500">Per-transaction cost</div>
           </div>
 
@@ -291,14 +293,14 @@ export default function SAExpensesPage() {
                 <Database className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-slate-900 dark:text-white font-semibold text-xs">Neon DB</p>
+                <p className="text-slate-900 dark:text-white font-semibold text-xs">{t('Database', 'தரவுத்தளம்')}</p>
                 <p className="text-slate-500 dark:text-slate-400 text-xs">Postgres storage</p>
               </div>
             </div>
             <p className={cn('text-2xl font-bold', neonPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white')}>
               {usage?.neon.estimated_mb ?? 0} MB
             </p>
-            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">estimated usage</p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{t('Estimated usage', 'மதிப்பிடப்பட்ட பயன்பாடு')}</p>
             <ProgressBar pct={neonPct} />
             <p className={cn('text-xs font-semibold mt-1.5', neonPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400')}>
               {neonPct.toFixed(0)}% of free tier
@@ -310,17 +312,23 @@ export default function SAExpensesPage() {
       {/* Revenue vs Expenses Table */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700">
-          <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Revenue vs Expenses — Last 6 Months</h2>
+          <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Revenue vs Costs', 'வருவாய் vs செலவுகள்')} — Last 6 Months</h2>
           <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Expenses = Razorpay fees (est.) + manual expenses logged below</p>
         </div>
         {revenueVsExpenses.length === 0 ? (
-          <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No revenue data available</div>
+          <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">{t('No expenses recorded', 'செலவுகள் பதிவு இல்லை')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-700">
-                  {['Month', 'Revenue', 'Expenses (est.)', 'Net Profit', 'Margin'].map(h => (
+                  {[
+                    'Month',
+                    t('Revenue', 'வருவாய்'),
+                    'Expenses (est.)',
+                    'Net Profit',
+                    'Margin',
+                  ].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">{h}</th>
                   ))}
                 </tr>
@@ -364,25 +372,25 @@ export default function SAExpensesPage() {
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-slate-900 dark:text-white text-sm">Manual Expense Log</h2>
+            <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Manual Expenses', 'கைமுறை செலவுகள்')}</h2>
             <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Track hosting, domain, and other operational costs</p>
           </div>
           <button
             onClick={() => { setShowModal(true); setFormError(''); }}
             className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
           >
-            <Plus className="w-4 h-4" /> Add Expense
+            <Plus className="w-4 h-4" /> {t('Add Expense', 'செலவு சேர்க்கவும்')}
           </button>
         </div>
 
         {expenses.length === 0 ? (
-          <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">No manual expenses logged</div>
+          <div className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">{t('No expenses recorded', 'செலவுகள் பதிவு இல்லை')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-700">
-                  {['Label', 'Category', 'Amount', 'Month', 'Notes', ''].map(h => (
+                  {['Label', t('Category', 'வகை'), t('Amount', 'தொகை'), 'Month', 'Notes', ''].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">{h}</th>
                   ))}
                 </tr>
@@ -408,7 +416,7 @@ export default function SAExpensesPage() {
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-xl text-xs font-semibold border border-red-200 dark:border-red-800 transition-all active:scale-95 disabled:opacity-50"
                       >
                         {deletingId === exp.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                        Delete
+                        {t('Delete', 'நீக்கு')}
                       </button>
                     </td>
                   </tr>
@@ -424,7 +432,7 @@ export default function SAExpensesPage() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Add Expense</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Add Expense', 'செலவு சேர்க்கவும்')}</h3>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -440,13 +448,13 @@ export default function SAExpensesPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Category</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Category', 'வகை')}</label>
                   <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value as typeof CATEGORIES[number] }))} className={inputCls}>
                     {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Amount (₹) *</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Amount', 'தொகை')} (₹) *</label>
                   <input
                     type="number" min={0} step={0.01} value={form.amount}
                     onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
@@ -455,11 +463,11 @@ export default function SAExpensesPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Month *</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Date', 'தேதி')} *</label>
                 <input type="month" value={form.month} onChange={e => setForm(p => ({ ...p, month: e.target.value }))} required className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Notes (optional)</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Description', 'விளக்கம்')} (optional)</label>
                 <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Any additional details..." rows={2} className={`${inputCls} resize-none`} />
               </div>
               {formError && (
@@ -469,10 +477,10 @@ export default function SAExpensesPage() {
               )}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
-                  Cancel
+                  {t('Cancel', 'ரத்து செய்')}
                 </button>
                 <button type="submit" disabled={submitting} className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50">
-                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Expense'}
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t('Add Expense', 'செலவு சேர்க்கவும்')}
                 </button>
               </div>
             </form>
@@ -490,7 +498,7 @@ export default function SAExpensesPage() {
                   <ShieldCheck className="w-5 h-5 text-[var(--brand)]" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Infrastructure Upgrade Roadmap</h3>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">{t('Infrastructure Costs', 'உள்கட்டமைப்பு செலவுகள்')}</h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Based on active schools: <span className="font-semibold text-slate-700 dark:text-slate-300">{activeSchools}</span></p>
                 </div>
               </div>
@@ -504,7 +512,7 @@ export default function SAExpensesPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-slate-700">
-                      {['Service', 'Upgrade At', 'Next Plan', 'Cost/mo', 'Reason', 'Status'].map(h => (
+                      {[t('Service', 'சேவை'), 'Upgrade At', 'Next Plan', 'Cost/mo', 'Reason', 'Status'].map(h => (
                         <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50 first:rounded-tl-xl last:rounded-tr-xl whitespace-nowrap">{h}</th>
                       ))}
                     </tr>

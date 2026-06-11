@@ -5,6 +5,7 @@ import { Users, Plus, Loader2, X, Shield, UserX, Trash2, AlertTriangle, Pencil, 
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 interface School { id: string; name: string; }
 
@@ -79,6 +80,7 @@ function FieldError({ msg }: { msg: string }) {
 }
 
 export default function SAUsersPage() {
+  const t = useT();
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<SAUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -258,15 +260,15 @@ export default function SAUsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
             <Users className="w-7 h-7 text-[var(--brand)]" />
-            SA Users
+            {t('SA Users', 'SA பயனர்கள்')}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Manage super admin platform accounts</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t('Manage super admin platform accounts', 'தள நிர்வாகிகளை நிர்வகிக்கவும்')}</p>
         </div>
         <button
           onClick={() => { setShowCreate(true); setCreateError(''); setCreateForm({ name: '', email: '', phone: '', password: '', confirmPassword: '' }); }}
           className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-5 py-2.5 font-semibold text-sm transition-all active:scale-95 shadow-sm"
         >
-          <Plus className="w-4 h-4" /> Create SA
+          <Plus className="w-4 h-4" /> {t('Add User', 'பயனர் சேர்க்கவும்')}
         </button>
       </div>
 
@@ -277,13 +279,21 @@ export default function SAUsersPage() {
             <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : users.length === 0 ? (
-          <div className="text-center py-20 text-slate-400 text-sm">No SA users found</div>
+          <div className="text-center py-20 text-slate-400 text-sm">{t('No users found', 'பயனர்கள் இல்லை')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-700">
-                  {['User', 'Email', 'Phone', 'Schools', 'Status', 'Created', 'Actions'].map(h => (
+                  {[
+                    t('User', 'பயனர்'),
+                    t('Email', 'மின்னஞ்சல்'),
+                    t('Phone', 'தொலைபேசி'),
+                    t('Schools', 'பள்ளிகள்'),
+                    t('Status', 'நிலை'),
+                    t('Created', 'உருவாக்கப்பட்டது'),
+                    t('Actions', 'செயல்கள்'),
+                  ].map(h => (
                     <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">
                       {h}
                     </th>
@@ -336,7 +346,7 @@ export default function SAUsersPage() {
                             : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
                         )}>
                           <span className={cn('w-1.5 h-1.5 rounded-full', u.is_active ? 'bg-emerald-500' : 'bg-slate-400')} />
-                          {u.is_active ? 'Active' : 'Inactive'}
+                          {u.is_active ? t('Active', 'செயலில்') : t('Inactive', 'செயலற்றது')}
                         </span>
                       </td>
                       <td className="px-5 py-4 text-sm text-slate-500 dark:text-slate-400">
@@ -347,7 +357,7 @@ export default function SAUsersPage() {
                           <span className="text-xs text-slate-400 dark:text-slate-500 italic">{isSelf ? 'Current session' : 'Protected'}</span>
                         ) : (
                           <div className="flex items-center gap-1">
-                            <button onClick={() => openEdit(u)} title="Edit" className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-300 hover:text-[var(--brand)] hover:border-[var(--brand)]/40 hover:bg-[var(--brand)]/5 transition-all flex items-center justify-center">
+                            <button onClick={() => openEdit(u)} title={t('Edit', 'திருத்து')} className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-300 hover:text-[var(--brand)] hover:border-[var(--brand)]/40 hover:bg-[var(--brand)]/5 transition-all flex items-center justify-center">
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                             {currentUser?.is_dev_sa && (
@@ -355,13 +365,13 @@ export default function SAUsersPage() {
                                 <Building2 className="w-3.5 h-3.5" />
                               </button>
                             )}
-                            <button onClick={() => openReset(u)} title="Reset Password" className="w-8 h-8 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all flex items-center justify-center">
+                            <button onClick={() => openReset(u)} title={t('Reset Password', 'கடவுச்சொல் மீட்டமை')} className="w-8 h-8 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all flex items-center justify-center">
                               <KeyRound className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleToggleActive(u)}
                               disabled={toggleLoading === u.id}
-                              title={u.is_active ? 'Deactivate' : 'Activate'}
+                              title={u.is_active ? t('Deactivate', 'செயலிழக்கவும்') : t('Activate', 'செயல்படுத்து')}
                               className={cn('w-8 h-8 rounded-lg border transition-all flex items-center justify-center disabled:opacity-50',
                                 u.is_active
                                   ? 'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/40'
@@ -370,7 +380,7 @@ export default function SAUsersPage() {
                             >
                               {toggleLoading === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserX className="w-3.5 h-3.5" />}
                             </button>
-                            <button onClick={() => setDeleteUser(u)} title="Delete" className="w-8 h-8 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all flex items-center justify-center">
+                            <button onClick={() => setDeleteUser(u)} title={t('Delete', 'நீக்கு')} className="w-8 h-8 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all flex items-center justify-center">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
@@ -387,35 +397,35 @@ export default function SAUsersPage() {
 
       {/* ── CREATE SA MODAL ──────────────────────────────────────────────────── */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)}>
-        <ModalHeader icon={<Shield className="w-5 h-5" />} title="Create Super Admin" subtitle="New SA will change password on first login" onClose={() => setShowCreate(false)} />
+        <ModalHeader icon={<Shield className="w-5 h-5" />} title={t('Create Super Admin', 'சூப்பர் அட்மின் உருவாக்கு')} subtitle={t('New SA will change password on first login', 'புதிய SA முதல் உள்நுழைவில் கடவுச்சொல் மாற்றும்')} onClose={() => setShowCreate(false)} />
         <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-auto">
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Full Name *</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Full Name', 'முழு பெயர்')} *</label>
               <input type="text" value={createForm.name} onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))} placeholder="Jane Doe" required className={inputCls} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email Address *</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Email Address', 'மின்னஞ்சல் முகவரி')} *</label>
               <input type="email" value={createForm.email} onChange={e => setCreateForm(p => ({ ...p, email: e.target.value }))} placeholder="jane@company.com" required className={inputCls} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone <span className="text-slate-400 font-normal">(optional)</span></label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Phone', 'தொலைபேசி')} <span className="text-slate-400 font-normal">({t('optional', 'விருப்பத்தேர்வு')})</span></label>
               <input type="tel" value={createForm.phone} onChange={e => setCreateForm(p => ({ ...p, phone: e.target.value }))} placeholder="+91 98765 43210" className={inputCls} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Password * <span className="text-slate-400 font-normal">min. 8 characters</span></label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Password', 'கடவுச்சொல்')} * <span className="text-slate-400 font-normal">{t('min. 8 characters', 'குறைந்தது 8 எழுத்துகள்')}</span></label>
               <input type="password" value={createForm.password} onChange={e => setCreateForm(p => ({ ...p, password: e.target.value }))} placeholder="••••••••" required minLength={8} className={inputCls} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Confirm Password *</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Confirm Password', 'கடவுச்சொல் உறுதிப்படுத்து')} *</label>
               <input type="password" value={createForm.confirmPassword} onChange={e => setCreateForm(p => ({ ...p, confirmPassword: e.target.value }))} placeholder="••••••••" required className={inputCls} />
             </div>
           </div>
           {createError && <FieldError msg={createError} />}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+            <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">{t('Cancel', 'ரத்து செய்')}</button>
             <button type="submit" disabled={createSubmitting} className="flex-1 py-2.5 rounded-xl bg-[var(--brand)] text-white text-sm font-semibold hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
-              {createSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4" /> Create SA</>}
+              {createSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4" /> {t('Add User', 'பயனர் சேர்க்கவும்')}</>}
             </button>
           </div>
         </form>
@@ -423,25 +433,25 @@ export default function SAUsersPage() {
 
       {/* ── EDIT MODAL ───────────────────────────────────────────────────────── */}
       <Modal open={!!editUser} onClose={() => setEditUser(null)}>
-        <ModalHeader icon={<Pencil className="w-5 h-5" />} title="Edit User" subtitle={editUser?.email} onClose={() => setEditUser(null)} />
+        <ModalHeader icon={<Pencil className="w-5 h-5" />} title={t('Edit User', 'பயனரை திருத்து')} subtitle={editUser?.email} onClose={() => setEditUser(null)} />
         <form onSubmit={handleUpdate} className="p-6 space-y-4 overflow-y-auto">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Full Name *</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Full Name', 'முழு பெயர்')} *</label>
             <input type="text" value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} required className={inputCls} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email Address *</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Email Address', 'மின்னஞ்சல் முகவரி')} *</label>
             <input type="email" value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))} required className={inputCls} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone <span className="text-slate-400 font-normal">(optional)</span></label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Phone', 'தொலைபேசி')} <span className="text-slate-400 font-normal">({t('optional', 'விருப்பத்தேர்வு')})</span></label>
             <input type="tel" value={editForm.phone} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))} className={inputCls} />
           </div>
           {editError && <FieldError msg={editError} />}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setEditUser(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+            <button type="button" onClick={() => setEditUser(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">{t('Cancel', 'ரத்து செய்')}</button>
             <button type="submit" disabled={editSubmitting} className="flex-1 py-2.5 rounded-xl bg-[var(--brand)] text-white text-sm font-semibold hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
-              {editSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
+              {editSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t('Save Changes', 'மாற்றங்களை சேமி')}
             </button>
           </div>
         </form>
@@ -451,7 +461,7 @@ export default function SAUsersPage() {
       <Modal open={!!resetUser} onClose={() => setResetUser(null)}>
         <ModalHeader
           icon={<KeyRound className="w-5 h-5" />}
-          title="Reset Password"
+          title={t('Reset Password', 'கடவுச்சொல் மீட்டமை')}
           subtitle={resetUser ? `${resetUser.name} · ${resetUser.email}` : ''}
           onClose={() => setResetUser(null)}
           iconColor="text-amber-600"
@@ -463,28 +473,28 @@ export default function SAUsersPage() {
               <div className="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
                 <Check className="w-7 h-7 text-emerald-500" />
               </div>
-              <p className="text-slate-700 dark:text-slate-300 font-semibold text-sm">Password reset successfully</p>
-              <p className="text-slate-500 text-xs text-center">The user will be required to change it on next login.</p>
+              <p className="text-slate-700 dark:text-slate-300 font-semibold text-sm">{t('Password reset successfully', 'கடவுச்சொல் வெற்றிகரமாக மீட்டமைக்கப்பட்டது')}</p>
+              <p className="text-slate-500 text-xs text-center">{t('The user will be required to change it on next login.', 'அடுத்த உள்நுழைவில் பயனர் அதை மாற்ற வேண்டும்.')}</p>
             </div>
           ) : (
             <form onSubmit={handleReset} className="space-y-4">
               <div className="flex items-start gap-3 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
                 <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700 dark:text-amber-300">The user must change this password on their next login.</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">{t('The user must change this password on their next login.', 'பயனர் அடுத்த உள்நுழைவில் இந்த கடவுச்சொல்லை மாற்ற வேண்டும்.')}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">New Password * <span className="text-slate-400 font-normal">min. 8 characters</span></label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('New Password', 'புதிய கடவுச்சொல்')} * <span className="text-slate-400 font-normal">{t('min. 8 characters', 'குறைந்தது 8 எழுத்துகள்')}</span></label>
                 <input type="password" value={resetPw} onChange={e => setResetPw(e.target.value)} required minLength={8} placeholder="••••••••" className={inputCls} autoFocus />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Confirm Password *</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Confirm Password', 'கடவுச்சொல் உறுதிப்படுத்து')} *</label>
                 <input type="password" value={resetPwConfirm} onChange={e => setResetPwConfirm(e.target.value)} required placeholder="••••••••" className={inputCls} />
               </div>
               {resetError && <FieldError msg={resetError} />}
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setResetUser(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+                <button type="button" onClick={() => setResetUser(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">{t('Cancel', 'ரத்து செய்')}</button>
                 <button type="submit" disabled={resetSubmitting} className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
-                  {resetSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><KeyRound className="w-4 h-4" /> Reset Password</>}
+                  {resetSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><KeyRound className="w-4 h-4" /> {t('Reset Password', 'கடவுச்சொல் மீட்டமை')}</>}
                 </button>
               </div>
             </form>
@@ -499,10 +509,10 @@ export default function SAUsersPage() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700 shrink-0">
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-white text-sm">
-                  Manage Schools — {manageSAUser.name}
+                  {t('Manage Schools', 'பள்ளிகளை நிர்வகி')} — {manageSAUser.name}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {manageSASchools.filter(s => s.assigned_sa_id === manageSAUser.id).length} school(s) assigned
+                  {manageSASchools.filter(s => s.assigned_sa_id === manageSAUser.id).length} {t('school(s) assigned', 'பள்ளி(கள்) ஒதுக்கப்பட்டது')}
                 </p>
               </div>
               <button onClick={() => setManageSAUser(null)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-colors">
@@ -515,7 +525,7 @@ export default function SAUsersPage() {
                   <div className="w-6 h-6 border-2 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : manageSASchools.length === 0 ? (
-                <p className="text-center text-slate-400 text-sm py-8">No schools found</p>
+                <p className="text-center text-slate-400 text-sm py-8">{t('No schools found', 'பள்ளிகள் இல்லை')}</p>
               ) : manageSASchools.map(school => {
                 const isAssigned = school.assigned_sa_id === manageSAUser.id;
                 const assigningThis = schoolAssigning[school.id];
@@ -544,7 +554,7 @@ export default function SAUsersPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{school.name}</p>
                       <span className={cn('text-[10px] font-medium', school.status === 'active' ? 'text-emerald-500' : 'text-slate-400')}>
-                        {school.status === 'active' ? 'Active' : 'Inactive'}
+                        {school.status === 'active' ? t('Active', 'செயலில்') : t('Inactive', 'செயலற்றது')}
                       </span>
                     </div>
                     <div className="shrink-0 w-5 h-5 flex items-center justify-center">
@@ -567,7 +577,7 @@ export default function SAUsersPage() {
                 onClick={() => setManageSAUser(null)}
                 className="w-full py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-white rounded-xl font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
               >
-                Done
+                {t('Done', 'முடிந்தது')}
               </button>
             </div>
           </div>
@@ -582,21 +592,21 @@ export default function SAUsersPage() {
               <Trash2 className="w-6 h-6 text-red-500" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Delete User?</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">This action cannot be undone.</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">{t('Delete User?', 'பயனரை நீக்கவா?')}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('This action cannot be undone.', 'இந்த செயலை மாற்ற முடியாது.')}</p>
             </div>
             <button onClick={() => setDeleteUser(null)} className="ml-auto w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 transition-all flex items-center justify-center">
               <X className="w-4 h-4" />
             </button>
           </div>
           <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 bg-slate-50 dark:bg-slate-700/50 rounded-xl px-4 py-3">
-            Permanently deleting <span className="font-semibold text-slate-900 dark:text-white">{deleteUser?.name}</span>
+            {t('Permanently deleting', 'நிரந்தரமாக நீக்குகிறது')} <span className="font-semibold text-slate-900 dark:text-white">{deleteUser?.name}</span>
             <br /><span className="text-slate-500 dark:text-slate-400 text-xs font-mono">{deleteUser?.email}</span>
           </p>
           <div className="flex gap-3">
-            <button onClick={() => setDeleteUser(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+            <button onClick={() => setDeleteUser(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">{t('Cancel', 'ரத்து செய்')}</button>
             <button onClick={handleDelete} disabled={deleteSubmitting} className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
-              {deleteSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4" /> Delete</>}
+              {deleteSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4" /> {t('Delete', 'நீக்கு')}</>}
             </button>
           </div>
         </div>
