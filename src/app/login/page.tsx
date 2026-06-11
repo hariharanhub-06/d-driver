@@ -101,15 +101,6 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-slate-50 dark:bg-slate-950">
-            <div className="w-full max-w-md mx-auto mb-4">
-                <Link
-                    href="/"
-                    className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back to Home
-                </Link>
-            </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 px-8 py-10 w-full max-w-md mx-auto">
 
                 {/* Logo + Brand */}
@@ -245,10 +236,19 @@ export default function LoginPage() {
                 <div className="border-t border-slate-100 dark:border-slate-800 mt-8 mb-4" />
 
                 {/* Footer */}
-                <p className="text-center text-xs text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1.5">
-                    <Lock size={11} />
-                    Secure · School Bus Management
-                </p>
+                <div className="flex items-center justify-between">
+                    <p className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                        <Lock size={11} />
+                        Secure · ONLIVE
+                    </p>
+                    <Link
+                        href="/"
+                        className="text-xs text-slate-400 hover:text-green-600 dark:hover:text-green-400 flex items-center gap-1 transition-colors"
+                    >
+                        <ArrowLeft size={11} />
+                        Home
+                    </Link>
+                </div>
             </div>
         </div>
     );
