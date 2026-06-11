@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Edit, Trash2, Bus as BusIcon, Users as UsersIcon, X, Loader2, Droplets, FileUp } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Bus as BusIcon, Users as UsersIcon, X, Loader2, Droplets, FileUp, Download } from 'lucide-react';
 import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
 
@@ -115,6 +115,15 @@ export default function BusesPage() {
         }
     };
 
+    const downloadTemplate = () => {
+        const csv = 'bus_number,capacity,registration_no,mileage\nTN-01-AB-1234,40,TN01AB1234,12.5\nTN-02-CD-5678,52,,';
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'buses_import_template.csv'; a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -168,10 +177,17 @@ export default function BusesPage() {
                 <div className="flex gap-2">
                     <input ref={importRef} type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleImport} />
                     <button
+                        onClick={downloadTemplate}
+                        className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
+                        title={t('Download CSV template', 'CSV வார்ப்புரு பதிவிறக்கம்')}
+                    >
+                        <Download className="w-4 h-4" /> {t('Template', 'வார்ப்புரு')}
+                    </button>
+                    <button
                         onClick={() => importRef.current?.click()}
                         className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
                     >
-                        <FileUp className="w-4 h-4" /> {t('Import', 'இறக்குமதி')}
+                        <FileUp className="w-4 h-4" /> {t('Import CSV', 'CSV இறக்குமதி')}
                     </button>
                     <button
                         onClick={openCreate}
