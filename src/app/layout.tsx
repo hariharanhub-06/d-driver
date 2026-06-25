@@ -5,6 +5,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ThemeContextProvider } from "@/context/ThemeContext";
 import { SchoolBrandingProvider } from "@/context/SchoolBrandingContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { getSiteEnabled } from "@/lib/site-status";
+import AccessDenied403 from "@/components/AccessDenied403";
 import dynamic from 'next/dynamic';
 
 const NotificationToast = dynamic(() => import('@/components/ui/NotificationToast'), { ssr: false });
@@ -17,7 +19,20 @@ export const metadata: Metadata = {
   description: "School Bus Transport Management",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Central kill switch: when disabled from the Harish hub, every route shows a 403.
+  const siteEnabled = await getSiteEnabled("ddriver");
+
+  if (!siteEnabled) {
+    return (
+      <html lang="en" suppressHydrationWarning>
+        <body className={inter.className}>
+          <AccessDenied403 />
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
