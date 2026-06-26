@@ -131,13 +131,14 @@ const getFinancials = async (req, res) => {
 const getPendingCounts = async (req, res) => {
   try {
     const where = getSchoolFilter(req);
-    const todayStart = new Date(new Date().toLocaleDateString('en-CA') + 'T00:00:00');
-    const [stopChange, fuel, maintenance, feeDelay, leave] = await Promise.all([
+    // Only badge items that actually need an admin ACTION (approve/reject).
+    // Leave requests (absence reports) are auto-applied and need no action, so
+    // they're intentionally NOT badged — a count there would never clear.
+    const [stopChange, fuel, maintenance, feeDelay] = await Promise.all([
       prisma.stopChangeRequest.count({ where: { ...where, status: 'pending' } }),
       prisma.fuelRequest.count({ where: { ...where, status: 'pending' } }),
       prisma.maintenanceRecord.count({ where: { ...where, status: 'pending' } }),
       prisma.feeDelayRequest.count({ where: { ...where, status: 'pending' } }),
-      prisma.absenceReport.count({ where: { ...where, date: { gte: todayStart } } }),
     ]);
 
     res.json({
@@ -145,7 +146,6 @@ const getPendingCounts = async (req, res) => {
       '/admin/fuel-requests': fuel,
       '/admin/maintenance': maintenance,
       '/admin/fees': feeDelay,
-      '/admin/leave-requests': leave,
     });
   } catch (err) {
     console.error('getPendingCounts error:', err);
