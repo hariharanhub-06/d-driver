@@ -140,8 +140,12 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
     };
 
     const sections = getNavItems();
-    const schoolName = branding?.name || 'Onlive';
-    const logoUrl = branding?.logo_url;
+    // Super-admin / dev is a platform-level user — always show Onlive, never a
+    // school's branding (which can leak in via the school-slug cookie if they
+    // logged in through a school portal URL).
+    const isPlatform = user?.role === 'super_admin';
+    const schoolName = isPlatform ? 'Onlive' : (branding?.name || 'Onlive');
+    const logoUrl = isPlatform ? undefined : branding?.logo_url;
 
     return (
         <>
