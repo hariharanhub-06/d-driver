@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { Bus, AlertTriangle, MapPin, Phone, X, Navigation, User2, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useSchoolBranding } from '@/context/SchoolBrandingContext';
 import api from '@/lib/api';
 import { useT, ta } from '@/lib/i18n';
+import LiveTrackingMap from '@/components/parent/LiveTrackingMap';
 
 interface Child {
     id: string;
@@ -53,6 +55,8 @@ function DetailRow({ icon, label, value, action }: { icon: React.ReactNode; labe
 export default function ParentDashboard() {
     const { user } = useAuth();
     const t = useT();
+    const branding = useSchoolBranding();
+    const canTrack = !branding.permissions || (branding.permissions as any).gps_tracking !== false;
     const [children, setChildren] = useState<Child[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
@@ -184,6 +188,11 @@ export default function ParentDashboard() {
                     <div className="flex justify-center py-12">
                         <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
                     </div>
+                )}
+
+                {/* Live map embedded directly on the dashboard */}
+                {!loading && primaryChild && canTrack && (
+                    <LiveTrackingMap child={primaryChild as any} heightClass="h-72" />
                 )}
 
                 {/* Trip details card — the core requested fields */}

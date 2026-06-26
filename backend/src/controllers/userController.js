@@ -387,9 +387,33 @@ const updateMe = async (req, res) => {
     }
 };
 
+// DELETE /users/me — self account deletion (Apple App Store requirement).
+// Soft-delete: deactivate, anonymise PII, free the unique email/phone, drop push token.
+const deleteMe = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                is_active: false,
+                name: 'Deleted User',
+                email: `deleted+${userId}@deleted.local`,
+                phone: null,
+                expo_push_token: null,
+                profile_photo_url: null,
+            },
+        });
+        res.json({ ok: true, message: 'Account deleted' });
+    } catch (err) {
+        console.error('deleteMe error:', err.message);
+        res.status(500).json({ error: 'Failed to delete account' });
+    }
+};
+
 module.exports = {
     getMe,
     updateMe,
+    deleteMe,
     listSchoolUsers,
     getAllUsers,
     createUser,

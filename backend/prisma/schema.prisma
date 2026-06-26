@@ -73,6 +73,7 @@ model User {
   is_dev_sa          Boolean   @default(false)
   notification_prefs Json?
   profile_photo_url  String?
+  expo_push_token    String?
   created_at         DateTime  @default(now())
 
   school              School?              @relation(fields: [school_id], references: [id], onDelete: SetNull)

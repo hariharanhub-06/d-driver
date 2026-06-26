@@ -71,4 +71,20 @@ const getUnreadCount = async (req, res) => {
     }
 };
 
-module.exports = { getNotifications, markRead, markAllRead, getUnreadCount };
+// POST /notifications/push-token — mobile app registers its Expo push token.
+const savePushToken = async (req, res) => {
+    try {
+        const { expo_push_token } = req.body;
+        if (!expo_push_token) return res.status(400).json({ error: 'expo_push_token is required' });
+        await prisma.user.update({
+            where: { id: req.user.id },
+            data: { expo_push_token },
+        });
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('savePushToken error:', error.message);
+        res.status(500).json({ error: 'Error saving push token' });
+    }
+};
+
+module.exports = { getNotifications, markRead, markAllRead, getUnreadCount, savePushToken };

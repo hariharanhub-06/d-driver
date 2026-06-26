@@ -3,9 +3,38 @@ const prisma = require('../prisma');
 let _io = null;
 const setIo = (io) => { _io = io; };
 
+// Default mobile notification tone (bundled school-bus horn). Platform-wide.
+const NOTIFICATION_SOUND = process.env.NOTIFICATION_SOUND || 'bus-horn.wav';
+const ANDROID_CHANNEL_ID = 'alerts-horn-v1';
+
+/**
+ * Fire-and-forget Expo push to the D-Driver mobile app. Plays the bus-horn tone.
+ * Never throws — push is best-effort and must not block the request.
+ */
+const sendExpoPush = async (expoPushToken, title, body) => {
+    if (!expoPushToken || typeof fetch !== 'function') return;
+    try {
+        await fetch('https://exp.host/--/api/v2/push/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                to: expoPushToken,
+                title,
+                body,
+                sound: NOTIFICATION_SOUND,
+                channelId: ANDROID_CHANNEL_ID,
+                priority: 'high',
+            }),
+        });
+    } catch (err) {
+        console.error('sendExpoPush error:', err.message);
+    }
+};
+
 /**
  * Send a notification to a specific user.
- * Saves to DB + emits socket event so the user sees it instantly.
+ * Saves to DB + emits socket event so the user sees it instantly, and sends a
+ * native push (with the bus-horn tone) if the user has a registered device.
  */
 const notifyUser = async (userId, message, type = 'info', schoolId = null) => {
     if (!userId || !schoolId) return;
@@ -16,6 +45,10 @@ const notifyUser = async (userId, message, type = 'info', schoolId = null) => {
         if (_io) {
             _io.to(`user-${userId}`).emit('new-notification', notification);
         }
+        // Best-effort native push (won't block / throw).
+        prisma.user.findUnique({ where: { id: userId }, select: { expo_push_token: true } })
+            .then(u => { if (u?.expo_push_token) sendExpoPush(u.expo_push_token, 'D-Driver', message); })
+            .catch(() => {});
         return notification;
     } catch (err) {
         console.error('notifyUser error:', err.message);
@@ -35,4 +68,4 @@ const notifyAdmins = async (school_id, message, type = 'alert') => {
     await Promise.all(admins.map(a => notifyUser(a.id, message, type, school_id)));
 };
 
-module.exports = { notifyUser, notifyAdmins, setIo };
+module.exports = { notifyUser, notifyAdmins, setIo, sendExpoPush };
