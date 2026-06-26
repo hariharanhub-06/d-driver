@@ -87,10 +87,8 @@ export default function BusStaffLayout({ children }: { children: React.ReactNode
 
     useEffect(() => {
         if (!user) return;
-        api.get('/users/me').then(res => {
-            const color = res.data?.school?.primary_color;
-            if (color) document.documentElement.style.setProperty('--brand', color);
-        }).catch(() => {});
+        // UI stays a standard, readable theme (school colour not pushed into --brand).
+        api.get('/users/me').catch(() => {});
     }, [user]);
 
     if (loading || !user) return (

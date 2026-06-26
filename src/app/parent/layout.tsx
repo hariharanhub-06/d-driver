@@ -206,7 +206,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
                 primary_color: data.primary_color || '#3B82F6',
                 permissions: data.permissions || null,
             });
-            if (data.primary_color) document.documentElement.style.setProperty('--brand', data.primary_color);
+            // UI stays standard/readable — school colour not pushed into --brand.
         }).catch(() => {});
     }, [user]);
 

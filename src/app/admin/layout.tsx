@@ -31,9 +31,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     primary_color: data.primary_color || '#3B82F6',
                     permissions: data.permissions || null,
                 });
-                if (data.primary_color) {
-                    document.documentElement.style.setProperty('--brand', data.primary_color);
-                }
+                // UI stays a standard theme — school colour is no longer pushed into --brand
+                // (light/white colours made forms & text unreadable).
             })
             .catch(() => {});
     }, [user]); // eslint-disable-line react-hooks/exhaustive-deps

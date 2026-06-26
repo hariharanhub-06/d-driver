@@ -68,7 +68,9 @@ export default function LoginPage() {
         }
     }, []);
 
-    const brandColor = currentSchool?.color || '#22c55e';
+    // Standard UI colour (school colour is no longer used for buttons/links — a
+    // white/light school colour made the Sign In button & fields invisible).
+    const brandColor = '#22c55e';
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

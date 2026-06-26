@@ -90,7 +90,7 @@ export default function DriverDashboard() {
             if (driverRes.status === 'fulfilled') {
                 const d: DriverInfo = driverRes.value.data;
                 setDriverInfo(d);
-                if (d?.school?.primary_color) document.documentElement.style.setProperty('--brand', d.school.primary_color);
+                // UI stays standard/readable — school colour not pushed into --brand.
             }
             if (absenceRes.status === 'fulfilled') { const abs = absenceRes.value.data; setAbsenceCount(Array.isArray(abs) ? abs.length : 0); }
             if (tripsRes.status === 'fulfilled') { const data = tripsRes.value.data; setActiveTrips(Array.isArray(data) ? data : []); }

@@ -89,7 +89,9 @@ export function SchoolBrandingProvider({ children }: { children: React.ReactNode
             primary_color: data.primary_color || '#3B82F6',
             permissions: data.permissions || null,
           }));
-          document.documentElement.style.setProperty('--brand', data.primary_color || '#3B82F6');
+          // NOTE: intentionally do NOT push the school colour into the UI (--brand).
+          // A light/white school colour made forms & text unreadable. The UI stays a
+          // standard, readable theme; the school colour is used only for map markers / SA title.
         }
       })
       .catch(() => {});
