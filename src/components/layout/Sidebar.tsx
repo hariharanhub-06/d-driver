@@ -159,9 +159,8 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                         {logoUrl ? (
                             <img src={logoUrl} alt={schoolName} className="h-8 w-8 rounded-lg object-cover overflow-hidden shrink-0" />
                         ) : (
-                            <div className="w-8 h-8 rounded-lg bg-[var(--brand)] flex items-center justify-center shrink-0">
-                                <Bus className="w-4 h-4 text-white" />
-                            </div>
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src="/icons/onlive-logo.png" alt="Onlive" className="h-8 w-8 rounded-lg object-contain bg-[#0a0f1e] shrink-0" />
                         )}
                         <span className="font-bold text-slate-900 dark:text-white text-sm truncate">{schoolName}</span>
                     </div>

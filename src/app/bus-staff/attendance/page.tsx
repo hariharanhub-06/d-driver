@@ -215,13 +215,17 @@ export default function BusStaffAttendancePage() {
             {/* ── Header ── */}
             <div className="absolute top-0 left-0 right-0 z-[400] bg-[var(--brand)] text-white px-5 pt-10 pb-4 shadow-lg">
                 <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-lg font-bold leading-tight">{t('Attendance', 'வருகை பதிவு')}</h1>
-                        <p className="text-white/75 text-xs mt-0.5">
-                            {stops.length > 0
-                                ? `${completedCount}/${stops.length} ${t('stops done', 'நிறுத்தங்கள் முடிந்தன')}`
-                                : t('No active trip', 'செயல்பாட்டில் பயணம் இல்லை')}
-                        </p>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/icons/onlive-logo.png" alt="Onlive" className="w-9 h-9 rounded-lg object-contain bg-[#0a0f1e] shrink-0" />
+                        <div className="min-w-0">
+                            <h1 className="text-lg font-bold leading-tight">{t('Attendance', 'வருகை பதிவு')}</h1>
+                            <p className="text-white/75 text-xs mt-0.5">
+                                {stops.length > 0
+                                    ? `${completedCount}/${stops.length} ${t('stops done', 'நிறுத்தங்கள் முடிந்தன')}`
+                                    : t('No active trip', 'செயல்பாட்டில் பயணம் இல்லை')}
+                            </p>
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <button

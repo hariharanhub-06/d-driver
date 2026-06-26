@@ -176,9 +176,8 @@ export default function DriverDashboard() {
                         {driverInfo?.school?.logo_url ? (
                             <img src={driverInfo.school.logo_url} alt="" className="w-10 h-10 rounded-xl object-cover" />
                         ) : (
-                            <div className="w-10 h-10 bg-[var(--brand)] rounded-xl flex items-center justify-center">
-                                <Bus className="w-5 h-5 text-white" />
-                            </div>
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src="/icons/onlive-logo.png" alt="Onlive" className="w-10 h-10 rounded-xl object-contain bg-[#0a0f1e]" />
                         )}
                         <div>
                             <p className="text-white/60 text-xs">{driverInfo?.school?.name || 'Onlive'}</p>
@@ -253,10 +252,10 @@ export default function DriverDashboard() {
                                 <div key={route.id} className="bg-white dark:bg-slate-800 rounded-2xl p-5 space-y-3">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-white font-bold">{route.name}</p>
-                                            <p className="text-slate-400 text-xs mt-0.5">{t('Current Route', 'தற்போதைய வழி')}</p>
+                                            <p className="text-slate-900 dark:text-white font-bold">{route.name}</p>
+                                            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{t('Current Route', 'தற்போதைய வழி')}</p>
                                         </div>
-                                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${activeTrip ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>
+                                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${activeTrip ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
                                             {activeTrip ? `● ${t('Running', 'இயங்குகிறது')}` : `○ ${t('Ready', 'தயார்')}`}
                                         </span>
                                     </div>
