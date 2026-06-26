@@ -16,13 +16,13 @@ const KeepAlive = dynamic(() => import('@/components/KeepAlive'), { ssr: false }
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Bus Transport Portal",
-  description: "School Bus Transport Management",
+  title: "Onlive — School Bus Tracking",
+  description: "Onlive — School bus transport management & live tracking",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "D-Driver",
+    title: "Onlive",
   },
   icons: {
     icon: "/icons/icon.svg",

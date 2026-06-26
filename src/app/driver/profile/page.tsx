@@ -227,7 +227,7 @@ export default function DriverProfilePage() {
                     <LogOut className="w-4 h-4" /> {t('Logout', 'வெளியேறு')}
                 </button>
 
-                <p className="text-center text-slate-600 text-[10px] uppercase tracking-widest py-2">D-Driver v1.0.0</p>
+                <p className="text-center text-slate-600 text-[10px] uppercase tracking-widest py-2">Onlive v1.0.0</p>
             </div>
         </div>
     );

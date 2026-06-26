@@ -8,7 +8,7 @@ import ProfileMenu from './ProfileMenu';
 // brand on the left, profile+logout menu on the right.
 export default function MobileTopBar() {
     const branding = useSchoolBranding();
-    const name = branding?.name || 'D-Driver';
+    const name = branding?.name || 'Onlive';
     const logo = branding?.logo_url;
     return (
         <header

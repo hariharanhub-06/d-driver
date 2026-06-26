@@ -188,8 +188,9 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
     const pathname = usePathname();
     const setSchoolBranding = useSetSchoolBranding();
     const [unreadCount, setUnreadCount] = useState(0);
-    // Hide the top bar on the full-screen live map.
-    const hideTopBar = pathname === '/parent/tracking';
+    // The live map is a full-screen view: no top bar, no bottom nav, no padding
+    // (it has its own "Back to Home" control), so nothing overlaps the map overlays.
+    const fullScreen = pathname === '/parent/tracking';
 
     useEffect(() => {
         if (!loading && !user) router.push('/login');
@@ -230,11 +231,11 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
     return (
         <LanguageProvider>
             <div className="flex flex-col h-[100dvh] bg-slate-50 dark:bg-slate-900">
-                {!hideTopBar && <MobileTopBar />}
-                <main className="flex-1 min-h-0 overflow-y-auto pb-20">
+                {!fullScreen && <MobileTopBar />}
+                <main className={cn('flex-1 min-h-0 overflow-y-auto', !fullScreen && 'pb-20')}>
                     {children}
                 </main>
-                <ParentNav />
+                {!fullScreen && <ParentNav />}
                 <ParentTour />
             </div>
         </LanguageProvider>

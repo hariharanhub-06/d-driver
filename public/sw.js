@@ -1,4 +1,4 @@
-/* D-Driver service worker — minimal, safe app-shell cache.
+/* Onlive service worker — minimal, safe app-shell cache.
    Deliberately conservative: it NEVER caches API or auth traffic, only
    same-origin static assets and a navigation fallback. */
 const CACHE = 'ddriver-shell-v1';

@@ -93,7 +93,7 @@ export default function LoginPage() {
             if (err.response?.status === 503) {
                 setError('Service temporarily unavailable. Please try again later.');
             } else if (err.response?.status === 403 && (msg?.toLowerCase().includes('suspend') || msg?.toLowerCase().includes('not active') || msg?.toLowerCase().includes('inactive'))) {
-                setError('Your school account has been suspended. Please contact your school administrator or D-Driver support.');
+                setError('Your school account has been suspended. Please contact your school administrator or Onlive support.');
             } else {
                 setError(msg || 'Invalid email or password.');
             }

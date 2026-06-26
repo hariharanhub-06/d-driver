@@ -163,7 +163,7 @@ export default function DriverDashboard() {
                             </div>
                         )}
                         <div>
-                            <p className="text-white/60 text-xs">{driverInfo?.school?.name || 'D-Driver'}</p>
+                            <p className="text-white/60 text-xs">{driverInfo?.school?.name || 'Onlive'}</p>
                             <h1 className="text-slate-900 dark:text-white font-black text-xl leading-tight">
                                 {driverInfo?.bus?.bus_number || '—'}
                             </h1>

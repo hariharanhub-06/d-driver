@@ -85,7 +85,7 @@ export default function AdminBillingPage() {
         key: order.key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: order.currency,
-        name: 'D-Driver Platform',
+        name: 'Onlive Platform',
         description: `Invoice ${invoice.billing_month}`,
         order_id: order.id,
         theme: { color: 'var(--brand)' },

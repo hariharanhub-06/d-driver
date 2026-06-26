@@ -110,7 +110,7 @@ export default function ParentFees() {
                 amount,
                 currency,
                 order_id,
-                name: 'D-Driver Transport Fees',
+                name: 'Onlive Transport Fees',
                 description: fee.description || `Fee payment`,
                 handler: async (response: any) => {
                     try {

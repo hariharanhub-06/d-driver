@@ -1,6 +1,6 @@
 {
-  "name": "D-Driver — School Bus Tracking",
-  "short_name": "D-Driver",
+  "name": "Onlive — School Bus Tracking",
+  "short_name": "Onlive",
   "description": "Track your child's school bus live, view trip details, fees and alerts.",
   "start_url": "/parent/dashboard",
   "scope": "/",

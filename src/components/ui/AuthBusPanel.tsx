@@ -24,7 +24,7 @@ export default function AuthBusPanel({ brandColor }: AuthBusPanelProps) {
       {/* Branding text */}
       <div className="absolute bottom-12 left-0 right-0 flex flex-col items-center gap-2 px-8">
         <div className="w-12 h-1 rounded-full bg-white/40 mb-1" />
-        <p className="text-white/90 text-lg font-bold tracking-wide">D-Driver</p>
+        <p className="text-white/90 text-lg font-bold tracking-wide">Onlive</p>
         <p className="text-white/55 text-xs text-center">School Bus Management Platform</p>
       </div>
     </div>

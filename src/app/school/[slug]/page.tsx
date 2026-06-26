@@ -180,7 +180,7 @@ export default function SchoolPortal() {
 
             {/* Footer */}
             <footer className="border-t border-slate-100 px-6 py-4 text-center">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Powered by D-Driver365 • School Bus ERP</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Powered by Onlive • School Bus ERP</p>
             </footer>
         </div>
     );

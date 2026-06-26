@@ -1,4 +1,4 @@
-// Full bilingual translation set for all D-Driver portals
+// Full bilingual translation set for all Onlive portals
 // Usage: const t = useT();  →  t('English text', 'தமிழ் உரை')
 
 import { useLang } from '@/context/LanguageContext';

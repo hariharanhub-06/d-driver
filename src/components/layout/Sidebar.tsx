@@ -140,7 +140,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
     };
 
     const sections = getNavItems();
-    const schoolName = branding?.name || 'D-Driver';
+    const schoolName = branding?.name || 'Onlive';
     const logoUrl = branding?.logo_url;
 
     return (

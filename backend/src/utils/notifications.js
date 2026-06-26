@@ -8,7 +8,7 @@ const NOTIFICATION_SOUND = process.env.NOTIFICATION_SOUND || 'bus-horn.wav';
 const ANDROID_CHANNEL_ID = 'alerts-horn-v1';
 
 /**
- * Fire-and-forget Expo push to the D-Driver mobile app. Plays the bus-horn tone.
+ * Fire-and-forget Expo push to the Onlive mobile app. Plays the bus-horn tone.
  * Never throws — push is best-effort and must not block the request.
  */
 const sendExpoPush = async (expoPushToken, title, body) => {
@@ -47,7 +47,7 @@ const notifyUser = async (userId, message, type = 'info', schoolId = null) => {
         }
         // Best-effort native push (won't block / throw).
         prisma.user.findUnique({ where: { id: userId }, select: { expo_push_token: true } })
-            .then(u => { if (u?.expo_push_token) sendExpoPush(u.expo_push_token, 'D-Driver', message); })
+            .then(u => { if (u?.expo_push_token) sendExpoPush(u.expo_push_token, 'Onlive', message); })
             .catch(() => {});
         return notification;
     } catch (err) {

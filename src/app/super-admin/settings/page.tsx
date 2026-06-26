@@ -368,7 +368,7 @@ function LandingPageTab() {
                   type="text"
                   value={heroForm.product_name ?? ''}
                   onChange={e => setHeroForm(p => ({ ...p, product_name: e.target.value }))}
-                  placeholder="D-Driver"
+                  placeholder="Onlive"
                   className={inputCls}
                 />
               </div>
@@ -475,7 +475,7 @@ function LandingPageTab() {
                     type="text"
                     value={heroForm.landing_footer_copyright ?? ''}
                     onChange={e => setHeroForm(p => ({ ...p, landing_footer_copyright: e.target.value }))}
-                    placeholder="© 2026 D-Driver. All rights reserved."
+                    placeholder="© 2026 Onlive. All rights reserved."
                     className={inputCls}
                   />
                 </div>

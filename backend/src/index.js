@@ -318,7 +318,7 @@ app.use('/api/v1/platform',      platformRoutes.default     || platformRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'D-Driver API is running' });
+  res.json({ status: 'ok', message: 'Onlive API is running' });
 });
 
 // 404 handler
@@ -339,7 +339,7 @@ app.use((err, req, res, next) => {
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   httpServer.listen(PORT, () => {
-    console.log(`D-Driver API running on port ${PORT}`);
+    console.log(`Onlive API running on port ${PORT}`);
   });
 }
 

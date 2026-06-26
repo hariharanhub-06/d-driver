@@ -66,7 +66,7 @@ const sendEmail = async ({ to, subject, html, template, school_id, from }) => {
 
 const brandedHtml = (schoolName, color, logoUrl, bodyHtml) => {
   const safeColor = color || '#2dbc75';
-  const safeName = schoolName || 'D-Driver';
+  const safeName = schoolName || 'Onlive';
   const logo = logoUrl
     ? `<img src="${logoUrl}" alt="${safeName}" style="height:48px;margin-bottom:16px;">`
     : '';
@@ -85,7 +85,7 @@ const brandedHtml = (schoolName, color, logoUrl, bodyHtml) => {
 const sendPasswordReset = async ({ to, email, name, resetUrl, school, schoolName }) => {
   try {
     const recipient = email || to;
-    const sName = schoolName || school?.name || 'D-Driver';
+    const sName = schoolName || school?.name || 'Onlive';
     const color = school?.primary_color || '#2dbc75';
     const logoUrl = school?.logo_url || null;
     const school_id = school?.id || null;
@@ -117,7 +117,7 @@ const sendWelcomeAdmin = async ({ to, adminEmail, name, adminName, loginUrl, pas
   try {
     const recipient = adminEmail || to;
     const displayName = adminName || name || 'Admin';
-    const sName = schoolName || school?.name || 'D-Driver';
+    const sName = schoolName || school?.name || 'Onlive';
     const color = school?.primary_color || '#2dbc75';
     const logoUrl = school?.logo_url || null;
     const school_id = school?.id || null;
@@ -128,7 +128,7 @@ const sendWelcomeAdmin = async ({ to, adminEmail, name, adminName, loginUrl, pas
 
     const html = brandedHtml(sName, color, logoUrl, `
       <p>Hi ${displayName},</p>
-      <p>Your school <strong>${sName}</strong> has been set up on D-Driver.</p>
+      <p>Your school <strong>${sName}</strong> has been set up on Onlive.</p>
       <p>
         Login at: <a href="${resolvedLoginUrl}">${resolvedLoginUrl}</a><br>
         Temporary password: <code style="background:#f1f5f9;padding:4px 8px;border-radius:4px;">${resolvedPassword}</code>
@@ -157,7 +157,7 @@ const sendParentWelcome = async ({ to, parentEmail, name, parentName, childName,
     const recipient = parentEmail || to;
     const displayName = parentName || name || 'Parent';
     const childDisplayName = studentName || childName || 'your child';
-    const sName = schoolName || school?.name || 'D-Driver';
+    const sName = schoolName || school?.name || 'Onlive';
     const color = school?.primary_color || '#2dbc75';
     const logoUrl = school?.logo_url || null;
     const school_id = school?.id || null;
@@ -195,7 +195,7 @@ const sendParentWelcome = async ({ to, parentEmail, name, parentName, childName,
 const sendInvoiceGenerated = async ({ to, adminEmail, month, amount, school, schoolName }) => {
   try {
     const recipient = adminEmail || to;
-    const sName = schoolName || school?.name || 'D-Driver';
+    const sName = schoolName || school?.name || 'Onlive';
     const color = school?.primary_color || '#2dbc75';
     const logoUrl = school?.logo_url || null;
     const school_id = school?.id || null;

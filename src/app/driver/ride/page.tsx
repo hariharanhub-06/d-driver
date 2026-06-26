@@ -572,7 +572,7 @@ export default function ActiveRide() {
                 </div>
                 <h2 className="text-xl font-bold text-white mb-3">{t('Location Access Required', 'இருப்பிட அணுகல் தேவை')}</h2>
                 <p className="text-slate-400 text-sm mb-6 max-w-xs">
-                    {t('D-Driver needs your location to track the bus and show parents where you are. Please enable location and reload.', 'D-Driver பேருந்தை கண்காணிக்கவும் பெற்றோருக்கு நிலையை காட்டவும் உங்கள் இருப்பிடம் தேவை. இருப்பிடத்தை இயக்கி மீண்டும் ஏற்றவும்.')}
+                    {t('Onlive needs your location to track the bus and show parents where you are. Please enable location and reload.', 'Onlive பேருந்தை கண்காணிக்கவும் பெற்றோருக்கு நிலையை காட்டவும் உங்கள் இருப்பிடம் தேவை. இருப்பிடத்தை இயக்கி மீண்டும் ஏற்றவும்.')}
                 </p>
                 <div className="bg-slate-800 rounded-2xl p-5 text-left mb-6 w-full max-w-xs space-y-3">
                     <p className="text-white text-sm font-semibold">{t('How to enable:', 'எவ்வாறு இயக்குவது:')}</p>

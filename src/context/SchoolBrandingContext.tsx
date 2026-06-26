@@ -51,7 +51,7 @@ interface SchoolBrandingContextType {
 
 const defaultBranding: SchoolBranding = {
   slug: '',
-  name: 'D-Driver',
+  name: 'Onlive',
   logo_url: '',
   primary_color: '#3B82F6',
   permissions: null,

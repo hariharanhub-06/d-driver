@@ -186,7 +186,7 @@ export default function ProfilePage() {
       <div className="flex items-center gap-2 justify-center pb-4">
         <Shield className="w-3.5 h-3.5 text-gray-300 dark:text-slate-600" />
         <p className="text-[10px] text-gray-300 dark:text-slate-600 font-bold uppercase tracking-widest">
-          D-Driver v1.0 · All data encrypted
+          Onlive v1.0 · All data encrypted
         </p>
       </div>
     </div>
