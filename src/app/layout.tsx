@@ -16,6 +16,7 @@ const KeepAlive = dynamic(() => import('@/components/KeepAlive'), { ssr: false }
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://d-driver.vercel.app"),
   title: "Onlive — School Bus Tracking",
   description: "Onlive — School bus transport management & live tracking",
   manifest: "/manifest.webmanifest",
@@ -24,9 +25,19 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Onlive",
   },
-  icons: {
-    icon: "/icons/icon.svg",
-    apple: "/icons/icon.svg",
+  // Favicon / app icons are auto-detected from src/app/{favicon.ico,icon.png,apple-icon.png}.
+  openGraph: {
+    title: "Onlive — School Bus Tracking",
+    description: "Track your child's school bus live — trip details, fees and alerts.",
+    type: "website",
+    siteName: "Onlive",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Onlive" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Onlive — School Bus Tracking",
+    description: "Live school bus tracking & management.",
+    images: ["/og.png"],
   },
 };
 

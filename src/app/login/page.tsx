@@ -109,25 +109,27 @@ export default function LoginPage() {
                 {/* Logo + Brand */}
                 <div className="flex flex-col items-center mb-6">
                     <div
-                        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-md"
-                        style={{ backgroundColor: brandColor }}
+                        className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-md overflow-hidden"
+                        style={{ backgroundColor: currentSchool?.logo && !logoError ? brandColor : "#0a0f1e" }}
                     >
                         {currentSchool?.logo && !logoError ? (
                             <img
                                 src={currentSchool.logo}
                                 alt={currentSchool.name}
-                                className="w-10 h-10 rounded-xl object-cover"
-                                onError={() => setLogoError(true)}
-                            />
-                        ) : platformLogo && !logoError ? (
-                            <img
-                                src={platformLogo}
-                                alt="ONLIVE"
-                                className="w-10 h-10 object-contain rounded-lg"
+                                className="w-12 h-12 rounded-xl object-cover"
                                 onError={() => setLogoError(true)}
                             />
                         ) : (
-                            <Bus className="w-7 h-7 text-white" />
+                            // OnLive logo (already on a dark background) — falls back to the
+                            // bundled asset if the platform logo URL fails.
+                            <img
+                                src={platformLogo || "/icons/onlive-logo.png"}
+                                alt="ONLIVE"
+                                className="w-full h-full object-contain"
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).src = "/icons/onlive-logo.png";
+                                }}
+                            />
                         )}
                     </div>
 
