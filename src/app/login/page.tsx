@@ -108,31 +108,33 @@ export default function LoginPage() {
         <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-slate-50 dark:bg-slate-950">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 px-8 py-10 w-full max-w-md mx-auto">
 
-                {/* Logo + Brand */}
+                {/* Logo + Brand — Onlive always; school roles also show their school logo. */}
                 <div className="flex flex-col items-center mb-6">
-                    <div
-                        className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-md overflow-hidden"
-                        style={{ backgroundColor: currentSchool?.logo && !logoError ? brandColor : "#0a0f1e" }}
-                    >
-                        {currentSchool?.logo && !logoError ? (
-                            <img
-                                src={currentSchool.logo}
-                                alt={currentSchool.name}
-                                className="w-12 h-12 rounded-xl object-cover"
-                                onError={() => setLogoError(true)}
-                            />
-                        ) : (
-                            // OnLive logo (already on a dark background) — falls back to the
-                            // bundled asset if the platform logo URL fails.
+                    <div className="flex items-center gap-3 mb-4">
+                        {currentSchool?.logo && !logoError && (
+                            <div
+                                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-md overflow-hidden"
+                                style={{ backgroundColor: brandColor }}
+                            >
+                                <img
+                                    src={currentSchool.logo}
+                                    alt={currentSchool.name}
+                                    className="w-12 h-12 rounded-xl object-cover"
+                                    onError={() => setLogoError(true)}
+                                />
+                            </div>
+                        )}
+                        {/* Onlive logo — always shown (on its dark background). */}
+                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-md overflow-hidden bg-[#0a0f1e]">
                             <img
                                 src={platformLogo || "/icons/onlive-logo.png"}
-                                alt="ONLIVE"
+                                alt="Onlive"
                                 className="w-full h-full object-contain"
                                 onError={(e) => {
                                     (e.currentTarget as HTMLImageElement).src = "/icons/onlive-logo.png";
                                 }}
                             />
-                        )}
+                        </div>
                     </div>
 
                     <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
