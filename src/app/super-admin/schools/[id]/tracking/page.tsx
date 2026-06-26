@@ -245,6 +245,12 @@ export default function SchoolTrackingPage() {
         s => !selectedStop?.students.some(ss => ss.id === s.id)
     );
 
+    // Tint the stop pins with this school's brand colour (carried on the live buses).
+    const schoolColor = positions.find(p => p.color)?.color;
+    const coloredStops = schoolColor
+        ? routeStops.map(s => ({ ...s, color: (s as { color?: string }).color || schoolColor }))
+        : routeStops;
+
     return (
         <div className="flex flex-col lg:flex-row h-[calc(100vh-120px)] gap-4 lg:overflow-hidden">
             {/* Left panel */}
@@ -323,7 +329,7 @@ export default function SchoolTrackingPage() {
                     buses={positions}
                     center={positions.length > 0 ? [positions[0].latitude, positions[0].longitude] : undefined}
                     selectedBusId={selectedBusId}
-                    stops={routeStops}
+                    stops={coloredStops}
                     onStopClick={handleStopClick}
                 />
             </div>
