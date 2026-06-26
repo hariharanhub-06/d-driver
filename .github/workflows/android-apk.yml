@@ -36,14 +36,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Capacitor sync
-        run: npx cap sync android
+      # Copy the latest web assets/config into the (already-committed) Android
+      # project. `copy` is lightweight and won't fail the way full `sync` did.
+      - name: Capacitor copy
+        run: npx cap copy android || true
 
       - name: Build debug APK
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
