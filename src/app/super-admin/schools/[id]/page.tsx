@@ -316,16 +316,16 @@ export default function SchoolDetailPage() {
             </div>
 
             {/* Quick stats */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
                     { label: t('Buses', 'பேருந்துகள்'), value: school._count?.buses ?? 0 },
                     { label: t('Students', 'மாணவர்கள்'), value: school._count?.students ?? 0 },
                     { label: t('Drivers', 'ஓட்டுநர்கள்'), value: school._count?.drivers ?? 0 },
                     { label: t('Routes', 'வழிகள்'), value: school._count?.routes ?? 0 },
                 ].map(s => (
-                    <div key={s.label} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center">
+                    <div key={s.label} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center min-w-0">
                         <p className="text-2xl font-bold text-slate-900 dark:text-white">{s.value}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">{s.label}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1 truncate">{s.label}</p>
                     </div>
                 ))}
             </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
+import LandingInstallButton from '@/components/LandingInstallButton';
 import {
   Bus,
   Users,
@@ -268,6 +269,7 @@ export default function LandingPage() {
             >
               {theme === 'dark' ? <Sun className="w-4.5 h-4.5 w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
             </button>
+            <LandingInstallButton />
             <Link
               href="/login"
               className="bg-[#22c55e] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-green-600 transition-colors shadow shadow-green-400/20"
@@ -276,14 +278,17 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* Mobile hamburger */}
-          <button
-            className="md:hidden p-2 rounded-lg text-gray-600 hover:text-[#0F172A] hover:bg-gray-50 transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          {/* Mobile: install + hamburger */}
+          <div className="md:hidden flex items-center gap-1.5">
+            <LandingInstallButton />
+            <button
+              className="p-2 rounded-lg text-gray-600 hover:text-[#0F172A] hover:bg-gray-50 transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile dropdown */}
