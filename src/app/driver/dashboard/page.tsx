@@ -6,6 +6,7 @@ import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, X, DollarSign,
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import { useT, ta } from '@/lib/i18n';
+import EndTripSlider from '@/components/driver/EndTripSlider';
 
 interface DriverRoute { id: string; name: string; route_type?: string; }
 interface DriverInfo {
@@ -34,6 +35,23 @@ export default function DriverDashboard() {
 
     const [showFuelModal, setShowFuelModal] = useState(false);
     const [fuelAmount, setFuelAmount] = useState('');
+    const [endTripTarget, setEndTripTarget] = useState<ActiveTrip | null>(null);
+    const [endingTrip, setEndingTrip] = useState(false);
+
+    const endTrip = async () => {
+        if (!endTripTarget) return;
+        setEndingTrip(true);
+        try {
+            await api.post(`/trips/${endTripTarget.id}/complete`);
+            localStorage.removeItem('driver_trip_type');
+            await fetchAll();
+        } catch (e: any) {
+            alert(e?.response?.data?.error || 'Failed to end trip');
+        } finally {
+            setEndingTrip(false);
+            setEndTripTarget(null);
+        }
+    };
     const [fuelKm, setFuelKm] = useState('');
     const [fuelReason, setFuelReason] = useState('');
     const [fuelSubmitting, setFuelSubmitting] = useState(false);
@@ -249,16 +267,7 @@ export default function DriverDashboard() {
                                                     <Navigation className="w-5 h-5" /> {t('Live Map', 'நேரடி வரைபடம்')}
                                                 </a>
                                                 <button
-                                                    onClick={async () => {
-                                                        if (!confirm(t('End this trip?', 'இந்த பயணத்தை முடிக்கவா?'))) return;
-                                                        try {
-                                                            await api.post(`/trips/${activeTrip.id}/complete`);
-                                                            localStorage.removeItem('driver_trip_type');
-                                                            await fetchAll();
-                                                        } catch (e: any) {
-                                                            alert(e.response?.data?.error || 'Failed to end trip');
-                                                        }
-                                                    }}
+                                                    onClick={() => setEndTripTarget(activeTrip)}
                                                     className="flex items-center justify-center gap-1 bg-red-500 hover:bg-red-600 text-white rounded-2xl px-4 py-4 font-black text-sm active:scale-95 transition-all shrink-0"
                                                 >
                                                     ■ {t('End Trip', 'பயணம் முடிவு')}
@@ -398,6 +407,14 @@ export default function DriverDashboard() {
                         <button onClick={() => { setShowRouteTypeModal(false); setStartingTripType(null); }} disabled={!!startingTripType} className="w-full py-2.5 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 disabled:opacity-40">{t('Cancel', 'ரத்து செய்')}</button>
                     </div>
                 </div>
+            )}
+
+            {endTripTarget && (
+                <EndTripSlider
+                    onConfirm={endTrip}
+                    onCancel={() => setEndTripTarget(null)}
+                    isEnding={endingTrip}
+                />
             )}
         </div>
     );
