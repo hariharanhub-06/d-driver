@@ -89,7 +89,7 @@ export default function FeesPage() {
         setReminding(true); setRemindMsg('');
         try {
             const { data } = await api.post('/finance/fees/remind-all');
-            setRemindMsg(`Sent reminders to ${data?.sent ?? 0} parents.`);
+            setRemindMsg(`Sent reminders to ${data?.sent ?? data?.reminded ?? 0} parents.`);
         } catch { setRemindMsg('Failed to send reminders.'); }
         finally { setReminding(false); }
     };

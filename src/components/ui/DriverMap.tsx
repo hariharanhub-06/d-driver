@@ -204,6 +204,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     const osrmAbortRef   = useRef<AbortController | null>(null);
     const osrmCoordsRef  = useRef<[number, number][] | null>(null);
     const lastStopIdRef  = useRef<string>('');
+    const lastFetchPosRef = useRef<[number, number] | null>(null);
 
     useEffect(() => {
         if (!mapReady) return;
@@ -211,14 +212,31 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         const stopId   = nextStop?.id ?? '';
         const [uLat, uLng] = userPosition;
 
+        const haversineM = (aLat: number, aLng: number, bLat: number, bLng: number) => {
+            const toRad = (d: number) => d * Math.PI / 180;
+            const dlat = toRad(bLat - aLat), dlng = toRad(bLng - aLng);
+            const aa = Math.sin(dlat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dlng / 2) ** 2;
+            return 6371000 * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
+        };
+
         import('leaflet').then(L => {
             const map = mapRef.current;
             if (!map) return;
 
-            if (lastStopIdRef.current !== stopId) {
-                // ── Target stop changed: reset everything, show dashed, fetch OSRM ──
+            const stopChanged = lastStopIdRef.current !== stopId;
+            // Re-attempt OSRM for the SAME stop if it never loaded and the driver has
+            // moved ≥150 m since the last attempt (fixes morning trips that start far
+            // from stop 1, where the first attempt was rejected and never retried).
+            const movedSinceFetch = lastFetchPosRef.current
+                ? haversineM(uLat, uLng, lastFetchPosRef.current[0], lastFetchPosRef.current[1])
+                : Infinity;
+            const needFetch = stopChanged || (osrmCoordsRef.current === null && movedSinceFetch >= 150);
+
+            if (stopChanged) {
+                // ── Target stop changed: reset everything, show dashed ──
                 lastStopIdRef.current = stopId;
                 osrmCoordsRef.current = null;
+                lastFetchPosRef.current = null;
                 if (osrmAbortRef.current) { osrmAbortRef.current.abort(); osrmAbortRef.current = null; }
                 if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
                 if (!nextStop?.lat || !nextStop?.lng) return;
@@ -228,13 +246,12 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                     [[uLat, uLng], [nextStop.lat, nextStop.lng]],
                     { color: '#2563EB', weight: 4, opacity: 0.6, dashArray: '8 6', lineJoin: 'round' as const, lineCap: 'round' as const }
                 ).addTo(map);
+            }
 
-                // Haversine for sanity check
-                const toRad = (d: number) => d * Math.PI / 180;
-                const dlat = toRad(nextStop.lat - uLat), dlng = toRad(nextStop.lng - uLng);
-                const aa = Math.sin(dlat / 2) ** 2 + Math.cos(toRad(uLat)) * Math.cos(toRad(nextStop.lat)) * Math.sin(dlng / 2) ** 2;
-                const straightM = 6371000 * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
-
+            if (needFetch && nextStop?.lat && nextStop?.lng) {
+                const straightM = haversineM(uLat, uLng, nextStop.lat, nextStop.lng);
+                lastFetchPosRef.current = [uLat, uLng];
+                if (osrmAbortRef.current) { osrmAbortRef.current.abort(); }
                 const ctrl = new AbortController();
                 osrmAbortRef.current = ctrl;
                 fetch(
@@ -242,7 +259,10 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                     { signal: ctrl.signal }
                 ).then(r => r.json()).then(data => {
                     const route = data?.routes?.[0];
-                    if (!route || route.distance > straightM * 3 || !mapRef.current) return;
+                    if (!route || !mapRef.current) return;
+                    // Reject only absurd detours (loosened from 3× → 8×, and only when the
+                    // straight-line leg is long enough for the ratio to be meaningful).
+                    if (straightM > 300 && route.distance > straightM * 8) return;
                     const coords: [number, number][] = route.geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng]);
                     osrmCoordsRef.current = coords;
                     // Replace dashed with solid road line (no flicker — just swap)
@@ -251,8 +271,10 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                         color: '#2563EB', weight: 5, opacity: 0.9, lineJoin: 'round' as const, lineCap: 'round' as const,
                     }).addTo(mapRef.current);
                 }).catch(() => {});
+                return;
+            }
 
-            } else if (osrmCoordsRef.current && routeLineRef.current) {
+            if (osrmCoordsRef.current && routeLineRef.current) {
                 // ── Same stop, OSRM loaded: trim line from nearest waypoint (smooth) ──
                 const coords = osrmCoordsRef.current;
                 let minD = Infinity, ci = 0;

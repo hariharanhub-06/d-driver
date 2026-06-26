@@ -1,0 +1,19 @@
+{
+  "name": "D-Driver — School Bus Tracking",
+  "short_name": "D-Driver",
+  "description": "Track your child's school bus live, view trip details, fees and alerts.",
+  "start_url": "/parent/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#2dbc75",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

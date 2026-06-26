@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bus, AlertTriangle, MapPin, Phone, X, Navigation } from 'lucide-react';
+import { Bus, AlertTriangle, MapPin, Phone, X, Navigation, User2, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
@@ -11,12 +11,17 @@ interface Child {
     id: string;
     name: string;
     grade?: string;
+    section?: string;
     status?: string;
-    driver?: { name: string; phone?: string };
-    bus?: { bus_number: string };
     route_id?: string;
-    route?: { id: string; name: string; stops?: any[] };
-    stop?: { id: string; name: string };
+    // Real shape from GET /students/my-children — bus + driver are nested under route.bus.
+    route?: {
+        id: string;
+        name: string;
+        bus_id?: string;
+        bus?: { id?: string; bus_number?: string; drivers?: { user?: { name?: string; phone?: string } }[] };
+    };
+    stop?: { id: string; name: string; pickup_time?: string };
 }
 
 interface Notification {
@@ -26,6 +31,22 @@ interface Notification {
     type: string;
     created_at: string;
     read: boolean;
+}
+
+// A single labelled row in the Trip Details card.
+function DetailRow({ icon, label, value, action }: { icon: React.ReactNode; label: string; value: string; action?: React.ReactNode }) {
+    return (
+        <div className="flex items-center gap-3 py-2.5">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 flex items-center justify-center shrink-0">
+                {icon}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-none mb-1 uppercase tracking-wide">{label}</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{value}</p>
+            </div>
+            {action}
+        </div>
+    );
 }
 
 // ── ALL EXISTING LOGIC PRESERVED ──────────────────────────────────────────
@@ -101,12 +122,18 @@ export default function ParentDashboard() {
     };
 
     const primaryChild = (activeChildId ? children.find(c => c.id === activeChildId) : null) || children[0];
-    const driverPhone = primaryChild?.driver?.phone;
+    // Accessors for the real nested API shape (route.bus.*).
+    const driverUser = primaryChild?.route?.bus?.drivers?.[0]?.user;
+    const driverName = driverUser?.name;
+    const driverPhone = driverUser?.phone;
+    const busNumber = primaryChild?.route?.bus?.bus_number;
+    const routeName = primaryChild?.route?.name;
+    const stopName = primaryChild?.stop?.name;
     const hour = new Date().getHours();
     const greeting = hour < 12 ? '🌅' : hour < 17 ? '☀️' : '🌙';
 
     return (
-        <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
+        <div className="min-h-full bg-slate-100 dark:bg-slate-900">
             {/* ── Header bar ── */}
             <div className="bg-[var(--brand)] px-4 pt-10 pb-5">
                 <div className="flex items-center justify-between">
@@ -125,8 +152,8 @@ export default function ParentDashboard() {
                     )}
                 </div>
 
-                {/* Bus ETA card inside header */}
-                {!loading && primaryChild?.bus && (
+                {/* Bus card inside header */}
+                {!loading && busNumber && (
                     <div className="mt-4 bg-white/15 backdrop-blur-sm rounded-2xl p-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -134,8 +161,8 @@ export default function ParentDashboard() {
                                     <Bus className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <p className="text-white font-bold text-base">{primaryChild.bus.bus_number}</p>
-                                    <p className="text-white/70 text-xs">{primaryChild.route?.name || t('Route', 'வழி')}</p>
+                                    <p className="text-white font-bold text-base">{busNumber}</p>
+                                    <p className="text-white/70 text-xs">{routeName || t('Route', 'வழி')}</p>
                                 </div>
                             </div>
                             <Link href="/parent/tracking" className="bg-white text-[var(--brand)] rounded-xl px-3 py-2 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all">
@@ -159,34 +186,33 @@ export default function ParentDashboard() {
                     </div>
                 )}
 
-                {/* Bus Stops vertical timeline */}
-                {!loading && primaryChild?.route?.stops && primaryChild.route.stops.length > 0 && (
+                {/* Trip details card — the core requested fields */}
+                {!loading && primaryChild && (
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
-                        <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-1">
-                            {t('Bus Stops', 'நிறுத்தங்கள்')}
-                        </h2>
-                        <div className="mt-3 space-y-0">
-                            {(primaryChild.route.stops as any[]).map((stop, idx, arr) => {
-                                const isYours = stop.id === primaryChild.stop?.id;
-                                const isLast = idx === arr.length - 1;
-                                return (
-                                    <div key={stop.id} className="flex items-start gap-3">
-                                        {/* Timeline dot + line */}
-                                        <div className="flex flex-col items-center w-4 shrink-0">
-                                            <div className={`w-3 h-3 rounded-full border-2 mt-1 shrink-0 ${isYours ? 'border-orange-400 bg-orange-400' : 'border-emerald-400 bg-emerald-400'}`} />
-                                            {!isLast && <div className="w-px flex-1 bg-slate-200 dark:bg-slate-600 min-h-[20px]" />}
-                                        </div>
-                                        <div className={`pb-3 flex-1 min-w-0 ${isYours ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>
-                                            <p className="text-sm leading-tight">
-                                                {isYours ? `👇 ${t('Your Stop', 'உங்கள் நிறுத்தம்')} — ` : ''}{stop.name}
-                                            </p>
-                                            {stop.pickup_time && (
-                                                <p className="text-xs text-slate-400 mt-0.5">{stop.pickup_time}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-sm font-bold text-slate-800 dark:text-white">
+                                {t('Trip Details', 'பயண விவரங்கள்')}
+                            </h2>
+                            <Link href="/parent/tracking" className="text-xs font-bold text-[var(--brand)] flex items-center gap-1 active:scale-95 transition-all">
+                                <Navigation className="w-3 h-3" /> {t('Live Track', 'நேரடி கண்காணிப்பு')}
+                            </Link>
+                        </div>
+                        <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                            <DetailRow icon={<User2 className="w-4 h-4" />} label={t('Parent', 'பெற்றோர்')} value={user?.name || '—'} />
+                            <DetailRow icon={<GraduationCap className="w-4 h-4" />} label={t('Student', 'மாணவர்')} value={primaryChild.name + (primaryChild.grade ? ` · ${primaryChild.grade}${primaryChild.section ? '-' + primaryChild.section : ''}` : '')} />
+                            <DetailRow icon={<Bus className="w-4 h-4" />} label={t('Bus No', 'பேருந்து எண்')} value={busNumber || t('Not assigned', 'ஒதுக்கப்படவில்லை')} />
+                            <DetailRow icon={<Navigation className="w-4 h-4" />} label={t('Route', 'வழி')} value={routeName || '—'} />
+                            <DetailRow icon={<MapPin className="w-4 h-4" />} label={t('Stop', 'நிறுத்தம்')} value={stopName ? stopName + (primaryChild.stop?.pickup_time ? ` · ${primaryChild.stop.pickup_time}` : '') : '—'} />
+                            <DetailRow
+                                icon={<Phone className="w-4 h-4" />}
+                                label={t('Driver', 'ஓட்டுநர்')}
+                                value={driverName || t('Not assigned', 'ஒதுக்கப்படவில்லை')}
+                                action={driverPhone ? (
+                                    <a href={`tel:${driverPhone}`} className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all">
+                                        <Phone className="w-3 h-3" /> {t('Call', 'அழை')}
+                                    </a>
+                                ) : undefined}
+                            />
                         </div>
                     </div>
                 )}

@@ -105,6 +105,18 @@ const markAttendance = async (req, res) => {
         }
         const attendanceType = attendance_type === 'dropoff' ? 'dropoff' : 'pickup';
 
+        // Lock attendance to running trips: drivers/bus-staff cannot mark after the
+        // trip is completed. Admins are exempt (manual corrections).
+        if (trip_id && (req.user.role === 'bus_staff' || req.user.role === 'driver')) {
+            const activeTrip = await prisma.activeTrip.findUnique({
+                where: { id: trip_id },
+                select: { status: true },
+            });
+            if (!activeTrip || activeTrip.status !== 'running') {
+                return res.status(409).json({ error: 'This trip has ended. Attendance is now closed.' });
+            }
+        }
+
         // Determine school scope
         let schoolId = req.user.school_id;
         if (req.user.role === 'super_admin') {

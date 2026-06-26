@@ -13,6 +13,7 @@ import { biLabel, ta } from '@/lib/i18n';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
+import MobileTopBar from '@/components/layout/MobileTopBar';
 
 const ParentTour = dynamic(() => import('@/components/tour/ParentTour'), { ssr: false });
 
@@ -184,8 +185,11 @@ function ParentNav() {
 export default function ParentLayout({ children }: { children: React.ReactNode }) {
     const { user, loading, logout } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
     const setSchoolBranding = useSetSchoolBranding();
     const [unreadCount, setUnreadCount] = useState(0);
+    // Hide the top bar on the full-screen live map.
+    const hideTopBar = pathname === '/parent/tracking';
 
     useEffect(() => {
         if (!loading && !user) router.push('/login');
@@ -225,8 +229,9 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
     return (
         <LanguageProvider>
-            <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900">
-                <main className="flex-1 overflow-y-auto pb-20">
+            <div className="flex flex-col h-[100dvh] bg-slate-50 dark:bg-slate-900">
+                {!hideTopBar && <MobileTopBar />}
+                <main className="flex-1 min-h-0 overflow-y-auto pb-20">
                     {children}
                 </main>
                 <ParentNav />

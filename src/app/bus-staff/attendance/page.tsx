@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from 'next-themes';
 import api from '@/lib/api';
+import { getSocket } from '@/lib/socket';
 import { useT } from '@/lib/i18n';
 
 const FreeMap = dynamic(() => import('@/components/ui/FreeMap'), { ssr: false });
@@ -58,6 +59,30 @@ export default function BusStaffAttendancePage() {
         fetchData();
         return () => { if (pollRef.current) clearInterval(pollRef.current); };
     }, []);
+
+    // Live trip sync: join the school room and react to driver start/stop instantly.
+    useEffect(() => {
+        if (!user?.school_id) return;
+        const socket = getSocket();
+        const joinRoom = () => socket.emit('join-school-room', user.school_id);
+        joinRoom();
+        socket.on('connect', joinRoom);
+        const onStarted = () => { fetchData(); };
+        const onCompleted = () => {
+            if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+            setHasActiveTrip(false);
+            setTripId('');
+            setStops([]);
+        };
+        socket.on('trip-started', onStarted);
+        socket.on('trip-completed', onCompleted);
+        return () => {
+            socket.off('connect', joinRoom);
+            socket.off('trip-started', onStarted);
+            socket.off('trip-completed', onCompleted);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.school_id]);
 
     const fetchData = async () => {
         try {
@@ -165,13 +190,13 @@ export default function BusStaffAttendancePage() {
     ];
 
     if (loading) return (
-        <div className="h-screen bg-slate-50 flex items-center justify-center">
+        <div className="h-full min-h-[60vh] bg-slate-50 flex items-center justify-center">
             <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
         </div>
     );
 
     if (hasActiveTrip === false) return (
-        <div className="h-screen bg-white dark:bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
+        <div className="h-full min-h-[60vh] bg-white dark:bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
             <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                 <Lock className="w-9 h-9 text-slate-400" />
             </div>
@@ -185,7 +210,7 @@ export default function BusStaffAttendancePage() {
     );
 
     return (
-        <div className="relative h-screen overflow-hidden bg-slate-100">
+        <div className="relative h-full overflow-hidden bg-slate-100">
 
             {/* ── Header ── */}
             <div className="absolute top-0 left-0 right-0 z-[400] bg-[var(--brand)] text-white px-5 pt-10 pb-4 shadow-lg">

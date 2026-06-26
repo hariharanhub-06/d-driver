@@ -10,6 +10,7 @@ import { LanguageProvider, useLang } from '@/context/LanguageContext';
 import { ta } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
+import MobileTopBar from '@/components/layout/MobileTopBar';
 
 const DriverTour = dynamic(() => import('@/components/tour/DriverTour'), { ssr: false });
 
@@ -103,8 +104,9 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
 
     return (
         <LanguageProvider>
-            <div className="flex flex-col min-h-screen bg-slate-900">
-                <main className={hideNav ? 'flex-1 overflow-hidden' : 'flex-1 overflow-y-auto pb-20'}>
+            <div className="flex flex-col h-[100dvh] bg-slate-900">
+                {!hideNav && <MobileTopBar />}
+                <main className={hideNav ? 'flex-1 min-h-0 overflow-hidden' : 'flex-1 min-h-0 overflow-y-auto pb-20'}>
                     {children}
                 </main>
                 <DriverNav />

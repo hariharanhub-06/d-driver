@@ -473,7 +473,7 @@ const createFeeDelayRequest = async (req, res) => {
                 parent_id: userId,
                 school_id: fee.school_id,
                 requested_date: new Date(requested_date),
-                reason,
+                reason: reason || 'Not specified',
                 status: 'pending',
             },
         });
@@ -574,7 +574,7 @@ const remindAllFees = async (req, res) => {
             parentsSent.add(parentId);
         }
 
-        res.json({ reminded: parentsSent.size });
+        res.json({ sent: parentsSent.size, reminded: parentsSent.size });
     } catch (err) {
         res.status(500).json({ error: 'Failed to send reminders' });
     }

@@ -1,6 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 
 // Tamil labels for bilingual sidebar
 const LABEL_TA: Record<string, string> = {
@@ -32,6 +34,20 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
     const { user, logout } = useAuth();
     const branding = useSchoolBranding();
     const { lang } = useLang();
+    const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
+
+    // Live count badges of incoming items awaiting admin action (admin only).
+    useEffect(() => {
+        if (user?.role !== 'admin') return;
+        let active = true;
+        const load = () =>
+            api.get('/dashboard/pending-counts')
+                .then(r => { if (active) setPendingCounts(r.data || {}); })
+                .catch(() => {});
+        load();
+        const id = setInterval(load, 60000);
+        return () => { active = false; clearInterval(id); };
+    }, [user?.role]);
 
     const getNavItems = () => {
         const role = user?.role || 'admin';
@@ -196,6 +212,11 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                                                     <span className="block truncate">{item.label}</span>
                                                 )}
                                             </span>
+                                            {pendingCounts[item.href] > 0 && (
+                                                <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                                                    {pendingCounts[item.href] > 99 ? '99+' : pendingCounts[item.href]}
+                                                </span>
+                                            )}
                                         </Link>
                                     );
                                 })}

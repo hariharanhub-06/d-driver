@@ -64,6 +64,9 @@ const startTrip = async (req, res) => {
       io?.to(`parent-${parentId}`).emit('trip-started', { route_id, route_name: routeName });
     }
 
+    // Notify the school room (admins + bus-staff) so the bus-staff roster appears live.
+    io?.to(`school-${schoolId}`).emit('trip-started', { route_id, bus_id, route_name: routeName });
+
     io?.to(`driver-${driverId}`).emit('request-km-entry', { entry_type: 'route_start', message: 'Enter current odometer reading to start trip' });
 
     res.status(201).json({ trip });
@@ -144,6 +147,9 @@ const completeTrip = async (req, res) => {
     for (const { parentId } of parentMap.values()) {
       io?.to(`parent-${parentId}`).emit('trip-completed', { route_id: trip.route_id });
     }
+
+    // Notify the school room (admins + bus-staff) so the bus-staff roster locks live.
+    io?.to(`school-${schoolId}`).emit('trip-completed', { route_id: trip.route_id, bus_id: trip.bus_id });
 
     io?.to(`driver-${req.user.id}`).emit('request-km-entry', { entry_type: 'route_end', message: 'Enter odometer reading to close trip' });
 

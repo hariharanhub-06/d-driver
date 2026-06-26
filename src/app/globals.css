@@ -6,15 +6,17 @@
 
 :root {
   --brand: #3B82F6;
-  --background: #F8FAFC;
+  /* Tinted base so white cards/sidebar stand out — gives real surface hierarchy */
+  --background: #EBEFF5;
   --foreground: #0F172A;
   --card: #FFFFFF;
   --card-foreground: #0F172A;
-  --border: #E2E8F0;
-  --muted: #F1F5F9;
-  --muted-foreground: #64748B;
+  /* Stronger, clearly visible separation between regions */
+  --border: #D7DEEA;
+  --muted: #F2F5FA;
+  --muted-foreground: #55607A;
   --sidebar-bg: #FFFFFF;
-  --sidebar-border: #E2E8F0;
+  --sidebar-border: #DCE3EC;
   --primary: #3B82F6;
 }
 
@@ -39,7 +41,9 @@
 
 @layer components {
   .page-card {
-    @apply bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6;
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    @apply rounded-2xl shadow-sm p-6;
   }
 
   .admin-sidebar {
@@ -49,7 +53,11 @@
   }
 
   .nav-item {
-    @apply flex items-center gap-3 px-3 py-2.5 mx-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white transition-all duration-150 cursor-pointer;
+    @apply flex items-center gap-3 px-3 py-2.5 mx-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-150 cursor-pointer;
+  }
+
+  .nav-item:hover {
+    background-color: var(--muted);
   }
 
   .nav-item-active {
@@ -59,7 +67,9 @@
   }
 
   .input-field {
-    @apply w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors;
+    background-color: var(--muted);
+    border: 1px solid var(--border);
+    @apply w-full rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors;
   }
 
   .modal-container-compact {
@@ -85,9 +95,12 @@
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Opacity-only entrance: a lingering `transform` here would create a containing
+   block that clips `position: fixed` modal backdrops to the page box (the
+   "cropped blur" bug). Keep this transform-free so modals stay viewport-anchored. */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }

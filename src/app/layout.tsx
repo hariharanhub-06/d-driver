@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
@@ -7,6 +7,7 @@ import { SchoolBrandingProvider } from "@/context/SchoolBrandingContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { getSiteEnabled } from "@/lib/site-status";
 import AccessDenied403 from "@/components/AccessDenied403";
+import PWARegister from "@/components/PWARegister";
 import dynamic from 'next/dynamic';
 
 const NotificationToast = dynamic(() => import('@/components/ui/NotificationToast'), { ssr: false });
@@ -17,6 +18,23 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Bus Transport Portal",
   description: "School Bus Transport Management",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "D-Driver",
+  },
+  icons: {
+    icon: "/icons/icon.svg",
+    apple: "/icons/icon.svg",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2dbc75",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -42,6 +60,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <SchoolBrandingProvider>
                 <NotificationToast />
                 <KeepAlive />
+                <PWARegister />
                 {children}
               </SchoolBrandingProvider>
             </LanguageProvider>

@@ -126,4 +126,28 @@ const getFinancials = async (req, res) => {
   }
 };
 
-module.exports = { getStats, getFinancials };
+// GET /dashboard/pending-counts — counts of incoming items awaiting admin action.
+// Keyed by sidebar href so the frontend can map badges directly.
+const getPendingCounts = async (req, res) => {
+  try {
+    const where = getSchoolFilter(req);
+    const [stopChange, fuel, maintenance, feeDelay] = await Promise.all([
+      prisma.stopChangeRequest.count({ where: { ...where, status: 'pending' } }),
+      prisma.fuelRequest.count({ where: { ...where, status: 'pending' } }),
+      prisma.maintenanceRecord.count({ where: { ...where, status: 'pending' } }),
+      prisma.feeDelayRequest.count({ where: { ...where, status: 'pending' } }),
+    ]);
+
+    res.json({
+      '/admin/stop-change-requests': stopChange,
+      '/admin/fuel-requests': fuel,
+      '/admin/maintenance': maintenance,
+      '/admin/fees': feeDelay,
+    });
+  } catch (err) {
+    console.error('getPendingCounts error:', err);
+    res.status(500).json({ error: 'Error fetching pending counts' });
+  }
+};
+
+module.exports = { getStats, getFinancials, getPendingCounts };

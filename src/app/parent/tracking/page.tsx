@@ -1,12 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Bus, Clock, Navigation, Bell, Loader2, Phone } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Bus, Clock, Navigation, Bell, Loader2, Phone, MapPin, Gauge } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { connectSocket, getSocket } from '@/lib/socket';
 import api from '@/lib/api';
 import dynamic from 'next/dynamic';
 import { useT } from '@/lib/i18n';
+import {
+    isLocationFresh,
+    shouldRecomputeEta,
+    fetchEta,
+    formatDistance,
+    formatEta,
+    resolveBusId,
+    type EtaResult,
+    type LatLng,
+} from '@/lib/tracking';
 
 const FreeMap = dynamic(() => import('@/components/ui/FreeMap'), { ssr: false });
 
@@ -17,7 +27,7 @@ interface ChildData {
     route_id?: string;
     bus?: { id?: string; bus_number?: string };
     bus_id?: string;
-    route?: { bus?: { id?: string; bus_number?: string; drivers?: any[] } };
+    route?: { name?: string; bus_id?: string; bus?: { id?: string; bus_number?: string; drivers?: any[] } };
 }
 
 export default function ParentTracking() {
@@ -27,7 +37,10 @@ export default function ParentTracking() {
     const [busId, setBusId] = useState<string | null>(null);
     const [busNumber, setBusNumber] = useState<string | null>(null);
     const [driverPhone, setDriverPhone] = useState<string | null>(null);
-    const [hasBusLive, setHasBusLive] = useState(false);
+    // Timestamp (ms) of the latest bus location we received; drives the "trip started" decision.
+    const [busTimestamp, setBusTimestamp] = useState<number | null>(null);
+    const [now, setNow] = useState<number>(Date.now());
+    const [eta, setEta] = useState<EtaResult | null>(null);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
     const [allChildren, setAllChildren] = useState<ChildData[]>([]);
     const [activeChildId, setActiveChildId] = useState<string | null>(null);
@@ -38,6 +51,9 @@ export default function ParentTracking() {
     const [stopChangeSubmitting, setStopChangeSubmitting] = useState(false);
     const [stopChangeSuccess, setStopChangeSuccess] = useState(false);
     const [stopChangeError, setStopChangeError] = useState('');
+
+    // OSRM throttle bookkeeping (last call time + position).
+    const etaCall = useRef<{ t: number; pos: LatLng | null }>({ t: 0, pos: null });
 
     useEffect(() => {
         const stored = typeof window !== 'undefined' ? localStorage.getItem('active_child_id') : null;
@@ -51,7 +67,13 @@ export default function ParentTracking() {
         }
     }, []);
 
-    // Poll bus location every 5 seconds
+    // Tick so freshness (trip-started) decays even without new location events.
+    useEffect(() => {
+        const i = setInterval(() => setNow(Date.now()), 5000);
+        return () => clearInterval(i);
+    }, []);
+
+    // Poll bus location every 5 seconds (fallback for when sockets drop).
     useEffect(() => {
         if (!busId) return;
         const interval = setInterval(async () => {
@@ -59,23 +81,32 @@ export default function ParentTracking() {
                 const res = await api.get(`/location/bus/${busId}`);
                 if (res.data?.latitude) {
                     setBusPosition([res.data.latitude, res.data.longitude]);
-                    setHasBusLive(true);
+                    setBusTimestamp(res.data.timestamp ? new Date(res.data.timestamp).getTime() : Date.now());
                 }
             } catch {
-                // silently ignore polling errors
+                // 404 / network — silently ignore; freshness window will mark trip not-started.
             }
         }, 5000);
         return () => clearInterval(interval);
     }, [busId]);
 
-    // Socket live updates
+    // Socket live updates. NOTE: server emits latitude/longitude (NOT lat/lng).
     useEffect(() => {
         if (!busId) return;
-        const handleLocationUpdate = (data: { lat: number; lng: number }) => {
-            setBusPosition([data.lat, data.lng]);
+        const handleLocationUpdate = (data: { busId?: string; latitude?: number; longitude?: number; timestamp?: string }) => {
+            if (data.busId && data.busId !== busId) return;
+            if (typeof data.latitude !== 'number' || typeof data.longitude !== 'number') return;
+            setBusPosition([data.latitude, data.longitude]);
+            setBusTimestamp(data.timestamp ? new Date(data.timestamp).getTime() : Date.now());
         };
-        getSocket().on('location-updated', handleLocationUpdate);
-        return () => { getSocket().off('location-updated', handleLocationUpdate); };
+        const handleTripCompleted = () => { setBusTimestamp(null); setEta(null); };
+        const s = getSocket();
+        s.on('location-updated', handleLocationUpdate);
+        s.on('trip-completed', handleTripCompleted);
+        return () => {
+            s.off('location-updated', handleLocationUpdate);
+            s.off('trip-completed', handleTripCompleted);
+        };
     }, [busId]);
 
     // Check for recent bus-approaching notifications
@@ -103,22 +134,7 @@ export default function ParentTracking() {
             if (selected) {
                 setActiveChildId(selected.id);
                 setChildData(selected);
-                const foundBusId = selected.bus?.id || selected.bus_id || selected.route?.bus?.id;
-                const foundBusNumber = selected.bus?.bus_number || selected.route?.bus?.bus_number || null;
-                const foundDriverPhone = selected.route?.bus?.drivers?.[0]?.user?.phone || null;
-                if (foundDriverPhone) setDriverPhone(foundDriverPhone);
-                if (foundBusId) {
-                    setBusId(String(foundBusId));
-                    setBusNumber(foundBusNumber ? String(foundBusNumber) : null);
-                    connectSocket(String(foundBusId));
-                    try {
-                        const { data: loc } = await api.get(`/location/bus/${foundBusId}`);
-                        if (loc?.latitude) {
-                            setBusPosition([loc.latitude, loc.longitude]);
-                            setHasBusLive(true);
-                        }
-                    } catch { /* use default position */ }
-                }
+                await wireChild(selected);
             }
         } catch {
             // Fetch failed — show error state
@@ -127,33 +143,59 @@ export default function ParentTracking() {
         }
     };
 
-    const switchChild = async (child: ChildData) => {
-        setActiveChildId(child.id);
-        localStorage.setItem('active_child_id', child.id);
-        setChildData(child);
-        setBusId(null); setBusNumber(null); setHasBusLive(false); setDriverPhone(null);
-        const foundBusId = child.bus?.id || child.bus_id || child.route?.bus?.id;
-        const foundBusNumber = child.bus?.bus_number || child.route?.bus?.bus_number || null;
+    // Resolve bus + driver for a child and seed the live position.
+    const wireChild = async (child: ChildData) => {
+        const foundBusId = resolveBusId(child);
+        const foundBusNumber = child.route?.bus?.bus_number || child.bus?.bus_number || null;
         const foundDriverPhone = child.route?.bus?.drivers?.[0]?.user?.phone || null;
-        if (foundDriverPhone) setDriverPhone(foundDriverPhone);
+        setDriverPhone(foundDriverPhone);
         if (foundBusId) {
             setBusId(String(foundBusId));
             setBusNumber(foundBusNumber ? String(foundBusNumber) : null);
             connectSocket(String(foundBusId));
             try {
                 const { data: loc } = await api.get(`/location/bus/${foundBusId}`);
-                if (loc?.latitude) { setBusPosition([loc.latitude, loc.longitude]); setHasBusLive(true); }
-            } catch { /* use default */ }
+                if (loc?.latitude) {
+                    setBusPosition([loc.latitude, loc.longitude]);
+                    setBusTimestamp(loc.timestamp ? new Date(loc.timestamp).getTime() : Date.now());
+                }
+            } catch { /* 404 = not started */ }
         }
+    };
+
+    const switchChild = async (child: ChildData) => {
+        setActiveChildId(child.id);
+        localStorage.setItem('active_child_id', child.id);
+        setChildData(child);
+        setBusId(null); setBusNumber(null); setBusTimestamp(null); setEta(null); setDriverPhone(null);
+        etaCall.current = { t: 0, pos: null };
+        await wireChild(child);
     };
 
     const myStop = childData?.stop;
     const stopPos: [number, number] | null = myStop?.latitude && myStop?.longitude
         ? [myStop.latitude, myStop.longitude] : null;
-    const mapCenter: [number, number] = hasBusLive ? busPosition : (userLocation || stopPos || busPosition);
+
+    // The bus is "live / on a trip" only when its last fix is recent.
+    const tripStarted = isLocationFresh(busTimestamp, now);
+    const mapCenter: [number, number] = tripStarted ? busPosition : (userLocation || stopPos || busPosition);
+
+    // Recompute ETA (throttled) whenever the bus moves while a trip is running.
+    useEffect(() => {
+        if (!tripStarted || !stopPos) { setEta(null); return; }
+        const busLL: LatLng = { lat: busPosition[0], lng: busPosition[1] };
+        const stopLL: LatLng = { lat: stopPos[0], lng: stopPos[1] };
+        if (!shouldRecomputeEta(busLL, etaCall.current.pos, etaCall.current.t)) return;
+        etaCall.current = { t: Date.now(), pos: busLL };
+        const ctrl = new AbortController();
+        fetchEta(busLL, stopLL, ctrl.signal)
+            .then(setEta)
+            .catch(() => { /* aborted */ });
+        return () => ctrl.abort();
+    }, [tripStarted, busPosition, stopPos]);
 
     const markers = [
-        ...(hasBusLive ? [{ position: busPosition, title: `Bus ${busNumber || busId || ''}`, isBus: true as const }] : []),
+        ...(tripStarted ? [{ position: busPosition, title: `Bus ${busNumber || busId || ''}`, isBus: true as const }] : []),
         ...(userLocation ? [{ position: userLocation, title: 'Your Location', isUserLocation: true as const }] : []),
         ...(stopPos ? [{
             id: myStop!.id,
@@ -176,9 +218,8 @@ export default function ParentTracking() {
         if (!stopChangeModal) return;
         setStopChangeSubmitting(true);
         try {
-            const student = childData ? { stop: childData.stop } : null;
             await api.post('/stop-change', {
-                student_id: user?.student_id || undefined,
+                student_id: childData?.id || undefined,
                 current_stop_id: myStop?.id,
                 requested_stop_id: stopChangeModal.id,
                 change_type: 'permanent',
@@ -201,7 +242,7 @@ export default function ParentTracking() {
     }
 
     return (
-        <div className="flex flex-col h-screen relative bg-slate-50 dark:bg-slate-900 overflow-hidden">
+        <div className="flex flex-col h-full relative bg-slate-50 dark:bg-slate-900 overflow-hidden">
             {/* Map fills the whole background */}
             <div className="absolute inset-0 z-0">
                 <FreeMap center={mapCenter} zoom={15} markers={markers} onStopClick={handleStopClick} />
@@ -238,11 +279,11 @@ export default function ParentTracking() {
                     </div>
                     <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate">
-                            {hasBusLive ? `Bus #${busNumber || busId}` : (childData?.name || t('Live Tracking', 'நேரடி கண்காணிப்பு'))}
-                            {hasBusLive && childData ? ` · ${childData.name}` : ''}
+                            {tripStarted ? `Bus #${busNumber || busId}` : (childData?.name || t('Live Tracking', 'நேரடி கண்காணிப்பு'))}
+                            {tripStarted && childData ? ` · ${childData.name}` : ''}
                         </h4>
                         <div className="flex items-center gap-2 mt-0.5">
-                            {hasBusLive ? (
+                            {tripStarted ? (
                                 <>
                                     <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full uppercase tracking-widest">{t('Live', 'நேரடி')}</span>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><Clock size={10} /> {t('Bus en route', 'பேருந்து வருகிறது')}</p>
@@ -266,7 +307,7 @@ export default function ParentTracking() {
             {driverPhone && (
                 <a
                     href={`tel:${driverPhone}`}
-                    className="absolute bottom-36 right-4 z-20 w-14 h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-xl flex items-center justify-center transition-all active:scale-95"
+                    className="absolute bottom-44 right-4 z-20 w-14 h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-xl flex items-center justify-center transition-all active:scale-95"
                     title={`Call driver: ${driverPhone}`}
                 >
                     <Phone size={22} />
@@ -275,23 +316,50 @@ export default function ParentTracking() {
 
             {/* ETA/status bar at bottom as overlay card */}
             <div className="absolute bottom-4 left-4 right-4 z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-4">
-                <div className="flex justify-between items-start mb-4">
-                    <div>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{t('Your Stop', 'உங்கள் நிறுத்தம்')}</p>
-                        <h5 className="font-bold text-slate-900 dark:text-white text-base">
+                <div className="flex justify-between items-start mb-3">
+                    <div className="min-w-0">
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+                            <MapPin size={11} /> {t('Your Stop', 'உங்கள் நிறுத்தம்')}
+                        </p>
+                        <h5 className="font-bold text-slate-900 dark:text-white text-base truncate">
                             {childData?.stop?.name || t('Home Stop', 'வீட்டு நிறுத்தம்')}
                         </h5>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('Bus is on the way', 'பேருந்து வருகிறது')}</p>
                     </div>
                     <div className="w-9 h-9 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center shrink-0">
                         <Navigation size={16} />
                     </div>
                 </div>
 
-                {/* Progress bar */}
-                <div className="relative h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full mb-4 overflow-hidden">
-                    <div className="absolute h-full bg-[var(--brand)] rounded-full w-[60%] transition-all duration-1000" />
-                </div>
+                {/* Real distance + ETA when the trip is running; clear waiting state otherwise. */}
+                {tripStarted ? (
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-slate-50 dark:bg-slate-700/40 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
+                            <Gauge size={18} className="text-[var(--brand)] shrink-0" />
+                            <div className="min-w-0">
+                                <p className="text-[10px] text-slate-400 uppercase tracking-wide leading-none mb-1">{t('Distance', 'தூரம்')}</p>
+                                <p className="font-bold text-slate-900 dark:text-white text-sm leading-none">
+                                    {eta ? formatDistance(eta.distanceM) : '…'}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="bg-slate-50 dark:bg-slate-700/40 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
+                            <Clock size={18} className="text-[var(--brand)] shrink-0" />
+                            <div className="min-w-0">
+                                <p className="text-[10px] text-slate-400 uppercase tracking-wide leading-none mb-1">{t('Arriving in', 'வரும் நேரம்')}</p>
+                                <p className="font-bold text-slate-900 dark:text-white text-sm leading-none">
+                                    {eta ? formatEta(eta.durationS, eta.source) : '…'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/40 rounded-xl px-3 py-3 mb-4">
+                        <Clock size={16} className="text-amber-500 shrink-0" />
+                        <p className="text-xs font-medium text-amber-700 dark:text-amber-400 leading-snug">
+                            {t("Bus hasn't started yet. We'll show live distance and arrival time once the trip begins.", 'பேருந்து இன்னும் தொடங்கவில்லை. பயணம் தொடங்கியதும் நேரடி தூரம் மற்றும் வரும் நேரம் காட்டப்படும்.')}
+                        </p>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                     <a
@@ -346,9 +414,6 @@ export default function ParentTracking() {
                                     <p className="text-xs text-slate-400 mt-2 mb-1">{t('New Stop', 'புதிய நிறுத்தம்')}</p>
                                     <p className="font-bold text-sm text-[var(--brand)]">{stopChangeModal.name}</p>
                                 </div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                                    {t('After admin approval, your child will appear at', 'நிர்வாகி அனுமதித்தவுடன் உங்கள் குழந்தை')} <strong>{stopChangeModal.name}</strong> {t('in the attendance and tracking views.', 'வருகை மற்றும் கண்காணிப்பில் காட்டப்படும்.')}
-                                </p>
                                 {stopChangeError && (
                                     <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2 mb-3">
                                         {t('Failed to submit request. Please try again.', 'கோரிக்கை சமர்ப்பிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.')}
