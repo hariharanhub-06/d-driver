@@ -24,18 +24,18 @@ function StudentCard({ student, marked, preAbsent, isEvening, onMark, t }: {
             ? 'bg-red-900/30 border-red-700/60'
             : preAbsent
                 ? 'bg-amber-900/20 border-amber-700/40 opacity-75'
-                : 'bg-slate-800 border-slate-700';
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700';
 
     return (
         <div className={cn('rounded-2xl p-3.5 border flex items-center gap-3 transition-all', bgClass)}>
-            <div className="w-10 h-10 rounded-xl bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
                 {student.photo_url
                     ? <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
                     : <span className="text-sm font-bold text-slate-400">{student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}</span>
                 }
             </div>
             <div className="flex-1 min-w-0">
-                <p className="font-bold text-white text-sm truncate">{student.name}</p>
+                <p className="font-bold text-slate-900 dark:text-white text-sm truncate">{student.name}</p>
                 <p className="text-xs text-slate-400">{student.grade || t('Student', 'மாணவர்')}</p>
             </div>
             {preAbsent && !marked ? (
@@ -185,7 +185,7 @@ export default function DriverAttendancePage() {
             <div className="bg-white dark:bg-slate-800 px-4 pt-10 pb-4">
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <h1 className="text-xl font-bold text-white">{t('Student Attendance', 'மாணவர் வருகை பதிவு')}</h1>
+                        <h1 className="text-xl font-bold text-slate-900 dark:text-white">{t('Student Attendance', 'மாணவர் வருகை பதிவு')}</h1>
                         <p className="text-slate-400 text-xs mt-0.5">{t('Today\'s Attendance', 'இன்றைய வருகை')}</p>
                     </div>
                     <button onClick={handleMarkAll} className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all">
@@ -198,9 +198,9 @@ export default function DriverAttendancePage() {
                     {[
                         { label: t('On Board', 'பேருந்தில் உள்ளவர்'), val: onBoard, color: 'text-emerald-400' },
                         { label: t('Missing', 'இல்லாதவர்'), val: missing, color: 'text-red-400' },
-                        { label: t('Total', 'மொத்தம்'), val: allStudents.length, color: 'text-white' },
+                        { label: t('Total', 'மொத்தம்'), val: allStudents.length, color: 'text-slate-900 dark:text-white' },
                     ].map(item => (
-                        <div key={item.label} className="bg-slate-700/50 rounded-xl p-3 text-center">
+                        <div key={item.label} className="bg-slate-100 dark:bg-slate-700/50 rounded-xl p-3 text-center">
                             <p className={`text-2xl font-black ${item.color}`}>{item.val}</p>
                             <p className="text-slate-400 text-[10px] mt-0.5">{item.label}</p>
                         </div>
@@ -212,7 +212,7 @@ export default function DriverAttendancePage() {
             <div className="px-4 pt-3 pb-2">
                 <div className="relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="text" placeholder={t('Search student...', 'மாணவரை தேடு...')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-2.5 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-[var(--brand)] transition-colors placeholder:text-slate-500" />
+                    <input type="text" placeholder={t('Search student...', 'மாணவரை தேடு...')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-2.5 pl-11 pr-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[var(--brand)] transition-colors placeholder:text-slate-500" />
                 </div>
             </div>
 
@@ -232,11 +232,11 @@ export default function DriverAttendancePage() {
                         <div key={stop.id}>
                             {/* Stop header */}
                             <div className={cn('flex items-center gap-2.5 px-1 mb-2', i === currentStopIndex ? 'opacity-100' : 'opacity-60')}>
-                                <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0', i < currentStopIndex ? 'bg-slate-600 text-slate-300' : i === currentStopIndex ? 'bg-[var(--brand)] text-white' : 'bg-slate-700 text-slate-400')}>
+                                <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0', i < currentStopIndex ? 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300' : i === currentStopIndex ? 'bg-[var(--brand)] text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400')}>
                                     {i + 1}
                                 </div>
                                 <div className="flex-1">
-                                    <p className={cn('text-sm font-bold', i === currentStopIndex ? 'text-white' : 'text-slate-400')}>{stop.name}</p>
+                                    <p className={cn('text-sm font-bold', i === currentStopIndex ? 'text-slate-900 dark:text-white' : 'text-slate-400')}>{stop.name}</p>
                                     <p className="text-[10px] text-slate-500">
                                         {stop.students.length} {t('students', 'மாணவர்கள்')}
                                         {i < currentStopIndex && ` · ${t('Passed', 'கடந்தது')}`}

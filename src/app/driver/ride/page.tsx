@@ -581,25 +581,25 @@ export default function ActiveRide() {
 
     if (locationDenied) {
         return (
-            <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
                 <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mb-6">
                     <AlertTriangle className="w-10 h-10 text-amber-400" />
                 </div>
-                <h2 className="text-xl font-bold text-white mb-3">{t('Location Access Required', 'இருப்பிட அணுகல் தேவை')}</h2>
-                <p className="text-slate-400 text-sm mb-6 max-w-xs">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{t('Location Access Required', 'இருப்பிட அணுகல் தேவை')}</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 max-w-xs">
                     {t('Onlive needs your location to track the bus and show parents where you are. Please enable location and reload.', 'Onlive பேருந்தை கண்காணிக்கவும் பெற்றோருக்கு நிலையை காட்டவும் உங்கள் இருப்பிடம் தேவை. இருப்பிடத்தை இயக்கி மீண்டும் ஏற்றவும்.')}
                 </p>
-                <div className="bg-slate-800 rounded-2xl p-5 text-left mb-6 w-full max-w-xs space-y-3">
-                    <p className="text-white text-sm font-semibold">{t('How to enable:', 'எவ்வாறு இயக்குவது:')}</p>
-                    <div className="flex items-start gap-3 text-slate-400 text-sm">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 text-left mb-6 w-full max-w-xs space-y-3">
+                    <p className="text-slate-900 dark:text-white text-sm font-semibold">{t('How to enable:', 'எவ்வாறு இயக்குவது:')}</p>
+                    <div className="flex items-start gap-3 text-slate-500 dark:text-slate-400 text-sm">
                         <span className="w-5 h-5 rounded-full bg-[var(--brand)] text-white text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
-                        <span>{t('Tap the ', 'உலாவியின் முகவரி பட்டியில் ')}<strong className="text-white">{t('lock icon', 'பூட்டு ஐகான்')}</strong>{t(' or ', ' அல்லது ')}<strong className="text-white">ⓘ</strong>{t(' in your browser\'s address bar', ' ஐ தட்டவும்')}</span>
+                        <span>{t('Tap the ', 'உலாவியின் முகவரி பட்டியில் ')}<strong className="text-slate-900 dark:text-white">{t('lock icon', 'பூட்டு ஐகான்')}</strong>{t(' or ', ' அல்லது ')}<strong className="text-slate-900 dark:text-white">ⓘ</strong>{t(' in your browser\'s address bar', ' ஐ தட்டவும்')}</span>
                     </div>
-                    <div className="flex items-start gap-3 text-slate-400 text-sm">
+                    <div className="flex items-start gap-3 text-slate-500 dark:text-slate-400 text-sm">
                         <span className="w-5 h-5 rounded-full bg-[var(--brand)] text-white text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
-                        <span>{t('Tap ', 'தட்டவும் ')}<strong className="text-white">{t('Location', 'இருப்பிடம்')}</strong>{t(' → set to ', ' → ')}<strong className="text-white">{t('Allow', 'அனுமதி')}</strong>{t(' ', ' என அமைக்கவும்')}</span>
+                        <span>{t('Tap ', 'தட்டவும் ')}<strong className="text-slate-900 dark:text-white">{t('Location', 'இருப்பிடம்')}</strong>{t(' → set to ', ' → ')}<strong className="text-slate-900 dark:text-white">{t('Allow', 'அனுமதி')}</strong>{t(' ', ' என அமைக்கவும்')}</span>
                     </div>
-                    <div className="flex items-start gap-3 text-slate-400 text-sm">
+                    <div className="flex items-start gap-3 text-slate-500 dark:text-slate-400 text-sm">
                         <span className="w-5 h-5 rounded-full bg-[var(--brand)] text-white text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
                         <span>{t('Reload this page', 'இந்த பக்கத்தை மீண்டும் ஏற்றவும்')}</span>
                     </div>

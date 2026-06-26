@@ -83,7 +83,7 @@ export default function DriverProfilePage() {
     };
 
     const initials = (user?.name || 'D').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
-    const inputCls = "w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[var(--brand)] transition-colors";
+    const inputCls = "w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[var(--brand)] transition-colors";
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -115,13 +115,13 @@ export default function DriverProfilePage() {
                 {/* My Bus */}
                 {driverInfo?.bus && (
                     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-                        <h2 className="text-sm font-bold text-slate-300 mb-3">{t('Assigned Bus', 'ஒதுக்கப்பட்ட பேருந்து')}</h2>
+                        <h2 className="text-sm font-bold text-slate-800 dark:text-slate-300 mb-3">{t('Assigned Bus', 'ஒதுக்கப்பட்ட பேருந்து')}</h2>
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-[var(--brand)]/20 rounded-xl flex items-center justify-center">
                                 <Bus className="w-6 h-6 text-[var(--brand)]" />
                             </div>
                             <div>
-                                <p className="text-white font-black text-lg">{driverInfo.bus.bus_number}</p>
+                                <p className="text-slate-900 dark:text-white font-black text-lg">{driverInfo.bus.bus_number}</p>
                                 {driverInfo.bus.routes?.[0] && <p className="text-slate-400 text-xs">{driverInfo.bus.routes[0].name}</p>}
                                 {driverInfo.bus.capacity && <p className="text-slate-500 text-xs">{t('Capacity', 'இடக்கொள்ளல்')}: {driverInfo.bus.capacity} {t('students', 'மாணவர்கள்')}</p>}
                             </div>
@@ -134,7 +134,7 @@ export default function DriverProfilePage() {
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2.5">
                             <Pencil className="w-5 h-5 text-[var(--brand)]" />
-                            <h2 className="text-base font-semibold text-white">{t('Edit Profile', 'சுயவிவரம் திருத்து')}</h2>
+                            <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t('Edit Profile', 'சுயவிவரம் திருத்து')}</h2>
                         </div>
                         {!isEditing && (
                             <button onClick={() => { setEditForm({ name: displayName, phone: displayPhone }); setIsEditing(true); setEditError(''); setEditSuccess(false); }} className="text-xs text-[var(--brand)] font-semibold">{t('Edit', 'திருத்து')}</button>
@@ -143,17 +143,17 @@ export default function DriverProfilePage() {
                     {isEditing ? (
                         <form onSubmit={handleEditProfile} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('Name', 'பெயர்')}</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Name', 'பெயர்')}</label>
                                 <input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} required className={inputCls} placeholder={t('Your name', 'உங்கள் பெயர்')} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('Phone', 'தொலைபேசி')}</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Phone', 'தொலைபேசி')}</label>
                                 <input value={editForm.phone} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))} className={inputCls} placeholder={t('Phone number', 'தொலைபேசி எண்')} />
                             </div>
                             {editError && <div className="flex items-center gap-2 text-sm text-red-400 bg-red-900/20 rounded-xl px-4 py-2.5"><AlertCircle className="w-4 h-4 shrink-0" />{editError}</div>}
                             {editSuccess && <div className="flex items-center gap-2 text-sm text-emerald-400 bg-emerald-900/20 rounded-xl px-4 py-2.5"><CheckCircle className="w-4 h-4 shrink-0" />{t('Profile updated!', 'சுயவிவரம் புதுப்பிக்கப்பட்டது!')}</div>}
                             <div className="flex gap-3">
-                                <button type="button" onClick={() => { setIsEditing(false); setEditError(''); }} className="flex-1 py-2.5 rounded-xl border border-slate-600 text-slate-300 text-sm font-semibold">{t('Cancel', 'ரத்து செய்')}</button>
+                                <button type="button" onClick={() => { setIsEditing(false); setEditError(''); }} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-semibold">{t('Cancel', 'ரத்து செய்')}</button>
                                 <button type="submit" disabled={editLoading} className="flex-1 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl py-2.5 font-semibold text-sm disabled:opacity-50 active:scale-95 transition-all">
                                     {editLoading ? t('Saving...', 'சேமிக்கிறது...') : t('Save Changes', 'மாற்றங்கள் சேமி')}
                                 </button>
@@ -163,11 +163,11 @@ export default function DriverProfilePage() {
                         <div className="space-y-2">
                             <div className="flex items-center justify-between py-1">
                                 <span className="text-sm text-slate-400">{t('Name', 'பெயர்')}</span>
-                                <span className="text-sm text-white font-medium">{displayName}</span>
+                                <span className="text-sm text-slate-900 dark:text-white font-medium">{displayName}</span>
                             </div>
                             <div className="flex items-center justify-between py-1">
                                 <span className="text-sm text-slate-400">{t('Phone', 'தொலைபேசி')}</span>
-                                <span className="text-sm text-white font-medium">{displayPhone || '—'}</span>
+                                <span className="text-sm text-slate-900 dark:text-white font-medium">{displayPhone || '—'}</span>
                             </div>
                         </div>
                     )}
@@ -177,25 +177,25 @@ export default function DriverProfilePage() {
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
                     <div className="flex items-center gap-2.5 mb-5">
                         <Lock className="w-5 h-5 text-[var(--brand)]" />
-                        <h2 className="text-base font-semibold text-white">{t('Change Password', 'கடவுச்சொல் மாற்று')}</h2>
+                        <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t('Change Password', 'கடவுச்சொல் மாற்று')}</h2>
                     </div>
                     <form onSubmit={handleChangePassword} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('Current Password', 'தற்போதைய கடவுச்சொல்')}</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Current Password', 'தற்போதைய கடவுச்சொல்')}</label>
                             <div className="relative">
                                 <input type={showCurrent ? 'text' : 'password'} value={cpForm.current} onChange={e => setCpForm(p => ({ ...p, current: e.target.value }))} required className={inputCls + ' pr-10'} placeholder={t('Enter current password', 'தற்போதைய கடவுச்சொல் உள்ளிடு')} autoComplete="current-password" />
                                 <button type="button" onClick={() => setShowCurrent(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('New Password', 'புதிய கடவுச்சொல்')}</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('New Password', 'புதிய கடவுச்சொல்')}</label>
                             <div className="relative">
                                 <input type={showNew ? 'text' : 'password'} value={cpForm.newPw} onChange={e => setCpForm(p => ({ ...p, newPw: e.target.value }))} required className={inputCls + ' pr-10'} placeholder={t('Min 8 characters', 'குறைந்தது 8 எழுத்துகள்')} autoComplete="new-password" />
                                 <button type="button" onClick={() => setShowNew(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('Confirm New Password', 'புதிய கடவுச்சொல் உறுதிப்படுத்து')}</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Confirm New Password', 'புதிய கடவுச்சொல் உறுதிப்படுத்து')}</label>
                             <input type="password" value={cpForm.confirm} onChange={e => setCpForm(p => ({ ...p, confirm: e.target.value }))} required className={inputCls} placeholder={t('Repeat new password', 'புதிய கடவுச்சொல் மீண்டும் உள்ளிடு')} autoComplete="new-password" />
                         </div>
                         {cpError && <div className="flex items-center gap-2 text-sm text-red-400 bg-red-900/20 rounded-xl px-4 py-2.5"><AlertCircle className="w-4 h-4 shrink-0" />{cpError}</div>}
@@ -212,9 +212,9 @@ export default function DriverProfilePage() {
                         { label: t('Language', 'மொழி'), sub: 'English · தமிழ்', href: '#' },
                         { label: t('Help & Support', 'உதவி & ஆதரவு'), sub: ta.helpSupport, href: '#' },
                     ].map((item, idx) => (
-                        <a key={idx} href={item.href} className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700 last:border-0 hover:bg-slate-700/50 transition-colors">
+                        <a key={idx} href={item.href} className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                             <div>
-                                <p className="text-sm font-medium text-white">{item.label}</p>
+                                <p className="text-sm font-medium text-slate-900 dark:text-white">{item.label}</p>
                                 <p className="text-xs text-slate-400 mt-0.5">{item.sub}</p>
                             </div>
                             <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />

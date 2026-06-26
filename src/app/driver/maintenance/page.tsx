@@ -88,11 +88,11 @@ export default function DriverMaintenancePage() {
     const inputCls = 'w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)] transition-colors';
 
     return (
-        <div className="min-h-screen bg-slate-900">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
             {/* Header */}
-            <div className="bg-slate-800 px-4 pt-12 pb-4 flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-800 px-4 pt-12 pb-4 flex items-center justify-between">
                 <div>
-                    <h1 className="text-xl font-bold text-white">{t('Maintenance', 'பராமரிப்பு')}</h1>
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">{t('Maintenance', 'பராமரிப்பு')}</h1>
                     <p className="text-slate-400 text-sm mt-0.5">{t('Expense records & submissions', 'செலவு பதிவுகள் & சமர்ப்பிப்புகள்')}</p>
                 </div>
                 {view === 'list' && (
@@ -108,15 +108,15 @@ export default function DriverMaintenancePage() {
                         <div className="w-20 h-20 bg-emerald-900/30 rounded-full flex items-center justify-center mb-4">
                             <CheckCircle className="w-12 h-12 text-emerald-400" />
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-2">{t('Submitted!', 'சமர்ப்பிக்கப்பட்டது!')}</h3>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('Submitted!', 'சமர்ப்பிக்கப்பட்டது!')}</h3>
                         <p className="text-sm text-slate-400 mb-6">{t('Admin will review and approve your maintenance record.', 'நிர்வாகி உங்கள் பராமரிப்பு பதிவை ஆய்வு செய்து அனுமதிப்பார்.')}</p>
-                        <button onClick={resetForm} className="bg-slate-700 border border-slate-600 text-white rounded-xl px-5 py-2.5 font-semibold text-sm">
+                        <button onClick={resetForm} className="bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white rounded-xl px-5 py-2.5 font-semibold text-sm">
                             {t('Back to Records', 'பதிவுகளுக்கு திரும்பு')}
                         </button>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
-                        <button type="button" onClick={() => setView('list')} className="text-sm text-slate-400 hover:text-white flex items-center gap-1 mb-2">
+                        <button type="button" onClick={() => setView('list')} className="text-sm text-slate-400 hover:text-slate-700 dark:hover:text-white flex items-center gap-1 mb-2">
                             ← {t('Back to list', 'பட்டியலுக்கு திரும்பு')}
                         </button>
 
@@ -126,21 +126,21 @@ export default function DriverMaintenancePage() {
                             </div>
                         )}
 
-                        <div className="bg-slate-800 rounded-2xl border border-slate-700 p-5 space-y-4">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 space-y-4">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">{t('Date', 'தேதி')}</label>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('Date', 'தேதி')}</label>
                                 <input type="date" value={date} max={todayStr()} onChange={e => setDate(e.target.value)} required className={inputCls} />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-slate-300 mb-2">{t('Description', 'விவரம்')}</label>
+                                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('Description', 'விவரம்')}</label>
                                 <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="e.g. Tyre replacement, oil change..." required className={inputCls + ' resize-none'} />
                             </div>
                         </div>
 
                         {/* Items table */}
-                        <div className="bg-slate-800 rounded-2xl border border-slate-700 p-5">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
                             <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-sm font-bold text-white">{t('Items', 'பாகங்கள்')}</h3>
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t('Items', 'பாகங்கள்')}</h3>
                                 <button type="button" onClick={addItem} className="flex items-center gap-1 text-xs text-[var(--brand)] font-semibold">
                                     <Plus className="w-3.5 h-3.5" /> {t('Add Row', 'வரிசை சேர்')}
                                 </button>
@@ -176,8 +176,8 @@ export default function DriverMaintenancePage() {
                                 </div>
                             ))}
 
-                            <div className="border-t border-slate-700 mt-3 pt-3 flex items-center justify-between">
-                                <span className="text-sm font-bold text-white">{t('Total', 'மொத்தம்')}</span>
+                            <div className="border-t border-slate-200 dark:border-slate-700 mt-3 pt-3 flex items-center justify-between">
+                                <span className="text-sm font-bold text-slate-900 dark:text-white">{t('Total', 'மொத்தம்')}</span>
                                 <span className="text-base font-black text-[var(--brand)]">₹{totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
@@ -198,7 +198,7 @@ export default function DriverMaintenancePage() {
                         </div>
                     ) : records.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
+                            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
                                 <Wrench className="w-8 h-8 text-slate-500" />
                             </div>
                             <p className="text-slate-400 text-sm">{t('No records', 'பதிவுகள் இல்லை')}</p>
@@ -206,13 +206,13 @@ export default function DriverMaintenancePage() {
                         </div>
                     ) : (
                         records.map(rec => (
-                            <div key={rec.id} className="bg-slate-800 rounded-2xl border border-slate-700 p-4">
+                            <div key={rec.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
                                 <div className="flex items-start justify-between mb-2">
                                     <div>
-                                        <p className="text-white font-semibold text-sm">{rec.description}</p>
+                                        <p className="text-slate-900 dark:text-white font-semibold text-sm">{rec.description}</p>
                                         <p className="text-slate-400 text-xs mt-0.5">{new Date(rec.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                                     </div>
-                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${statusColors[rec.status] || 'bg-slate-700 text-slate-400'}`}>
+                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${statusColors[rec.status] || 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
                                         {rec.status}
                                     </span>
                                 </div>
@@ -228,13 +228,13 @@ export default function DriverMaintenancePage() {
                                     </div>
                                 )}
 
-                                <div className="flex items-center justify-between border-t border-slate-700 pt-2 mt-2">
+                                <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-700 pt-2 mt-2">
                                     <span className="text-xs text-slate-400">{t('Total', 'மொத்தம்')}</span>
-                                    <span className="text-sm font-bold text-white">₹{rec.total_cost.toLocaleString('en-IN')}</span>
+                                    <span className="text-sm font-bold text-slate-900 dark:text-white">₹{rec.total_cost.toLocaleString('en-IN')}</span>
                                 </div>
 
                                 {rec.admin_note && (
-                                    <div className="mt-2 bg-slate-700/50 rounded-xl px-3 py-2 text-xs text-slate-300">
+                                    <div className="mt-2 bg-slate-100 dark:bg-slate-700/50 rounded-xl px-3 py-2 text-xs text-slate-600 dark:text-slate-300">
                                         <span className="font-semibold text-slate-400">{t('Admin note: ', 'நிர்வாகி குறிப்பு: ')}</span>{rec.admin_note}
                                     </div>
                                 )}
