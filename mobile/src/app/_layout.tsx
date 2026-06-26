@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { BrandingProvider, useBranding } from '@/context/BrandingContext';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { Loader } from '@/components/ui';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function RootLayout() {
     // Bundle Tamil glyphs so 'ta'/'both' modes never render as boxes.
@@ -24,19 +25,21 @@ export default function RootLayout() {
     if (!fontsLoaded) return null; // brief; splash stays up
 
     return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
-            <SafeAreaProvider>
-                <QueryClientProvider client={queryClient}>
-                    <LanguageProvider>
-                        <AuthProvider>
-                            <BrandingProvider>
-                                <ThemedRoot />
-                            </BrandingProvider>
-                        </AuthProvider>
-                    </LanguageProvider>
-                </QueryClientProvider>
-            </SafeAreaProvider>
-        </GestureHandlerRootView>
+        <ErrorBoundary>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+                <SafeAreaProvider>
+                    <QueryClientProvider client={queryClient}>
+                        <LanguageProvider>
+                            <AuthProvider>
+                                <BrandingProvider>
+                                    <ThemedRoot />
+                                </BrandingProvider>
+                            </AuthProvider>
+                        </LanguageProvider>
+                    </QueryClientProvider>
+                </SafeAreaProvider>
+            </GestureHandlerRootView>
+        </ErrorBoundary>
     );
 }
 
