@@ -138,6 +138,7 @@ export default function ActiveRide() {
     const t = useT();
     const { user } = useAuth();
     const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
+    const [lastPos, setLastPos] = useState<[number, number] | null>(null); // last-known driver position (localStorage)
     const [heading, setHeading] = useState<number | null>(null);
     const [accuracy, setAccuracy] = useState<number | null>(null);
     const [tripData, setTripData] = useState<TripData | null>(null);
@@ -221,19 +222,30 @@ export default function ActiveRide() {
     useEffect(() => {
         let watchId: number | null = null;
 
+        // Restore last-known position so the map opens near the driver (not the
+        // India-centre fallback) before a fresh GPS fix arrives.
+        try {
+            const s = localStorage.getItem('driver_last_pos');
+            if (s) { const p = JSON.parse(s); if (Array.isArray(p) && p.length === 2) setLastPos(p as [number, number]); }
+        } catch { /* ignore */ }
+
         const startTracking = () => {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    setCurrentPos([pos.coords.latitude, pos.coords.longitude]);
+                    const p: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+                    setCurrentPos(p);
                     setAccuracy(pos.coords.accuracy ?? null);
                     setGeoError('');
                     setLocationDenied(false);
+                    try { localStorage.setItem('driver_last_pos', JSON.stringify(p)); } catch { /* ignore */ }
                 },
                 (err) => {
                     if (err.code === 1) setLocationDenied(true);
                     else setGeoError('Unable to get location. Please check your GPS signal.');
                 },
-                { enableHighAccuracy: true, timeout: 10000 }
+                // maximumAge lets a recent cached fix return instantly → the map opens
+                // on the driver fast instead of waiting for a fresh high-accuracy fix.
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
             );
             watchId = navigator.geolocation.watchPosition(
                 (pos) => {
@@ -242,6 +254,7 @@ export default function ActiveRide() {
                     setAccuracy(acc ?? null);
                     setGeoError('');
                     setLocationDenied(false);
+                    try { localStorage.setItem('driver_last_pos', JSON.stringify([latitude, longitude])); } catch { /* ignore */ }
                     const currentBusId = busIdRef.current;
                     if (currentBusId) {
                         try {
@@ -539,7 +552,9 @@ export default function ActiveRide() {
         .filter(s => s.latitude && s.longitude)
         .map(s => ({ id: s.id, name: s.name, sequence: s.sequence, lat: s.latitude!, lng: s.longitude! }));
 
-    const fallbackPos: [number, number] = [20.5937, 78.9629];
+    // Prefer the last-known driver position over the India-centre default.
+    const fallbackPos: [number, number] = lastPos || [20.5937, 78.9629];
+    const hasPos = !!(currentPos || lastPos);
 
     if (loading) {
         return (
@@ -619,13 +634,20 @@ export default function ActiveRide() {
 
             {/* Map — explicit height so Leaflet container has non-zero size */}
             <div className="bg-slate-200 dark:bg-slate-800 relative z-0" style={{ height: activeSosId ? 'calc(60vh - 48px)' : '60vh', marginTop: activeSosId ? '48px' : '0' }}>
-                <DriverMap
-                    userPosition={currentPos || fallbackPos}
-                    userHeading={heading}
-                    userAccuracy={accuracy}
-                    stops={mapStops}
-                    nextStopIndex={currentStopIndex}
-                />
+                {hasPos ? (
+                    <DriverMap
+                        userPosition={currentPos || fallbackPos}
+                        userHeading={heading}
+                        userAccuracy={accuracy}
+                        stops={mapStops}
+                        nextStopIndex={currentStopIndex}
+                    />
+                ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-500 dark:text-slate-400">
+                        <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                        <p className="text-sm font-medium">{t('Locating you…', 'உங்கள் இடத்தைக் கண்டறிகிறது…')}</p>
+                    </div>
+                )}
 
                 <button
                     onClick={() => setShowSosConfirm(true)}
