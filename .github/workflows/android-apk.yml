@@ -48,7 +48,14 @@ jobs:
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          set +e
+          ./gradlew assembleDebug --no-daemon --stacktrace > build.log 2>&1
+          rc=$?
+          echo "----- gradle tail -----"; tail -50 build.log
+          if [ "$rc" != "0" ]; then
+            grep -niE "FAILURE:|What went wrong|Caused by:|error:|Could not|not found|Unsupported|requires|Exception|^> " build.log | tail -12 | while IFS= read -r l; do echo "::error::${l}"; done
+            exit 1
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
