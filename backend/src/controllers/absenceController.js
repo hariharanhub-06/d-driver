@@ -52,13 +52,15 @@ const reportAbsence = async (req, res) => {
 const getTodayAbsences = async (req, res) => {
   try {
     const { getSchoolFilter } = require('../middleware/authMiddleware');
-    const { route_id, date } = req.query;
+    const { route_id, date, upcoming } = req.query;
 
     const dateStr = date || new Date().toLocaleDateString('en-CA');
     const dayStart = new Date(dateStr + 'T00:00:00');
     const dayEnd   = new Date(dateStr + 'T23:59:59.999');
 
-    const where = { ...getSchoolFilter(req), date: { gte: dayStart, lte: dayEnd } };
+    // `upcoming=true` (admin Leave Requests view): today onward, no upper bound.
+    const dateFilter = upcoming === 'true' ? { gte: dayStart } : { gte: dayStart, lte: dayEnd };
+    const where = { ...getSchoolFilter(req), date: dateFilter };
 
     if (req.user.role === 'driver' && route_id) {
       const routeStudentIds = await prisma.student.findMany({
@@ -74,6 +76,7 @@ const getTodayAbsences = async (req, res) => {
     const absences = await prisma.absenceReport.findMany({
       where,
       include: { student: { select: { id: true, name: true, grade: true, route_id: true, photo_url: true } } },
+      orderBy: { date: 'asc' },
     });
 
     res.json({ absences, count: absences.length });

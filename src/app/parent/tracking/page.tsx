@@ -20,6 +20,15 @@ import {
 
 const FreeMap = dynamic(() => import('@/components/ui/FreeMap'), { ssr: false });
 
+interface RouteStop {
+    id: string;
+    name: string;
+    latitude?: number;
+    longitude?: number;
+    sequence?: number;
+    pickup_time?: string;
+}
+
 interface ChildData {
     id: string;
     name: string;
@@ -27,7 +36,7 @@ interface ChildData {
     route_id?: string;
     bus?: { id?: string; bus_number?: string };
     bus_id?: string;
-    route?: { name?: string; bus_id?: string; bus?: { id?: string; bus_number?: string; drivers?: any[] } };
+    route?: { name?: string; bus_id?: string; bus?: { id?: string; bus_number?: string; drivers?: any[] }; stops?: RouteStop[] };
 }
 
 export default function ParentTracking() {
@@ -194,17 +203,26 @@ export default function ParentTracking() {
         return () => ctrl.abort();
     }, [tripStarted, busPosition, stopPos]);
 
+    // All stops on the child's assigned route (numbered), with the child's own stop highlighted.
+    const routeStops = childData?.route?.stops || [];
+    const stopMarkers = routeStops
+        .filter(s => s.latitude != null && s.longitude != null)
+        .map((s, idx) => ({
+            id: s.id,
+            position: [s.latitude!, s.longitude!] as [number, number],
+            title: s.name,
+            description: s.pickup_time ? `${s.name} · ${s.pickup_time}` : s.name,
+            stopNumber: s.sequence ?? idx + 1,
+            isMyStop: s.id === myStop?.id,
+        }));
+
     const markers = [
-        ...(tripStarted ? [{ position: busPosition, title: `Bus ${busNumber || busId || ''}`, isBus: true as const }] : []),
+        // Route stops (fallback to just the child's stop if the route has none with coords).
+        ...(stopMarkers.length > 0
+            ? stopMarkers
+            : (stopPos ? [{ id: myStop!.id, position: stopPos, title: myStop!.name, description: myStop!.name, isStopPin: true as const, isSelected: true }] : [])),
         ...(userLocation ? [{ position: userLocation, title: 'Your Location', isUserLocation: true as const }] : []),
-        ...(stopPos ? [{
-            id: myStop!.id,
-            position: stopPos,
-            title: myStop!.name,
-            description: myStop!.name,
-            isStopPin: true as const,
-            isSelected: true,
-        }] : []),
+        ...(tripStarted ? [{ position: busPosition, title: `Bus ${busNumber || busId || ''}`, isBus: true as const }] : []),
     ];
 
     const handleStopClick = (id: string, name: string) => {

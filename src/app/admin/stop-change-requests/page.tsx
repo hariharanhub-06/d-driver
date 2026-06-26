@@ -49,6 +49,7 @@ export default function StopChangeRequestsPage() {
         try {
             await api.put(`/stop-change/${req.id}/approve`);
             setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'approved' } : r));
+            window.dispatchEvent(new Event('pending-counts:refresh'));
         } catch (err: any) {
             alert(err?.response?.data?.details || err?.response?.data?.error || 'Failed to approve request');
         }
@@ -63,6 +64,7 @@ export default function StopChangeRequestsPage() {
             setRequests(prev => prev.map(r => r.id === rejectModal.id ? { ...r, status: 'rejected' } : r));
             setRejectModal(null);
             setAdminNote('');
+            window.dispatchEvent(new Event('pending-counts:refresh'));
         } catch { /* ignore */ }
         setIsSubmitting(false);
     };

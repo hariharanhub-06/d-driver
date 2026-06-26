@@ -10,7 +10,7 @@ const LABEL_TA: Record<string, string> = {
     'Bus Staff': 'பேருந்து ஊழியர்கள்', 'Routes': 'வழிகள்', 'Buses': 'பேருந்துகள்',
     'Tracking': 'கண்காணிப்பு', 'Attendance': 'வருகை பதிவு', 'Fees': 'கட்டணம்',
     'Fuel Requests': 'எரிபொருள்', 'Shift Logs': 'பணிமாற்றம்', 'Bus Switches': 'பேருந்து மாற்றம்',
-    'Stop Requests': 'நிறுத்தம்', 'Notifications': 'அறிவிப்புகள்', 'Reports': 'அறிக்கைகள்',
+    'Stop Requests': 'நிறுத்தம்', 'Leave Requests': 'விடுப்பு', 'Notifications': 'அறிவிப்புகள்', 'Reports': 'அறிக்கைகள்',
     'Settings': 'அமைப்புகள்', 'Schools': 'பள்ளிகள்', 'Billing': 'கட்டணப் பட்டியல்',
     'Revenue': 'வருவாய்', 'Expenses': 'செலவுகள்', 'SA Users': 'SA பயனர்கள்',
     'Audit Trail': 'தணிக்கை', 'Maintenance': 'பராமரிப்பு', 'Profile': 'சுயவிவரம்', 'Ride': 'பயணம்',
@@ -22,7 +22,7 @@ import {
     Bus, CreditCard, ShieldCheck, Building2, Truck, Map,
     MapPin, CheckSquare, Locate, Bell, BarChart2,
     Fuel, GitMerge, ArrowLeftRight, X, User,
-    DollarSign, Activity, ClipboardList, BookOpen, Shield
+    DollarSign, Activity, ClipboardList, BookOpen, Shield, CalendarX
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -37,6 +37,9 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
     const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
 
     // Live count badges of incoming items awaiting admin action (admin only).
+    // Refetches on navigation (pathname), every 60s, and whenever an action page
+    // dispatches `pending-counts:refresh` (so a badge clears immediately after
+    // approving/rejecting — no manual refresh needed).
     useEffect(() => {
         if (user?.role !== 'admin') return;
         let active = true;
@@ -46,8 +49,14 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 .catch(() => {});
         load();
         const id = setInterval(load, 60000);
-        return () => { active = false; clearInterval(id); };
-    }, [user?.role]);
+        const onRefresh = () => load();
+        window.addEventListener('pending-counts:refresh', onRefresh);
+        return () => {
+            active = false;
+            clearInterval(id);
+            window.removeEventListener('pending-counts:refresh', onRefresh);
+        };
+    }, [user?.role, pathname]);
 
     const getNavItems = () => {
         const role = user?.role || 'admin';
@@ -122,6 +131,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 { icon: GitMerge, label: 'Shift Logs', href: '/admin/shift-logs', disabled: !allow('shift_tracking') },
                 { icon: ArrowLeftRight, label: 'Bus Switches', href: '/admin/bus-switches' },
                 { icon: MapPin, label: 'Stop Requests', href: '/admin/stop-change-requests', disabled: !allow('stop_change_requests') },
+                { icon: CalendarX, label: 'Leave Requests', href: '/admin/leave-requests' },
                 { icon: Bell, label: 'Notifications', href: '/admin/notifications' },
                 { icon: BarChart2, label: 'Reports', href: '/admin/reports' },
                 { icon: Settings, label: 'Settings', href: '/admin/settings', tourId: 'settings' },

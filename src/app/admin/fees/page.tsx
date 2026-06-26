@@ -106,6 +106,7 @@ export default function FeesPage() {
             });
             setDelayAction(null);
             fetchDelayRequests();
+            window.dispatchEvent(new Event('pending-counts:refresh'));
         } catch (err: any) {
             alert(err?.response?.data?.error || 'Action failed');
         } finally { setDelayActionLoading(false); }

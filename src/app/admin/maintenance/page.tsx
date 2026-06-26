@@ -57,6 +57,7 @@ export default function AdminMaintenancePage() {
             });
             setActionModal(null);
             fetchRecords();
+            window.dispatchEvent(new Event('pending-counts:refresh'));
         } catch (err: any) {
             alert(err?.response?.data?.error || 'Action failed');
         } finally { setActionLoading(false); }

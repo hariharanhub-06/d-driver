@@ -131,11 +131,13 @@ const getFinancials = async (req, res) => {
 const getPendingCounts = async (req, res) => {
   try {
     const where = getSchoolFilter(req);
-    const [stopChange, fuel, maintenance, feeDelay] = await Promise.all([
+    const todayStart = new Date(new Date().toLocaleDateString('en-CA') + 'T00:00:00');
+    const [stopChange, fuel, maintenance, feeDelay, leave] = await Promise.all([
       prisma.stopChangeRequest.count({ where: { ...where, status: 'pending' } }),
       prisma.fuelRequest.count({ where: { ...where, status: 'pending' } }),
       prisma.maintenanceRecord.count({ where: { ...where, status: 'pending' } }),
       prisma.feeDelayRequest.count({ where: { ...where, status: 'pending' } }),
+      prisma.absenceReport.count({ where: { ...where, date: { gte: todayStart } } }),
     ]);
 
     res.json({
@@ -143,6 +145,7 @@ const getPendingCounts = async (req, res) => {
       '/admin/fuel-requests': fuel,
       '/admin/maintenance': maintenance,
       '/admin/fees': feeDelay,
+      '/admin/leave-requests': leave,
     });
   } catch (err) {
     console.error('getPendingCounts error:', err);

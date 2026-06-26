@@ -138,6 +138,7 @@ export default function FuelRequestsPage() {
                 : r
             ));
             setActionModal(null);
+            window.dispatchEvent(new Event('pending-counts:refresh'));
         } catch { /* ignore */ }
         setIsSubmitting(false);
     };
