@@ -17,7 +17,7 @@ const KeepAlive = dynamic(() => import('@/components/KeepAlive'), { ssr: false }
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://d-driver.vercel.app"),
+  metadataBase: new URL("https://onlive.co.in"),
   title: "Onlive — School Bus Tracking",
   description: "Onlive — School bus transport management & live tracking",
   manifest: "/manifest.webmanifest",

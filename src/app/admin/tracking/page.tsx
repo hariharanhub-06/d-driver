@@ -316,9 +316,9 @@ export default function TrackingPage() {
                 <div className="bg-red-50 text-red-600 border border-red-200 rounded-xl p-3 text-sm">{error}</div>
             )}
 
-            <div className="flex h-[calc(100vh-200px)] gap-4">
+            <div className="flex flex-col lg:flex-row h-[calc(100vh-200px)] gap-4">
                 {/* Bus list — derived from trips, always shows active trips */}
-                <div className="w-72 shrink-0 overflow-y-auto space-y-3 pr-1">
+                <div className="w-full lg:w-72 lg:shrink-0 overflow-y-auto space-y-3 pr-1 max-h-[38vh] lg:max-h-none">
                     {loading ? (
                         <div className="flex justify-center py-16">
                             <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
@@ -382,7 +382,7 @@ export default function TrackingPage() {
                 </div>
 
                 {/* Map */}
-                <div className="flex-1 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                <div className="flex-1 min-h-[320px] bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
                     <MapComponent
                         buses={mapBuses}
                         center={mapCenter}
@@ -394,7 +394,7 @@ export default function TrackingPage() {
 
                 {/* Stop panel */}
                 {selectedStop && (
-                    <div className="w-80 shrink-0 flex flex-col bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div className="w-full lg:w-80 lg:shrink-0 flex flex-col bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
                         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
                             <div className="flex items-center gap-2 min-w-0">
                                 <div className="w-7 h-7 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center shrink-0">

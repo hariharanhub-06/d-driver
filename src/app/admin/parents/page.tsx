@@ -90,7 +90,11 @@ export default function ParentsPage() {
 
     const buildShareText = (parent: Parent) => {
         const slug = school?.slug || 'your-school';
-        const link = `http://${slug}.ddriver.app/login`;
+        // Follow the current domain (e.g. onlive.co.in); use {slug}.{base}/login only
+        // when a base domain is explicitly configured for subdomain portals.
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN;
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        const link = baseDomain ? `https://${slug}.${baseDomain}/login` : `${origin}/login?school=${slug}`;
         const lines = [
             `Hello ${parent.name}, your child's bus portal login:`,
             `Email: ${parent.email}`,

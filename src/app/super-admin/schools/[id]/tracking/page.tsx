@@ -246,9 +246,9 @@ export default function SchoolTrackingPage() {
     );
 
     return (
-        <div className="flex h-[calc(100vh-120px)] gap-4 overflow-hidden">
+        <div className="flex flex-col lg:flex-row h-[calc(100vh-120px)] gap-4 lg:overflow-hidden">
             {/* Left panel */}
-            <div className="w-72 shrink-0 flex flex-col gap-3 overflow-y-auto pr-1">
+            <div className="w-full lg:w-72 lg:shrink-0 flex flex-col gap-3 overflow-y-auto pr-1 max-h-[38vh] lg:max-h-none">
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Live Buses</span>
@@ -318,7 +318,7 @@ export default function SchoolTrackingPage() {
             </div>
 
             {/* Map */}
-            <div className="flex-1 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm">
+            <div className="flex-1 min-h-[320px] rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm">
                 <MapComponent
                     buses={positions}
                     center={positions.length > 0 ? [positions[0].latitude, positions[0].longitude] : undefined}
@@ -330,7 +330,7 @@ export default function SchoolTrackingPage() {
 
             {/* Stop panel */}
             {selectedStop && (
-                <div className="w-80 shrink-0 flex flex-col bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="w-full lg:w-80 lg:shrink-0 flex flex-col bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
                         <div className="flex items-center gap-2 min-w-0">
                             <div className="w-7 h-7 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center shrink-0">
