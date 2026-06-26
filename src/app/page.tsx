@@ -236,8 +236,14 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-[#22c55e] rounded-full flex items-center justify-center shadow shadow-green-400/30 flex-shrink-0">
-              <Bus className="w-4.5 h-4.5 text-white w-[18px] h-[18px]" />
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-[#0a0f1e] flex items-center justify-center shadow flex-shrink-0">
+              {config.platform_logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={config.platform_logo_url} alt={config.product_name} className="w-full h-full object-contain" />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src="/icons/onlive-logo.png" alt={config.product_name} className="w-full h-full object-contain" />
+              )}
             </div>
             <span className="text-xl font-bold text-[#0F172A] dark:text-white tracking-tight">
               {config.product_name}
