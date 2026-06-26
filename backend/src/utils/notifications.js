@@ -4,7 +4,7 @@ let _io = null;
 const setIo = (io) => { _io = io; };
 
 // Default mobile notification tone (bundled school-bus horn). Platform-wide.
-const NOTIFICATION_SOUND = process.env.NOTIFICATION_SOUND || 'bus-horn.wav';
+const NOTIFICATION_SOUND = process.env.NOTIFICATION_SOUND || 'bus_horn.wav';
 const ANDROID_CHANNEL_ID = 'alerts-horn-v1';
 
 /**

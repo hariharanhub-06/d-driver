@@ -45,6 +45,6 @@ router.patch('/:id',        requireRole('admin', 'super_admin'), updateUser);
 router.patch('/:id/active',           requireRole('admin', 'super_admin'), toggleUserActive);
 router.patch('/:id/reset-password',   requireRole('super_admin', 'admin'), resetUserPassword);
 router.post('/:id/send-reset-email',  requireRole('admin', 'super_admin'), sendResetEmail);
-router.delete('/:id',                 requireRole('super_admin'), deleteUser);
+router.delete('/:id',                 requireRole('admin', 'super_admin'), deleteUser);
 
 module.exports = router;

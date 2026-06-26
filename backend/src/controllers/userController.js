@@ -183,12 +183,22 @@ const deleteUser = async (req, res) => {
 
         const target = await prisma.user.findUnique({
             where: { id },
-            select: { role: true, is_dev_sa: true },
+            select: { role: true, is_dev_sa: true, school_id: true },
         });
         if (!target) return res.status(404).json({ error: 'User not found' });
 
         if (target.is_dev_sa && !req.user.is_dev_sa) {
             return res.status(403).json({ error: 'Cannot delete a dev SA account' });
+        }
+
+        // Admins may only delete non-admin users within their own school.
+        if (req.user.role === 'admin' && !req.user.is_dev_sa) {
+            if (target.school_id !== req.user.school_id) {
+                return res.status(403).json({ error: 'You can only delete users in your own school' });
+            }
+            if (!['parent', 'driver', 'bus_staff'].includes(target.role)) {
+                return res.status(403).json({ error: 'Admins cannot delete admin or super-admin accounts' });
+            }
         }
 
         await prisma.user.delete({ where: { id } });
