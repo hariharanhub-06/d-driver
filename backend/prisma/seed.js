@@ -20,31 +20,30 @@ function syncSchema() {
 async function main() {
   syncSchema();
 
-  const email = process.env.SA_EMAIL;
+  const email = process.env.SA_EMAIL?.toLowerCase().trim();
   const password = process.env.SA_PASSWORD;
 
-  if (!email || !password) {
-    throw new Error('SA_EMAIL and SA_PASSWORD must be set in .env before running seed');
-  }
-
   // ─── DEV SA ACCOUNT ──────────────────────────────────────────────────────────
-  const hashed = await bcrypt.hash(password, 12);
-
-  const devSa = await prisma.user.upsert({
-    where: { email },
-    update: { password: hashed, is_dev_sa: true, is_active: true, is_first_login: false },
-    create: {
-      name: 'Dev Super Admin',
-      email,
-      password: hashed,
-      role: 'super_admin',
-      is_dev_sa: true,
-      is_active: true,
-      is_first_login: false,
-    },
-  });
-
-  console.log(`✓ DEV SA: ${devSa.email} (is_dev_sa=true, role=super_admin, is_first_login=false)`);
+  // Non-fatal: if the env vars aren't set on this host, skip (don't fail the build).
+  if (email && password) {
+    const hashed = await bcrypt.hash(password, 12);
+    const devSa = await prisma.user.upsert({
+      where: { email },
+      update: { password: hashed, is_dev_sa: true, is_active: true, is_first_login: false },
+      create: {
+        name: 'Dev Super Admin',
+        email,
+        password: hashed,
+        role: 'super_admin',
+        is_dev_sa: true,
+        is_active: true,
+        is_first_login: false,
+      },
+    });
+    console.log(`✓ DEV SA: ${devSa.email} (is_dev_sa=true, role=super_admin, password set from SA_PASSWORD)`);
+  } else {
+    console.warn('⚠ SA_EMAIL/SA_PASSWORD not set on this host — skipping dev SA seed (login password unchanged).');
+  }
 
   // ─── PLATFORM CONFIG SINGLETON ───────────────────────────────────────────────
   await prisma.platformConfig.upsert({

@@ -25,9 +25,17 @@ export default function InstallPrompt() {
         if (standalone) return;
 
         // iOS Safari doesn't fire beforeinstallprompt → show manual instructions instead.
+        // iOS also can't tell us the app is already installed (no standalone signal in
+        // the browser tab), so we honour a persisted dismissal to avoid nagging users
+        // who've already added it to their home screen.
         const ua = navigator.userAgent;
         const ios = /iphone|ipad|ipod/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
         if (ios) {
+            try {
+                if (localStorage.getItem('onlive_ios_install_dismissed') === '1') return;
+            } catch {
+                /* storage blocked — fall through and show */
+            }
             setIsIOS(true);
             setVisible(true);
             return;
@@ -120,7 +128,18 @@ export default function InstallPrompt() {
             <button
                 type="button"
                 aria-label="Dismiss"
-                onClick={() => setVisible(false)}
+                onClick={() => {
+                    setVisible(false);
+                    // On iOS we can't detect an existing install, so remember the
+                    // dismissal. On Android the event simply won't fire once installed.
+                    if (isIOS) {
+                        try {
+                            localStorage.setItem('onlive_ios_install_dismissed', '1');
+                        } catch {
+                            /* ignore */
+                        }
+                    }
+                }}
                 style={{
                     flexShrink: 0,
                     background: 'transparent',
