@@ -26,7 +26,7 @@ const logAction = async ({ req, action, targetType, targetId, schoolId = null, d
         target_type: targetType,
         target_id: String(targetId),
         school_id: schoolId || actor.school_id || null,
-        ip_address: req.ip || req.headers['x-forwarded-for'] || null,
+        ip_address: req.ip || req.headers?.['x-forwarded-for'] || null,
       },
     });
   } catch (e) {

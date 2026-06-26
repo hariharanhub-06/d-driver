@@ -43,6 +43,9 @@ const maintenanceRoutes = require('./routes/maintenanceRoutes');
 const platformRoutes = require('./routes/platformRoutes');
 
 const app = express();
+// Render runs behind a proxy that sets X-Forwarded-For — trust it so req.ip is the
+// real client IP and express-rate-limit / audit logging work correctly.
+app.set('trust proxy', 1);
 const httpServer = require('http').createServer(app);
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
@@ -52,8 +55,11 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [
       process.env.FRONTEND_URL,
       'https://d-driver.vercel.app',
+      'https://onlive.co.in',
+      'https://www.onlive.co.in',
       /\.vercel\.app$/,
       /\.ddriver\.app$/,
+      /\.onlive\.co\.in$/,
     ].filter(Boolean)
   : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'];
 
