@@ -1,9 +1,25 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const { execSync } = require('child_process');
 
 const prisma = new PrismaClient();
 
+// Ensure the DB schema matches prisma/schema.prisma before seeding. This makes the
+// deploy self-healing even if the build command doesn't run `prisma db push`
+// (adds new nullable columns like User.expo_push_token). Idempotent & safe.
+function syncSchema() {
+  try {
+    console.log('Syncing database schema (prisma db push)...');
+    execSync('npx prisma db push --accept-data-loss --skip-generate', { stdio: 'inherit' });
+  } catch (err) {
+    console.error('prisma db push failed:', err.message);
+    throw err;
+  }
+}
+
 async function main() {
+  syncSchema();
+
   const email = process.env.SA_EMAIL;
   const password = process.env.SA_PASSWORD;
 
