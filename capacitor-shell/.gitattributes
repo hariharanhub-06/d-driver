@@ -1,0 +1,8 @@
+# Keep shell scripts LF so they run on the Linux CI runner.
+gradlew text eol=lf
+*.sh text eol=lf
+# Treat binaries as binary (no line-ending conversion).
+*.jar binary
+*.keystore binary
+*.png binary
+*.webp binary

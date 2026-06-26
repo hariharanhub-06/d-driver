@@ -1,0 +1,53 @@
+name: Build Onlive Android APK (Capacitor)
+
+# Builds an installable debug APK in the cloud (no local Android SDK needed).
+# Run automatically on changes to the shell, or manually from the Actions tab.
+on:
+  push:
+    paths:
+      - 'capacitor-shell/**'
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: capacitor-shell
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Capacitor sync
+        run: npx cap sync android
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: onlive-android-apk
+          path: capacitor-shell/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

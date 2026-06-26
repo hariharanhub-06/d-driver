@@ -1,0 +1,10 @@
+node_modules/
+# Android build output (the CI rebuilds these); keep the project sources.
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/captures/
+android/.idea/
+*.keystore
+!debug.keystore

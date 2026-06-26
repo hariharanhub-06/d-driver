@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Onlive</string>
+    <string name="title_activity_main">Onlive</string>
+    <string name="package_name">com.onlive.app</string>
+    <string name="custom_url_scheme">com.onlive.app</string>
+</resources>
