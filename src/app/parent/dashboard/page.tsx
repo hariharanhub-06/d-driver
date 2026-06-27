@@ -221,7 +221,7 @@ export default function ParentDashboard() {
 
                 {/* Live map embedded directly on the dashboard */}
                 {!loading && primaryChild && canTrack && (
-                    <LiveTrackingMap child={primaryChild as any} heightClass="h-72" />
+                    <LiveTrackingMap child={primaryChild as any} heightClass="h-72" tripActive={!progress || progress.status === 'running'} />
                 )}
 
                 {/* Bus stops timeline — passed / current / upcoming based on the live trip */}

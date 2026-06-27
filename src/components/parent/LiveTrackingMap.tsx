@@ -32,7 +32,7 @@ interface Child {
 
 // Embeddable live bus map: route stops (numbered, child's highlighted) + live bus +
 // the parent's location, with real distance/ETA. Used on the parent dashboard.
-export default function LiveTrackingMap({ child, heightClass = 'h-72' }: { child?: Child; heightClass?: string }) {
+export default function LiveTrackingMap({ child, heightClass = 'h-72', tripActive = true }: { child?: Child; heightClass?: string; tripActive?: boolean }) {
     const t = useT();
     const [busPosition, setBusPosition] = useState<[number, number]>([11.1271, 78.6569]);
     const [busTimestamp, setBusTimestamp] = useState<number | null>(null);
@@ -97,7 +97,9 @@ export default function LiveTrackingMap({ child, heightClass = 'h-72' }: { child
         return () => { s.off('location-updated', onUpdate); s.off('trip-completed', onCompleted); };
     }, [busId]);
 
-    const tripStarted = isLocationFresh(busTimestamp, now);
+    // Also require a running trip — otherwise the bus lingers after the driver ends the
+    // trip (the last fix stays "fresh" for 90s while the poll keeps re-marking it).
+    const tripStarted = isLocationFresh(busTimestamp, now) && tripActive;
     const mapCenter: [number, number] = tripStarted ? busPosition : (userLocation || stopPos || busPosition);
 
     // Throttled ETA to the child's stop.

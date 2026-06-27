@@ -230,7 +230,10 @@ export default function ParentTracking() {
         ? [myStop.latitude, myStop.longitude] : null;
 
     // The bus is "live / on a trip" only when its last fix is recent.
-    const tripStarted = isLocationFresh(busTimestamp, now);
+    // Live only when the last fix is fresh AND a trip is actually running. Without the trip
+    // check, the bus kept showing after the driver ended the trip (the last location stays
+    // "fresh" for 90s and the poll keeps re-marking it). progress comes from /trips/progress.
+    const tripStarted = isLocationFresh(busTimestamp, now) && (!progress || progress.status === 'running');
     const mapCenter: [number, number] = tripStarted ? busPosition : (userLocation || stopPos || busPosition);
 
     // Recompute ETA (throttled) whenever the bus moves while a trip is running.
