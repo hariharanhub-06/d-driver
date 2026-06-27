@@ -2,6 +2,6 @@
 
 import NotificationsView from '@/components/NotificationsView';
 
-export default function NotificationsPage() {
+export default function BusStaffNotificationsPage() {
     return <NotificationsView />;
 }

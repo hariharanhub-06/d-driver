@@ -10,6 +10,15 @@ import { useTour } from '@/components/tour/TourProvider';
 import { useLang, type Lang } from '@/context/LanguageContext';
 import { useT } from '@/lib/i18n';
 import api from '@/lib/api';
+import { notificationHref } from '@/lib/notificationLink';
+
+// Map a role to its notifications route (kept in one place so "View all" never 404s).
+const notificationsRouteFor = (role?: string) =>
+    role === 'super_admin' ? '/super-admin/notifications'
+    : role === 'driver' ? '/driver/notifications'
+    : role === 'bus_staff' ? '/bus-staff/notifications'
+    : role === 'parent' ? '/parent/notifications'
+    : '/admin/notifications';
 
 interface RealNotification {
     id: string;
@@ -88,6 +97,18 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
             setUnreadCount(0);
         } catch { /* silent */ }
+    };
+
+    // Click a notification → mark it read and deep-link to the relevant tab (falls back
+    // to the full notifications list when there's no specific destination).
+    const handleNotifClick = (n: RealNotification) => {
+        setIsNotificationOpen(false);
+        if (!n.is_read) {
+            api.put(`/notifications/${n.id}/read`).catch(() => {});
+            setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
+            setUnreadCount(c => Math.max(0, c - 1));
+        }
+        router.push(notificationHref(n.message, user?.role) || notificationsRouteFor(user?.role));
     };
 
     const timeAgo = (dateStr: string) => {
@@ -199,7 +220,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                                         {t('No notifications', 'அறிவிப்புகள் இல்லை')}
                                     </div>
                                 ) : notifications.map(n => (
-                                    <div key={n.id} className={cn(
+                                    <div key={n.id} onClick={() => handleNotifClick(n)} className={cn(
                                         'p-4 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer group',
                                         !n.is_read && 'bg-[var(--brand)]/5'
                                     )}>
@@ -219,7 +240,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                             <div
                                 onClick={() => {
                                     setIsNotificationOpen(false);
-                                    router.push(`/${user?.role === 'super_admin' ? 'super-admin' : user?.role === 'driver' ? 'driver' : 'admin'}/notifications`);
+                                    router.push(notificationsRouteFor(user?.role));
                                 }}
                                 className="p-3 text-center bg-slate-50 dark:bg-slate-700/50 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest cursor-pointer hover:text-[var(--brand)] transition-colors"
                             >

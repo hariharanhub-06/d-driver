@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { BellOff, Check, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 import { ta } from '@/lib/i18n';
+import { notificationHref } from '@/lib/notificationLink';
 
 interface Notification {
     id: string;
@@ -15,6 +17,7 @@ interface Notification {
 
 // ── ALL EXISTING LOGIC PRESERVED ──────────────────────────────────────────
 export default function ParentNotificationsPage() {
+    const router = useRouter();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -75,8 +78,14 @@ export default function ParentNotificationsPage() {
         catch { return ''; }
     };
 
+    const handleCardClick = (n: Notification) => {
+        if (!n.is_read) markRead(n.id);
+        const href = notificationHref(n.message, 'parent');
+        if (href) router.push(href);
+    };
+
     const NotifCard = ({ n }: { n: Notification }) => (
-        <div onClick={() => !n.is_read && markRead(n.id)} className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${typeBg(n.type, n.is_read)}`}>
+        <div onClick={() => handleCardClick(n)} className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${typeBg(n.type, n.is_read)}`}>
             <span className="text-xl shrink-0 mt-0.5">{typeIcon(n.type)}</span>
             <div className="flex-1 min-w-0">
                 <p className="text-sm text-slate-800 dark:text-slate-200 leading-snug">{n.message}</p>
