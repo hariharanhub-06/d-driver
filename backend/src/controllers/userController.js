@@ -347,11 +347,8 @@ const sendResetEmail = async (req, res) => {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        // Invalidate any existing tokens
-        await prisma.passwordResetToken.updateMany({
-            where: { user_id: target.id, used: false },
-            data: { used: true },
-        });
+        // Don't invalidate prior tokens — leaving recent links valid (still single-use, 1h)
+        // avoids "link expired" when more than one reset email was sent.
 
         const rawToken = crypto.randomBytes(32).toString('hex');
         const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');

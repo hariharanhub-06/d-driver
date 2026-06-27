@@ -170,11 +170,10 @@ const forgotPassword = async (req, res) => {
     // Always return success to prevent user enumeration
     if (!user) return res.json({ message: 'If an account exists, a reset link has been sent.' });
 
-    // Invalidate any existing active tokens for this user
-    await prisma.passwordResetToken.updateMany({
-      where: { user_id: user.id, used: false },
-      data: { used: true },
-    });
+    // NOTE: we intentionally do NOT invalidate previously-issued tokens here. Doing so meant
+    // that if a user requested the link more than once, the earlier emails' links silently
+    // stopped working ("link expired"). Each token is still single-use and expires in 1 hour,
+    // so leaving recent links valid is safe and far less confusing.
 
     // Generate and hash a new secure token
     const rawToken = crypto.randomBytes(32).toString('hex');
