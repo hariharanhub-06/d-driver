@@ -203,7 +203,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                     </button>
 
                     {isNotificationOpen && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden animate-in z-50">
+                        <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden animate-in z-50">
                             <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-widest">
                                     {t('Notifications', 'அறிவிப்புகள்')}
