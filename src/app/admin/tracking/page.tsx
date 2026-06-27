@@ -6,6 +6,7 @@ import { Bus, Navigation, Clock, MapPin, Users, X, UserPlus, Loader2, Check, Wif
 import api from '@/lib/api';
 import { useSchoolBranding } from '@/context/SchoolBrandingContext';
 import { useT } from '@/lib/i18n';
+import { isLocationFresh } from '@/lib/tracking';
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
 
@@ -262,6 +263,9 @@ export default function TrackingPage() {
             driver_name: trip.driver?.user?.name || 'Unknown Driver',
             route_name: trip.route?.name || 'Unknown Route',
             hasGps: !!loc,
+            // Live only if the last fix is recent. A stale fix means the driver went
+            // offline / logged out mid-trip — the bus shows at its last spot but OFFLINE.
+            isOnline: !!loc && isLocationFresh(loc.timestamp),
             latitude: loc?.latitude,
             longitude: loc?.longitude,
             timestamp: loc?.timestamp || '',
@@ -347,11 +351,17 @@ export default function TrackingPage() {
                                         </div>
                                         <span className="font-bold text-sm text-slate-900 dark:text-white">{bus.bus_number}</span>
                                     </div>
-                                    {bus.hasGps ? (
-                                        <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">{t('Live', 'நேரடி')}</span>
-                                    ) : (
+                                    {!bus.hasGps ? (
                                         <span className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
                                             <WifiOff className="w-3 h-3" /> {t('No GPS', 'GPS இல்லை')}
+                                        </span>
+                                    ) : bus.isOnline ? (
+                                        <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {t('Live', 'நேரடி')}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                                            <WifiOff className="w-3 h-3" /> {t('Offline', 'ஆஃப்லைன்')}
                                         </span>
                                     )}
                                 </div>
@@ -365,9 +375,9 @@ export default function TrackingPage() {
                                         <span>{bus.driver_name}</span>
                                     </div>
                                     {bus.hasGps && bus.timestamp && (
-                                        <div className="flex items-center gap-1 text-xs text-slate-400 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                                        <div className={`flex items-center gap-1 text-xs mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 ${bus.isOnline ? 'text-slate-400' : 'text-slate-500 dark:text-slate-300 font-medium'}`}>
                                             <Clock className="w-3 h-3" />
-                                            {timeAgo(bus.timestamp)}
+                                            {bus.isOnline ? timeAgo(bus.timestamp) : `${t('Last seen', 'கடைசியாக')} ${timeAgo(bus.timestamp)}`}
                                         </div>
                                     )}
                                 </div>

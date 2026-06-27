@@ -14,7 +14,8 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await api.post('/auth/forgot-password', { email });
+      // Backend expects { value, method } — method 'email' looks the user up by email.
+      await api.post('/auth/forgot-password', { value: email.trim(), method: 'email' });
     } catch {
       // Silently swallow to prevent email enumeration
     } finally {

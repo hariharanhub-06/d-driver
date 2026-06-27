@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Bus, Clock, User, MapPin, Loader2, AlertCircle, Users, X, UserPlus, Check } from 'lucide-react';
+import { Bus, Clock, User, MapPin, Loader2, AlertCircle, Users, X, UserPlus, Check, WifiOff } from 'lucide-react';
+import { isLocationFresh } from '@/lib/tracking';
 import api from '@/lib/api';
 
 const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false });
@@ -294,8 +295,17 @@ export default function SchoolTrackingPage() {
                                     <div className="min-w-0">
                                         <p className="text-slate-900 dark:text-white font-semibold text-sm truncate">{pos.bus_number || pos.bus_id}</p>
                                         <div className="flex items-center gap-1 mt-0.5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">En Route</span>
+                                            {isLocationFresh(pos.timestamp) ? (
+                                                <>
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">En Route</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <WifiOff className="w-3 h-3 text-slate-400" />
+                                                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Offline</span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -314,7 +324,7 @@ export default function SchoolTrackingPage() {
                                     )}
                                     <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
                                         <Clock className="w-3 h-3 shrink-0" />
-                                        <span className="text-xs">Updated {formatTime(pos.timestamp)}</span>
+                                        <span className="text-xs">{isLocationFresh(pos.timestamp) ? 'Updated' : 'Last seen'} {formatTime(pos.timestamp)}</span>
                                     </div>
                                 </div>
                             </button>

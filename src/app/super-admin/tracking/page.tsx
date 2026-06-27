@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Bus, Navigation, Clock, MapPin, Users, X, UserPlus, Loader2, Check, Building2 } from 'lucide-react';
+import { Bus, Navigation, Clock, MapPin, Users, X, UserPlus, Loader2, Check, Building2, WifiOff } from 'lucide-react';
+import { isLocationFresh } from '@/lib/tracking';
 import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
 
@@ -376,7 +377,15 @@ export default function SATrackingPage() {
                                         </div>
                                         <span className="font-bold text-sm text-slate-900 dark:text-white">{bus.bus_number}</span>
                                     </div>
-                                    <span className="inline-flex items-center bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">{t('Running', 'இயக்கத்தில்')}</span>
+                                    {isLocationFresh(bus.timestamp) ? (
+                                        <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {t('Live', 'நேரடி')}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-full px-2.5 py-0.5 text-xs font-medium">
+                                            <WifiOff className="w-3 h-3" /> {t('Offline', 'ஆஃப்லைன்')}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5 pl-1">
                                     {bus.school_name && (
@@ -396,7 +405,7 @@ export default function SATrackingPage() {
                                     <div className="flex items-center justify-between text-xs text-slate-400 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
                                         <span className="flex items-center gap-1">
                                             <Clock className="w-3 h-3" />
-                                            {timeAgo(bus.timestamp)}
+                                            {isLocationFresh(bus.timestamp) ? timeAgo(bus.timestamp) : `${t('Last seen', 'கடைசியாக')} ${timeAgo(bus.timestamp)}`}
                                         </span>
                                     </div>
                                 </div>
