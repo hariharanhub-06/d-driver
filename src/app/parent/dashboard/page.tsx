@@ -70,7 +70,7 @@ export default function ParentDashboard() {
     const tomorrow = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-CA'); })();
     const [absentForm, setAbsentForm] = useState({ student_id: '', from_date: tomorrow, to_date: tomorrow, reason: '' });
     const [submitting, setSubmitting] = useState(false);
-    const [progress, setProgress] = useState<{ current_stop_index: number; status: string; trip_type?: string | null; students_onboard: number; students_total: number } | null>(null);
+    const [progress, setProgress] = useState<{ current_stop_index: number; status: string; trip_type?: string | null; stops?: any[]; students_onboard: number; students_total: number } | null>(null);
 
     useEffect(() => {
         fetchAll();
@@ -228,7 +228,7 @@ export default function ParentDashboard() {
                 {!loading && primaryChild && canTrack && ((primaryChild.route as any)?.stops?.length > 0) && (
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
                         <StopTimeline
-                            stops={stopsForTrip<any>((primaryChild.route as any).stops, progress?.trip_type)}
+                            stops={progress?.stops?.length ? progress.stops : stopsForTrip<any>((primaryChild.route as any).stops, progress?.trip_type)}
                             currentStopIndex={progress?.current_stop_index ?? 0}
                             myStopId={primaryChild.stop?.id}
                             status={progress?.status || 'idle'}

@@ -26,6 +26,7 @@ interface TripProgress {
     current_stop_index: number;
     status: string;
     trip_type?: string | null;
+    stops?: RouteStop[];
     students_onboard: number;
     students_total: number;
 }
@@ -250,9 +251,11 @@ export default function ParentTracking() {
         return () => ctrl.abort();
     }, [tripStarted, busPosition, stopPos]);
 
-    // Stops for the active trip's direction (morning/evening), so map pins + the timeline
-    // match the trip and don't duplicate the start/end.
-    const routeStops = stopsForTrip(childData?.route?.stops || [], progress?.trip_type);
+    // Prefer the backend's authoritative ordered stop list (matches the driver exactly);
+    // fall back to client-side ordering when there's no live trip data.
+    const routeStops = progress?.stops?.length
+        ? progress.stops
+        : stopsForTrip(childData?.route?.stops || [], progress?.trip_type);
     const stopMarkers = routeStops
         .filter(s => s.latitude != null && s.longitude != null)
         .map((s, idx) => ({

@@ -1,6 +1,19 @@
 const prisma = require('../prisma');
 const { notifyAdmins } = require('../utils/notifications');
 
+// Canonical stop order for a trip — used by BOTH the driver (getActiveTrips) and the parent
+// timeline (getTripProgress) so they ALWAYS agree on order + current_stop_index.
+//   - Route with both morning + evening copies → only the matching half.
+//   - Route with one (morning) set → an evening trip runs it in reverse (school → home).
+// `stops` must already be ordered by sequence asc.
+function orderStopsForTrip(stops, direction) {
+  if (!Array.isArray(stops) || stops.length === 0) return Array.isArray(stops) ? stops : [];
+  const hasEvening = stops.some(s => s.trip_type === 'evening');
+  if (hasEvening) return stops.filter(s => s.trip_type === direction);
+  if (direction === 'evening') return [...stops].reverse();
+  return stops;
+}
+
 // POST /api/v1/trips/start
 const startTrip = async (req, res) => {
   try {
@@ -241,15 +254,7 @@ const getActiveTrips = async (req, res) => {
         const istHour = (startedAt.getUTCHours() + 5.5) % 24;
         // Prefer the driver's stored choice; fall back to the start-time heuristic.
         const tripType = trip.trip_type || (istHour >= 12 ? 'evening' : 'morning');
-        // If the route has both morning + evening copies, show only the relevant half.
-        // If it only has one (morning) set, an evening trip runs that set in REVERSE
-        // (school → home), so the driver heads to the last stop first.
-        const hasEvening = trip.route.stops.some(s => s.trip_type === 'evening');
-        if (hasEvening) {
-          trip.route.stops = trip.route.stops.filter(s => s.trip_type === tripType);
-        } else if (tripType === 'evening') {
-          trip.route.stops = [...trip.route.stops].reverse();
-        }
+        trip.route.stops = orderStopsForTrip(trip.route.stops, tripType);
       }
     }
 
@@ -403,9 +408,8 @@ const getTripProgress = async (req, res) => {
       studentsOnboard = present.length;
     }
 
-    // Trip direction (morning/evening) from the start time in IST — mirrors getActiveTrips,
-    // so the parent timeline can show the matching half of the route's stops.
-    let direction = null;
+    // Trip direction (morning/evening) — driver's stored choice, else start-time heuristic.
+    let direction = 'morning';
     if (trip) {
       if (trip.trip_type) {
         direction = trip.trip_type;
@@ -416,9 +420,19 @@ const getTripProgress = async (req, res) => {
       }
     }
 
+    // Return the EXACT ordered stop list the driver is traversing, computed the same way as
+    // getActiveTrips — so the parent timeline matches the bus 1:1 (order + current index).
+    const rawStops = await prisma.stop.findMany({
+      where: { route_id: routeId },
+      orderBy: { sequence: 'asc' },
+      select: { id: true, name: true, sequence: true, pickup_time: true, drop_time: true, latitude: true, longitude: true, trip_type: true },
+    });
+    const orderedStops = orderStopsForTrip(rawStops, direction);
+
     res.json({
       current_stop_index: trip?.current_stop_index ?? 0,
       status: trip?.status || 'idle',
+      stops: orderedStops,
       trip_type: direction,
       students_onboard: studentsOnboard,
       students_total: studentIds.length,
