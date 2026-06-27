@@ -24,7 +24,9 @@ const getClient = () => {
  * }} opts
  */
 const sendEmail = async ({ to, subject, html, template, school_id, from }) => {
-  let fromAddress = from || process.env.RESEND_FROM_DEFAULT || 'noreply@ddriver.app';
+  // Default to the verified domain (onlive.co.in). ddriver.app is NOT verified in Resend,
+  // so any send from it 403s. Falls back here only if RESEND_FROM_DEFAULT isn't set.
+  let fromAddress = from || process.env.RESEND_FROM_DEFAULT || 'noreply@onlive.co.in';
 
   // Use school's configured notification email if available
   if (school_id && !from) {
