@@ -370,22 +370,12 @@ export default function ActiveRide() {
     }, []);
 
     const currentStopIndex = tripData?.current_stop_index ?? 0;
-    const rawStops = tripData?.route?.stops || [];
-    const selectedTripType = typeof window !== 'undefined' ? localStorage.getItem('driver_trip_type') : null;
-    // Driver's explicit selection takes priority over the route's stored route_type.
-    // Only fall back to route_type if the driver hasn't picked a type this session.
-    const isEvening = selectedTripType
-        ? (selectedTripType === 'afternoon' || selectedTripType === 'evening')
-        : (tripData?.route?.route_type === 'afternoon' || tripData?.route?.route_type === 'evening');
-    // Filter stops by trip_type; fall back to all stops when filter yields nothing.
-    // For evening trips reverse the stop order (school → homes).
-    const hasTripTypeSplit = rawStops.some((s: any) => s.trip_type && s.trip_type !== 'morning');
-    const filteredStops = hasTripTypeSplit
-        ? rawStops.filter((s: any) => s.trip_type === (isEvening ? 'evening' : 'morning') || s.trip_type === 'both')
-        : rawStops;
-    const orderedStops = filteredStops.length > 0 ? filteredStops : rawStops;
-    // Evening always visits stops in reverse sequence (7→6→5→...→1)
-    const stops = isEvening ? [...orderedStops].reverse() : orderedStops;
+    // Stops arrive ALREADY filtered + ordered for the trip direction from the backend
+    // (/trips/active runs orderStopsForTrip), and the parent's /trips/progress uses the
+    // SAME helper. Render them exactly as received — reversing again here would double-flip
+    // an evening trip back into morning order, which made the driver and parent timelines
+    // show opposite orders.
+    const stops = tripData?.route?.stops || [];
     const allStudents = tripData?.route?.students || [];
     const currentStop = stops[currentStopIndex];
     const nextStop = stops[currentStopIndex + 1];
