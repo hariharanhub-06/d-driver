@@ -222,14 +222,18 @@ const resetPassword = async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(new_password, 12);
+    // select only id so Prisma doesn't read back the full User row — avoids a 500 if the
+    // production DB is missing a column the client expects (schema drift).
     await prisma.user.update({
       where: { id: record.user_id },
       data: { password: hashed, is_first_login: false },
+      select: { id: true },
     });
 
     await prisma.passwordResetToken.update({
       where: { id: record.id },
       data: { used: true },
+      select: { id: true },
     });
 
     res.json({ message: 'Password reset successfully. You can now log in.' });
