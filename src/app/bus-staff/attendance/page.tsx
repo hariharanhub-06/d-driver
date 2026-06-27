@@ -2,10 +2,9 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef } from 'react';
-import { Check, X, Search, ChevronDown, LogOut, MapPin, Sun, Moon, Lock } from 'lucide-react';
+import { Check, X, Search, MapPin, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from 'next-themes';
 import api from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { useT } from '@/lib/i18n';
@@ -33,8 +32,7 @@ interface TripStop {
 }
 
 export default function BusStaffAttendancePage() {
-    const { user, logout } = useAuth();
-    const { theme, setTheme } = useTheme();
+    const { user } = useAuth();
     const t = useT();
     const [stops, setStops] = useState<TripStop[]>([]);
     const [loading, setLoading] = useState(true);
@@ -166,14 +164,14 @@ export default function BusStaffAttendancePage() {
         stop.students.length > 0 && stop.students.every(s => attendance[s.id]);
 
     const completedCount = stops.filter(isStopComplete).length;
-    const selectedStop = stops.find(s => s.id === selectedStopId);
-    const allStudents = stops.flatMap(s => s.students);
 
-    const displayedStudents = searchQuery
-        ? allStudents.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
-        : selectedStop?.students || [];
-
-    const drawerOpen = Boolean(selectedStopId || searchQuery);
+    // Tapping a stop on the map scrolls to (and highlights) that stop's section in the list.
+    const focusStop = (id: string) => {
+        setSelectedStopId(id);
+        setSearchQuery('');
+        const el = document.getElementById(`stop-${id}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
 
     const markers = [
         ...stops
@@ -188,6 +186,8 @@ export default function BusStaffAttendancePage() {
             })),
         ...(userLocation ? [{ position: userLocation, title: t('You', 'நீங்கள்'), isUserLocation: true as const }] : []),
     ];
+
+    const q = searchQuery.trim().toLowerCase();
 
     if (loading) return (
         <div className="h-full min-h-[60vh] bg-slate-50 flex items-center justify-center">
@@ -209,207 +209,147 @@ export default function BusStaffAttendancePage() {
         </div>
     );
 
-    return (
-        <div className="relative h-full overflow-hidden bg-slate-100">
-
-            {/* ── Header ── */}
-            <div className="absolute top-0 left-0 right-0 z-[400] bg-[var(--brand)] text-white px-5 pt-10 pb-4 shadow-lg">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/icons/onlive-logo.png" alt="Onlive" className="w-9 h-9 rounded-lg object-contain bg-[#0a0f1e] shrink-0" />
-                        <div className="min-w-0">
-                            <h1 className="text-lg font-bold leading-tight">{t('Attendance', 'வருகை பதிவு')}</h1>
-                            <p className="text-white/75 text-xs mt-0.5">
-                                {stops.length > 0
-                                    ? `${completedCount}/${stops.length} ${t('stops done', 'நிறுத்தங்கள் முடிந்தன')}`
-                                    : t('No active trip', 'செயல்பாட்டில் பயணம் இல்லை')}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                            className="p-1.5 text-white/70 hover:text-white border border-white/30 rounded-lg transition-colors"
-                            title={t('Toggle theme', 'தீம் மாற்று')}
-                        >
-                            {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-                        </button>
-                        <button
-                            onClick={logout}
-                            className="flex items-center gap-1.5 text-white/70 text-xs hover:text-white px-3 py-1.5 border border-white/30 rounded-lg transition-colors"
-                        >
-                            <LogOut className="w-3.5 h-3.5" />
-                            {t('Logout', 'வெளியேறு')}
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* ── Map ── */}
-            <div className="absolute left-0 right-0 bottom-0 z-0 top-[76px]">
-                {stops.length > 0 ? (
-                    <FreeMap
-                        center={mapCenter}
-                        zoom={14}
-                        markers={markers}
-                        onStopClick={(id) => {
-                            setSelectedStopId(id);
-                            setSearchQuery('');
-                        }}
-                    />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <div className="bg-white rounded-2xl p-8 text-center mx-6 shadow-sm border border-slate-100">
-                            <MapPin className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                            <p className="font-semibold text-slate-700">{t('No active trip', 'செயல்பாட்டில் பயணம் இல்லை')}</p>
-                            <p className="text-sm text-slate-400 mt-1">{t('Waiting for trip to begin', 'பயணம் தொடங்குவதற்காக காத்திருக்கிறோம்')}</p>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* ── Floating search bar ── */}
-            {stops.length > 0 && (
-                <div
-                    className="absolute left-4 right-4 z-[400] transition-all duration-300"
-                    style={{ bottom: drawerOpen ? 'calc(58vh + 8px)' : '20px' }}
-                >
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input
-                            type="text"
-                            placeholder={t('Search all students…', 'அனைத்து மாணவர்களையும் தேடு…')}
-                            value={searchQuery}
-                            onChange={e => {
-                                setSearchQuery(e.target.value);
-                                if (e.target.value) setSelectedStopId(null);
-                            }}
-                            className="w-full bg-white shadow-lg border border-slate-100 rounded-2xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-[var(--brand)] text-slate-900 transition-all"
-                        />
-                    </div>
-                </div>
-            )}
-
-            {/* ── Bottom drawer ── */}
+    const renderStudent = (student: Student) => {
+        const marked = attendance[student.id];
+        const isMarkingThis = marking === student.id;
+        return (
             <div
+                key={student.id}
                 className={cn(
-                    'absolute bottom-0 left-0 right-0 z-[300] bg-white rounded-t-3xl shadow-2xl transition-transform duration-300',
-                    drawerOpen ? 'translate-y-0' : 'translate-y-full'
+                    'flex items-center gap-3 p-3 rounded-2xl border transition-all',
+                    marked === 'present' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' :
+                    marked === 'absent'  ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+                    'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'
                 )}
-                style={{ height: '58vh' }}
             >
-                {/* Drawer header */}
-                <div className="pt-3 pb-2 px-5 border-b border-slate-100">
-                    <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3" />
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="font-bold text-slate-900 text-base">
-                                {searchQuery
-                                    ? `${t('Results for', 'தேடல் முடிவுகள்')} "${searchQuery}"`
-                                    : selectedStop?.name || ''}
-                            </h2>
-                            <p className="text-xs text-slate-400 mt-0.5">
-                                {displayedStudents.length} {t('student', 'மாணவர்')}{displayedStudents.length !== 1 ? 's' : ''}
-                                {!searchQuery && selectedStop &&
-                                    ` · ${t('Stop', 'நிறுத்தம்')} ${stops.findIndex(s => s.id === selectedStopId) + 1} ${t('of', 'இல்')} ${stops.length}`}
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => { setSelectedStopId(null); setSearchQuery(''); }}
-                            className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
-                        >
-                            <ChevronDown className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Student list */}
-                <div className="overflow-y-auto px-4 py-3 space-y-2" style={{ height: 'calc(58vh - 82px)' }}>
-                    {displayedStudents.length === 0 ? (
-                        <div className="text-center py-10 text-slate-400 text-sm">
-                            {searchQuery
-                                ? t('No students match your search', 'தேடலில் மாணவர்கள் இல்லை')
-                                : t('No students at this stop', 'இந்த நிறுத்தத்தில் மாணவர்கள் இல்லை')}
-                        </div>
+                <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                    {student.photo_url ? (
+                        <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
                     ) : (
-                        displayedStudents.map(student => {
-                            const marked = attendance[student.id];
-                            const isMarkingThis = marking === student.id;
-
-                            return (
-                                <div
-                                    key={student.id}
-                                    className={cn(
-                                        'flex items-center gap-3 p-3 rounded-2xl border transition-all',
-                                        marked === 'present' ? 'bg-emerald-50 border-emerald-200' :
-                                        marked === 'absent'  ? 'bg-red-50 border-red-200' :
-                                        'bg-slate-50 border-slate-100'
-                                    )}
-                                >
-                                    {/* Avatar */}
-                                    <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
-                                        {student.photo_url ? (
-                                            <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span className="text-sm font-bold text-slate-500">
-                                                {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-semibold text-slate-900 text-sm truncate">{student.name}</p>
-                                        <p className="text-xs text-slate-400">{student.grade || t('Student', 'மாணவர்')}</p>
-                                    </div>
-
-                                    {/* Action */}
-                                    {marked ? (
-                                        <span className={cn(
-                                            'text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1',
-                                            marked === 'present'
-                                                ? 'bg-emerald-100 text-emerald-700'
-                                                : 'bg-red-100 text-red-700'
-                                        )}>
-                                            {marked === 'present' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                            {marked === 'present'
-                                                ? (isEvening ? t('Dropped', 'இறங்கினர்') : t('Present', 'வந்தனர்'))
-                                                : t('Absent', 'வரவில்லை')}
-                                        </span>
-                                    ) : (
-                                        <div className="flex gap-2">
-                                            <button
-                                                disabled={isMarkingThis}
-                                                onClick={() => handleMark(student, 'absent')}
-                                                className="w-9 h-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 transition-all active:scale-95 disabled:opacity-40"
-                                                aria-label={t('Mark absent', 'வரவில்லை என குறிக்கவும்')}
-                                            >
-                                                {isMarkingThis ? (
-                                                    <div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                                                ) : (
-                                                    <X className="w-4 h-4" />
-                                                )}
-                                            </button>
-                                            <button
-                                                disabled={isMarkingThis}
-                                                onClick={() => handleMark(student, 'present')}
-                                                className="px-2.5 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center gap-1 text-xs font-semibold hover:bg-emerald-200 transition-all active:scale-95 disabled:opacity-40"
-                                                aria-label={isEvening ? t('Mark dropped', 'இறங்கியதாக குறிக்கவும்') : t('Mark present', 'வந்ததாக குறிக்கவும்')}
-                                            >
-                                                {isMarkingThis ? (
-                                                    <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-                                                ) : (
-                                                    <><Check className="w-3.5 h-3.5" />{isEvening ? t('Dropped', 'இறங்கினர்') : t('Present', 'வந்தனர்')}</>
-                                                )}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })
+                        <span className="text-sm font-bold text-slate-500 dark:text-slate-300">
+                            {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </span>
                     )}
                 </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-slate-900 dark:text-white text-sm truncate">{student.name}</p>
+                    <p className="text-xs text-slate-400">{student.grade || t('Student', 'மாணவர்')}</p>
+                </div>
+                {marked ? (
+                    <span className={cn(
+                        'text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1',
+                        marked === 'present' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                    )}>
+                        {marked === 'present' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                        {marked === 'present' ? (isEvening ? t('Dropped', 'இறங்கினர்') : t('Present', 'வந்தனர்')) : t('Absent', 'வரவில்லை')}
+                    </span>
+                ) : (
+                    <div className="flex gap-2">
+                        <button
+                            disabled={isMarkingThis}
+                            onClick={() => handleMark(student, 'absent')}
+                            className="w-9 h-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 transition-all active:scale-95 disabled:opacity-40"
+                            aria-label={t('Mark absent', 'வரவில்லை என குறிக்கவும்')}
+                        >
+                            {isMarkingThis ? <div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" /> : <X className="w-4 h-4" />}
+                        </button>
+                        <button
+                            disabled={isMarkingThis}
+                            onClick={() => handleMark(student, 'present')}
+                            className="px-2.5 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center gap-1 text-xs font-semibold hover:bg-emerald-200 transition-all active:scale-95 disabled:opacity-40"
+                            aria-label={isEvening ? t('Mark dropped', 'இறங்கியதாக குறிக்கவும்') : t('Mark present', 'வந்ததாக குறிக்கவும்')}
+                        >
+                            {isMarkingThis ? <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /> : <><Check className="w-3.5 h-3.5" />{isEvening ? t('Dropped', 'இறங்கினர்') : t('Present', 'வந்தனர்')}</>}
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    return (
+        <div className="min-h-full bg-slate-50 dark:bg-slate-900">
+
+            {/* ── Title + progress ── */}
+            <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+                <div>
+                    <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">{t('Attendance', 'வருகை பதிவு')}</h1>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {`${completedCount}/${stops.length} ${t('stops done', 'நிறுத்தங்கள் முடிந்தன')}`}
+                    </p>
+                </div>
+            </div>
+
+            {/* ── Map (embedded) ── */}
+            <div className="px-4">
+                <div className="h-56 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative">
+                    <FreeMap center={mapCenter} zoom={14} markers={markers} onStopClick={focusStop} />
+                </div>
+            </div>
+
+            {/* ── Search ── */}
+            <div className="px-4 py-3 sticky top-0 z-20 bg-slate-50 dark:bg-slate-900">
+                <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder={t('Search students…', 'மாணவர்களைத் தேடு…')}
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 rounded-2xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-[var(--brand)] text-slate-900 dark:text-white transition-all"
+                    />
+                </div>
+            </div>
+
+            {/* ── Stops with their students ── */}
+            <div className="px-4 pb-6 space-y-4">
+                {stops.map((stop, i) => {
+                    const list = q ? stop.students.filter(s => s.name.toLowerCase().includes(q)) : stop.students;
+                    if (q && list.length === 0) return null;
+                    const markedCount = stop.students.filter(s => attendance[s.id]).length;
+                    const complete = isStopComplete(stop);
+                    return (
+                        <section
+                            id={`stop-${stop.id}`}
+                            key={stop.id}
+                            className={cn(
+                                'rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden scroll-mt-2',
+                                selectedStopId === stop.id ? 'border-[var(--brand)] ring-2 ring-[var(--brand)]/30' : 'border-slate-200 dark:border-slate-700'
+                            )}
+                        >
+                            <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30">
+                                <div className={cn(
+                                    'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
+                                    complete ? 'bg-emerald-500 text-white' : 'bg-[var(--brand)] text-white'
+                                )}>
+                                    {stop.isUnassigned ? '?' : i + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-slate-900 dark:text-white text-sm truncate">{stop.name}</p>
+                                    <p className="text-[11px] text-slate-400">{markedCount}/{stop.students.length} {t('marked', 'குறிக்கப்பட்டது')}</p>
+                                </div>
+                                {complete && (
+                                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded-full flex items-center gap-1">
+                                        <Check className="w-3 h-3" /> {t('Done', 'முடிந்தது')}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="p-3 space-y-2">
+                                {list.length === 0
+                                    ? <p className="text-center py-4 text-slate-400 text-sm">{t('No students at this stop', 'இந்த நிறுத்தத்தில் மாணவர்கள் இல்லை')}</p>
+                                    : list.map(renderStudent)}
+                            </div>
+                        </section>
+                    );
+                })}
+
+                {stops.length === 0 && (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center border border-slate-100 dark:border-slate-700">
+                        <MapPin className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                        <p className="font-semibold text-slate-700 dark:text-slate-200">{t('No active trip', 'செயல்பாட்டில் பயணம் இல்லை')}</p>
+                        <p className="text-sm text-slate-400 mt-1">{t('Waiting for trip to begin', 'பயணம் தொடங்குவதற்காக காத்திருக்கிறோம்')}</p>
+                    </div>
+                )}
             </div>
         </div>
     );
