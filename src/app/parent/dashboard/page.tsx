@@ -232,6 +232,7 @@ export default function ParentDashboard() {
                             currentStopIndex={progress?.current_stop_index ?? 0}
                             myStopId={primaryChild.stop?.id}
                             status={progress?.status || 'idle'}
+                            direction={progress?.status === 'running' ? progress?.trip_type : null}
                         />
                     </div>
                 )}

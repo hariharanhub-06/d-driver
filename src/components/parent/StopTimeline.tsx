@@ -15,13 +15,14 @@ interface StopTimelineProps {
     currentStopIndex: number;
     myStopId?: string;
     status: string; // running | idle | completed | paused
+    direction?: string | null; // morning | evening — shown as a badge
     onStopClick?: (id: string, name: string) => void;
 }
 
 // Vertical bus-stops timeline for the parent Track sheet.
 // Passed stops get a green tick, the current stop pulses, upcoming stops are grey,
 // and the parent's own stop is highlighted in orange regardless of progress.
-export default function StopTimeline({ stops, currentStopIndex, myStopId, status, onStopClick }: StopTimelineProps) {
+export default function StopTimeline({ stops, currentStopIndex, myStopId, status, direction, onStopClick }: StopTimelineProps) {
     const t = useT();
     const live = status === 'running';
 
@@ -37,6 +38,11 @@ export default function StopTimeline({ stops, currentStopIndex, myStopId, status
         <div className="pt-1">
             <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-3 flex items-center gap-1.5">
                 🚏 {t('Bus Stops', 'நிறுத்தங்கள்')}
+                {direction && (
+                    <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${direction === 'evening' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'}`}>
+                        {direction === 'evening' ? t('Evening', 'மாலை') : t('Morning', 'காலை')}
+                    </span>
+                )}
             </h4>
             <ol className="relative">
                 {stops.map((stop, idx) => {
