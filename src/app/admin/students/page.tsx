@@ -32,7 +32,7 @@ const EMPTY_FORM = {
 const EMPTY_EDIT = {
     name: '', grade: '', section: '', gr_no: '',
     parent_id: '',
-    parent_name: '', parent_email: '', parent_phone: '',
+    parent_name: '', parent_email: '', parent_phone: '', parent_password: '',
     route_id: '', stop_id: '',
     fee_amount: '', fee_frequency: 'monthly', fee_due_day: '5', academic_year: new Date().getFullYear().toString(),
 };
@@ -147,7 +147,7 @@ export default function StudentsPage() {
             name: s.name || '', grade: s.grade || '', section: s.section || '', gr_no: s.gr_no || '',
             parent_id: s.parent?.id || '',
             parent_name: s.parent?.name || '', parent_email: s.parent?.email || '',
-            parent_phone: s.parent?.phone || '',
+            parent_phone: s.parent?.phone || '', parent_password: '',
             route_id: s.route?.id || '', stop_id: s.stop?.id || '',
             fee_amount: s.feeStructure?.amount?.toString() || '',
             fee_frequency: s.feeStructure?.frequency || 'monthly',
@@ -242,14 +242,16 @@ export default function StudentsPage() {
         setEditSaving(true);
         setEditError('');
         try {
-            await api.put(`/students/${editingId}`, {
+            const { data } = await api.put(`/students/${editingId}`, {
                 name: editForm.name.trim(),
                 grade: editForm.grade || undefined,
                 section: editForm.section || undefined,
                 gr_no: editForm.gr_no || undefined,
                 parent_id: editForm.parent_id || undefined,
                 parent_name: editForm.parent_name || undefined,
+                parent_email: editForm.parent_email || undefined,
                 parent_phone: editForm.parent_phone || undefined,
+                ...(!editForm.parent_id && editForm.parent_password && { parent_password: editForm.parent_password }),
                 route_id: editForm.route_id || null,
                 stop_id: editForm.stop_id || null,
                 ...(editForm.fee_amount && {
@@ -264,6 +266,12 @@ export default function StudentsPage() {
                 const fd = new FormData();
                 fd.append('photo', editPhotoFile);
                 await api.post(`/students/upload-photo`, fd, { params: { student_id: editingId }, headers: { 'Content-Type': undefined } });
+            }
+
+            // If a brand-new parent account was created from the edit form, surface its login.
+            const newPass = editForm.parent_password || data?.temp_password;
+            if (!editForm.parent_id && editForm.parent_email && newPass) {
+                setParentCreds({ name: editForm.parent_name || 'Parent', email: editForm.parent_email, password: newPass });
             }
 
             setEditModalOpen(false);
@@ -866,9 +874,28 @@ export default function StudentsPage() {
                                 }
                             </div>
                             <div>
+                                <label className={labelCls}>{t('Parent Name', 'பெற்றோர் பெயர்')}</label>
+                                <input type="text" className={inputCls} placeholder="e.g. Suresh Kumar" value={editForm.parent_name} onChange={e => setEditForm(f => ({ ...f, parent_name: e.target.value }))} />
+                            </div>
+                            <div>
+                                <label className={labelCls}>
+                                    {t('Parent Email (Login ID)', 'பெற்றோர் மின்னஞ்சல் (உள்நுழைவு ID)')}
+                                </label>
+                                <input type="email" className={inputCls} placeholder="parent@email.com" value={editForm.parent_email} onChange={e => setEditForm(f => ({ ...f, parent_email: e.target.value }))} />
+                                {!editForm.parent_id && editForm.parent_email && (
+                                    <p className="text-xs text-blue-500 mt-1">{t('A parent account will be created with this email on save.', 'சேமிக்கும்போது இந்த மின்னஞ்சலுடன் பெற்றோர் கணக்கு உருவாக்கப்படும்.')}</p>
+                                )}
+                            </div>
+                            <div>
                                 <label className={labelCls}>{t('Parent Phone', 'பெற்றோர் தொலைபேசி')}</label>
                                 <input type="tel" className={inputCls} placeholder="+91 9876543210" value={editForm.parent_phone} onChange={e => setEditForm(f => ({ ...f, parent_phone: e.target.value }))} />
                             </div>
+                            {!editForm.parent_id && editForm.parent_email && (
+                                <div>
+                                    <label className={labelCls}>{t('Password', 'கடவுச்சொல்')} <span className="text-slate-400 font-normal">({t('leave blank to auto-generate', 'தானாக உருவாக்க காலியாக விடவும்')})</span></label>
+                                    <input type="text" className={inputCls} placeholder={t('Set a password (min 8 chars)', 'கடவுச்சொல் அமை (குறைந்தது 8 எழுத்துக்கள்)')} value={editForm.parent_password} onChange={e => setEditForm(f => ({ ...f, parent_password: e.target.value }))} autoComplete="off" />
+                                </div>
+                            )}
                             {editForm.parent_id && (
                                 <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 space-y-3">
                                     <div>

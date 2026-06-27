@@ -82,16 +82,25 @@ const createStudent = async (req, res) => {
         let resolvedParentId = parent_id || null;
         let tempPassword = null;
 
-        if (parent_email && !parent_id) {
-            const existingParent = await prisma.user.findUnique({ where: { email: parent_email } });
-            if (existingParent) {
-                if (existingParent.role !== 'parent') {
+        if (!parent_id && (parent_email || parent_phone)) {
+            // Look up an existing user by email first, then by phone. User.phone is globally
+            // @unique, so reusing a guardian's number (e.g. a second child / shared guardian)
+            // would otherwise crash student creation with a unique-constraint error — instead
+            // we link to that existing parent. We only create a NEW parent when both the email
+            // and phone are free, so the insert can never hit a duplicate.
+            let existingUser = null;
+            if (parent_email) existingUser = await prisma.user.findUnique({ where: { email: parent_email } });
+            if (!existingUser && parent_phone) existingUser = await prisma.user.findFirst({ where: { phone: parent_phone } });
+
+            if (existingUser) {
+                if (existingUser.role !== 'parent') {
+                    const what = parent_email && existingUser.email === parent_email ? 'email' : 'phone number';
                     return res.status(409).json({
-                        error: `This email is already registered as ${existingParent.role === 'admin' ? 'an admin' : `a ${existingParent.role}`}. Use a different email for the parent account.`,
+                        error: `This ${what} is already registered as ${existingUser.role === 'admin' ? 'an admin' : `a ${existingUser.role}`}. Use a different one for the parent account.`,
                     });
                 }
-                resolvedParentId = existingParent.id;
-            } else {
+                resolvedParentId = existingUser.id;
+            } else if (parent_email) {
                 tempPassword = parent_password || crypto.randomBytes(8).toString('base64url');
                 const hashedPassword = await bcrypt.hash(tempPassword, 12);
                 const newParent = await prisma.user.create({
@@ -161,6 +170,11 @@ const createStudent = async (req, res) => {
         res.status(201).json({ ...fullStudent, temp_password: tempPassword });
     } catch (error) {
         console.error('createStudent error:', error);
+        if (error.code === 'P2002') {
+            const target = Array.isArray(error.meta?.target) ? error.meta.target.join(',') : String(error.meta?.target || '');
+            const field = target.includes('phone') ? 'phone number' : target.includes('email') ? 'email' : 'value';
+            return res.status(409).json({ error: `A user with this ${field} already exists. Use a different one for the parent account.` });
+        }
         res.status(500).json({ error: 'Error creating student' });
     }
 };
@@ -169,13 +183,14 @@ const updateStudent = async (req, res) => {
     try {
         const { id } = req.params;
         const {
-            name, grade, section, gr_no, parent_id, parent_name, parent_email, parent_phone,
+            name, grade, section, gr_no, parent_id, parent_name, parent_email, parent_phone, parent_password,
             route_id, stop_id, photo_url,
             fee_amount, fee_frequency, fee_due_day, academic_year,
         } = req.body;
         const schoolId = req.user.school_id || null;
 
         const data = {};
+        let createdParentTempPassword = null;
         if (name !== undefined) data.name = name;
         if (grade !== undefined) data.grade = grade;
         if (section !== undefined) data.section = section;
@@ -185,23 +200,29 @@ const updateStudent = async (req, res) => {
         if (photo_url !== undefined) data.photo_url = photo_url;
 
         // Resolve parent: explicit ID takes precedence, else look up / create by email
-        if (parent_id !== undefined) {
+        if (parent_id !== undefined && parent_id) {
             data.parent_id = parent_id;
-        } else if (parent_email) {
-            let parentUser = await prisma.user.findUnique({ where: { email: parent_email } });
+        } else if (parent_email || parent_phone) {
+            // Same email-then-phone lookup as createStudent: a reused guardian number links to
+            // the existing parent instead of crashing, and a brand-new parent can be created
+            // straight from the edit form (with the admin-set or an auto-generated password).
+            let parentUser = null;
+            if (parent_email) parentUser = await prisma.user.findUnique({ where: { email: parent_email } });
+            if (!parentUser && parent_phone) parentUser = await prisma.user.findFirst({ where: { phone: parent_phone } });
             if (parentUser && parentUser.role !== 'parent') {
+                const what = parent_email && parentUser.email === parent_email ? 'email' : 'phone number';
                 return res.status(409).json({
-                    error: `This email is already registered as ${parentUser.role === 'admin' ? 'an admin' : `a ${parentUser.role}`}. Use a different email for the parent account.`,
+                    error: `This ${what} is already registered as ${parentUser.role === 'admin' ? 'an admin' : `a ${parentUser.role}`}. Use a different one for the parent account.`,
                 });
             }
-            if (!parentUser) {
-                const tempPassword = crypto.randomBytes(8).toString('hex');
-                const hashedPassword = await bcrypt.hash(tempPassword, 12);
+            if (!parentUser && parent_email) {
+                createdParentTempPassword = parent_password || crypto.randomBytes(8).toString('base64url');
+                const hashedPassword = await bcrypt.hash(createdParentTempPassword, 12);
                 parentUser = await prisma.user.create({
                     data: { name: parent_name || 'Parent', email: parent_email, password: hashedPassword, phone: parent_phone || null, role: 'parent', school_id: schoolId, is_first_login: true, is_active: true },
                 });
             }
-            data.parent_id = parentUser.id;
+            if (parentUser) data.parent_id = parentUser.id;
         }
 
         const updatedStudent = await prisma.student.update({
@@ -232,9 +253,14 @@ const updateStudent = async (req, res) => {
         }
 
         await logAction({ req, action: 'update_student', targetType: 'student', targetId: id });
-        res.json(updatedStudent);
+        res.json({ ...updatedStudent, temp_password: createdParentTempPassword });
     } catch (error) {
         console.error('updateStudent error:', error);
+        if (error.code === 'P2002') {
+            const target = Array.isArray(error.meta?.target) ? error.meta.target.join(',') : String(error.meta?.target || '');
+            const field = target.includes('phone') ? 'phone number' : target.includes('email') ? 'email' : 'value';
+            return res.status(409).json({ error: `A user with this ${field} already exists. Use a different one for the parent account.` });
+        }
         res.status(500).json({ error: 'Error updating student' });
     }
 };
