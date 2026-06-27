@@ -63,11 +63,11 @@ export default function SuperAdminDashboard() {
     const totalBuses    = schools.reduce((sum, s) => sum + (s._count?.buses    || s.buses?.length    || 0), 0);
 
     const statCards = [
-        { label: t('Total Schools', 'மொத்த பள்ளிகள்'), value: schools.length, icon: Building2, iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
-        { label: t('Total Students', 'மொத்த மாணவர்கள்'), value: totalStudents.toLocaleString('en-IN'), icon: Users, iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
-        { label: t('Total Buses', 'மொத்த பேருந்துகள்'), value: totalBuses, icon: Bus, iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30' },
-        { label: t('Monthly Revenue', 'மாதாந்திர வருவாய்'), value: revenue.total_collected ? `₹${(revenue.total_collected / 1000).toFixed(0)}K` : '—', icon: TrendingUp, iconColor: 'text-[var(--brand)]', bg: 'bg-[var(--brand)]/10' },
-        { label: t('Total Overdue', 'மொத்த நிலுவை'), value: revenue.total_overdue ? `₹${(revenue.total_overdue / 1000).toFixed(0)}K` : '—', icon: AlertCircle, iconColor: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30' },
+        { label: t('Total Schools', 'மொத்த பள்ளிகள்'), value: schools.length, icon: Building2, iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30', href: '/super-admin/schools' },
+        { label: t('Total Students', 'மொத்த மாணவர்கள்'), value: totalStudents.toLocaleString('en-IN'), icon: Users, iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30', href: '/super-admin/schools' },
+        { label: t('Total Buses', 'மொத்த பேருந்துகள்'), value: totalBuses, icon: Bus, iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30', href: '/super-admin/schools' },
+        { label: t('Monthly Revenue', 'மாதாந்திர வருவாய்'), value: revenue.total_collected ? `₹${(revenue.total_collected / 1000).toFixed(0)}K` : '—', icon: TrendingUp, iconColor: 'text-[var(--brand)]', bg: 'bg-[var(--brand)]/10', href: '/super-admin/revenue' },
+        { label: t('Total Overdue', 'மொத்த நிலுவை'), value: revenue.total_overdue ? `₹${(revenue.total_overdue / 1000).toFixed(0)}K` : '—', icon: AlertCircle, iconColor: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30', href: '/super-admin/billing' },
     ];
 
     const getInvoiceStatusStyle = (status: string) => {
@@ -100,7 +100,7 @@ export default function SuperAdminDashboard() {
             {/* Stat Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {statCards.map(card => (
-                    <div key={card.label} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+                    <Link key={card.label} href={card.href} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 hover:shadow-md hover:border-[var(--brand)]/40 transition-all active:scale-[0.98]">
                         <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mb-4', card.bg)}>
                             <card.icon className={cn('w-5 h-5', card.iconColor)} />
                         </div>
@@ -108,7 +108,7 @@ export default function SuperAdminDashboard() {
                             {loading ? <span className="text-slate-300 dark:text-slate-600">—</span> : card.value}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">{card.label}</p>
-                    </div>
+                    </Link>
                 ))}
             </div>
 
@@ -129,7 +129,7 @@ export default function SuperAdminDashboard() {
                     ) : (
                         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
                             {schools.slice(0, 6).map(school => (
-                                <div key={school.id} className="px-6 py-4 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                <Link key={school.id} href={`/super-admin/schools/${school.id}`} className="px-6 py-4 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                     <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0">
                                         <Building2 className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                                     </div>
@@ -145,7 +145,7 @@ export default function SuperAdminDashboard() {
                                     )}>
                                         {school.status === 'Active' ? t('Active', 'செயல்பாட்டில்') : school.status === 'Suspended' ? t('Suspended', 'இடைநிறுத்தப்பட்டது') : school.status}
                                     </span>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     )}
