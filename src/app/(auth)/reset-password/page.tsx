@@ -35,7 +35,9 @@ function ResetPasswordContent() {
       await api.post('/auth/reset-password', { token, new_password: newPassword });
       router.push('/login');
     } catch (err: any) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to reset password. Please request a new link.');
+      const d = err.response?.data;
+      const detail = typeof d?.details === 'string' ? d.details : null;
+      setError(detail || d?.error || d?.message || 'Failed to reset password. Please request a new link.');
     } finally {
       setIsLoading(false);
     }

@@ -228,7 +228,7 @@ export default function ParentDashboard() {
                 {!loading && primaryChild && canTrack && ((primaryChild.route as any)?.stops?.length > 0) && (
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
                         <StopTimeline
-                            stops={stopsForTrip((primaryChild.route as any).stops, progress?.trip_type)}
+                            stops={stopsForTrip<any>((primaryChild.route as any).stops, progress?.trip_type)}
                             currentStopIndex={progress?.current_stop_index ?? 0}
                             myStopId={primaryChild.stop?.id}
                             status={progress?.status || 'idle'}
