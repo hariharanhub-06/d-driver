@@ -51,10 +51,14 @@ export default function AdminTour() {
     }
   };
 
+  // Don't mount Joyride (and its overlay portal) unless the tour is actually running —
+  // otherwise it briefly flashes on every page load, which feels unstable.
+  if (tourName !== 'admin') return null;
+
   return (
     <Joyride
       steps={steps}
-      run={tourName === 'admin'}
+      run
       continuous
       showProgress
       showSkipButton

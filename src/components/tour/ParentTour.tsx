@@ -40,10 +40,13 @@ export default function ParentTour() {
     }
   };
 
+  // Only mount Joyride while the tour runs — avoids the overlay flashing on page load.
+  if (tourName !== 'parent') return null;
+
   return (
     <Joyride
       steps={steps}
-      run={tourName === 'parent'}
+      run
       continuous
       showProgress
       showSkipButton

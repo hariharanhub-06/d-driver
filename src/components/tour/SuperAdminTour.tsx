@@ -45,10 +45,13 @@ export default function SuperAdminTour() {
         }
     };
 
+    // Only mount Joyride while the tour runs — avoids the overlay flashing on page load.
+    if (tourName !== 'superadmin') return null;
+
     return (
         <Joyride
             steps={steps}
-            run={tourName === 'superadmin'}
+            run
             continuous
             showProgress
             showSkipButton

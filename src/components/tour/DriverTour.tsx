@@ -40,10 +40,13 @@ export default function DriverTour() {
     }
   };
 
+  // Only mount Joyride while the tour runs — avoids the overlay flashing on page load.
+  if (tourName !== 'driver') return null;
+
   return (
     <Joyride
       steps={steps}
-      run={tourName === 'driver'}
+      run
       continuous
       showProgress
       showSkipButton
