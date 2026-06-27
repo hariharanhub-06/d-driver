@@ -17,6 +17,9 @@ export default function LoginPage() {
     const [currentSchool, setCurrentSchool] = useState<{ name: string; logo?: string; color?: string } | null>(null);
     const [platformLogo, setPlatformLogo] = useState<string | null>(null);
     const [logoError, setLogoError] = useState(false);
+    // While true we don't render the form — prevents the login page flashing before an
+    // already-logged-in user (e.g. reopening the installed PWA) is redirected to their dashboard.
+    const [checkingSession, setCheckingSession] = useState(true);
     const { login } = useAuth();
     const router = useRouter();
     const { theme, setTheme } = useTheme();
@@ -34,9 +37,12 @@ export default function LoginPage() {
                     u.role === 'parent'      ? '/parent/dashboard' :
                     u.role === 'bus_staff'   ? '/bus-staff/attendance' :
                     u.role === 'admin'       ? '/admin/dashboard' : null;
-                if (dest) { router.replace(dest); return; }
+                if (dest) { router.replace(dest); return; } // keep the spinner — redirecting
             }
         } catch { /* ignore parse errors */ }
+
+        // No valid session → show the login form.
+        setCheckingSession(false);
 
         const params = new URLSearchParams(window.location.search);
         const slugFromQuery = params.get('school');
@@ -103,6 +109,16 @@ export default function LoginPage() {
             setIsLoading(false);
         }
     };
+
+    // Reopening the installed PWA lands here first; show a spinner (not the form) while we
+    // decide whether to redirect an existing session, so the login page never flashes.
+    if (checkingSession) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+                <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-slate-50 dark:bg-slate-950">
