@@ -48,10 +48,10 @@ export default function MobileTopBar() {
             .then(res => setUnread(res.data?.count ?? res.data?.unread_count ?? 0))
             .catch(() => {});
         load();
-        const reset = () => setUnread(0);
-        window.addEventListener('notifications-read', reset);
+        // Re-fetch (not zero) so reading a single notification decrements correctly.
+        window.addEventListener('notifications-read', load);
         const interval = setInterval(load, 60000);
-        return () => { window.removeEventListener('notifications-read', reset); clearInterval(interval); };
+        return () => { window.removeEventListener('notifications-read', load); clearInterval(interval); };
     }, [user]);
 
     return (

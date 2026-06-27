@@ -70,7 +70,11 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
         if (!user) return;
         fetchNotifications();
         const interval = setInterval(fetchNotifications, 30000);
-        return () => clearInterval(interval);
+        // Re-fetch the unread count immediately when a notification is read elsewhere
+        // (the notifications page dispatches 'notifications-read' on single + mark-all read).
+        const onRead = () => fetchNotifications();
+        window.addEventListener('notifications-read', onRead);
+        return () => { clearInterval(interval); window.removeEventListener('notifications-read', onRead); };
     }, [user, fetchNotifications]);
 
     // Re-render every 60s so relative timestamps ("2 min ago") stay accurate
@@ -204,7 +208,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                     </button>
 
                     {isNotificationOpen && (
-                        <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden animate-in z-50">
+                        <div className="fixed top-[72px] right-2 w-[calc(100vw-1rem)] max-w-sm bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden animate-in z-50">
                             <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-widest">
                                     {t('Notifications', 'அறிவிப்புகள்')}

@@ -51,6 +51,7 @@ export default function ParentNotificationsPage() {
         try {
             await api.put(`/notifications/${id}/read`);
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+            window.dispatchEvent(new Event('notifications-read'));
         } catch {}
     };
 
