@@ -41,6 +41,7 @@ const auditRoutes = require('./routes/auditRoutes');
 const sosRoutes = require('./routes/sosRoutes');
 const maintenanceRoutes = require('./routes/maintenanceRoutes');
 const platformRoutes = require('./routes/platformRoutes');
+const routingRoutes = require('./routes/routingRoutes');
 
 const app = express();
 // Render runs behind a proxy that sets X-Forwarded-For — trust it so req.ip is the
@@ -321,6 +322,7 @@ app.use('/api/v1/audit',         auditRoutes.default        || auditRoutes);
 app.use('/api/v1/sos',           sosRoutes.default          || sosRoutes);
 app.use('/api/v1/maintenance',   maintenanceRoutes.default  || maintenanceRoutes);
 app.use('/api/v1/platform',      platformRoutes.default     || platformRoutes);
+app.use('/api/v1/routing',       routingRoutes.default      || routingRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

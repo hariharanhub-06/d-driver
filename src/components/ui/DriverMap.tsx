@@ -2,6 +2,7 @@
 
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef, useState } from 'react';
+import api from '@/lib/api';
 
 interface StopMarker {
     id: string;
@@ -46,6 +47,8 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     const currentPosRef       = useRef(userPosition);
     // Accumulated (unwrapped) heading — avoids CSS transition going the long way round 0↔360
     const accHeadingRef       = useRef<number>(0);
+    // Last heading actually applied to the map/arrow — gate re-rotation to cut jitter lag
+    const lastAppliedHeadingRef = useRef<number | null>(null);
 
     const [mapReady, setMapReady] = useState(false);
 
@@ -101,17 +104,22 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 if (diff < -180) diff += 360;
                 accHeadingRef.current += diff;
             }
-            const heading = userHeading != null ? accHeadingRef.current : 0;
+            const rawHeading = userHeading != null ? accHeadingRef.current : 0;
+            // Only re-apply rotation when the heading actually moved enough (≥3°). This stops
+            // GPS heading noise from constantly re-rotating the heavy 142% map layer (the "lag").
+            const headingMoved = lastAppliedHeadingRef.current == null
+                || Math.abs(rawHeading - lastAppliedHeadingRef.current) >= 3;
+            const heading = headingMoved ? rawHeading : lastAppliedHeadingRef.current!;
+            if (headingMoved) lastAppliedHeadingRef.current = rawHeading;
 
-            // Rotate the map wrapper so travel direction faces "up"
-            if (mapWrapRef.current) {
+            // Rotate the map wrapper so travel direction faces "up" (only when heading moved)
+            if (mapWrapRef.current && headingMoved) {
                 mapWrapRef.current.style.transform = userHeading != null
                     ? `rotate(${-heading}deg)`
                     : '';
             }
             // Arrow rotates with heading so it points in direction of travel on screen.
             // The map also rotates by -heading, so net visual = arrow always points "up" (forward).
-            // Embedding rotate(+heading) here makes the arrow and map animate as one coupled unit.
             const arrowHtml = `
                 <div style="transform:rotate(${heading}deg);display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.55));">
                   <svg width="26" height="32" viewBox="0 0 44 52" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -121,12 +129,14 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                     <line x1="22" y1="8" x2="22" y2="34" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round"/>
                   </svg>
                 </div>`;
-            const icon = L.divIcon({ className: '', html: arrowHtml, iconSize: [26, 32], iconAnchor: [13, 16] });
 
             if (userMarkerRef.current) {
-                userMarkerRef.current.setLatLng([lat, lng]);
-                userMarkerRef.current.setIcon(icon);
+                userMarkerRef.current.setLatLng([lat, lng]); // position updates every tick (smooth)
+                if (headingMoved) {
+                    userMarkerRef.current.setIcon(L.divIcon({ className: '', html: arrowHtml, iconSize: [26, 32], iconAnchor: [13, 16] }));
+                }
             } else {
+                const icon = L.divIcon({ className: '', html: arrowHtml, iconSize: [26, 32], iconAnchor: [13, 16] });
                 userMarkerRef.current = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
             }
 
@@ -254,16 +264,17 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 if (osrmAbortRef.current) { osrmAbortRef.current.abort(); }
                 const ctrl = new AbortController();
                 osrmAbortRef.current = ctrl;
-                fetch(
-                    `https://router.project-osrm.org/route/v1/driving/${uLng},${uLat};${nextStop.lng},${nextStop.lat}?overview=full&geometries=geojson`,
-                    { signal: ctrl.signal }
-                ).then(r => r.json()).then(data => {
-                    const route = data?.routes?.[0];
-                    if (!route || !mapRef.current) return;
-                    // Reject only absurd detours (loosened from 3× → 8×, and only when the
-                    // straight-line leg is long enough for the ratio to be meaningful).
-                    if (straightM > 300 && route.distance > straightM * 8) return;
-                    const coords: [number, number][] = route.geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng]);
+                // Fetch the road geometry through our backend proxy (cached + retried,
+                // server-side) instead of the flaky public OSRM server directly.
+                api.get('/routing/path', {
+                    params: { from: `${uLng},${uLat}`, to: `${nextStop.lng},${nextStop.lat}` },
+                    signal: ctrl.signal,
+                }).then(({ data }) => {
+                    const coords: [number, number][] | null = data?.coordinates || null;
+                    if (!coords || coords.length < 2 || !mapRef.current) return;
+                    // Reject only absurd detours (and only when the straight leg is long
+                    // enough for the ratio to be meaningful).
+                    if (straightM > 300 && typeof data.distance === 'number' && data.distance > straightM * 8) return;
                     osrmCoordsRef.current = coords;
                     // Replace dashed with solid road line (no flicker — just swap)
                     if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
