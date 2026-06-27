@@ -41,6 +41,13 @@ const sendEmail = async ({ to, subject, html, template, school_id, from }) => {
     }
   }
 
+  // Hard guard: ddriver.app is no longer a verified Resend domain, so any send from it
+  // 403s. Force the verified onlive.co.in sender no matter where the address came from
+  // (env override, school notification_email, or a stale default).
+  if (/@ddriver\.app$/i.test(fromAddress.trim())) {
+    fromAddress = 'noreply@onlive.co.in';
+  }
+
   let status = 'sent';
   let errorMessage = null;
   const resendClient = getClient();
