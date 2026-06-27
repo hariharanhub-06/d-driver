@@ -174,15 +174,6 @@ export default function ParentDashboard() {
                         <p className="text-white/80 text-xs font-medium">{greeting} {t('Hello', 'வணக்கம்')},</p>
                         <h1 className="text-xl font-bold text-white leading-tight">{user?.name?.split(' ')[0] || 'Parent'}!</h1>
                     </div>
-                    {/* SOS button */}
-                    {driverPhone && (
-                        <a
-                            href={`tel:${driverPhone}`}
-                            className="bg-red-500 hover:bg-red-600 text-white font-black text-xs px-3 py-2 rounded-xl shadow-lg active:scale-95 transition-all"
-                        >
-                            SOS
-                        </a>
-                    )}
                 </div>
 
                 {/* Bus card inside header */}
@@ -221,7 +212,7 @@ export default function ParentDashboard() {
 
                 {/* Live map embedded directly on the dashboard */}
                 {!loading && primaryChild && canTrack && (
-                    <LiveTrackingMap child={primaryChild as any} heightClass="h-72" tripActive={!progress || progress.status === 'running'} />
+                    <LiveTrackingMap child={primaryChild as any} heightClass="h-72" tripActive={!progress || progress.status === 'running'} sosPhone={driverPhone} />
                 )}
 
                 {/* Bus stops timeline — passed / current / upcoming based on the live trip */}

@@ -32,7 +32,7 @@ interface Child {
 
 // Embeddable live bus map: route stops (numbered, child's highlighted) + live bus +
 // the parent's location, with real distance/ETA. Used on the parent dashboard.
-export default function LiveTrackingMap({ child, heightClass = 'h-72', tripActive = true }: { child?: Child; heightClass?: string; tripActive?: boolean }) {
+export default function LiveTrackingMap({ child, heightClass = 'h-72', tripActive = true, sosPhone }: { child?: Child; heightClass?: string; tripActive?: boolean; sosPhone?: string }) {
     const t = useT();
     const [busPosition, setBusPosition] = useState<[number, number]>([11.1271, 78.6569]);
     const [busTimestamp, setBusTimestamp] = useState<number | null>(null);
@@ -173,6 +173,14 @@ export default function LiveTrackingMap({ child, heightClass = 'h-72', tripActiv
                         <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
                             {t("Hasn't started yet", 'இன்னும் தொடங்கவில்லை')}
                         </span>
+                    )}
+                    {sosPhone && (
+                        <a
+                            href={`tel:${sosPhone}`}
+                            className="bg-red-500 hover:bg-red-600 text-white font-black text-[11px] px-2.5 py-1.5 rounded-lg shadow active:scale-95 transition-all shrink-0"
+                        >
+                            SOS
+                        </a>
                     )}
                 </div>
             </div>
