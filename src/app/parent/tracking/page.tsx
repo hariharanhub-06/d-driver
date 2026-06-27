@@ -14,6 +14,7 @@ import {
     formatDistance,
     formatEta,
     resolveBusId,
+    stopsForTrip,
     type EtaResult,
     type LatLng,
 } from '@/lib/tracking';
@@ -24,6 +25,7 @@ import StopTimeline from '@/components/parent/StopTimeline';
 interface TripProgress {
     current_stop_index: number;
     status: string;
+    trip_type?: string | null;
     students_onboard: number;
     students_total: number;
 }
@@ -35,6 +37,7 @@ interface RouteStop {
     longitude?: number;
     sequence?: number;
     pickup_time?: string;
+    trip_type?: string;
 }
 
 interface ChildData {
@@ -244,8 +247,9 @@ export default function ParentTracking() {
         return () => ctrl.abort();
     }, [tripStarted, busPosition, stopPos]);
 
-    // All stops on the child's assigned route (numbered), with the child's own stop highlighted.
-    const routeStops = childData?.route?.stops || [];
+    // Stops for the active trip's direction (morning/evening), so map pins + the timeline
+    // match the trip and don't duplicate the start/end.
+    const routeStops = stopsForTrip(childData?.route?.stops || [], progress?.trip_type);
     const stopMarkers = routeStops
         .filter(s => s.latitude != null && s.longitude != null)
         .map((s, idx) => ({

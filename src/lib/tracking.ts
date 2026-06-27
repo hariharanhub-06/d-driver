@@ -104,6 +104,23 @@ export function formatEta(durationS: number, source: EtaResult['source'] = 'osrm
 }
 
 /**
+ * Pick the stops that belong to the active trip's direction.
+ *
+ * A route can hold separate morning AND evening stop copies (each Stop has a `trip_type`).
+ * If both exist, show only the half matching the trip direction (morning/evening) — this
+ * gives the right order for evening trips AND removes the duplicate start/end you'd get
+ * from showing both sets. If there's only one set, it's used for both directions.
+ */
+export function stopsForTrip<T extends { trip_type?: string }>(stops: T[] | undefined, tripType?: string | null): T[] {
+    if (!Array.isArray(stops) || stops.length === 0) return [];
+    const hasEvening = stops.some(s => s?.trip_type === 'evening');
+    if (!hasEvening) return stops;
+    const dir = tripType || 'morning';
+    const filtered = stops.filter(s => s?.trip_type === dir);
+    return filtered.length > 0 ? filtered : stops;
+}
+
+/**
  * Resolve the bus id for a child from the (nested) /students/my-children shape.
  * Returns null when no bus is assigned.
  */

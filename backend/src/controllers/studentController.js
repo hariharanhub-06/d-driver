@@ -466,7 +466,7 @@ const getMyStudents = async (req, res) => {
                     select: {
                         id: true, name: true, route_type: true, bus_id: true,
                         bus: { select: { id: true, bus_number: true, drivers: { select: { user: { select: { name: true, phone: true } } }, take: 1 } } },
-                        stops: { select: { id: true, name: true, latitude: true, longitude: true, sequence: true, pickup_time: true }, orderBy: { sequence: 'asc' } },
+                        stops: { select: { id: true, name: true, latitude: true, longitude: true, sequence: true, pickup_time: true, drop_time: true, trip_type: true }, orderBy: { sequence: 'asc' } },
                     },
                 },
                 stop: { select: { id: true, name: true, pickup_time: true, latitude: true, longitude: true } },

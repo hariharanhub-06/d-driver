@@ -395,9 +395,19 @@ const getTripProgress = async (req, res) => {
       studentsOnboard = present.length;
     }
 
+    // Trip direction (morning/evening) from the start time in IST — mirrors getActiveTrips,
+    // so the parent timeline can show the matching half of the route's stops.
+    let direction = null;
+    if (trip) {
+      const startedAt = trip.started_at ? new Date(trip.started_at) : new Date();
+      const istHour = (startedAt.getUTCHours() + 5.5) % 24;
+      direction = istHour >= 12 ? 'evening' : 'morning';
+    }
+
     res.json({
       current_stop_index: trip?.current_stop_index ?? 0,
       status: trip?.status || 'idle',
+      trip_type: direction,
       students_onboard: studentsOnboard,
       students_total: studentIds.length,
       updated_at: trip?.started_at || null,
