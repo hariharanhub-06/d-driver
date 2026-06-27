@@ -124,7 +124,7 @@ export default function SchoolsPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex items-center justify-end space-x-2 transition-opacity">
                                                 <button className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-all">
                                                     <Edit className="w-4 h-4" />
                                                 </button>

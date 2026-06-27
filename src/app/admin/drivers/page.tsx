@@ -415,7 +415,7 @@ export default function DriversPage() {
 
                                             {/* Actions */}
                                             <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 text-right">
-                                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center justify-end gap-1 transition-opacity">
                                                     <button
                                                         onClick={() => openEdit(driver)}
                                                         className="p-2 text-slate-400 hover:text-[var(--brand)] hover:bg-[var(--brand)]/10 rounded-lg transition-colors"

@@ -122,7 +122,7 @@ export default function StaffPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex items-center justify-end space-x-1 transition-opacity">
                                                 <button className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-primary-600 shadow-sm transition-all"><Edit className="w-4 h-4" /></button>
                                                 <button className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-600 shadow-sm transition-all"><Trash className="w-4 h-4" /></button>
                                             </div>

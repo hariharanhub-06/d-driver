@@ -348,7 +348,7 @@ export default function FuelRequestsPage() {
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-right">
-                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex items-center justify-end gap-1 transition-opacity">
                                                 {req.status === 'pending' && (
                                                     <>
                                                         <button onClick={() => openModal(req, 'approve')} className="text-xs bg-[var(--brand)] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1">

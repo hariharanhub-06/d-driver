@@ -193,6 +193,18 @@ export default function SchoolStudentsPage() {
         }
     };
 
+    const handleDelete = async () => {
+        if (!editingStudent) return;
+        if (!confirm('Delete this student? This cannot be undone.')) return;
+        try {
+            await api.delete(`/students/${editingStudent.id}`);
+            setStudents(prev => prev.filter(s => s.id !== editingStudent.id));
+            setEditingStudent(null);
+        } catch (e: any) {
+            alert(e.response?.data?.error || 'Failed to delete student.');
+        }
+    };
+
     const fetchAddStops = async (routeId: string) => {
         if (!routeId) { setAddStops([]); return; }
         try {
@@ -687,6 +699,12 @@ export default function SchoolStudentsPage() {
                         </div>
 
                         <div className="flex gap-3 px-6 pb-6">
+                            <button
+                                onClick={handleDelete}
+                                className="flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                            >
+                                Delete
+                            </button>
                             <button
                                 onClick={() => setEditingStudent(null)}
                                 className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"

@@ -335,7 +335,7 @@ export default function FeesPage() {
                                         {fee.status !== 'paid' && (
                                             <button
                                                 onClick={() => { setSelectedFee(fee); setPayAmount(String(fee.due_amount || fee.total_amount || fee.amount || '')); setIsPayModalOpen(true); }}
-                                                className="text-xs bg-[var(--brand)] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-semibold transition-all opacity-0 group-hover:opacity-100"
+                                                className="text-xs bg-[var(--brand)] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-semibold transition-all"
                                             >
                                                 {t('Record Cash', 'பணம் பதிவு செய்')}
                                             </button>

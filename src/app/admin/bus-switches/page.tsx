@@ -136,7 +136,7 @@ export default function BusSwitchesPage() {
                                         {sw.status === 'pending' && (
                                             <button
                                                 onClick={() => { setAssignModal(sw); setSelectedBusId(''); }}
-                                                className="text-xs bg-[var(--brand)] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-semibold transition-all opacity-0 group-hover:opacity-100"
+                                                className="text-xs bg-[var(--brand)] hover:opacity-90 text-white px-3 py-1.5 rounded-lg font-semibold transition-all"
                                             >
                                                 Assign Bus
                                             </button>
