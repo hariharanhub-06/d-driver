@@ -167,36 +167,6 @@ export default function ParentDashboard() {
 
     return (
         <div className="min-h-full bg-slate-100 dark:bg-slate-900">
-            {/* ── Header bar ── */}
-            <div className="bg-[var(--brand)] px-4 pt-10 pb-5">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-white/80 text-xs font-medium">{greeting} {t('Hello', 'வணக்கம்')},</p>
-                        <h1 className="text-xl font-bold text-white leading-tight">{user?.name?.split(' ')[0] || 'Parent'}!</h1>
-                    </div>
-                </div>
-
-                {/* Bus card inside header */}
-                {!loading && busNumber && (
-                    <div className="mt-4 bg-white/15 backdrop-blur-sm rounded-2xl p-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                                    <Bus className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-white font-bold text-base">{busNumber}</p>
-                                    <p className="text-white/70 text-xs">{routeName || t('Route', 'வழி')}</p>
-                                </div>
-                            </div>
-                            <Link href="/parent/tracking" className="bg-white text-[var(--brand)] rounded-xl px-3 py-2 text-xs font-bold flex items-center gap-1 active:scale-95 transition-all">
-                                <Navigation className="w-3 h-3" /> {t('Track', 'கண்காணி')}
-                            </Link>
-                        </div>
-                    </div>
-                )}
-            </div>
-
             <div className="px-4 py-4 space-y-4">
                 {error && (
                     <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 text-red-600 dark:text-red-400 text-sm font-bold flex items-center gap-2">
