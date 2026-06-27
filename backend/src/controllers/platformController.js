@@ -41,6 +41,7 @@ const getLandingData = async (req, res) => {
         landing_footer_phone: null,
         landing_footer_address: null,
         landing_footer_copyright: 'ONLIVE. All rights reserved.',
+        landing_content: null,
       },
       stats: {
         schools: schoolCount,
@@ -86,6 +87,7 @@ const updateConfig = async (req, res) => {
       landing_footer_phone,
       landing_footer_address,
       landing_footer_copyright,
+      landing_content,
     } = req.body;
 
     const data = {};
@@ -100,6 +102,8 @@ const updateConfig = async (req, res) => {
     if (landing_footer_phone !== undefined) data.landing_footer_phone = landing_footer_phone || null;
     if (landing_footer_address !== undefined) data.landing_footer_address = landing_footer_address || null;
     if (landing_footer_copyright) data.landing_footer_copyright = landing_footer_copyright;
+    // Full structured landing content (sections/features/steps/icons/images). Replace wholesale.
+    if (landing_content !== undefined) data.landing_content = landing_content;
 
     const config = await prisma.platformConfig.upsert({
       where: { id: SINGLETON_ID },

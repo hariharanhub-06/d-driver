@@ -8,33 +8,30 @@ const { authenticateToken, requireRole, requirePasswordChanged } = require('../m
 
 const router = Router();
 
-const devSaOnly = [
+// Landing-page editing is open to ALL super-admins (regular SA + dev/master SA).
+const superAdminOnly = [
   authenticateToken,
   requirePasswordChanged,
   requireRole('super_admin'),
-  (req, res, next) => {
-    if (!req.user.is_dev_sa) return res.status(403).json({ error: 'Only the master admin can perform this action' });
-    next();
-  },
 ];
 
 // ── Public ────────────────────────────────────────────────────────────────────
 router.get('/landing', getLandingData);
 router.get('/config', getConfig);
 
-// ── Dev SA — platform config ──────────────────────────────────────────────────
-router.put('/config', ...devSaOnly, updateConfig);
+// ── Super-admin — platform config ─────────────────────────────────────────────
+router.put('/config', ...superAdminOnly, updateConfig);
 
-// ── Dev SA — partners ─────────────────────────────────────────────────────────
-router.get('/partners', ...devSaOnly, listPartners);
-router.post('/partners', ...devSaOnly, createPartner);
-router.put('/partners/:id', ...devSaOnly, updatePartner);
-router.delete('/partners/:id', ...devSaOnly, deletePartner);
+// ── Super-admin — partners ────────────────────────────────────────────────────
+router.get('/partners', ...superAdminOnly, listPartners);
+router.post('/partners', ...superAdminOnly, createPartner);
+router.put('/partners/:id', ...superAdminOnly, updatePartner);
+router.delete('/partners/:id', ...superAdminOnly, deletePartner);
 
-// ── Dev SA — founders ─────────────────────────────────────────────────────────
-router.get('/founders', ...devSaOnly, listFounders);
-router.post('/founders', ...devSaOnly, createFounder);
-router.put('/founders/:id', ...devSaOnly, updateFounder);
-router.delete('/founders/:id', ...devSaOnly, deleteFounder);
+// ── Super-admin — founders ────────────────────────────────────────────────────
+router.get('/founders', ...superAdminOnly, listFounders);
+router.post('/founders', ...superAdminOnly, createFounder);
+router.put('/founders/:id', ...superAdminOnly, updateFounder);
+router.delete('/founders/:id', ...superAdminOnly, deleteFounder);
 
 module.exports = router;

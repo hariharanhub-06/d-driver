@@ -468,6 +468,9 @@ model PlatformConfig {
   landing_footer_phone    String?
   landing_footer_address  String?
   landing_footer_copyright String  @default("ONLIVE. All rights reserved.")
+  // Full landing-page content (every section's text, icon names, colours, images).
+  // Stored as one JSON blob so any line can be made editable without a migration per field.
+  landing_content         Json?
   created_at              DateTime @default(now())
   updated_at              DateTime @updatedAt
 }
