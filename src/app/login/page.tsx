@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { authStorage } from '@/lib/authStorage';
 import { Bus, Eye, EyeOff, Lock, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import api from '@/lib/api';
@@ -27,8 +28,8 @@ export default function LoginPage() {
     useEffect(() => {
         // Auto-redirect if a valid session already exists in localStorage
         try {
-            const token = localStorage.getItem('access_token');
-            const storedUser = localStorage.getItem('user');
+            const token = authStorage.get('access_token');
+            const storedUser = authStorage.get('user');
             if (token && storedUser) {
                 const u = JSON.parse(storedUser);
                 const dest =
@@ -88,9 +89,9 @@ export default function LoginPage() {
             const { access_token, refresh_token, user } = response.data;
 
             if (user?.is_first_login === true) {
-                localStorage.setItem('access_token', access_token);
-                if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
-                localStorage.setItem('user', JSON.stringify(user));
+                authStorage.set('access_token', access_token);
+                if (refresh_token) authStorage.set('refresh_token', refresh_token);
+                authStorage.set('user', JSON.stringify(user));
                 router.push('/change-password');
                 return;
             }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { authStorage } from '@/lib/authStorage';
 
 export default function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -27,9 +28,9 @@ export default function ChangePasswordPage() {
     setIsLoading(true);
     try {
       await api.post('/auth/change-password', { current_password: currentPassword, new_password: newPassword });
-      const token = localStorage.getItem('access_token') || '';
-      const refreshToken = localStorage.getItem('refresh_token') || undefined;
-      const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+      const token = authStorage.get('access_token') || '';
+      const refreshToken = authStorage.get('refresh_token') || undefined;
+      const storedUser = JSON.parse(authStorage.get('user') || 'null');
       const resolvedUser = user || storedUser;
       if (resolvedUser && token) {
         login(token, { ...resolvedUser, is_first_login: false }, refreshToken);

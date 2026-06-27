@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { authStorage } from '@/lib/authStorage';
 
 interface User {
     id: string;
@@ -39,8 +40,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const router = useRouter();
 
     useEffect(() => {
-        const token = localStorage.getItem('access_token');
-        const storedUser = localStorage.getItem('user');
+        const token = authStorage.get('access_token');
+        const storedUser = authStorage.get('user');
 
         if (token && storedUser) {
             try {
@@ -60,26 +61,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                             profile_photo_url: data.profile_photo_url ?? undefined,
                         };
                         setUser(refreshed);
-                        localStorage.setItem('user', JSON.stringify(refreshed));
+                        authStorage.set('user', JSON.stringify(refreshed));
                     })
                     .catch(() => { /* keep cached user if /me fails */ })
                     .finally(() => setLoading(false));
                 return;
             } catch {
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
-                localStorage.removeItem('user');
+                authStorage.remove('access_token');
+                authStorage.remove('refresh_token');
+                authStorage.remove('user');
             }
         }
         setLoading(false);
     }, []);
 
     const login = (token: string, userData: User, refreshToken?: string) => {
-        localStorage.setItem('access_token', token);
+        authStorage.set('access_token', token);
         if (refreshToken) {
-            localStorage.setItem('refresh_token', refreshToken);
+            authStorage.set('refresh_token', refreshToken);
         }
-        localStorage.setItem('user', JSON.stringify(userData));
+        authStorage.set('user', JSON.stringify(userData));
         setUser(userData);
 
         if (userData.role === 'super_admin') {
@@ -106,7 +107,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     email: data.email,
                     profile_photo_url: data.profile_photo_url ?? undefined,
                 };
-                localStorage.setItem('user', JSON.stringify(updated));
+                authStorage.set('user', JSON.stringify(updated));
                 return updated;
             });
         } catch { /* silent */ }
@@ -114,9 +115,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const logout = async () => {
         try { await api.post('/auth/logout'); } catch { /* fail silently — still clear local state */ }
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
+        authStorage.remove('access_token');
+        authStorage.remove('refresh_token');
+        authStorage.remove('user');
         setUser(null);
         router.push('/login');
     };

@@ -1,11 +1,11 @@
 import { io, Socket } from 'socket.io-client';
+import { authStorage } from './authStorage';
 
 let _socket: Socket | null = null;
 
 export function getSocket(): Socket {
     if (!_socket) {
-        const token =
-            typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+        const token = authStorage.get('access_token');
         const baseUrl = (
             process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2024/api/v1'
         ).replace('/api/v1', '');
