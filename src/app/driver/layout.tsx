@@ -4,8 +4,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { Sun, Moon } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import { LanguageProvider, useLang } from '@/context/LanguageContext';
 import { ta } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -14,31 +12,9 @@ import MobileTopBar from '@/components/layout/MobileTopBar';
 
 const DriverTour = dynamic(() => import('@/components/tour/DriverTour'), { ssr: false });
 
-function LangToggle() {
-    const { lang, setLang } = useLang();
-    const options: Array<{ value: 'en' | 'ta' | 'both'; label: string }> = [
-        { value: 'en', label: 'EN' },
-        { value: 'ta', label: 'த' },
-        { value: 'both', label: 'EN+த' },
-    ];
-    const current = options.find(o => o.value === lang) || options[2];
-    const nextIndex = (options.findIndex(o => o.value === lang) + 1) % options.length;
-    return (
-        <button
-            onClick={() => setLang(options[nextIndex].value)}
-            className="w-12 flex flex-col items-center justify-center gap-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors border-l border-slate-200 dark:border-slate-700"
-            title="Switch language"
-        >
-            <span className="text-[11px] font-bold leading-none">{current.label}</span>
-            <span className="text-[7px] leading-none mt-0.5 text-slate-400">Lang</span>
-        </button>
-    );
-}
-
 function DriverNav() {
     const pathname = usePathname();
     const { lang } = useLang();
-    const { theme, setTheme } = useTheme();
 
     const tabs = [
         { href: '/driver/dashboard', labelEn: 'My Trip', labelTa: ta.myTrip, icon: '🚌' },
@@ -72,14 +48,6 @@ function DriverNav() {
                         </Link>
                     );
                 })}
-                <button
-                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                    className="w-10 flex flex-col items-center justify-center gap-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors border-l border-slate-200 dark:border-slate-700"
-                    title="Toggle theme"
-                >
-                    {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-                </button>
-                <LangToggle />
             </div>
         </nav>
     );
