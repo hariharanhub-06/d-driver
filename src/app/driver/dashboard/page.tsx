@@ -73,8 +73,8 @@ export default function DriverDashboard() {
     }, []);
 
     useEffect(() => {
-        fetchAll();
-        const interval = setInterval(fetchAll, 30000);
+        fetchAll(true);
+        const interval = setInterval(() => fetchAll(), 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -96,8 +96,10 @@ export default function DriverDashboard() {
         } catch { alert('Failed to send SOS'); }
     };
 
-    const fetchAll = async () => {
-        setLoading(true);
+    // Only show the full-page loader on the first load. Background polls (every 30s) must
+    // refresh data silently — otherwise the whole page flashes to a spinner repeatedly.
+    const fetchAll = async (initial = false) => {
+        if (initial) setLoading(true);
         try {
             const [driverRes, absenceRes, tripsRes, sosRes] = await Promise.allSettled([
                 api.get('/drivers/me'),
@@ -117,7 +119,7 @@ export default function DriverDashboard() {
                 setActiveSos(sosData?.id ? { id: sosData.id } : null);
             }
         } catch { setError('Failed to load dashboard data'); }
-        finally { setLoading(false); }
+        finally { if (initial) setLoading(false); }
     };
 
     const handleStartTrip = (routeId: string) => { setPendingRouteId(routeId); setShowRouteTypeModal(true); };
