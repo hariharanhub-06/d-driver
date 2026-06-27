@@ -270,39 +270,41 @@ export default function BusStaffAttendancePage() {
     return (
         <div className="min-h-full bg-slate-50 dark:bg-slate-900">
 
-            {/* ── Title + progress ── */}
-            <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-                <div>
-                    <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">{t('Attendance', 'வருகை பதிவு')}</h1>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {`${completedCount}/${stops.length} ${t('stops done', 'நிறுத்தங்கள் முடிந்தன')}`}
-                    </p>
+            {/* ── Sticky header: title + map + search stay pinned; only the list scrolls ── */}
+            <div className="sticky top-0 z-20 bg-slate-50 dark:bg-slate-900 pb-2 shadow-sm">
+                <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">{t('Attendance', 'வருகை பதிவு')}</h1>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            {`${completedCount}/${stops.length} ${t('stops done', 'நிறுத்தங்கள் முடிந்தன')}`}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Map (embedded, stays fixed) */}
+                <div className="px-4">
+                    <div className="h-44 sm:h-52 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative">
+                        <FreeMap center={mapCenter} zoom={14} markers={markers} onStopClick={focusStop} />
+                    </div>
+                </div>
+
+                {/* Search */}
+                <div className="px-4 pt-3">
+                    <div className="relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder={t('Search students…', 'மாணவர்களைத் தேடு…')}
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="w-full bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 rounded-2xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-[var(--brand)] text-slate-900 dark:text-white transition-all"
+                        />
+                    </div>
                 </div>
             </div>
 
-            {/* ── Map (embedded) ── */}
-            <div className="px-4">
-                <div className="h-56 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative">
-                    <FreeMap center={mapCenter} zoom={14} markers={markers} onStopClick={focusStop} />
-                </div>
-            </div>
-
-            {/* ── Search ── */}
-            <div className="px-4 py-3 sticky top-0 z-20 bg-slate-50 dark:bg-slate-900">
-                <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder={t('Search students…', 'மாணவர்களைத் தேடு…')}
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 rounded-2xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-[var(--brand)] text-slate-900 dark:text-white transition-all"
-                    />
-                </div>
-            </div>
-
-            {/* ── Stops with their students ── */}
-            <div className="px-4 pb-6 space-y-4">
+            {/* ── Stops with their students (the only scrolling part) ── */}
+            <div className="px-4 pb-6 pt-3 space-y-4">
                 {stops.map((stop, i) => {
                     const list = q ? stop.students.filter(s => s.name.toLowerCase().includes(q)) : stop.students;
                     if (q && list.length === 0) return null;
