@@ -4,12 +4,15 @@ const { notifyAdmins } = require('../utils/notifications');
 // POST /api/v1/trips/start
 const startTrip = async (req, res) => {
   try {
-    const { route_id, bus_id: bodyBusId, shift_id } = req.body;
+    const { route_id, bus_id: bodyBusId, shift_id, route_type } = req.body;
     const driverId = req.user.id;
     const schoolId = req.user.school_id;
     const io = req.app.get('io');
 
     if (!route_id) return res.status(400).json({ error: 'route_id is required' });
+
+    // The driver's chosen direction — evening runs the route in reverse.
+    const tripDirection = (route_type === 'evening' || route_type === 'afternoon') ? 'evening' : 'morning';
 
     const driver = await prisma.driver.findUnique({
       where: { user_id: driverId },
@@ -27,8 +30,8 @@ const startTrip = async (req, res) => {
 
     const trip = await prisma.activeTrip.upsert({
       where: { route_id },
-      update: { driver_id: driver.id, bus_id, shift_id: shift_id || null, status: 'running', started_at: new Date(), completed_at: null, current_stop_index: 0 },
-      create: { route_id, driver_id: driver.id, bus_id, shift_id: shift_id || null, school_id: schoolId },
+      update: { driver_id: driver.id, bus_id, shift_id: shift_id || null, status: 'running', started_at: new Date(), completed_at: null, current_stop_index: 0, trip_type: tripDirection },
+      create: { route_id, driver_id: driver.id, bus_id, shift_id: shift_id || null, school_id: schoolId, trip_type: tripDirection },
       include: { route: { include: { stops: { orderBy: { sequence: 'asc' } } } } },
     });
 
@@ -236,7 +239,8 @@ const getActiveTrips = async (req, res) => {
       if (trip.route?.stops?.length > 0) {
         const startedAt = trip.started_at ? new Date(trip.started_at) : new Date();
         const istHour = (startedAt.getUTCHours() + 5.5) % 24;
-        const tripType = istHour >= 12 ? 'evening' : 'morning';
+        // Prefer the driver's stored choice; fall back to the start-time heuristic.
+        const tripType = trip.trip_type || (istHour >= 12 ? 'evening' : 'morning');
         // If the route has both morning + evening copies, show only the relevant half.
         // If it only has one (morning) set, an evening trip runs that set in REVERSE
         // (school → home), so the driver heads to the last stop first.
@@ -378,7 +382,7 @@ const getTripProgress = async (req, res) => {
 
     const trip = await prisma.activeTrip.findUnique({
       where: { route_id: routeId },
-      select: { current_stop_index: true, status: true, started_at: true },
+      select: { current_stop_index: true, status: true, started_at: true, trip_type: true },
     });
 
     // Students on this route + how many boarded (present) today.
@@ -403,9 +407,13 @@ const getTripProgress = async (req, res) => {
     // so the parent timeline can show the matching half of the route's stops.
     let direction = null;
     if (trip) {
-      const startedAt = trip.started_at ? new Date(trip.started_at) : new Date();
-      const istHour = (startedAt.getUTCHours() + 5.5) % 24;
-      direction = istHour >= 12 ? 'evening' : 'morning';
+      if (trip.trip_type) {
+        direction = trip.trip_type;
+      } else {
+        const startedAt = trip.started_at ? new Date(trip.started_at) : new Date();
+        const istHour = (startedAt.getUTCHours() + 5.5) % 24;
+        direction = istHour >= 12 ? 'evening' : 'morning';
+      }
     }
 
     res.json({

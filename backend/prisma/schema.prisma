@@ -284,6 +284,7 @@ model ActiveTrip {
   shift_id           String?
   current_stop_index Int       @default(0)
   status             String    @default("running") // running | completed | paused
+  trip_type          String?   // morning | evening — the driver's chosen direction
   started_at         DateTime  @default(now())
   completed_at       DateTime?
   school_id          String
