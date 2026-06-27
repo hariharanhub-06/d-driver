@@ -452,6 +452,15 @@ export default function RoutesPage() {
                                 <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2.5">{formError}</div>
                             )}
                             <div className="flex gap-3 pt-2">
+                                {editRoute && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setIsModalOpen(false); setDeleteId(editRoute.id); }}
+                                        className="flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl px-4 py-2.5 font-semibold text-sm transition-all hover:bg-red-100 dark:hover:bg-red-900/40"
+                                    >
+                                        {t('Delete', 'நீக்கு')}
+                                    </button>
+                                )}
                                 <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}

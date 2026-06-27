@@ -983,6 +983,14 @@ export default function StudentsPage() {
                         </div>
 
                         <div className="flex gap-3 px-6 pb-6">
+                            {editingId && (
+                                <button
+                                    onClick={() => { setEditModalOpen(false); setDeleteId(editingId); }}
+                                    className="flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                                >
+                                    {t('Delete', 'நீக்கு')}
+                                </button>
+                            )}
                             <button
                                 onClick={() => setEditModalOpen(false)}
                                 className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"

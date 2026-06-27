@@ -774,6 +774,11 @@ export default function SchoolsManagement() {
 
                                 {/* Footer */}
                                 <div className="px-6 pb-6 flex gap-3">
+                                    {editingId && (
+                                        <button type="button" onClick={() => { setIsModalOpen(false); handleDelete(editingId); }} className="py-2.5 px-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
+                                            {t('Delete', 'நீக்கு')}
+                                        </button>
+                                    )}
                                     <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                                         {t('Cancel', 'ரத்து செய்')}
                                     </button>

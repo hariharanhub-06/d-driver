@@ -329,6 +329,9 @@ function StopsContent() {
                                 </div>
                             </div>
                             <div className="flex gap-3 pt-2">
+                                {editStop && (
+                                    <button type="button" onClick={() => { setIsModalOpen(false); setDeleteId(editStop.id); }} className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl px-4 py-2.5 font-semibold text-sm justify-center hover:bg-red-100 dark:hover:bg-red-900/40">{t('Delete', 'நீக்கு')}</button>
+                                )}
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm justify-center">{t('Cancel', 'ரத்து செய்')}</button>
                                 <button type="submit" disabled={isSubmitting} className="flex-1 flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 justify-center disabled:opacity-60">
                                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editStop ? t('Save Changes', 'மாற்றங்கள் சேமி') : t('Add Stop', 'நிறுத்தம் சேர்')}
