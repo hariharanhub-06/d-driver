@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import ImageUpload from '@/components/ui/ImageUpload';
 import { useT } from '@/lib/i18n';
+import { DEFAULT_LANDING_CONTENT, mergeLandingContent, ICON_OPTIONS, COLOR_OPTIONS, type LandingContent } from '@/lib/landingContent';
 
 interface BillingConfig {
   overdue_grace_days?: number;
@@ -40,6 +41,7 @@ interface Founder {
 }
 
 interface LandingConfig {
+  platform_logo_url?: string;
   product_name?: string;
   landing_badge?: string;
   landing_title?: string;
@@ -96,6 +98,43 @@ function MsgBanner({ msg }: { msg: { type: 'success' | 'error'; text: string } }
   );
 }
 
+// ─── Small reusable editor controls for the landing content ──────────────────
+
+function LField({ label, value, onChange, textarea }: { label: string; value: string; onChange: (v: string) => void; textarea?: boolean }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">{label}</label>
+      {textarea ? (
+        <textarea rows={2} value={value} onChange={e => onChange(e.target.value)} className={inputCls} />
+      ) : (
+        <input type="text" value={value} onChange={e => onChange(e.target.value)} className={inputCls} />
+      )}
+    </div>
+  );
+}
+
+function IconSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Icon</label>
+      <select value={value} onChange={e => onChange(e.target.value)} className={inputCls}>
+        {ICON_OPTIONS.map(name => <option key={name} value={name}>{name}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function ColorSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Colour</label>
+      <select value={value} onChange={e => onChange(e.target.value)} className={inputCls}>
+        {COLOR_OPTIONS.map(name => <option key={name} value={name}>{name}</option>)}
+      </select>
+    </div>
+  );
+}
+
 // ─── Landing Page Tab ────────────────────────────────────────────────────────
 
 function LandingPageTab() {
@@ -106,6 +145,11 @@ function LandingPageTab() {
   const [heroLoading, setHeroLoading] = useState(true);
   const [heroSaving, setHeroSaving] = useState(false);
   const [heroMsg, setHeroMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Full structured page content (every section's text + icons + colours).
+  const [content, setContent] = useState<LandingContent>(DEFAULT_LANDING_CONTENT);
+  const editC = (fn: (d: LandingContent) => void) =>
+    setContent(prev => { const d: LandingContent = structuredClone(prev); fn(d); return d; });
 
   // Partners
   const [partners, setPartners] = useState<Partner[]>([]);
@@ -143,6 +187,7 @@ function LandingPageTab() {
       const res = await api.get('/platform/config');
       if (res.data) {
         setHeroForm({
+          platform_logo_url: res.data.platform_logo_url ?? '',
           product_name: res.data.product_name ?? '',
           landing_badge: res.data.landing_badge ?? '',
           landing_title: res.data.landing_title ?? '',
@@ -154,6 +199,7 @@ function LandingPageTab() {
           landing_footer_address: res.data.landing_footer_address ?? '',
           landing_footer_copyright: res.data.landing_footer_copyright ?? '',
         });
+        setContent(mergeLandingContent(res.data.landing_content));
       }
     } catch {
       // silently ignore
@@ -166,7 +212,7 @@ function LandingPageTab() {
     setHeroSaving(true);
     setHeroMsg(null);
     try {
-      await api.put('/platform/config', heroForm);
+      await api.put('/platform/config', { ...heroForm, landing_content: content });
       setHeroMsg({ type: 'success', text: 'Landing page content saved.' });
     } catch (err: any) {
       setHeroMsg({ type: 'error', text: err.response?.data?.error || 'Failed to save.' });
@@ -361,6 +407,10 @@ function LandingPageTab() {
           </div>
         ) : (
           <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Platform Logo</label>
+              <ImageUpload value={heroForm.platform_logo_url || ''} onChange={url => setHeroForm(p => ({ ...p, platform_logo_url: url }))} folder="platform" />
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Product Name</label>
@@ -478,6 +528,135 @@ function LandingPageTab() {
                     placeholder="© 2026 Onlive. All rights reserved."
                     className={inputCls}
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Page sections — every line, icon & colour ── */}
+            <div className="border-t border-slate-100 dark:border-slate-700 pt-5 space-y-6">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Page Sections — edit every line, icon &amp; colour</p>
+
+              {/* Navigation */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Navigation bar</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <LField label="Features link" value={content.nav.features} onChange={v => editC(d => { d.nav.features = v; })} />
+                  <LField label="How-it-works link" value={content.nav.how} onChange={v => editC(d => { d.nav.how = v; })} />
+                  <LField label="Schools link" value={content.nav.schools} onChange={v => editC(d => { d.nav.schools = v; })} />
+                  <LField label="Sign-in button" value={content.nav.signIn} onChange={v => editC(d => { d.nav.signIn = v; })} />
+                </div>
+              </div>
+
+              {/* Hero */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Hero</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <LField label="Secondary button" value={content.hero.secondaryCta} onChange={v => editC(d => { d.hero.secondaryCta = v; })} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Hero image (optional — replaces the demo card)</label>
+                  <ImageUpload value={content.hero.image_url || ''} onChange={url => editC(d => { d.hero.image_url = url || null; })} folder="landing" />
+                </div>
+              </div>
+
+              {/* Stat labels */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Stat labels</p>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <LField label="Schools" value={content.statLabels.schools} onChange={v => editC(d => { d.statLabels.schools = v; })} />
+                  <LField label="Parents" value={content.statLabels.parents} onChange={v => editC(d => { d.statLabels.parents = v; })} />
+                  <LField label="Buses live" value={content.statLabels.buses_live} onChange={v => editC(d => { d.statLabels.buses_live = v; })} />
+                  <LField label="Drivers" value={content.statLabels.drivers} onChange={v => editC(d => { d.statLabels.drivers = v; })} />
+                  <LField label="Staff & admins" value={content.statLabels.staff_admins} onChange={v => editC(d => { d.statLabels.staff_admins = v; })} />
+                </div>
+              </div>
+
+              {/* Features */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Features section</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <LField label="Badge" value={content.features.badge} onChange={v => editC(d => { d.features.badge = v; })} />
+                  <LField label="Title" value={content.features.title} onChange={v => editC(d => { d.features.title = v; })} />
+                  <LField label="Subtitle" value={content.features.subtitle} onChange={v => editC(d => { d.features.subtitle = v; })} />
+                </div>
+                {content.features.cards.map((card, i) => (
+                  <div key={i} className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-slate-500">Feature card {i + 1}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <IconSelect value={card.icon} onChange={v => editC(d => { d.features.cards[i].icon = v; })} />
+                      <ColorSelect value={card.color} onChange={v => editC(d => { d.features.cards[i].color = v; })} />
+                      <LField label="Badge" value={card.badge} onChange={v => editC(d => { d.features.cards[i].badge = v; })} />
+                      <LField label="Title" value={card.title} onChange={v => editC(d => { d.features.cards[i].title = v; })} />
+                    </div>
+                    <LField label="Description" textarea value={card.desc} onChange={v => editC(d => { d.features.cards[i].desc = v; })} />
+                  </div>
+                ))}
+                {content.features.pills.map((pill, i) => (
+                  <div key={i} className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-slate-500">Feature pill {i + 1}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <IconSelect value={pill.icon} onChange={v => editC(d => { d.features.pills[i].icon = v; })} />
+                      <ColorSelect value={pill.color} onChange={v => editC(d => { d.features.pills[i].color = v; })} />
+                      <LField label="Label" value={pill.label} onChange={v => editC(d => { d.features.pills[i].label = v; })} />
+                      <LField label="Subtext" value={pill.sub} onChange={v => editC(d => { d.features.pills[i].sub = v; })} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* How it works */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">How it works</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <LField label="Badge" value={content.how.badge} onChange={v => editC(d => { d.how.badge = v; })} />
+                  <LField label="Title" value={content.how.title} onChange={v => editC(d => { d.how.title = v; })} />
+                  <LField label="Subtitle" value={content.how.subtitle} onChange={v => editC(d => { d.how.subtitle = v; })} />
+                </div>
+                {content.how.steps.map((s, i) => (
+                  <div key={i} className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-slate-500">Step {i + 1}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <IconSelect value={s.icon} onChange={v => editC(d => { d.how.steps[i].icon = v; })} />
+                      <ColorSelect value={s.color} onChange={v => editC(d => { d.how.steps[i].color = v; })} />
+                      <LField label="Title" value={s.title} onChange={v => editC(d => { d.how.steps[i].title = v; })} />
+                    </div>
+                    <LField label="Description" textarea value={s.desc} onChange={v => editC(d => { d.how.steps[i].desc = v; })} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Section headings */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Section headings</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <LField label="Schools heading" value={content.schoolsHeading} onChange={v => editC(d => { d.schoolsHeading = v; })} />
+                  <LField label="Partners heading" value={content.partnersHeading} onChange={v => editC(d => { d.partnersHeading = v; })} />
+                  <LField label="Team heading" value={content.teamHeading} onChange={v => editC(d => { d.teamHeading = v; })} />
+                  <LField label="Team subtitle ({product} = product name)" value={content.teamSubtitle} onChange={v => editC(d => { d.teamSubtitle = v; })} />
+                </div>
+              </div>
+
+              {/* CTA banner */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Call-to-action banner</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <LField label="Eyebrow" value={content.cta.eyebrow} onChange={v => editC(d => { d.cta.eyebrow = v; })} />
+                  <LField label="Title" value={content.cta.title} onChange={v => editC(d => { d.cta.title = v; })} />
+                  <LField label="Primary button" value={content.cta.primary} onChange={v => editC(d => { d.cta.primary = v; })} />
+                  <LField label="Secondary button" value={content.cta.secondary} onChange={v => editC(d => { d.cta.secondary = v; })} />
+                </div>
+                <LField label="Body ({product} = product name)" textarea value={content.cta.body} onChange={v => editC(d => { d.cta.body = v; })} />
+              </div>
+
+              {/* Footer labels */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Footer labels</p>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <LField label="Portal heading" value={content.footer.portalHeading} onChange={v => editC(d => { d.footer.portalHeading = v; })} />
+                  <LField label="School admin" value={content.footer.schoolAdmin} onChange={v => editC(d => { d.footer.schoolAdmin = v; })} />
+                  <LField label="Driver app" value={content.footer.driverApp} onChange={v => editC(d => { d.footer.driverApp = v; })} />
+                  <LField label="Parent app" value={content.footer.parentApp} onChange={v => editC(d => { d.footer.parentApp = v; })} />
+                  <LField label="Contact heading" value={content.footer.contactHeading} onChange={v => editC(d => { d.footer.contactHeading = v; })} />
                 </div>
               </div>
             </div>
@@ -828,10 +1007,10 @@ export default function SASettingsPage() {
   const t = useT();
   const isDevSA = (user as any)?.is_dev_sa === true;
 
-  // Tab state
+  // Tab state — the Landing Page editor is open to every super-admin (regular SA + dev SA).
   const tabs = [
     { id: 'general', label: t('General', 'பொதுவான') },
-    ...(isDevSA ? [{ id: 'landing', label: t('Landing Page', 'முகப்புப் பக்கம்') }] : []),
+    { id: 'landing', label: t('Landing Page', 'முகப்புப் பக்கம்') },
   ];
   const [activeTab, setActiveTab] = useState('general');
 
@@ -1290,8 +1469,8 @@ export default function SASettingsPage() {
         </>
       )}
 
-      {/* ── Landing Page tab (dev SA only) ──────────────────────────────────── */}
-      {activeTab === 'landing' && isDevSA && <LandingPageTab />}
+      {/* ── Landing Page tab (all super-admins) ─────────────────────────────── */}
+      {activeTab === 'landing' && <LandingPageTab />}
     </div>
   );
 }
