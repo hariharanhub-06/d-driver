@@ -102,6 +102,7 @@ function ResetPasswordContent() {
                 {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            <PasswordRules password={newPassword} />
           </div>
 
           <div>

@@ -6,6 +6,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/lib/authStorage';
+import PasswordRules from '@/components/ui/PasswordRules';
 
 export default function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -99,6 +100,7 @@ export default function ChangePasswordPage() {
                   {show ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {label === 'New Password' && <PasswordRules password={value} />}
             </div>
           ))}
 
