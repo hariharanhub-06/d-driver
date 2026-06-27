@@ -7,12 +7,8 @@ import LandingInstallButton from '@/components/LandingInstallButton';
 import {
   Bus,
   Users,
-  Locate,
   CheckCircle2,
-  CreditCard,
   MapPin,
-  Bell,
-  BarChart3,
   Navigation,
   Menu,
   X,
@@ -23,6 +19,7 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
+import { mergeLandingContent, iconFor, colorFor, type LandingContent } from '@/lib/landingContent';
 
 // ─── TypeScript interfaces ────────────────────────────────────────────────────
 
@@ -38,6 +35,7 @@ interface Config {
   landing_footer_phone: string | null;
   landing_footer_address: string | null;
   landing_footer_copyright: string;
+  landing_content?: LandingContent | null;
 }
 
 interface Stats {
@@ -220,13 +218,15 @@ export default function LandingPage() {
   if (loading) return <LoadingSkeleton />;
 
   const { config, stats, partners, founders, schools } = data!;
+  // All editable landing copy/icons/images (defaults merged with the super-admin's saved content).
+  const c = mergeLandingContent(config.landing_content);
 
   const statItems = [
-    { value: stats.schools, label: 'Schools' },
-    { value: stats.parents, label: 'Parents Enrolled' },
-    { value: stats.buses_live, label: 'Buses Live Now' },
-    { value: stats.drivers, label: 'Drivers' },
-    { value: stats.staff_admins, label: 'Staff & Admins' },
+    { value: stats.schools, label: c.statLabels.schools },
+    { value: stats.parents, label: c.statLabels.parents },
+    { value: stats.buses_live, label: c.statLabels.buses_live },
+    { value: stats.drivers, label: c.statLabels.drivers },
+    { value: stats.staff_admins, label: c.statLabels.staff_admins },
   ];
 
   return (
@@ -254,13 +254,13 @@ export default function LandingPage() {
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600 dark:text-gray-300">
             <Link href="#features" className="hover:text-[#22c55e] transition-colors">
-              Features
+              {c.nav.features}
             </Link>
             <Link href="#how-it-works" className="hover:text-[#22c55e] transition-colors">
-              How It Works
+              {c.nav.how}
             </Link>
             <Link href="#schools" className="hover:text-[#22c55e] transition-colors">
-              Schools
+              {c.nav.schools}
             </Link>
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -274,7 +274,7 @@ export default function LandingPage() {
               href="/login"
               className="bg-[#22c55e] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-green-600 transition-colors shadow shadow-green-400/20"
             >
-              Sign In
+              {c.nav.signIn}
             </Link>
           </div>
 
@@ -302,10 +302,10 @@ export default function LandingPage() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {href === '#features'
-                  ? 'Features'
+                  ? c.nav.features
                   : href === '#how-it-works'
-                  ? 'How It Works'
-                  : 'Schools'}
+                  ? c.nav.how
+                  : c.nav.schools}
               </Link>
             ))}
             <Link
@@ -313,7 +313,7 @@ export default function LandingPage() {
               className="block w-full text-center bg-[#22c55e] text-white py-2.5 rounded-full text-sm font-semibold hover:bg-green-600 transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Sign In
+              {c.nav.signIn}
             </Link>
           </div>
         )}
@@ -368,7 +368,7 @@ export default function LandingPage() {
                 href="#how-it-works"
                 className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-[#0F172A] border-2 border-gray-200 rounded-2xl font-bold hover:border-[#22c55e] hover:text-[#22c55e] transition-colors"
               >
-                See How It Works
+                {c.hero.secondaryCta}
               </Link>
             </div>
           </div>
@@ -457,7 +457,7 @@ export default function LandingPage() {
         <section id="schools" className="py-16 bg-gray-50 overflow-hidden">
           <div className="max-w-7xl mx-auto px-6 md:px-10">
             <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-10">
-              Trusted by Schools
+              {c.schoolsHeading}
             </p>
           </div>
           {/* Marquee row */}
@@ -492,91 +492,55 @@ export default function LandingPage() {
           <div className="text-center mb-16 space-y-4">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-200">
               <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
-                Platform Features
+                {c.features.badge}
               </span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold text-[#0F172A] tracking-tight">
-              Built for the road ahead
+              {c.features.title}
             </h2>
             <p className="text-gray-500 max-w-xl mx-auto text-lg">
-              Every feature designed for the real-world needs of school transport operations.
+              {c.features.subtitle}
             </p>
           </div>
 
           {/* 3 main cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* GPS Tracking */}
-            <div className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-5">
-                <Locate className="w-6 h-6 text-[#22c55e]" />
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-50 border border-green-100 mb-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
-                <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">
-                  Real-time
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-[#0F172A] mb-2">Live GPS Tracking</h3>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                Parents watch their child&apos;s bus on a live map. Auto-alert when bus is 1 km from
-                their stop — no more waiting outside.
-              </p>
-            </div>
-
-            {/* Smart Attendance */}
-            <div className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-5">
-                <CheckCircle2 className="w-6 h-6 text-blue-500" />
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-100 mb-3">
-                <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">
-                  Stop by stop
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-[#0F172A] mb-2">Smart Attendance</h3>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                Driver sees each student&apos;s photo card at every stop. One tap to mark present or
-                absent. Parents notified instantly on any changes.
-              </p>
-            </div>
-
-            {/* Fee Management */}
-            <div className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-              <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center mb-5">
-                <CreditCard className="w-6 h-6 text-orange-500" />
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-50 border border-orange-100 mb-3">
-                <span className="text-[10px] font-bold text-orange-700 uppercase tracking-wider">
-                  Automated
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-[#0F172A] mb-2">Fee Management</h3>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                Auto-generate fees per student schedule. Online payments, cash recording, and instant
-                digital receipts — all in one place.
-              </p>
-            </div>
+            {c.features.cards.map((card, i) => {
+              const Icon = iconFor(card.icon);
+              const col = colorFor(card.color);
+              return (
+                <div key={i} className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+                  <div className={`w-12 h-12 ${col.bg} rounded-xl flex items-center justify-center mb-5`}>
+                    <Icon className={`w-6 h-6 ${col.text}`} />
+                  </div>
+                  {card.badge && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-50 border border-gray-100 mb-3">
+                      <span className={`w-1.5 h-1.5 rounded-full ${col.text.replace('text-', 'bg-')}`} />
+                      <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">{card.badge}</span>
+                    </div>
+                  )}
+                  <h3 className="text-lg font-bold text-[#0F172A] mb-2">{card.title}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">{card.desc}</p>
+                </div>
+              );
+            })}
           </div>
 
           {/* 4 secondary pills */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
-            {[
-              { icon: Bell, color: 'text-purple-500', bg: 'bg-purple-50', label: 'Push Notifications', sub: 'Bus approaching, boarded, arrived' },
-              { icon: BarChart3, color: 'text-teal-500', bg: 'bg-teal-50', label: 'Reports & Analytics', sub: 'Attendance, fuel, shift logs' },
-              { icon: MapPin, color: 'text-red-500', bg: 'bg-red-50', label: 'Stop Management', sub: 'Sequence, timing, requests' },
-              { icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-50', label: 'Multi-role Access', sub: 'Admin, Driver, Parent' },
-            ].map(({ icon: Icon, color, bg, label, sub }) => (
-              <div
-                key={label}
-                className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow"
-              >
-                <div className={`w-9 h-9 ${bg} rounded-lg flex items-center justify-center mb-3`}>
-                  <Icon className={`w-5 h-5 ${color}`} />
+            {c.features.pills.map((pill, i) => {
+              const Icon = iconFor(pill.icon);
+              const col = colorFor(pill.color);
+              return (
+                <div key={i} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
+                  <div className={`w-9 h-9 ${col.bg} rounded-lg flex items-center justify-center mb-3`}>
+                    <Icon className={`w-5 h-5 ${col.text}`} />
+                  </div>
+                  <p className="text-sm font-bold text-[#0F172A] mb-1">{pill.label}</p>
+                  <p className="text-xs text-gray-400">{pill.sub}</p>
                 </div>
-                <p className="text-sm font-bold text-[#0F172A] mb-1">{label}</p>
-                <p className="text-xs text-gray-400">{sub}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -588,12 +552,12 @@ export default function LandingPage() {
           <div className="text-center mb-16 space-y-4">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-100">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                The Journey
+                {c.how.badge}
               </span>
             </div>
-            <h2 className="text-4xl font-bold text-[#0F172A]">From setup to live in minutes</h2>
+            <h2 className="text-4xl font-bold text-[#0F172A]">{c.how.title}</h2>
             <p className="text-gray-500 max-w-xl mx-auto">
-              Three simple steps to transform how your school manages student transport.
+              {c.how.subtitle}
             </p>
           </div>
 
@@ -602,48 +566,22 @@ export default function LandingPage() {
             {/* Connector line (desktop only) */}
             <div className="hidden md:block absolute top-8 left-[22%] right-[22%] h-px bg-gradient-to-r from-green-200 via-blue-200 to-orange-200 z-0" />
 
-            {[
-              {
-                step: '01',
-                icon: Bus,
-                iconBg: 'bg-green-100',
-                iconColor: 'text-[#22c55e]',
-                stepColor: 'text-green-400',
-                title: 'Admin Sets Up Routes',
-                desc: 'Add buses, assign drivers, create routes with stops in order. Students are linked to their boarding stop automatically.',
-              },
-              {
-                step: '02',
-                icon: Navigation,
-                iconBg: 'bg-blue-50',
-                iconColor: 'text-blue-500',
-                stepColor: 'text-blue-400',
-                title: 'Driver Starts Trip',
-                desc: 'Driver selects Morning or Evening route and starts the trip. GPS goes live — parents receive a "Bus Started" notification instantly.',
-              },
-              {
-                step: '03',
-                icon: Bell,
-                iconBg: 'bg-orange-50',
-                iconColor: 'text-orange-500',
-                stepColor: 'text-orange-400',
-                title: 'Parents Track Live',
-                desc: 'Parents watch the bus on a real-time map. Get a "Bus 1 km away" alert. See their child marked as boarded — every mile, every child.',
-              },
-            ].map(({ step, icon: Icon, iconBg, iconColor, stepColor, title, desc }) => (
-              <div key={step} className="relative z-10 flex flex-col items-center text-center">
-                <div
-                  className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center mb-5 shadow-sm`}
-                >
-                  <Icon className={`w-7 h-7 ${iconColor}`} />
+            {c.how.steps.map((s, i) => {
+              const Icon = iconFor(s.icon);
+              const col = colorFor(s.color);
+              return (
+                <div key={i} className="relative z-10 flex flex-col items-center text-center">
+                  <div className={`w-14 h-14 ${col.bg} rounded-2xl flex items-center justify-center mb-5 shadow-sm`}>
+                    <Icon className={`w-7 h-7 ${col.text}`} />
+                  </div>
+                  <p className={`text-xs font-black ${col.text} mb-2 tracking-widest`}>
+                    STEP {String(i + 1).padStart(2, '0')}
+                  </p>
+                  <h3 className="text-lg font-bold text-[#0F172A] mb-2">{s.title}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed max-w-xs">{s.desc}</p>
                 </div>
-                <p className={`text-xs font-black ${stepColor} mb-2 tracking-widest`}>
-                  STEP {step}
-                </p>
-                <h3 className="text-lg font-bold text-[#0F172A] mb-2">{title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed max-w-xs">{desc}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -653,7 +591,7 @@ export default function LandingPage() {
         <section className="py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-6 md:px-10">
             <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-12">
-              Our Partners
+              {c.partnersHeading}
             </p>
             <div className="flex flex-wrap justify-center gap-8">
               {partners.map((partner) => (
@@ -682,9 +620,9 @@ export default function LandingPage() {
         <section className="py-24 bg-white">
           <div className="max-w-7xl mx-auto px-6 md:px-10">
             <div className="text-center mb-14 space-y-3">
-              <h2 className="text-4xl font-bold text-[#0F172A]">Meet the Team</h2>
+              <h2 className="text-4xl font-bold text-[#0F172A]">{c.teamHeading}</h2>
               <p className="text-gray-500 max-w-md mx-auto">
-                The people building {config.product_name}.
+                {c.teamSubtitle.replace('{product}', config.product_name)}
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-8">
@@ -728,27 +666,27 @@ export default function LandingPage() {
       <section className="bg-[#0F172A] py-24 px-6 md:px-10">
         <div className="max-w-3xl mx-auto text-center space-y-6">
           <p className="text-green-400 font-bold text-xs uppercase tracking-widest">
-            Ready to roll?
+            {c.cta.eyebrow}
           </p>
           <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
-            Transform your school&apos;s transport today
+            {c.cta.title}
           </h2>
           <p className="text-slate-400 text-lg max-w-xl mx-auto">
-            Join schools running safer, smarter bus operations with {config.product_name}.
+            {c.cta.body.replace('{product}', config.product_name)}
           </p>
           <div className="flex flex-wrap justify-center gap-4 pt-2">
             <Link
               href="/login"
               className="inline-flex items-center gap-2 px-10 py-4 bg-[#22c55e] text-white rounded-2xl font-bold shadow-xl shadow-green-500/20 hover:bg-green-600 transition-colors"
             >
-              Sign In
+              {c.cta.primary}
               <ChevronRight className="w-4 h-4" />
             </Link>
             <Link
               href="#features"
               className="px-10 py-4 bg-white/10 text-white border border-white/20 rounded-2xl font-bold hover:bg-white/15 transition-colors"
             >
-              Explore Features
+              {c.cta.secondary}
             </Link>
           </div>
         </div>
@@ -773,22 +711,22 @@ export default function LandingPage() {
           {/* Portal links */}
           <div>
             <h4 className="font-bold mb-5 text-[#22c55e] uppercase tracking-widest text-xs">
-              Portal
+              {c.footer.portalHeading}
             </h4>
             <ul className="space-y-3 text-slate-400 text-sm">
               <li>
                 <Link href="/login" className="hover:text-white transition-colors">
-                  School Admin
+                  {c.footer.schoolAdmin}
                 </Link>
               </li>
               <li>
                 <Link href="/login" className="hover:text-white transition-colors">
-                  Driver App
+                  {c.footer.driverApp}
                 </Link>
               </li>
               <li>
                 <Link href="/login" className="hover:text-white transition-colors">
-                  Parent App
+                  {c.footer.parentApp}
                 </Link>
               </li>
             </ul>
@@ -797,7 +735,7 @@ export default function LandingPage() {
           {/* Contact */}
           <div>
             <h4 className="font-bold mb-5 text-[#22c55e] uppercase tracking-widest text-xs">
-              Contact
+              {c.footer.contactHeading}
             </h4>
             <ul className="space-y-3 text-slate-400 text-sm">
               {config.landing_footer_email && (
