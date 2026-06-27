@@ -380,6 +380,15 @@ export default function ActiveRide() {
     const currentStop = stops[currentStopIndex];
     const nextStop = stops[currentStopIndex + 1];
 
+    // Stable stop number = rank in the morning sequence, so morning shows 1→N and evening
+    // (reversed) shows N→1. Prefer the backend's stop_number; fall back to a client compute
+    // (using the driver's selected trip type) so the numbering is right even before the
+    // backend redeploys.
+    const driverEvening = typeof window !== 'undefined' &&
+        ['evening', 'afternoon'].includes(localStorage.getItem('driver_trip_type') || '');
+    const stopNumberAt = (idx: number) =>
+        (stops[idx] as any)?.stop_number ?? (driverEvening ? stops.length - idx : idx + 1);
+
     // Straight-line distance to the current (next) stop
     const nextStopDistanceKm = useMemo(() => {
         if (!currentPos || !currentStop?.latitude || !currentStop?.longitude) return null;
@@ -565,8 +574,8 @@ export default function ActiveRide() {
     };
 
     const mapStops = stops
-        .filter(s => s.latitude && s.longitude)
-        .map(s => ({ id: s.id, name: s.name, sequence: (s as any).stop_number ?? s.sequence, lat: s.latitude!, lng: s.longitude! }));
+        .map((s, i) => ({ id: s.id, name: s.name, sequence: stopNumberAt(i), lat: s.latitude!, lng: s.longitude! }))
+        .filter(s => s.lat && s.lng);
 
     // Prefer the last-known driver position over the India-centre default.
     const fallbackPos: [number, number] = lastPos || [20.5937, 78.9629];
@@ -724,7 +733,7 @@ export default function ActiveRide() {
                                 <div className="flex items-center gap-2 mb-0.5">
                                     <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('Heading to', 'சென்று கொண்டிருக்கும் நிறுத்தம்')}</p>
                                     <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 rounded-full px-2 py-0.5">
-                                        Stop {(currentStop as any)?.stop_number ?? currentStop?.sequence ?? (currentStopIndex + 1)} of {stops.length}
+                                        Stop {stopNumberAt(currentStopIndex)} of {stops.length}
                                     </span>
                                 </div>
                                 <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
