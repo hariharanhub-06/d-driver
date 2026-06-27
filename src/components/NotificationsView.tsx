@@ -16,6 +16,7 @@ interface Notification {
     message: string;
     is_read: boolean;
     created_at: string;
+    school_name?: string | null;
 }
 
 type Filter = 'all' | 'unread' | 'alerts';
@@ -181,6 +182,11 @@ export default function NotificationsView() {
                                     </span>
                                 </div>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{n.message}</p>
+                                {user?.role === 'super_admin' && n.school_name && (
+                                    <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-2 py-0.5 rounded-full">
+                                        🏫 {n.school_name}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     ))}

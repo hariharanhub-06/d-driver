@@ -26,6 +26,7 @@ interface RealNotification {
     type: string;
     is_read: boolean;
     created_at: string;
+    school_name?: string | null;
 }
 
 const LANG_OPTIONS: { value: Lang; label: string }[] = [
@@ -231,6 +232,9 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
                                             )} />
                                             <div>
                                                 <p className="text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:text-[var(--brand)] transition-colors">{n.message}</p>
+                                                {user?.role === 'super_admin' && n.school_name && (
+                                                    <span className="inline-block mt-0.5 text-[10px] font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-2 py-0.5 rounded-full">🏫 {n.school_name}</span>
+                                                )}
                                                 <p className="text-xs text-slate-400 mt-0.5">{timeAgo(n.created_at)}</p>
                                             </div>
                                         </div>

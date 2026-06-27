@@ -8,9 +8,12 @@ const getNotifications = async (req, res) => {
             where: { user_id: userId },
             orderBy: { created_at: 'desc' },
             take: 50,
+            include: { school: { select: { name: true } } },
         });
 
-        res.json(notifications);
+        // Flatten the school name so the client can show "which school" (matters for
+        // super-admins who oversee multiple schools).
+        res.json(notifications.map(n => ({ ...n, school_name: n.school?.name || null })));
     } catch (error) {
         console.error('getNotifications error:', error);
         res.status(500).json({ error: 'Error fetching notifications' });
