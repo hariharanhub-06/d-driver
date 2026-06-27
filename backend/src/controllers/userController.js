@@ -370,7 +370,11 @@ const sendResetEmail = async (req, res) => {
         const resetUrl = `${proto}://${baseDomain}/reset-password?token=${rawToken}${slug ? `&school=${slug}` : ''}`;
 
         const { sendPasswordReset } = require('../utils/resend');
-        await sendPasswordReset({ to: target.email, resetUrl, school });
+        const result = await sendPasswordReset({ to: target.email, resetUrl, school });
+        if (result && result.status === 'failed') {
+            // Surface the real reason (e.g. unverified domain) instead of a false success.
+            return res.status(502).json({ error: `Email could not be sent: ${result.error || 'unknown error'}` });
+        }
 
         await logAction({ req, action: 'send_reset_email', targetType: 'user', targetId: target.id });
         res.json({ message: 'Password reset email sent.' });

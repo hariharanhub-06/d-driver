@@ -40,16 +40,26 @@ const sendEmail = async ({ to, subject, html, template, school_id, from }) => {
   }
 
   let status = 'sent';
+  let errorMessage = null;
   const resendClient = getClient();
   if (!resendClient) {
+    errorMessage = 'RESEND_API_KEY not set';
     console.warn('Resend skipped: RESEND_API_KEY not set');
     status = 'failed';
   } else {
     try {
-      await resendClient.emails.send({ from: fromAddress, to, subject, html });
+      // The Resend SDK returns { data, error } — it does NOT throw on API errors
+      // (e.g. unverified domain / invalid from). Must inspect `error` explicitly.
+      const { error } = await resendClient.emails.send({ from: fromAddress, to, subject, html });
+      if (error) {
+        status = 'failed';
+        errorMessage = error.message || error.name || 'send failed';
+        console.error('Resend error:', errorMessage, '(from:', fromAddress + ')');
+      }
     } catch (err) {
       status = 'failed';
-      console.error('Resend error:', err.message);
+      errorMessage = err.message;
+      console.error('Resend exception:', err.message);
     }
   }
 
@@ -60,6 +70,8 @@ const sendEmail = async ({ to, subject, html, template, school_id, from }) => {
   } catch (err) {
     console.error('EmailLog write error:', err.message);
   }
+
+  return { status, error: errorMessage };
 };
 
 // ─── EMAIL TEMPLATES ──────────────────────────────────────────────────────────
@@ -97,7 +109,7 @@ const sendPasswordReset = async ({ to, email, name, resetUrl, school, schoolName
       <p style="color:#64748b;font-size:13px;">This link expires in 1 hour. If you didn't request this, ignore this email.</p>
     `);
 
-    await sendEmail({
+    return await sendEmail({
       to: recipient,
       subject: `Reset your password — ${sName}`,
       html,
@@ -106,6 +118,7 @@ const sendPasswordReset = async ({ to, email, name, resetUrl, school, schoolName
     });
   } catch (err) {
     console.error('sendPasswordReset error:', err.message);
+    return { status: 'failed', error: err.message };
   }
 };
 
