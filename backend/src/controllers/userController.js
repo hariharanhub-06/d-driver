@@ -363,10 +363,11 @@ const sendResetEmail = async (req, res) => {
         if (target.school_id) {
             school = await prisma.school.findUnique({ where: { id: target.school_id } });
         }
+        // Apex domain + ?school= (per-school subdomains may not resolve).
         const baseDomain = process.env.BASE_DOMAIN || 'localhost:3000';
+        const proto = baseDomain.includes('localhost') ? 'http' : 'https';
         const slug = school?.slug;
-        const baseUrl = slug ? `https://${slug}.${baseDomain}` : `https://${baseDomain}`;
-        const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;
+        const resetUrl = `${proto}://${baseDomain}/reset-password?token=${rawToken}${slug ? `&school=${slug}` : ''}`;
 
         const { sendPasswordReset } = require('../utils/resend');
         await sendPasswordReset({ to: target.email, resetUrl, school });

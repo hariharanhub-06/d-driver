@@ -31,7 +31,7 @@ services:
       - key: IMAGEKIT_URL_ENDPOINT
         value: https://ik.imagekit.io/zr66xdfcs
       - key: RESEND_FROM_DEFAULT
-        value: noreply@ddriver.app
+        value: noreply@onlive.co.in
       - key: RESEND_API_KEY
         sync: false
       - key: BASE_DOMAIN

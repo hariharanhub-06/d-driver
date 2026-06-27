@@ -191,10 +191,12 @@ const forgotPassword = async (req, res) => {
       school = await prisma.school.findUnique({ where: { id: user.school_id } });
     }
 
+    // Build the reset link on the apex domain over https (per-school subdomains may not
+    // resolve); ?school= carries branding the way the login/reset pages already expect.
     const baseDomain = process.env.BASE_DOMAIN || 'localhost:3000';
+    const proto = baseDomain.includes('localhost') ? 'http' : 'https';
     const slug = school?.slug;
-    const baseUrl = slug ? `http://${slug}.${baseDomain}` : `http://${baseDomain}`;
-    const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;
+    const resetUrl = `${proto}://${baseDomain}/reset-password?token=${rawToken}${slug ? `&school=${slug}` : ''}`;
 
     // Send to user's registered email (even if they used phone to request)
     await sendPasswordReset({ to: user.email, resetUrl, school });
