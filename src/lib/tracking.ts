@@ -114,10 +114,15 @@ export function formatEta(durationS: number, source: EtaResult['source'] = 'osrm
 export function stopsForTrip<T extends { trip_type?: string }>(stops: T[] | undefined, tripType?: string | null): T[] {
     if (!Array.isArray(stops) || stops.length === 0) return [];
     const hasEvening = stops.some(s => s?.trip_type === 'evening');
-    if (!hasEvening) return stops;
-    const dir = tripType || 'morning';
-    const filtered = stops.filter(s => s?.trip_type === dir);
-    return filtered.length > 0 ? filtered : stops;
+    if (hasEvening) {
+        const dir = tripType || 'morning';
+        const filtered = stops.filter(s => s?.trip_type === dir);
+        return filtered.length > 0 ? filtered : stops;
+    }
+    // Only one (morning) set: an evening trip runs it in reverse (school → home), matching
+    // how the driver's getActiveTrips reverses it — so current_stop_index stays aligned.
+    if (tripType === 'evening') return [...stops].reverse();
+    return stops;
 }
 
 /**

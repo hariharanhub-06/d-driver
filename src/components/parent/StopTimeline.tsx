@@ -94,7 +94,7 @@ export default function StopTimeline({ stops, currentStopIndex, myStopId, status
                                     )}
                                     {isCurrent && !isMyStop && (
                                         <span className="text-[11px] font-semibold text-[var(--brand)] uppercase tracking-wide">
-                                            {t('Bus here', 'பேருந்து இங்கே')}
+                                            {t('Bus heading here', 'பேருந்து வருகிறது')}
                                         </span>
                                     )}
                                     {stop.pickup_time && (

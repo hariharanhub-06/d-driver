@@ -237,10 +237,14 @@ const getActiveTrips = async (req, res) => {
         const startedAt = trip.started_at ? new Date(trip.started_at) : new Date();
         const istHour = (startedAt.getUTCHours() + 5.5) % 24;
         const tripType = istHour >= 12 ? 'evening' : 'morning';
-        // Only filter if there are actually both types; if all are morning (no copies), keep all.
+        // If the route has both morning + evening copies, show only the relevant half.
+        // If it only has one (morning) set, an evening trip runs that set in REVERSE
+        // (school → home), so the driver heads to the last stop first.
         const hasEvening = trip.route.stops.some(s => s.trip_type === 'evening');
         if (hasEvening) {
           trip.route.stops = trip.route.stops.filter(s => s.trip_type === tripType);
+        } else if (tripType === 'evening') {
+          trip.route.stops = [...trip.route.stops].reverse();
         }
       }
     }
