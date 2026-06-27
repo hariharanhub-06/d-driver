@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, Minus, Clock, MapPin, Bus } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { ta } from '@/lib/i18n';
+import { ta, useT } from '@/lib/i18n';
 
 interface AttendanceRecord {
   date: string;
@@ -22,6 +22,7 @@ function getFirstDayOfWeek(year: number, month: number) { return (new Date(year,
 
 // ── ALL EXISTING LOGIC PRESERVED ──────────────────────────────────────────
 export default function AttendancePage() {
+  const t = useT();
   const { user } = useAuth();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -98,7 +99,7 @@ export default function AttendancePage() {
       {/* Header */}
       <div className="bg-emerald-600 dark:bg-emerald-800 px-4 pt-10 pb-5">
         <h1 className="text-xl font-bold text-white">
-          Attendance <span className="text-white/70 font-normal text-base">/ {ta.attendance}</span>
+          {t('Attendance', ta.attendance)}
         </h1>
         {selectedChildName && (
           <p className="text-white/80 text-sm mt-0.5">{selectedChildName} {children.find(c => c.id === selectedChild)?.name ? '' : ''}</p>
@@ -122,26 +123,26 @@ export default function AttendancePage() {
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                This Month's Attendance <span className="text-slate-300 dark:text-slate-600">/ {ta.thisMonthAttendance}</span>
+                {t("This Month's Attendance", ta.thisMonthAttendance)}
               </p>
               <div className="flex items-center gap-4 mt-3">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.present}</p>
-                  <p className="text-xs text-slate-500">{ta.present}</p>
+                  <p className="text-xs text-slate-500">{t('Present', ta.present)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-red-500">{stats.absent}</p>
-                  <p className="text-xs text-slate-500">{ta.absent}</p>
+                  <p className="text-xs text-slate-500">{t('Absent', ta.absent)}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-slate-400">{stats.total}</p>
-                  <p className="text-xs text-slate-500">Total</p>
+                  <p className="text-xs text-slate-500">{t('Total', 'மொத்தம்')}</p>
                 </div>
               </div>
               {stats.total > 0 && (
                 <div className="mt-3">
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-slate-500">{stats.present} of {stats.total} {ta.days}</span>
+                    <span className="text-slate-500">{stats.present} / {stats.total} {t('days', ta.days)}</span>
                   </div>
                   <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                     <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${stats.pct}%` }} />
@@ -195,7 +196,7 @@ export default function AttendancePage() {
             </div>
           )}
           <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-            {[{ color: 'bg-emerald-400', label: `Present / ${ta.present}` }, { color: 'bg-red-400', label: `Absent / ${ta.absent}` }, { color: 'bg-slate-200 dark:bg-slate-600', label: 'No record' }].map(l => (
+            {[{ color: 'bg-emerald-400', label: t('Present', ta.present) }, { color: 'bg-red-400', label: t('Absent', ta.absent) }, { color: 'bg-slate-200 dark:bg-slate-600', label: t('No record', 'பதிவு இல்லை') }].map(l => (
               <div key={l.label} className="flex items-center gap-1.5"><div className={`w-2 h-2 rounded-full ${l.color}`} /><span className="text-[10px] text-slate-500">{l.label}</span></div>
             ))}
           </div>
@@ -208,15 +209,15 @@ export default function AttendancePage() {
               {new Date(year, month, selectedDay).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
             </h3>
             {!selectedRecord ? (
-              <div className="flex items-center gap-3 text-slate-400"><Minus className="w-4 h-4" /><span className="text-sm">No attendance recorded</span></div>
+              <div className="flex items-center gap-3 text-slate-400"><Minus className="w-4 h-4" /><span className="text-sm">{t('No attendance recorded', 'வருகை பதிவு இல்லை')}</span></div>
             ) : selectedRecord.status === 'absent' ? (
               <div className="flex items-center gap-3">
                 <XCircle className="w-5 h-5 text-red-500" />
-                <div><p className="font-semibold text-red-600 dark:text-red-400 text-sm">Absent / {ta.absent}</p>{selectedRecord.note && <p className="text-sm text-slate-500 mt-0.5">{selectedRecord.note}</p>}</div>
+                <div><p className="font-semibold text-red-600 dark:text-red-400 text-sm">{t('Absent', ta.absent)}</p>{selectedRecord.note && <p className="text-sm text-slate-500 mt-0.5">{selectedRecord.note}</p>}</div>
               </div>
             ) : selectedRecord.status === 'present' ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-3 mb-4"><CheckCircle2 className="w-5 h-5 text-emerald-500" /><p className="font-semibold text-emerald-600 dark:text-emerald-400 text-sm">Present / {ta.present}</p></div>
+                <div className="flex items-center gap-3 mb-4"><CheckCircle2 className="w-5 h-5 text-emerald-500" /><p className="font-semibold text-emerald-600 dark:text-emerald-400 text-sm">{t('Present', ta.present)}</p></div>
                 {timeline.map((item, idx) => (
                   <div key={idx} className="flex items-start gap-3 pl-2 relative">
                     {idx < timeline.length - 1 && <div className="absolute left-[13px] top-6 w-px h-full bg-slate-100 dark:bg-slate-700" />}

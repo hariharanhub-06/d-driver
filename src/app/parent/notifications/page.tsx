@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BellOff, Check, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
-import { ta } from '@/lib/i18n';
+import { ta, useT } from '@/lib/i18n';
 import { notificationHref } from '@/lib/notificationLink';
 
 interface Notification {
@@ -17,6 +17,7 @@ interface Notification {
 
 // ── ALL EXISTING LOGIC PRESERVED ──────────────────────────────────────────
 export default function ParentNotificationsPage() {
+    const t = useT();
     const router = useRouter();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
@@ -104,14 +105,14 @@ export default function ParentNotificationsPage() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-xl font-bold text-white">
-                            Alerts &amp; Notifications
+                            {t('Alerts & Notifications', ta.alerts)}
                         </h1>
                         <p className="text-white/60 text-xs mt-0.5">
-                            {ta.alerts} {unread > 0 && `· ${unread} ${ta.unread}`}
+                            {t('Notifications', ta.alerts)} {unread > 0 && `· ${unread} ${t('unread', ta.unread)}`}
                         </p>
                     </div>
                     <button onClick={markAllRead} disabled={unread === 0} className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all disabled:opacity-40">
-                        <Check className="w-3.5 h-3.5" /> {ta.markAllRead}{unread > 0 ? ` (${unread})` : ''}
+                        <Check className="w-3.5 h-3.5" /> {t('Mark all read', ta.markAllRead)}{unread > 0 ? ` (${unread})` : ''}
                     </button>
                 </div>
             </div>
@@ -122,15 +123,15 @@ export default function ParentNotificationsPage() {
                 {error && (
                     <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-700 dark:text-red-300 flex items-center justify-between">
                         <span>{error}</span>
-                        <button onClick={() => fetchNotifications(page)} className="font-medium underline">{ta.retry}</button>
+                        <button onClick={() => fetchNotifications(page)} className="font-medium underline">{t('Retry', ta.retry)}</button>
                     </div>
                 )}
 
                 {!loading && !error && notifications.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
                         <BellOff className="w-10 h-10 text-slate-300 dark:text-slate-600" />
-                        <p className="text-slate-500 dark:text-slate-400 font-medium">{ta.noNotifications}</p>
-                        <p className="text-sm text-slate-400">Bus updates and alerts will appear here.</p>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">{t('No notifications yet', ta.noNotifications)}</p>
+                        <p className="text-sm text-slate-400">{t('Bus updates and alerts will appear here.', 'பேருந்து புதுப்பிப்புகள் இங்கே தோன்றும்.')}</p>
                     </div>
                 )}
 
@@ -138,7 +139,7 @@ export default function ParentNotificationsPage() {
                 {todayNotifs.length > 0 && (
                     <div>
                         <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 px-1">
-                            Today's Alerts / {ta.todayAlerts}
+                            {t("Today's Alerts", ta.todayAlerts)}
                         </p>
                         <div className="space-y-2">
                             {todayNotifs.map(n => <NotifCard key={n.id} n={n} />)}
@@ -149,7 +150,7 @@ export default function ParentNotificationsPage() {
                 {/* Older */}
                 {olderNotifs.length > 0 && (
                     <div>
-                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 px-1">Earlier</p>
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 px-1">{t('Earlier', 'முந்தையவை')}</p>
                         <div className="space-y-2">
                             {olderNotifs.map(n => <NotifCard key={n.id} n={n} />)}
                         </div>
@@ -159,9 +160,9 @@ export default function ParentNotificationsPage() {
                 {/* Pagination */}
                 {total > limit && (
                     <div className="flex items-center justify-center gap-3 pt-4">
-                        <button disabled={page === 1} onClick={() => fetchNotifications(page - 1)} className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 disabled:opacity-40">Previous</button>
-                        <span className="text-sm text-slate-500">Page {page}</span>
-                        <button disabled={page * limit >= total} onClick={() => fetchNotifications(page + 1)} className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 disabled:opacity-40">Next</button>
+                        <button disabled={page === 1} onClick={() => fetchNotifications(page - 1)} className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 disabled:opacity-40">{t('Previous', 'முந்தைய')}</button>
+                        <span className="text-sm text-slate-500">{t('Page', 'பக்கம்')} {page}</span>
+                        <button disabled={page * limit >= total} onClick={() => fetchNotifications(page + 1)} className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 disabled:opacity-40">{t('Next', 'அடுத்து')}</button>
                     </div>
                 )}
             </div>
