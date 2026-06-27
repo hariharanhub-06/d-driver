@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Lock } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -53,11 +53,10 @@ export default function ChangePasswordPage() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-slate-50 dark:bg-slate-950">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 px-8 py-10 w-full max-w-md mx-auto">
 
-        {/* Icon + heading */}
+        {/* Logo + heading */}
         <div className="flex flex-col items-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-green-500 flex items-center justify-center mb-4 shadow-md">
-            <Lock className="w-7 h-7 text-white" />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icons/onlive-logo.png" alt="Onlive" className="w-14 h-14 rounded-2xl object-contain bg-[#0a0f1e] mb-4 shadow-md" />
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Set New Password</h1>
           <p className="text-xs text-slate-400 mt-1 text-center">First login — please secure your account</p>
         </div>

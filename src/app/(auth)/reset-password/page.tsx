@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, KeyRound, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
 
@@ -55,11 +55,10 @@ function ResetPasswordContent() {
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 px-8 py-10 w-full max-w-md mx-auto">
 
-        {/* Icon + heading */}
+        {/* Logo + heading */}
         <div className="flex flex-col items-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-green-500 flex items-center justify-center mb-4 shadow-md">
-            <KeyRound className="w-7 h-7 text-white" />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icons/onlive-logo.png" alt="Onlive" className="w-14 h-14 rounded-2xl object-contain bg-[#0a0f1e] mb-4 shadow-md" />
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Reset Password</h1>
           <p className="text-xs text-slate-400 mt-1 text-center">Create a new secure password for your account</p>
         </div>
