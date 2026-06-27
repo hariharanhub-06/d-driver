@@ -382,11 +382,6 @@ export default function ParentTracking() {
                 >
                     <span className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
                         🚏 {t('Bus Stops', 'நிறுத்தங்கள்')}
-                        {progress && progress.students_total > 0 && (
-                            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
-                                {progress.students_onboard}/{progress.students_total}
-                            </span>
-                        )}
                     </span>
                     <ChevronUp size={18} className={`text-slate-400 transition-transform ${stopsExpanded ? 'rotate-180' : ''}`} />
                 </button>

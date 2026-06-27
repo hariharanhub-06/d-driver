@@ -226,11 +226,6 @@ export default function ParentDashboard() {
                 {/* Bus stops timeline — passed / current / upcoming based on the live trip */}
                 {!loading && primaryChild && canTrack && ((primaryChild.route as any)?.stops?.length > 0) && (
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
-                        {progress && progress.students_total > 0 && (
-                            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-2">
-                                {progress.students_onboard}/{progress.students_total} {t('students onboard', 'மாணவர்கள் ஏறினர்')}
-                            </p>
-                        )}
                         <StopTimeline
                             stops={(primaryChild.route as any).stops}
                             currentStopIndex={progress?.current_stop_index ?? 0}
