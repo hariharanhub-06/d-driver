@@ -125,15 +125,13 @@ export default function NotificationsView() {
                         {t('Live alerts and system updates', 'நேரடி அறிவிப்புகள் மற்றும் கணினி புதுப்பிப்புகள்')}
                     </p>
                 </div>
-                {unreadCount > 0 && (
-                    <button
-                        onClick={handleMarkAllRead}
-                        disabled={markingAll}
-                        className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm disabled:opacity-60"
-                    >
-                        {markingAll ? t('Marking...', 'குறிக்கிறது...') : t('Mark All Read', 'அனைத்தையும் படித்ததாக குறிக்கவும்')}
-                    </button>
-                )}
+                <button
+                    onClick={handleMarkAllRead}
+                    disabled={markingAll || unreadCount === 0}
+                    className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm disabled:opacity-50"
+                >
+                    {markingAll ? t('Marking...', 'குறிக்கிறது...') : t('Mark All Read', 'அனைத்தையும் படித்ததாக குறிக்கவும்')}{unreadCount > 0 ? ` (${unreadCount})` : ''}
+                </button>
             </div>
 
             {error && <div className="bg-red-50 text-red-600 border border-red-200 rounded-xl p-3 text-sm">{error}</div>}

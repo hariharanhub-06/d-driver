@@ -109,11 +109,9 @@ export default function ParentNotificationsPage() {
                             {ta.alerts} {unread > 0 && `· ${unread} ${ta.unread}`}
                         </p>
                     </div>
-                    {unread > 0 && (
-                        <button onClick={markAllRead} className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all">
-                            <Check className="w-3.5 h-3.5" /> {ta.markAllRead}
-                        </button>
-                    )}
+                    <button onClick={markAllRead} disabled={unread === 0} className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all disabled:opacity-40">
+                        <Check className="w-3.5 h-3.5" /> {ta.markAllRead}{unread > 0 ? ` (${unread})` : ''}
+                    </button>
                 </div>
             </div>
 
