@@ -7,18 +7,28 @@ const { notifyAdmins } = require('../utils/notifications');
 //   - Route with one (morning) set → an evening trip runs it in reverse (school → home).
 // `stops` must already be ordered by sequence asc.
 // Returns the stops in the order the bus actually visits them, and stamps each with a stable
-// `stop_number` = its rank in the MORNING sequence (1..N). So morning counts up 1→N and
-// evening (reversed, school→home) counts down N→1 — the same number a stop shows whichever
-// trip it's on, and identical on the driver map and the parent timeline.
+// `stop_number` = its rank in the base (morning) order (1..N). Morning counts up 1→N; evening
+// is ALWAYS the reverse (school→home), so it counts down N→1 — the same number a stop shows
+// whichever trip it's on, and identical on the driver map and the parent timeline.
 function orderStopsForTrip(stops, direction) {
   if (!Array.isArray(stops) || stops.length === 0) return Array.isArray(stops) ? stops : [];
-  const hasEvening = stops.some(s => s.trip_type === 'evening');
-  if (hasEvening) {
-    return stops.filter(s => s.trip_type === direction).map((s, i) => ({ ...s, stop_number: i + 1 }));
+  const isEvening = direction === 'evening';
+
+  // If a route has explicit per-direction stop copies, pick this trip's half ('both' counts
+  // for either). Otherwise the single set IS the base. Fall back to all stops if a filter
+  // would leave nothing (e.g. stops tagged only 'evening' on a morning trip).
+  const hasSplit = stops.some(s => s.trip_type === 'morning') && stops.some(s => s.trip_type === 'evening');
+  let base = stops;
+  if (hasSplit) {
+    const wanted = isEvening ? 'evening' : 'morning';
+    const filtered = stops.filter(s => s.trip_type === wanted || s.trip_type === 'both');
+    if (filtered.length > 0) base = filtered;
   }
-  const numbered = stops.map((s, i) => ({ ...s, stop_number: i + 1 }));
-  if (direction === 'evening') return [...numbered].reverse();
-  return numbered;
+
+  // Number by the base (morning-style) order, then reverse the whole thing for evening so the
+  // bus runs school→home and the numbers count down N→1.
+  const numbered = base.map((s, i) => ({ ...s, stop_number: i + 1 }));
+  return isEvening ? [...numbered].reverse() : numbered;
 }
 
 // POST /api/v1/trips/start
