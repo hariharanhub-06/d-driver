@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Bus, Clock, Navigation, Bell, Loader2, Phone, MapPin, Gauge } from 'lucide-react';
+import { Bus, Clock, Navigation, Bell, Loader2, Phone, MapPin, Gauge, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { connectSocket, getSocket } from '@/lib/socket';
 import api from '@/lib/api';
@@ -19,6 +19,14 @@ import {
 } from '@/lib/tracking';
 
 const FreeMap = dynamic(() => import('@/components/ui/FreeMap'), { ssr: false });
+import StopTimeline from '@/components/parent/StopTimeline';
+
+interface TripProgress {
+    current_stop_index: number;
+    status: string;
+    students_onboard: number;
+    students_total: number;
+}
 
 interface RouteStop {
     id: string;
@@ -36,7 +44,7 @@ interface ChildData {
     route_id?: string;
     bus?: { id?: string; bus_number?: string };
     bus_id?: string;
-    route?: { name?: string; bus_id?: string; bus?: { id?: string; bus_number?: string; drivers?: any[] }; stops?: RouteStop[] };
+    route?: { id?: string; name?: string; bus_id?: string; bus?: { id?: string; bus_number?: string; drivers?: any[] }; stops?: RouteStop[] };
 }
 
 export default function ParentTracking() {
@@ -56,6 +64,8 @@ export default function ParentTracking() {
     const [childData, setChildData] = useState<ChildData | null>(null);
     const [loading, setLoading] = useState(true);
     const [approaching, setApproaching] = useState(false);
+    const [progress, setProgress] = useState<TripProgress | null>(null);
+    const [stopsExpanded, setStopsExpanded] = useState(false);
     const [stopChangeModal, setStopChangeModal] = useState<{ id: string; name: string } | null>(null);
     const [stopChangeSubmitting, setStopChangeSubmitting] = useState(false);
     const [stopChangeSuccess, setStopChangeSuccess] = useState(false);
@@ -118,6 +128,24 @@ export default function ParentTracking() {
         };
     }, [busId]);
 
+    // Poll trip progress (current stop + onboard counts) and refresh on trip socket events.
+    const routeId = childData?.route?.id || childData?.route_id;
+    useEffect(() => {
+        if (!routeId) return;
+        const refresh = () => fetchProgress(routeId);
+        const interval = setInterval(refresh, 10000);
+        const s = getSocket();
+        s.on('bus-arrived-stop', refresh);
+        s.on('trip-started', refresh);
+        s.on('trip-completed', refresh);
+        return () => {
+            clearInterval(interval);
+            s.off('bus-arrived-stop', refresh);
+            s.off('trip-started', refresh);
+            s.off('trip-completed', refresh);
+        };
+    }, [routeId]);
+
     // Check for recent bus-approaching notifications
     useEffect(() => {
         if (!user) return;
@@ -170,6 +198,18 @@ export default function ParentTracking() {
                 }
             } catch { /* 404 = not started */ }
         }
+        fetchProgress(child.route?.id || child.route_id);
+    };
+
+    // Live trip progress (current stop index + onboard counts) that drives the stop timeline.
+    const fetchProgress = async (routeId?: string) => {
+        if (!routeId) { setProgress(null); return; }
+        try {
+            const { data } = await api.get(`/trips/progress/${routeId}`);
+            setProgress(data);
+        } catch {
+            setProgress(null);
+        }
     };
 
     const switchChild = async (child: ChildData) => {
@@ -177,6 +217,7 @@ export default function ParentTracking() {
         localStorage.setItem('active_child_id', child.id);
         setChildData(child);
         setBusId(null); setBusNumber(null); setBusTimestamp(null); setEta(null); setDriverPhone(null);
+        setProgress(null); setStopsExpanded(false);
         etaCall.current = { t: 0, pos: null };
         await wireChild(child);
     };
@@ -332,8 +373,37 @@ export default function ParentTracking() {
                 </a>
             )}
 
-            {/* ETA/status bar at bottom as overlay card */}
-            <div className="absolute bottom-4 left-4 right-4 z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-4">
+            {/* ETA/status bar at bottom as overlay card — expands into a scrollable stop timeline */}
+            <div className={`absolute bottom-4 left-4 right-4 z-10 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 flex flex-col ${stopsExpanded ? 'max-h-[75vh]' : ''}`}>
+                {/* Bus Stops handle — tap to expand the timeline */}
+                <button
+                    onClick={() => setStopsExpanded(v => !v)}
+                    className="flex items-center justify-between w-full mb-3 -mt-1 group"
+                >
+                    <span className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                        🚏 {t('Bus Stops', 'நிறுத்தங்கள்')}
+                        {progress && progress.students_total > 0 && (
+                            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
+                                {progress.students_onboard}/{progress.students_total}
+                            </span>
+                        )}
+                    </span>
+                    <ChevronUp size={18} className={`text-slate-400 transition-transform ${stopsExpanded ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Expanded scrollable timeline */}
+                {stopsExpanded && (
+                    <div className="flex-1 min-h-0 overflow-y-auto mb-3 pr-1 border-t border-slate-100 dark:border-slate-700 pt-3">
+                        <StopTimeline
+                            stops={routeStops}
+                            currentStopIndex={progress?.current_stop_index ?? 0}
+                            myStopId={myStop?.id}
+                            status={progress?.status || 'idle'}
+                            onStopClick={handleStopClick}
+                        />
+                    </div>
+                )}
+
                 <div className="flex justify-between items-start mb-3">
                     <div className="min-w-0">
                         <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">

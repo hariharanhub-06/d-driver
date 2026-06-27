@@ -353,4 +353,59 @@ const getTripHistory = async (req, res) => {
   }
 };
 
-module.exports = { startTrip, updateStopIndex, completeTrip, getActiveTrips, getTripHistory };
+// GET /api/v1/trips/progress/:routeId
+// Parent-safe live trip state for a single route, used to drive the parent stop timeline.
+// Returns the bus's current stop index, trip status, and how many of the route's
+// students have boarded today vs the total on the route.
+const getTripProgress = async (req, res) => {
+  try {
+    const { routeId } = req.params;
+    if (!routeId) return res.status(400).json({ error: 'routeId is required' });
+
+    // Authorize parents to only their own child's route. Other roles (admin/super_admin/
+    // driver/bus_staff) already have school-scoped trip visibility, so allow them through.
+    if (req.user.role === 'parent') {
+      const owns = await prisma.student.findFirst({
+        where: { parent_id: req.user.id, route_id: routeId },
+        select: { id: true },
+      });
+      if (!owns) return res.status(403).json({ error: 'Not authorized for this route' });
+    }
+
+    const trip = await prisma.activeTrip.findUnique({
+      where: { route_id: routeId },
+      select: { current_stop_index: true, status: true, started_at: true },
+    });
+
+    // Students on this route + how many boarded (present) today.
+    const routeStudents = await prisma.student.findMany({
+      where: { route_id: routeId },
+      select: { id: true },
+    });
+    const studentIds = routeStudents.map(s => s.id);
+
+    let studentsOnboard = 0;
+    if (studentIds.length > 0) {
+      const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD (matches Attendance.date_only)
+      const present = await prisma.attendance.findMany({
+        where: { student_id: { in: studentIds }, date_only: today, status: 'present' },
+        select: { student_id: true },
+        distinct: ['student_id'],
+      });
+      studentsOnboard = present.length;
+    }
+
+    res.json({
+      current_stop_index: trip?.current_stop_index ?? 0,
+      status: trip?.status || 'idle',
+      students_onboard: studentsOnboard,
+      students_total: studentIds.length,
+      updated_at: trip?.started_at || null,
+    });
+  } catch (error) {
+    console.error('getTripProgress error:', error.message);
+    res.status(500).json({ error: 'Error fetching trip progress', details: error.message });
+  }
+};
+
+module.exports = { startTrip, updateStopIndex, completeTrip, getActiveTrips, getTripHistory, getTripProgress };
