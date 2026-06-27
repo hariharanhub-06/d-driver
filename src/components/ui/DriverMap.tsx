@@ -248,19 +248,18 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 || (osrmCoordsRef.current !== null && movedSinceFetch >= 500);
 
             if (stopChanged) {
-                // ── Target stop changed: reset everything, show dashed ──
+                // ── Target stop changed (e.g. skip): start a fresh road-route fetch but
+                // KEEP the current road line on screen until the new one is ready, so there's
+                // no straight dashed-line flash on every stop change. ──
                 lastStopIdRef.current = stopId;
                 osrmCoordsRef.current = null;
                 lastFetchPosRef.current = null;
                 if (osrmAbortRef.current) { osrmAbortRef.current.abort(); osrmAbortRef.current = null; }
-                if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
-                if (!nextStop?.lat || !nextStop?.lng) return;
-
-                // Instant straight dashed fallback
-                routeLineRef.current = L.polyline(
-                    [[uLat, uLng], [nextStop.lat, nextStop.lng]],
-                    { color: '#2563EB', weight: 4, opacity: 0.6, dashArray: '8 6', lineJoin: 'round' as const, lineCap: 'round' as const }
-                ).addTo(map);
+                if (!nextStop?.lat || !nextStop?.lng) {
+                    // No next stop → clear the line.
+                    if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
+                    return;
+                }
             }
 
             if (needFetch && nextStop?.lat && nextStop?.lng) {
@@ -281,7 +280,8 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                     // enough for the ratio to be meaningful).
                     if (straightM > 300 && typeof data.distance === 'number' && data.distance > straightM * 8) return;
                     osrmCoordsRef.current = coords;
-                    // Replace dashed with solid road line (no flicker — just swap)
+                    // Swap in the new solid road line — replacing the previous one only now
+                    // that the new geometry is ready (no dashed intermediate, no flicker).
                     if (routeLineRef.current) mapRef.current.removeLayer(routeLineRef.current);
                     routeLineRef.current = L.polyline(coords, {
                         color: '#2563EB', weight: 5, opacity: 0.9, lineJoin: 'round' as const, lineCap: 'round' as const,
@@ -300,10 +300,6 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 }
                 const remaining: [number, number][] = [[uLat, uLng], ...coords.slice(ci + 1)];
                 if (remaining.length >= 2) routeLineRef.current.setLatLngs(remaining);
-
-            } else if (nextStop?.lat && nextStop?.lng && routeLineRef.current) {
-                // ── Same stop, OSRM still loading: slide dashed start point ──
-                routeLineRef.current.setLatLngs([[uLat, uLng], [nextStop.lat, nextStop.lng]]);
             }
         });
     }, [userPosition, stops, nextStopIndex, mapReady]);
