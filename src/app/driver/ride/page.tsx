@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { AlertTriangle, Navigation, ChevronRight, X, Bus, Wrench, Check, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, Navigation, ChevronRight, X, Bus, Wrench, Check, ArrowLeft, SkipForward } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { connectSocket, getSocket } from '@/lib/socket';
 import api from '@/lib/api';
@@ -473,6 +473,16 @@ export default function ActiveRide() {
         }
     };
 
+    // Driver chooses to skip the stop they're heading to → advance to the next one; the map
+    // re-routes (nextStopIndex follows current_stop_index) and proximity resets automatically.
+    const skipStop = async () => {
+        if (!currentStop) return;
+        const next = stops[currentStopIndex + 1];
+        if (!confirm(t(`Skip ${currentStop.name} and head to ${next ? next.name : 'the end'}?`, `${currentStop.name} ஐ தவிர்த்து ${next ? next.name : 'முடிவு'} க்கு செல்லவா?`))) return;
+        setShowAttendancePopup(false);
+        await advanceStop();
+    };
+
     const handleMarkAttendance = async (student: Student, status: 'present' | 'absent') => {
         setMarkingStudentId(student.id);
         try {
@@ -742,13 +752,23 @@ export default function ActiveRide() {
                             </div>
                         </div>
 
-                        <button
-                            onClick={() => setShowEndTrip(true)}
-                            disabled={endingTrip}
-                            className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                            {t('End Trip', 'பயணம் முடிவு')}
-                        </button>
+                        <div className="flex gap-2">
+                            {nextStop && (
+                                <button
+                                    onClick={skipStop}
+                                    className="flex-1 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 rounded-xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                                >
+                                    <SkipForward className="w-4 h-4" /> {t('Skip Stop', 'நிறுத்தத்தை தவிர்')}
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setShowEndTrip(true)}
+                                disabled={endingTrip}
+                                className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {t('End Trip', 'பயணம் முடிவு')}
+                            </button>
+                        </div>
                     </>
                 )}
             </div>
