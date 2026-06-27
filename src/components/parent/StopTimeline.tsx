@@ -7,6 +7,7 @@ export interface TimelineStop {
     id: string;
     name: string;
     sequence?: number;
+    stop_number?: number;
     pickup_time?: string;
 }
 
@@ -51,6 +52,10 @@ export default function StopTimeline({ stops, currentStopIndex, myStopId, status
                     const isCurrent = live && idx === currentStopIndex;
                     const isLast = idx === stops.length - 1;
                     const clickable = !!onStopClick && !isMyStop;
+                    // Stable stop number = its rank in the morning sequence (from the backend).
+                    // Morning counts up 1→N; evening (reversed, school→home) counts down N→1 —
+                    // identical to the numbered markers the driver sees on the map.
+                    const stopNumber = stop.stop_number ?? (direction === 'evening' ? stops.length - idx : idx + 1);
 
                     // Connector line above this row reflects whether we've already passed it.
                     const lineColor = passed || isCurrent ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-600';
@@ -68,12 +73,14 @@ export default function StopTimeline({ stops, currentStopIndex, myStopId, status
                             className={`relative flex gap-3 pb-4 ${clickable ? 'cursor-pointer group' : ''}`}
                             onClick={clickable ? () => onStopClick!(stop.id, stop.name) : undefined}
                         >
-                            {/* Rail: connector + dot */}
-                            <div className="relative flex flex-col items-center shrink-0 w-5">
+                            {/* Rail: connector + numbered dot */}
+                            <div className="relative flex flex-col items-center shrink-0 w-6">
                                 {!isLast && (
-                                    <span className={`absolute top-4 left-1/2 -translate-x-1/2 w-0.5 h-full ${lineColor}`} />
+                                    <span className={`absolute top-6 left-1/2 -translate-x-1/2 w-0.5 h-full ${lineColor}`} />
                                 )}
-                                <span className={`relative z-10 w-4 h-4 rounded-full border-2 ${dot} shrink-0 mt-0.5`} />
+                                <span className={`relative z-10 w-6 h-6 rounded-full border-2 ${dot} shrink-0 mt-0.5 flex items-center justify-center text-[10px] font-bold ${isMyStop || passed || isCurrent ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>
+                                    {stopNumber}
+                                </span>
                             </div>
 
                             {/* Stop label */}

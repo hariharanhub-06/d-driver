@@ -71,6 +71,7 @@ const updateLocation = async (req, res) => {
         });
 
         if (activeTrip) {
+            const isEvening = activeTrip.trip_type === 'evening';
             const stops = activeTrip.route.stops;
             const remainingStops = stops.filter(
                 (s) => s.sequence >= activeTrip.current_stop_index
@@ -136,7 +137,9 @@ const updateLocation = async (req, res) => {
                                 user_id: parentId,
                                 school_id: schoolId,
                                 type: 'info',
-                                message: `Bus has arrived at ${stop.name} to pick up ${nameStr}.`,
+                                message: isEvening
+                                    ? `Bus has arrived at ${stop.name} to drop off ${nameStr}.`
+                                    : `Bus has arrived at ${stop.name} to pick up ${nameStr}.`,
                             },
                         });
                         io.to(`parent-${parentId}`).emit('bus-arrived-stop', {

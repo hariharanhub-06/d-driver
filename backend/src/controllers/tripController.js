@@ -6,12 +6,19 @@ const { notifyAdmins } = require('../utils/notifications');
 //   - Route with both morning + evening copies → only the matching half.
 //   - Route with one (morning) set → an evening trip runs it in reverse (school → home).
 // `stops` must already be ordered by sequence asc.
+// Returns the stops in the order the bus actually visits them, and stamps each with a stable
+// `stop_number` = its rank in the MORNING sequence (1..N). So morning counts up 1→N and
+// evening (reversed, school→home) counts down N→1 — the same number a stop shows whichever
+// trip it's on, and identical on the driver map and the parent timeline.
 function orderStopsForTrip(stops, direction) {
   if (!Array.isArray(stops) || stops.length === 0) return Array.isArray(stops) ? stops : [];
   const hasEvening = stops.some(s => s.trip_type === 'evening');
-  if (hasEvening) return stops.filter(s => s.trip_type === direction);
-  if (direction === 'evening') return [...stops].reverse();
-  return stops;
+  if (hasEvening) {
+    return stops.filter(s => s.trip_type === direction).map((s, i) => ({ ...s, stop_number: i + 1 }));
+  }
+  const numbered = stops.map((s, i) => ({ ...s, stop_number: i + 1 }));
+  if (direction === 'evening') return [...numbered].reverse();
+  return numbered;
 }
 
 // POST /api/v1/trips/start
@@ -68,7 +75,9 @@ const startTrip = async (req, res) => {
       return prisma.notification.create({
         data: {
           user_id: parentId,
-          message: `Bus is on the way to pick up ${nameStr}. Route: "${routeName}".`,
+          message: tripDirection === 'evening'
+            ? `Bus is on the way to drop off ${nameStr}. Route: "${routeName}".`
+            : `Bus is on the way to pick up ${nameStr}. Route: "${routeName}".`,
           type: 'info',
           school_id: schoolId,
         },
@@ -147,12 +156,15 @@ const completeTrip = async (req, res) => {
       parentMap.get(s.parent.id).names.push(s.name);
     }
 
+    const isEvening = trip.trip_type === 'evening';
     const notifs = [...parentMap.values()].map(({ parentId, names }) => {
       const nameStr = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
       return prisma.notification.create({
         data: {
           user_id: parentId,
-          message: `Bus has arrived at school. ${nameStr} reached school safely. Route: "${trip.route.name}".`,
+          message: isEvening
+            ? `Trip complete. ${nameStr} dropped home safely. Route: "${trip.route.name}".`
+            : `Bus has arrived at school. ${nameStr} reached school safely. Route: "${trip.route.name}".`,
           type: 'success',
           school_id: schoolId,
         },

@@ -566,7 +566,7 @@ export default function ActiveRide() {
 
     const mapStops = stops
         .filter(s => s.latitude && s.longitude)
-        .map(s => ({ id: s.id, name: s.name, sequence: s.sequence, lat: s.latitude!, lng: s.longitude! }));
+        .map(s => ({ id: s.id, name: s.name, sequence: (s as any).stop_number ?? s.sequence, lat: s.latitude!, lng: s.longitude! }));
 
     // Prefer the last-known driver position over the India-centre default.
     const fallbackPos: [number, number] = lastPos || [20.5937, 78.9629];
@@ -724,7 +724,7 @@ export default function ActiveRide() {
                                 <div className="flex items-center gap-2 mb-0.5">
                                     <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('Heading to', 'சென்று கொண்டிருக்கும் நிறுத்தம்')}</p>
                                     <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 rounded-full px-2 py-0.5">
-                                        Stop {currentStop?.sequence ?? (currentStopIndex + 1)} of {stops.length}
+                                        Stop {(currentStop as any)?.stop_number ?? currentStop?.sequence ?? (currentStopIndex + 1)} of {stops.length}
                                     </span>
                                 </div>
                                 <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
