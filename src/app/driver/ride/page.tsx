@@ -229,9 +229,24 @@ export default function ActiveRide() {
             if (s) { const p = JSON.parse(s); if (Array.isArray(p) && p.length === 2) setLastPos(p as [number, number]); }
         } catch { /* ignore */ }
 
+        let gotPreciseFix = false;
         const startTracking = () => {
+            // Fast coarse fix first (network-based, returns in ~1s and at most 2 min old) so
+            // the map + route appear quickly on the driver's real location; watchPosition then
+            // refines it to high accuracy.
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
+                    if (!gotPreciseFix) {
+                        setCurrentPos([pos.coords.latitude, pos.coords.longitude]);
+                        setAccuracy(pos.coords.accuracy ?? null);
+                    }
+                },
+                () => { /* ignore — the high-accuracy attempt + watch will follow */ },
+                { enableHighAccuracy: false, timeout: 5000, maximumAge: 120000 }
+            );
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    gotPreciseFix = true;
                     const p: [number, number] = [pos.coords.latitude, pos.coords.longitude];
                     setCurrentPos(p);
                     setAccuracy(pos.coords.accuracy ?? null);
@@ -249,6 +264,7 @@ export default function ActiveRide() {
             );
             watchId = navigator.geolocation.watchPosition(
                 (pos) => {
+                    gotPreciseFix = true;
                     const { latitude, longitude, accuracy: acc } = pos.coords;
                     setCurrentPos([latitude, longitude]);
                     setAccuracy(acc ?? null);
@@ -554,7 +570,10 @@ export default function ActiveRide() {
 
     // Prefer the last-known driver position over the India-centre default.
     const fallbackPos: [number, number] = lastPos || [20.5937, 78.9629];
-    const hasPos = !!(currentPos || lastPos);
+    // Only show the map once we have a FRESH GPS fix — never seed the route from a
+    // stale (e.g. yesterday's) cached position, which left the route line anchored to
+    // the wrong start until a manual reload.
+    const hasPos = !!currentPos;
 
     if (loading) {
         return (

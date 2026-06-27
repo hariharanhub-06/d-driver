@@ -226,7 +226,7 @@ export default function SuperAdminDashboard() {
                         <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700">
                             <div className="relative">
                                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input autoFocus value={pickerSearch} onChange={e => setPickerSearch(e.target.value)} placeholder={t('Search schools…', 'பள்ளிகளைத் தேடு…')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)]" />
+                                <input value={pickerSearch} onChange={e => setPickerSearch(e.target.value)} placeholder={t('Search schools…', 'பள்ளிகளைத் தேடு…')} className="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)]" />
                             </div>
                         </div>
                         <div className="overflow-y-auto flex-1 divide-y divide-slate-100 dark:divide-slate-700/50">

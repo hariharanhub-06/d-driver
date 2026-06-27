@@ -240,7 +240,12 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             const movedSinceFetch = lastFetchPosRef.current
                 ? haversineM(uLat, uLng, lastFetchPosRef.current[0], lastFetchPosRef.current[1])
                 : Infinity;
-            const needFetch = stopChanged || (osrmCoordsRef.current === null && movedSinceFetch >= 150);
+            // Re-fetch when: the target stop changed; OSRM never loaded and we've moved 150 m;
+            // or the route IS loaded but the driver jumped ≥500 m (e.g. a late precise GPS fix
+            // arriving after a coarse one) — re-anchors the road line to the real position.
+            const needFetch = stopChanged
+                || (osrmCoordsRef.current === null && movedSinceFetch >= 150)
+                || (osrmCoordsRef.current !== null && movedSinceFetch >= 500);
 
             if (stopChanged) {
                 // ── Target stop changed: reset everything, show dashed ──
@@ -321,7 +326,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                     position: 'absolute',
                     width: '142%', height: '142%',
                     top: '-21%', left: '-21%',
-                    transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+                    transition: 'transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
                     willChange: 'transform',
                     background: '#e8e0d8',
                 }}
