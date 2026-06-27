@@ -2,7 +2,7 @@
   "name": "Onlive — School Bus Tracking",
   "short_name": "Onlive",
   "description": "Track your child's school bus live, view trip details, fees and alerts.",
-  "start_url": "/parent/dashboard",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

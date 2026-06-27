@@ -8,6 +8,8 @@ import { useSchoolBranding } from '@/context/SchoolBrandingContext';
 import api from '@/lib/api';
 import { useT, ta } from '@/lib/i18n';
 import LiveTrackingMap from '@/components/parent/LiveTrackingMap';
+import StopTimeline from '@/components/parent/StopTimeline';
+import { getSocket } from '@/lib/socket';
 
 interface Child {
     id: string;
@@ -67,12 +69,38 @@ export default function ParentDashboard() {
     const tomorrow = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toLocaleDateString('en-CA'); })();
     const [absentForm, setAbsentForm] = useState({ student_id: '', from_date: tomorrow, to_date: tomorrow, reason: '' });
     const [submitting, setSubmitting] = useState(false);
+    const [progress, setProgress] = useState<{ current_stop_index: number; status: string; students_onboard: number; students_total: number } | null>(null);
 
     useEffect(() => {
         fetchAll();
         const stored = localStorage.getItem('active_child_id');
         if (stored) setActiveChildId(stored);
     }, []);
+
+    // Live trip progress for the stop timeline — poll + refresh on trip socket events.
+    useEffect(() => {
+        const pc = (activeChildId ? children.find(c => c.id === activeChildId) : null) || children[0];
+        const routeId = pc?.route?.id;
+        if (!routeId) { setProgress(null); return; }
+        let cancelled = false;
+        const load = async () => {
+            try { const { data } = await api.get(`/trips/progress/${routeId}`); if (!cancelled) setProgress(data); }
+            catch { if (!cancelled) setProgress(null); }
+        };
+        load();
+        const interval = setInterval(load, 12000);
+        const s = getSocket();
+        s.on('bus-arrived-stop', load);
+        s.on('trip-started', load);
+        s.on('trip-completed', load);
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+            s.off('bus-arrived-stop', load);
+            s.off('trip-started', load);
+            s.off('trip-completed', load);
+        };
+    }, [activeChildId, children]);
 
     const fetchAll = async () => {
         setLoading(true);
@@ -193,6 +221,23 @@ export default function ParentDashboard() {
                 {/* Live map embedded directly on the dashboard */}
                 {!loading && primaryChild && canTrack && (
                     <LiveTrackingMap child={primaryChild as any} heightClass="h-72" />
+                )}
+
+                {/* Bus stops timeline — passed / current / upcoming based on the live trip */}
+                {!loading && primaryChild && canTrack && ((primaryChild.route as any)?.stops?.length > 0) && (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                        {progress && progress.students_total > 0 && (
+                            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-2">
+                                {progress.students_onboard}/{progress.students_total} {t('students onboard', 'மாணவர்கள் ஏறினர்')}
+                            </p>
+                        )}
+                        <StopTimeline
+                            stops={(primaryChild.route as any).stops}
+                            currentStopIndex={progress?.current_stop_index ?? 0}
+                            myStopId={primaryChild.stop?.id}
+                            status={progress?.status || 'idle'}
+                        />
+                    </div>
                 )}
 
                 {/* Trip details card — the core requested fields */}
