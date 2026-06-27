@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import PasswordRules from '@/components/ui/PasswordRules';
 
 function ResetPasswordContent() {
   const [newPassword, setNewPassword] = useState('');
