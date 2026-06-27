@@ -302,6 +302,7 @@ export default function SATrackingPage() {
         heading: b.heading,
         timestamp: b.timestamp,
         color: b.school_color || undefined,
+        isOnline: isLocationFresh(b.timestamp),
     }));
 
     const assignableStudents = allStudents.filter(

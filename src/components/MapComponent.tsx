@@ -11,6 +11,7 @@ interface BusPosition {
     timestamp: string;
     heading?: number;
     color?: string;
+    isOnline?: boolean; // false → driver offline; marker greys out + shows "last seen Xm"
 }
 
 interface StopPin {
@@ -91,12 +92,19 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
             // Add / update bus markers
             buses.forEach(bus => {
                 const h = bus.heading ?? 0;
-                const c = bus.color || '#3B82F6';
-                // Side-view 3D bus icon with school color
+                const offline = bus.isOnline === false;
+                const c = offline ? '#94A3B8' : (bus.color || '#3B82F6');
+                const mins = bus.timestamp
+                    ? Math.max(0, Math.floor((Date.now() - new Date(bus.timestamp).getTime()) / 60000))
+                    : 0;
+                const label = offline
+                    ? `<div style="background:#475569;backdrop-filter:blur(4px);color:white;font-size:9px;font-weight:700;padding:1px 6px;border-radius:5px;margin-top:2px;white-space:nowrap;border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;gap:3px;">⚠ ${bus.bus_number} · ${mins}m</div>`
+                    : `<div style="background:rgba(10,10,20,0.85);backdrop-filter:blur(4px);color:white;font-size:9px;font-weight:700;padding:1px 6px;border-radius:5px;margin-top:2px;white-space:nowrap;border:1px solid rgba(255,255,255,0.15);">${bus.bus_number}</div>`;
+                // Side-view 3D bus icon — school colour when live, grey when offline
                 const busIcon = L.divIcon({
                     className: '',
                     html: `
-                    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4));">
+                    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4));opacity:${offline ? '0.8' : '1'};">
                       <div style="transform:rotate(${h}deg);transform-origin:center bottom;display:flex;flex-direction:column;align-items:center;">
                         <svg width="36" height="20" viewBox="0 0 52 28" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <rect x="1" y="4" width="50" height="20" rx="4" fill="${c}" stroke="rgba(0,0,0,0.18)" stroke-width="1"/>
@@ -116,9 +124,7 @@ export default function MapComponent({ buses, center, selectedBusId, stops, onSt
                         </svg>
                         <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${c};margin-top:-1px;"></div>
                       </div>
-                      <div style="background:rgba(10,10,20,0.85);backdrop-filter:blur(4px);color:white;font-size:9px;font-weight:700;padding:1px 6px;border-radius:5px;margin-top:2px;white-space:nowrap;border:1px solid rgba(255,255,255,0.15);">
-                        ${bus.bus_number}
-                      </div>
+                      ${label}
                     </div>`,
                     iconSize: [36, 56],
                     iconAnchor: [18, 42],

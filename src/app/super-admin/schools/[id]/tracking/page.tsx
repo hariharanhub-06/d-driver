@@ -336,7 +336,7 @@ export default function SchoolTrackingPage() {
             {/* Map */}
             <div className="flex-1 min-h-[320px] rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm">
                 <MapComponent
-                    buses={positions}
+                    buses={positions.map(p => ({ ...p, isOnline: isLocationFresh(p.timestamp) }))}
                     center={positions.length > 0 ? [positions[0].latitude, positions[0].longitude] : undefined}
                     selectedBusId={selectedBusId}
                     stops={coloredStops}

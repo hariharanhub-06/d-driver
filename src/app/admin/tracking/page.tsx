@@ -285,6 +285,7 @@ export default function TrackingPage() {
                 timestamp: b.timestamp,
                 heading: loc?.heading,
                 color: branding.primary_color || undefined,
+                isOnline: b.isOnline,
             };
         });
 
