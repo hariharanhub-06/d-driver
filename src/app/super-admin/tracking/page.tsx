@@ -107,6 +107,10 @@ export default function SATrackingPage() {
 
     const tripsRef = useRef<Trip[]>([]);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    // Latest selected school — used to discard in-flight responses for a school the user
+    // has already switched away from (prevents the previous school's buses flashing in).
+    const selectedSchoolIdRef = useRef(selectedSchoolId);
+    useEffect(() => { selectedSchoolIdRef.current = selectedSchoolId; }, [selectedSchoolId]);
 
     // Fetch available schools for the filter dropdown
     useEffect(() => {
@@ -120,6 +124,7 @@ export default function SATrackingPage() {
         try {
             const url = selectedSchoolId ? `/trips/active?school_id=${selectedSchoolId}` : '/trips/active';
             const { data } = await api.get(url);
+            if (selectedSchoolIdRef.current !== selectedSchoolId) return; // school switched mid-request
             const list: Trip[] = data || [];
             tripsRef.current = list;
             setTrips(list);
@@ -132,6 +137,7 @@ export default function SATrackingPage() {
         try {
             const url = selectedSchoolId ? `/location/active?school_id=${selectedSchoolId}` : '/location/active';
             const { data } = await api.get(url);
+            if (selectedSchoolIdRef.current !== selectedSchoolId) return; // school switched mid-request
             const raw: any[] = data || [];
             const merged: ActiveBus[] = raw.map(item => {
                 // Enriched response: bus_number, route_name, driver_name, school_name, school_color
