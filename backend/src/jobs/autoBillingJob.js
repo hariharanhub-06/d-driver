@@ -8,7 +8,6 @@ const monthStr = (now) => `${now.getFullYear()}-${String(now.getMonth() + 1).pad
 
 // ── Schools: generate the monthly invoice 5 days before each school's due day ──
 async function runSchoolAutoBilling(now) {
-  const billingMonth = monthStr(now);
   const [schools, config] = await Promise.all([
     prisma.school.findMany({
       where: { status: 'active', plan_id: { not: null } },
@@ -21,9 +20,17 @@ async function runSchoolAutoBilling(now) {
   for (const school of schools) {
     try {
       const dueDay = Math.min(Math.max(school.billing_due_day || fallbackDay, 1), 28);
-      const dueDate = new Date(now.getFullYear(), now.getMonth(), dueDay);
+      let dueDate = new Date(now.getFullYear(), now.getMonth(), dueDay);
+      let billingMonth = monthStr(now);
+      // If this month's due day has already passed, bill for NEXT month instead of issuing an
+      // invoice that's already overdue the moment it's created.
+      if (now > dueDate) {
+        const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        dueDate = new Date(next.getFullYear(), next.getMonth(), dueDay);
+        billingMonth = monthStr(next);
+      }
       const daysUntilDue = Math.ceil((dueDate - now) / DAY_MS);
-      // Generate once we're within 5 days of the due date (or just past it as a catch-up).
+      // Generate once we're within 5 days of the due date.
       if (daysUntilDue > 5) continue;
       const existing = await prisma.schoolInvoice.findFirst({
         where: { school_id: school.id, billing_month: billingMonth },

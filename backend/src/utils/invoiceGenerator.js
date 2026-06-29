@@ -113,15 +113,18 @@ async function generateInvoiceForSchool(schoolId, billingMonth) {
 
   const unpaidInvoices = await prisma.schoolInvoice.findMany({
     where: { school_id: schoolId, status: { not: 'paid' } },
-    select: { id: true, due_date: true, total_amount: true },
+    select: { id: true, due_date: true, subtotal: true, total_amount: true },
   });
 
   let overdue_amount = 0;
   for (const inv of unpaidInvoices) {
     const daysOverdue = Math.floor((Date.now() - new Date(inv.due_date)) / (24 * 3600 * 1000));
     if (daysOverdue > graceDays) {
+      // Penalise the original charge (subtotal), NOT total_amount — otherwise prior penalties
+      // baked into total_amount get re-penalised and the late fee compounds month over month.
+      const base = inv.subtotal ?? inv.total_amount;
       const penalty = overdueRateType === 'percentage'
-        ? inv.total_amount * (overdueRate / 100)
+        ? base * (overdueRate / 100)
         : overdueRate;
       overdue_amount += penalty;
     }

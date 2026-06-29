@@ -256,6 +256,11 @@ const deletePlan = async (req, res) => {
 const generateInvoice = async (req, res) => {
   try {
     const { school_id, billing_month } = req.body;
+    // Guard against generating a duplicate invoice for the same school + month.
+    const existing = await prisma.schoolInvoice.findFirst({
+      where: { school_id, billing_month }, select: { id: true },
+    });
+    if (existing) return res.status(400).json({ error: `An invoice for ${billing_month} already exists for this school.` });
     const { generateInvoiceForSchool } = require('../utils/invoiceGenerator');
     const invoice = await generateInvoiceForSchool(school_id, billing_month).catch(err => {
       throw Object.assign(err, { isClientError: true });
@@ -455,10 +460,11 @@ const updateBillingConfig = async (req, res) => {
   try {
     const { overdue_grace_days, overdue_rate_type, overdue_rate, billing_cycle_day, individual_billing_days } = req.body;
     const data = {};
-    if (overdue_grace_days !== undefined) data.overdue_grace_days = overdue_grace_days;
+    // Clamp to >= 0 so a mistaken negative can't turn a late fee into a discount.
+    if (overdue_grace_days !== undefined) data.overdue_grace_days = Math.max(0, Number(overdue_grace_days) || 0);
     if (overdue_rate_type !== undefined) data.overdue_rate_type = overdue_rate_type;
-    if (overdue_rate !== undefined) data.overdue_rate = overdue_rate;
-    if (billing_cycle_day !== undefined) data.billing_cycle_day = billing_cycle_day;
+    if (overdue_rate !== undefined) data.overdue_rate = Math.max(0, Number(overdue_rate) || 0);
+    if (billing_cycle_day !== undefined) data.billing_cycle_day = Math.min(Math.max(Number(billing_cycle_day) || 1, 1), 28);
     if (individual_billing_days !== undefined) {
       const d = parseInt(individual_billing_days, 10);
       if (Number.isFinite(d) && d > 0) data.individual_billing_days = d;
@@ -812,13 +818,18 @@ const assignIndividualPlan = async (req, res) => {
   try {
     const { id } = req.params;
     const { plan_id } = req.body;
+    const current = await prisma.student.findUnique({
+      where: { id }, select: { individual_plan_id: true },
+    });
+    const newPlanId = plan_id || null;
+    const changed = (current?.individual_plan_id || null) !== newPlanId;
+    const data = { individual_plan_id: newPlanId };
+    // Only (re)anchor the auto-billing cycle when the plan actually changes — re-saving the
+    // same plan must NOT reset the cadence (which would skip a billing cycle). Clear on unassign.
+    if (changed) data.individual_plan_assigned_at = newPlanId ? new Date() : null;
     const student = await prisma.student.update({
       where: { id },
-      data: {
-        individual_plan_id: plan_id || null,
-        // Anchor the auto-billing cycle to the moment a plan is (re)assigned; clear it on unassign.
-        individual_plan_assigned_at: plan_id ? new Date() : null,
-      },
+      data,
       select: {
         id: true, name: true,
         individualPlan: { select: { id: true, name: true } },
@@ -870,14 +881,16 @@ async function computeInvoiceForStudent(student_id, billing_month) {
 
   const unpaidInvoices = await prisma.studentInvoice.findMany({
     where: { student_id, status: { not: 'paid' } },
-    select: { due_date: true, total_amount: true },
+    select: { due_date: true, subtotal: true, total_amount: true },
   });
   let overdue_amount = 0;
   for (const inv of unpaidInvoices) {
     const daysOverdue = Math.floor((Date.now() - new Date(inv.due_date)) / (24 * 3600 * 1000));
     if (daysOverdue > graceDays) {
+      // Penalise the original charge (subtotal), not total_amount, to avoid compounding.
+      const base = inv.subtotal ?? inv.total_amount;
       overdue_amount += overdueRateType === 'percentage'
-        ? inv.total_amount * (overdueRate / 100)
+        ? base * (overdueRate / 100)
         : overdueRate;
     }
   }
@@ -897,6 +910,10 @@ const generateStudentInvoice = async (req, res) => {
     const now = new Date();
     const billing_month = req.body.billing_month ||
       `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const dup = await prisma.studentInvoice.findFirst({
+      where: { student_id: id, billing_month }, select: { id: true },
+    });
+    if (dup) return res.status(400).json({ error: `An invoice for ${billing_month} already exists for this student.` });
     const c = await computeInvoiceForStudent(id, billing_month);
     const invoice = await prisma.studentInvoice.create({
       data: {
@@ -945,9 +962,15 @@ const generateAllStudentInvoices = async (req, res) => {
       select: { id: true },
     });
     let generated = 0;
+    let skipped = 0;
     const errors = [];
     for (const s of students) {
       try {
+        // Skip students that already have an invoice for this month (no double-billing).
+        const dup = await prisma.studentInvoice.findFirst({
+          where: { student_id: s.id, billing_month }, select: { id: true },
+        });
+        if (dup) { skipped++; continue; }
         const c = await computeInvoiceForStudent(s.id, billing_month);
         await prisma.studentInvoice.create({
           data: {
@@ -962,7 +985,7 @@ const generateAllStudentInvoices = async (req, res) => {
         errors.push({ student_id: s.id, error: e.message });
       }
     }
-    res.json({ generated, total: students.length, errors });
+    res.json({ generated, skipped, total: students.length, errors });
   } catch (err) {
     console.error('generateAllStudentInvoices error:', err.message);
     res.status(500).json({ error: 'Error generating student invoices' });

@@ -122,8 +122,10 @@ const updateStopIndex = async (req, res) => {
     });
     if (!existing) return res.status(404).json({ error: 'Trip not found' });
     const stopCount = existing.route?.stops?.length ?? 0;
-    if (typeof stop_index !== 'number' || stop_index < 0 || stop_index > stopCount) {
-      return res.status(400).json({ error: `stop_index must be between 0 and ${stopCount}` });
+    // Valid positions are 0 … stopCount-1; index === stopCount would point past the last stop
+    // (driver should End Trip instead of advancing further).
+    if (typeof stop_index !== 'number' || stop_index < 0 || stop_index >= stopCount) {
+      return res.status(400).json({ error: `stop_index must be between 0 and ${Math.max(stopCount - 1, 0)}` });
     }
     const trip = await prisma.activeTrip.update({
       where: { id: req.params.id },
@@ -468,4 +470,4 @@ const getTripProgress = async (req, res) => {
   }
 };
 
-module.exports = { startTrip, updateStopIndex, completeTrip, getActiveTrips, getTripHistory, getTripProgress };
+module.exports = { startTrip, updateStopIndex, completeTrip, getActiveTrips, getTripHistory, getTripProgress, orderStopsForTrip };

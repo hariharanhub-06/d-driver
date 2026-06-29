@@ -1,5 +1,6 @@
 const prisma = require('../prisma');
 const { distanceMeters } = require('../utils/haversine');
+const { orderStopsForTrip } = require('./tripController');
 
 // In-memory map tracking proximity/arrival alerts per (tripId:stopId:type).
 // Types: "approaching" (1 km), "arrived" (100 m).
@@ -72,10 +73,12 @@ const updateLocation = async (req, res) => {
 
         if (activeTrip) {
             const isEvening = activeTrip.trip_type === 'evening';
-            const stops = activeTrip.route.stops;
-            const remainingStops = stops.filter(
-                (s) => s.sequence >= activeTrip.current_stop_index
-            );
+            // Order stops the SAME way the driver/parent see them (reversed for evening), so
+            // current_stop_index — a position in that visit order — lines up. The previous
+            // `s.sequence >= current_stop_index` mixed DB sequence with a visit-order index and
+            // alerted the wrong stops on evening trips.
+            const ordered = orderStopsForTrip(activeTrip.route.stops, isEvening ? 'evening' : 'morning');
+            const remainingStops = ordered.slice(activeTrip.current_stop_index);
 
             for (const stop of remainingStops) {
                 const dist = distanceMeters(

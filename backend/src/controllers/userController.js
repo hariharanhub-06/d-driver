@@ -201,6 +201,9 @@ const deleteUser = async (req, res) => {
             }
         }
 
+        // Notification has no FK to User (a DB-level cascade could fail db push on legacy
+        // orphans), so clear this user's notifications here to avoid orphaned rows.
+        await prisma.notification.deleteMany({ where: { user_id: id } }).catch(() => {});
         await prisma.user.delete({ where: { id } });
         await logAction({ req, action: 'delete_user', targetType: 'user', targetId: id });
         res.json({ message: 'User deleted successfully' });

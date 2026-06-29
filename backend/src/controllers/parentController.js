@@ -56,6 +56,16 @@ const getParentById = async (req, res) => {
     if (!parent) return res.status(404).json({ error: 'Parent not found' });
     if (parent.role !== 'parent') return res.status(404).json({ error: 'Parent not found' });
 
+    // Tenancy: a school admin may only view a parent who has a child in their school
+    // (a linked parent's home school_id can differ from where their child is enrolled).
+    if (req.user.role !== 'super_admin') {
+      const inSchool = await prisma.student.findFirst({
+        where: { parent_id: parent.id, school_id: req.user.school_id },
+        select: { id: true },
+      });
+      if (!inSchool) return res.status(404).json({ error: 'Parent not found' });
+    }
+
     res.json(parent);
   } catch (err) {
     console.error('getParentById error:', err);

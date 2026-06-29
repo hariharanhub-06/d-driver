@@ -87,6 +87,10 @@ const approveRequest = async (req, res) => {
       },
     });
     if (!request) return res.status(404).json({ error: 'Request not found' });
+    // Tenancy: a school admin may only act on their own school's requests.
+    if (req.user.role !== 'super_admin' && request.school_id !== req.user.school_id) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
 
     await prisma.stopChangeRequest.update({
       where: { id: request.id },
@@ -139,6 +143,10 @@ const rejectRequest = async (req, res) => {
       include: { student: { select: { name: true } } },
     });
     if (!request) return res.status(404).json({ error: 'Request not found' });
+    // Tenancy: a school admin may only act on their own school's requests.
+    if (req.user.role !== 'super_admin' && request.school_id !== req.user.school_id) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
 
     await prisma.stopChangeRequest.update({
       where: { id: request.id },
