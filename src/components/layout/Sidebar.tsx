@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
-import { useSchoolBranding } from '@/context/SchoolBrandingContext';
+import { useSchoolBranding, type SchoolPermissions } from '@/context/SchoolBrandingContext';
 import { useLang } from '@/context/LanguageContext';
 
 export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -65,7 +65,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
         const p = branding.permissions;
 
         // Helper: when permissions are null (not yet loaded or no restrictions), show everything
-        const allow = (key: keyof typeof p) => !p || p[key] !== false;
+        const allow = (key: keyof SchoolPermissions) => !p || p[key] !== false;
 
         if (role === 'super_admin') return [
             { section: 'MENU', items: [
