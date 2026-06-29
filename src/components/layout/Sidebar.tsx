@@ -12,7 +12,7 @@ const LABEL_TA: Record<string, string> = {
     'Fuel Requests': 'எரிபொருள்', 'Shift Logs': 'பணிமாற்றம்', 'Bus Switches': 'பேருந்து மாற்றம்',
     'Stop Requests': 'நிறுத்தம்', 'Leave Requests': 'விடுப்பு', 'Notifications': 'அறிவிப்புகள்', 'Reports': 'அறிக்கைகள்',
     'Settings': 'அமைப்புகள்', 'Schools': 'பள்ளிகள்', 'Billing': 'கட்டணப் பட்டியல்',
-    'Revenue': 'வருவாய்', 'Expenses': 'செலவுகள்', 'SA Users': 'SA பயனர்கள்',
+    'Revenue': 'வருவாய்', 'Expenses': 'செலவுகள்', 'Super Admin Users': 'சூப்பர் அட்மின் பயனர்கள்',
     'Audit Trail': 'தணிக்கை', 'Maintenance': 'பராமரிப்பு', 'Profile': 'சுயவிவரம்', 'Ride': 'பயணம்',
     'Track Bus': 'பேருந்து கண்காணி', 'Home': 'முகப்பு', 'Change Stop': 'நிறுத்தம் மாற்று',
 };
@@ -75,7 +75,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 { icon: Activity, label: 'Expenses', href: '/super-admin/expenses' },
             ]},
             { section: 'GENERAL', items: [
-                { icon: Users, label: 'SA Users', href: '/super-admin/users' },
+                { icon: Users, label: 'Super Admin Users', href: '/super-admin/users' },
 
                 { icon: ClipboardList, label: 'Audit Trail', href: '/super-admin/audit' },
                 { icon: FileText, label: 'Reports', href: '/super-admin/reports' },

@@ -9,7 +9,7 @@ interface School { id: string; name: string }
 const REPORT_TYPES = [
     { value: 'attendance', labelEn: 'Attendance', labelTa: 'வருகை', dated: true },
     { value: 'fees',       labelEn: 'Fees',       labelTa: 'கட்டணம்', dated: false },
-    { value: 'km-log',     labelEn: 'KM Log',     labelTa: 'கி.மீ பதிவு', dated: true },
+    { value: 'km-log',     labelEn: 'Kilometre Log',     labelTa: 'கி.மீ பதிவு', dated: true },
 ];
 
 export default function ReportsPage() {

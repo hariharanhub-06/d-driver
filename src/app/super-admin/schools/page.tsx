@@ -43,7 +43,7 @@ const FEATURES: { key: string; label: string; description: string }[] = [
     { key: 'gps_tracking',         label: 'GPS Tracking',          description: 'Live bus location for parents and admin' },
     { key: 'fee_management',       label: 'Fee Management',         description: 'Fee collection, invoices, and payments' },
     { key: 'fuel_management',      label: 'Fuel Management',        description: 'Fuel requests, fills, and cost tracking' },
-    { key: 'shift_tracking',       label: 'Shift & KM Tracking',   description: 'Driver shift logs and odometer entries' },
+    { key: 'shift_tracking',       label: 'Shift & Kilometre Tracking',   description: 'Driver shift logs and odometer entries' },
     { key: 'attendance',           label: 'Attendance',             description: 'Driver marks student boarding/drop' },
     { key: 'parent_portal',        label: 'Parent Portal',          description: 'Parent app with tracking and notifications' },
     { key: 'route_management',     label: 'Route Management',       description: 'Create and edit routes and stops' },
@@ -501,7 +501,7 @@ export default function SchoolsManagement() {
                                             {school.assignedSA ? (
                                                 <span className="text-xs font-semibold text-violet-700 dark:text-violet-300 truncate">{school.assignedSA.name}</span>
                                             ) : (
-                                                <span className="text-xs font-medium text-violet-400 dark:text-violet-500">{t('No SA assigned', 'SA ஒதுக்கப்படவில்லை')}</span>
+                                                <span className="text-xs font-medium text-violet-400 dark:text-violet-500">{t('No Super Admin assigned', 'சூப்பர் அட்மின் ஒதுக்கப்படவில்லை')}</span>
                                             )}
                                         </div>
                                         <span className="text-[10px] font-semibold text-violet-400 dark:text-violet-500 uppercase tracking-wide shrink-0">
@@ -539,7 +539,7 @@ export default function SchoolsManagement() {
                                     <UserCheck className="w-4 h-4 text-violet-600 dark:text-violet-400" />
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t('Assign SA', 'SA ஒதுக்கவும்')}</h3>
+                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t('Assign Super Admin', 'சூப்பர் அட்மின் ஒதுக்கவும்')}</h3>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[180px]">{assignSASchool.name}</p>
                                 </div>
                             </div>
@@ -549,7 +549,7 @@ export default function SchoolsManagement() {
                         </div>
                         <div className="p-5 space-y-4">
                             <div>
-                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('Assign to SA', 'SA-க்கு ஒதுக்கு')}</label>
+                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('Assign to Super Admin', 'சூப்பர் அட்மினுக்கு ஒதுக்கு')}</label>
                                 <select
                                     value={selectedSAId}
                                     onChange={e => setSelectedSAId(e.target.value)}

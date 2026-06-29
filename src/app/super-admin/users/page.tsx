@@ -260,7 +260,7 @@ export default function SAUsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
             <Users className="w-7 h-7 text-[var(--brand)]" />
-            {t('SA Users', 'SA பயனர்கள்')}
+            {t('Super Admin Users', 'சூப்பர் அட்மின் பயனர்கள்')}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t('Manage super admin platform accounts', 'தள நிர்வாகிகளை நிர்வகிக்கவும்')}</p>
         </div>
@@ -397,7 +397,7 @@ export default function SAUsersPage() {
 
       {/* ── CREATE SA MODAL ──────────────────────────────────────────────────── */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)}>
-        <ModalHeader icon={<Shield className="w-5 h-5" />} title={t('Create Super Admin', 'சூப்பர் அட்மின் உருவாக்கு')} subtitle={t('New SA will change password on first login', 'புதிய SA முதல் உள்நுழைவில் கடவுச்சொல் மாற்றும்')} onClose={() => setShowCreate(false)} />
+        <ModalHeader icon={<Shield className="w-5 h-5" />} title={t('Create Super Admin', 'சூப்பர் அட்மின் உருவாக்கு')} subtitle={t('New Super Admin will change password on first login', 'புதிய சூப்பர் அட்மின் முதல் உள்நுழைவில் கடவுச்சொல் மாற்றும்')} onClose={() => setShowCreate(false)} />
         <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-auto">
           <div className="grid grid-cols-1 gap-4">
             <div>

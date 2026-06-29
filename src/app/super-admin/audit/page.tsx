@@ -35,7 +35,7 @@ const ROLE_BADGE: Record<string, string> = {
 };
 
 const ROLE_LABEL: Record<string, string> = {
-  super_admin: 'SA',
+  super_admin: 'Super Admin',
   admin: 'Admin',
   driver: 'Driver',
   parent: 'Parent',
