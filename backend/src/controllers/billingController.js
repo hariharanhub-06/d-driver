@@ -444,12 +444,16 @@ const handleInvoiceWebhook = async (req, res) => {
 
 const updateBillingConfig = async (req, res) => {
   try {
-    const { overdue_grace_days, overdue_rate_type, overdue_rate, billing_cycle_day } = req.body;
+    const { overdue_grace_days, overdue_rate_type, overdue_rate, billing_cycle_day, individual_billing_days } = req.body;
     const data = {};
     if (overdue_grace_days !== undefined) data.overdue_grace_days = overdue_grace_days;
     if (overdue_rate_type !== undefined) data.overdue_rate_type = overdue_rate_type;
     if (overdue_rate !== undefined) data.overdue_rate = overdue_rate;
     if (billing_cycle_day !== undefined) data.billing_cycle_day = billing_cycle_day;
+    if (individual_billing_days !== undefined) {
+      const d = parseInt(individual_billing_days, 10);
+      if (Number.isFinite(d) && d > 0) data.individual_billing_days = d;
+    }
 
     const config = await prisma.billingConfig.upsert({
       where: { id: 'singleton' },
@@ -801,7 +805,11 @@ const assignIndividualPlan = async (req, res) => {
     const { plan_id } = req.body;
     const student = await prisma.student.update({
       where: { id },
-      data: { individual_plan_id: plan_id || null },
+      data: {
+        individual_plan_id: plan_id || null,
+        // Anchor the auto-billing cycle to the moment a plan is (re)assigned; clear it on unassign.
+        individual_plan_assigned_at: plan_id ? new Date() : null,
+      },
       select: {
         id: true, name: true,
         individualPlan: { select: { id: true, name: true } },
@@ -1023,6 +1031,7 @@ module.exports = {
   assignIndividualPlan,
   generateStudentInvoice,
   generateAllStudentInvoices,
+  computeInvoiceForStudent,
   listStudentInvoices,
   payStudentInvoiceCash,
   createStudentInvoiceOrder,

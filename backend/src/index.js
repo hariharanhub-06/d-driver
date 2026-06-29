@@ -186,45 +186,12 @@ setMaintenanceIo(io);
 // ─── CRON JOBS ────────────────────────────────────────────────────────────────
 const cron = require('node-cron');
 const { startFeeAlertJob } = require('./jobs/feeAlertJob');
+const { startAutoBillingJob } = require('./jobs/autoBillingJob');
 startFeeAlertJob();
-
-// Monthly billing cron — runs at midnight on the 1st of each month
-// Also reads BillingConfig.billing_cycle_day to confirm
-cron.schedule('0 0 1 * *', async () => {
-  console.log('[CRON] Running monthly invoice generation...');
-  try {
-    const config = await prisma.billingConfig.findUnique({ where: { id: 'singleton' } });
-    const day = config?.billing_cycle_day || 1;
-    const today = new Date().getDate();
-    if (today !== day) return; // Only run on configured day
-
-    const schools = await prisma.school.findMany({
-      where: { status: 'active', plan_id: { not: null } },
-      select: { id: true },
-    });
-
-    const now = new Date();
-    const billingMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-    for (const school of schools) {
-      try {
-        // Check if invoice already exists for this month
-        const existing = await prisma.schoolInvoice.findFirst({
-          where: { school_id: school.id, billing_month: billingMonth },
-        });
-        if (existing) continue;
-
-        const { generateInvoiceForSchool } = require('./utils/invoiceGenerator');
-        await generateInvoiceForSchool(school.id, billingMonth);
-      } catch (e) {
-        console.error(`[CRON] Invoice generation failed for school ${school.id}:`, e.message);
-      }
-    }
-    console.log(`[CRON] Monthly invoices generated for ${schools.length} schools`);
-  } catch (e) {
-    console.error('[CRON] Billing cron error:', e.message);
-  }
-});
+// Automated billing: per-school invoices 5 days before each school's due day, individual
+// (per-student) invoices on their cadence, and overdue reminders. Supersedes the old
+// fixed monthly cron (which ignored per-school due dates).
+startAutoBillingJob();
 
 // Fee auto-generation cron — runs daily at 6am, generates fees due today
 cron.schedule('0 6 * * *', async () => {

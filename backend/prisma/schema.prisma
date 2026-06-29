@@ -30,6 +30,7 @@ model School {
   razorpay_key_secret  String? // AES-256-GCM encrypted
   razorpay_configured  Boolean   @default(false)
   plan_id              String?
+  billing_due_day      Int?      // day of month the invoice is due (auto-generated 5 days prior)
   assigned_sa_id       String?
   created_at           DateTime  @default(now())
 
@@ -180,6 +181,7 @@ model Student {
   school_id          String
   photo_url          String?
   individual_plan_id String?
+  individual_plan_assigned_at DateTime? // when the individual plan was assigned (auto-billing anchor)
 
   school             School              @relation(fields: [school_id], references: [id], onDelete: Cascade)
   route              Route?              @relation(fields: [route_id], references: [id], onDelete: SetNull)
@@ -506,6 +508,7 @@ model BillingConfig {
   overdue_rate_type  String   @default("percentage") // percentage | fixed
   overdue_rate       Float    @default(2)
   billing_cycle_day  Int      @default(1)
+  individual_billing_days Int @default(30) // auto-gen cadence for individual student plans
   created_at         DateTime @default(now())
   updated_at         DateTime @default(now()) @updatedAt
 }
@@ -575,6 +578,7 @@ model StudentInvoice {
   razorpay_payment_id String?
   paid_at             DateTime?
   sa_note             String?
+  reminder_sent_at    DateTime? // last "payment overdue" reminder sent to the parent
   line_items_snapshot Json
   created_at          DateTime  @default(now())
 

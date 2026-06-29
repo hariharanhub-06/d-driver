@@ -37,11 +37,24 @@ export default function IndividualBillingPage() {
     const [busyStudent, setBusyStudent] = useState<string | null>(null);
     const [payingId, setPayingId] = useState<string | null>(null);
     const [genAll, setGenAll] = useState(false);
+    const [cycleDays, setCycleDays] = useState('');
+    const [savingCycle, setSavingCycle] = useState(false);
 
     useEffect(() => {
         api.get('/billing/plans').then(r => setPlans(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+        api.get('/billing/config').then(r => setCycleDays(r.data?.individual_billing_days ? String(r.data.individual_billing_days) : '')).catch(() => {});
         refreshInvoices();
     }, []);
+
+    const saveCycle = async () => {
+        const d = parseInt(cycleDays, 10);
+        if (!Number.isFinite(d) || d <= 0) return;
+        setSavingCycle(true);
+        try {
+            await api.put('/billing/config', { individual_billing_days: d });
+        } catch { /* ignore */ }
+        finally { setSavingCycle(false); }
+    };
 
     const refreshInvoices = () => {
         api.get('/billing/student-invoices')
@@ -190,17 +203,38 @@ export default function IndividualBillingPage() {
 
             {/* Individual invoices */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-                <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-3">
+                <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
                     <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Individual Invoices', 'தனிநபர் விலைப்பட்டியல்கள்')}</h3>
-                    <button
-                        onClick={generateAll}
-                        disabled={genAll}
-                        title={t('Generate this month for every student with a plan', 'திட்டம் உள்ள அனைத்து மாணவர்களுக்கும் உருவாக்கு')}
-                        className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2 font-semibold text-xs transition-all active:scale-95 disabled:opacity-60"
-                    >
-                        {genAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-                        {t('Generate All', 'அனைத்தும் உருவாக்கு')}
-                    </button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {/* Auto-billing cadence: each student is billed every N days from their plan date. */}
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-slate-500 dark:text-slate-400">{t('Auto every', 'தானாக ஒவ்வொரு')}</span>
+                            <input
+                                type="number" min={1}
+                                value={cycleDays}
+                                onChange={e => setCycleDays(e.target.value)}
+                                placeholder="30"
+                                className="w-16 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-sm text-slate-900 dark:text-white outline-none focus:border-[var(--brand)]"
+                            />
+                            <span className="text-xs text-slate-500 dark:text-slate-400">{t('days', 'நாட்கள்')}</span>
+                            <button
+                                onClick={saveCycle}
+                                disabled={savingCycle}
+                                className="bg-slate-200 dark:bg-slate-600 hover:opacity-90 text-slate-700 dark:text-white rounded-lg px-3 py-1.5 font-semibold text-xs transition-all active:scale-95 disabled:opacity-60"
+                            >
+                                {savingCycle ? '…' : t('Save', 'சேமி')}
+                            </button>
+                        </div>
+                        <button
+                            onClick={generateAll}
+                            disabled={genAll}
+                            title={t('Generate this month for every student with a plan', 'திட்டம் உள்ள அனைத்து மாணவர்களுக்கும் உருவாக்கு')}
+                            className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2 font-semibold text-xs transition-all active:scale-95 disabled:opacity-60"
+                        >
+                            {genAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                            {t('Generate All', 'அனைத்தும் உருவாக்கு')}
+                        </button>
+                    </div>
                 </div>
                 {invoices.length === 0 ? (
                     <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-10">{t('No individual invoices yet.', 'இன்னும் தனிநபர் விலைப்பட்டியல்கள் இல்லை.')}</p>

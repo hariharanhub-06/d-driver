@@ -23,6 +23,7 @@ interface School {
     status: string;
     subscription_plan?: string;
     plan_id?: string | null;
+    billing_due_day?: number | null;
     permissions?: Record<string, boolean>;
     _count?: { buses: number; students: number; drivers: number; routes: number };
 }
@@ -82,6 +83,7 @@ export default function SchoolDetailPage() {
     const [editForm, setEditForm] = useState<Partial<School>>({});
     const [permissions, setPermissions] = useState<Record<string, boolean>>({});
     const [selectedPlan, setSelectedPlan] = useState('');
+    const [billingDueDay, setBillingDueDay] = useState('');
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const [cropSrc, setCropSrc] = useState<string | null>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
@@ -121,6 +123,7 @@ export default function SchoolDetailPage() {
                 PERMISSIONS.forEach(p => { perms[p.key] = s.permissions?.[p.key] ?? false; });
                 setPermissions(perms);
                 setSelectedPlan(s.plan_id || '');
+                setBillingDueDay(s.billing_due_day ? String(s.billing_due_day) : '');
             }
             if (plansRes.status === 'fulfilled') setPlans(Array.isArray(plansRes.value.data) ? plansRes.value.data : []);
             if (invoicesRes.status === 'fulfilled') setInvoices(Array.isArray(invoicesRes.value.data) ? invoicesRes.value.data : []);
@@ -140,7 +143,10 @@ export default function SchoolDetailPage() {
                 logo_url: editForm.logo_url || '',
                 primary_color: editForm.primary_color || '#3B82F6',
                 plan_id: selectedPlan || null,
+                billing_due_day: billingDueDay ? Number(billingDueDay) : null,
             });
+            // Also assign via the dedicated endpoint so plan_id reliably persists.
+            await api.put(`/billing/schools/${id}/plan`, { plan_id: selectedPlan || null }).catch(() => {});
             fetchAll();
             alert('School updated.');
         } catch (e: any) {
@@ -432,6 +438,19 @@ export default function SchoolDetailPage() {
                                 {plans.map(p => <option key={p.id} value={p.id}>{p.name}{p.plan_type === 'individual' ? ' (individual)' : ''}</option>)}
                             </select>
                         </div>
+                        {selectedPlan && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Billing Due Date (day of month)', 'கட்டண தேதி (மாதத்தின் நாள்)')}</label>
+                                <input
+                                    type="number" min={1} max={28}
+                                    value={billingDueDay}
+                                    onChange={e => setBillingDueDay(e.target.value)}
+                                    placeholder={t('e.g. 10', 'எ.கா. 10')}
+                                    className={inputCls}
+                                />
+                                <p className="text-xs text-slate-400 mt-1">{t('The invoice is auto-generated 5 days before this date each month and sent to the school.', 'ஒவ்வொரு மாதமும் இந்த தேதிக்கு 5 நாட்களுக்கு முன் விலைப்பட்டியல் தானாக உருவாக்கப்பட்டு பள்ளிக்கு அனுப்பப்படும்.')}</p>
+                            </div>
+                        )}
                     </div>
                     <button
                         onClick={handleSaveOverview}

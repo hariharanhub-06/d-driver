@@ -56,7 +56,7 @@ const getSchoolById = async (req, res) => {
       select: {
         id: true, name: true, slug: true, status: true, logo_url: true,
         primary_color: true, address: true, phone: true, email_contact: true,
-        permissions: true, plan_id: true, subscription_plan: true, created_at: true,
+        permissions: true, plan_id: true, subscription_plan: true, billing_due_day: true, created_at: true,
         notification_email: true, razorpay_configured: true, onboarding_dismissed: true,
         tour_completed: true, suspended_at: true, suspension_reason: true, assigned_sa_id: true,
         assignedSA: { select: { id: true, name: true, email: true } },
@@ -152,6 +152,11 @@ const updateSchool = async (req, res) => {
     // plan_id is nullable — allow explicitly clearing it ("No plan") which the generic
     // non-null guard above would otherwise skip.
     if (req.body.plan_id !== undefined) data.plan_id = req.body.plan_id || null;
+    // Billing due day (1–28) for automated monthly invoice generation; nullable.
+    if (req.body.billing_due_day !== undefined) {
+      const d = parseInt(req.body.billing_due_day, 10);
+      data.billing_due_day = Number.isFinite(d) ? Math.min(Math.max(d, 1), 28) : null;
+    }
     const school = await prisma.school.update({ where: { id }, data });
     await logAction({ req, action: 'update_school', targetType: 'school', targetId: id, schoolId: id });
     res.json(school);
