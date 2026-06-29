@@ -51,6 +51,16 @@ const login = async (req, res) => {
       }
     }
 
+    // A parent login only makes sense while a student is linked to it. If the child was deleted
+    // or re-assigned to a different parent email, this (now orphaned) account is blocked — it
+    // would otherwise log in to an empty dashboard and look like a stale UI.
+    if (user.role === 'parent') {
+      const childCount = await prisma.student.count({ where: { parent_id: user.id } });
+      if (childCount === 0) {
+        return res.status(403).json({ error: 'No student is linked to this account. Please contact your school.' });
+      }
+    }
+
     const accessToken  = signAccess(user);
     const refreshToken = signRefresh(user);
 
