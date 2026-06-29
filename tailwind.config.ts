@@ -15,12 +15,12 @@ const config: Config = {
         'card-bg': "var(--card-bg)",
         'border-default': "var(--border)",
         primary: {
-          50: '#eef9f1',
-          100: '#97dece',
-          500: '#2dbc75', // BUS365 Green
-          600: '#249a5f',
-          700: '#1d7d4d',
-          900: '#0b2e1c',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          500: '#3B82F6', // Onlive blue
+          600: '#2563eb',
+          700: '#1d4ed8',
+          900: '#1e3a8a',
         },
         'dark-sidebar': '#222d32',
         'dark-sidebar-hover': '#1a2226',

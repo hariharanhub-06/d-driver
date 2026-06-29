@@ -61,9 +61,9 @@ export default function MobileTopBar() {
         >
             <div className="flex items-center gap-2 min-w-0">
                 {logo ? (
-                    <img src={logo} alt={name} className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                    <img src={logo} alt={name} className="h-12 w-12 rounded-xl object-cover shrink-0" />
                 ) : (
-                    <img src="/icons/onlive-logo.png" alt="Onlive" className="h-10 w-10 rounded-lg object-contain bg-[#0a0f1e] shrink-0" />
+                    <img src="/icons/onlive-logo.png" alt="Onlive" className="h-12 w-12 rounded-xl object-contain bg-[#0a0f1e] shrink-0" />
                 )}
                 <span className="font-bold text-sm text-slate-900 dark:text-white truncate">{name}</span>
             </div>

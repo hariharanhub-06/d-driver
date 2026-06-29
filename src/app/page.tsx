@@ -83,7 +83,7 @@ const DEFAULT_CONFIG: Config = {
   landing_title: 'Every Mile, Every Child, Safe.',
   landing_subtitle:
     'Complete school bus management — live GPS tracking for parents, digital attendance for drivers, and full ERP control for admins.',
-  landing_cta_text: 'Get Started Free',
+  landing_cta_text: 'Get Started',
   landing_footer_tagline:
     'The complete school bus ERP — built for safety, transparency, and operational efficiency.',
   landing_footer_email: 'support@onlive.app',
@@ -253,13 +253,13 @@ export default function LandingPage() {
 
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600 dark:text-gray-300">
-            <Link href="#features" className="hover:text-[#22c55e] transition-colors">
+            <Link href="#features" className="hover:text-[#3B82F6] transition-colors">
               {c.nav.features}
             </Link>
-            <Link href="#how-it-works" className="hover:text-[#22c55e] transition-colors">
+            <Link href="#how-it-works" className="hover:text-[#3B82F6] transition-colors">
               {c.nav.how}
             </Link>
-            <Link href="#schools" className="hover:text-[#22c55e] transition-colors">
+            <Link href="#schools" className="hover:text-[#3B82F6] transition-colors">
               {c.nav.schools}
             </Link>
             <button
@@ -272,7 +272,7 @@ export default function LandingPage() {
             <LandingInstallButton />
             <Link
               href="/login"
-              className="bg-[#22c55e] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-green-600 transition-colors shadow shadow-green-400/20"
+              className="bg-[#3B82F6] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-blue-600 transition-colors shadow shadow-blue-400/20"
             >
               {c.nav.signIn}
             </Link>
@@ -298,7 +298,7 @@ export default function LandingPage() {
               <Link
                 key={href}
                 href={href}
-                className="block text-sm font-medium text-gray-600 py-2 hover:text-[#22c55e] transition-colors"
+                className="block text-sm font-medium text-gray-600 py-2 hover:text-[#3B82F6] transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {href === '#features'
@@ -310,7 +310,7 @@ export default function LandingPage() {
             ))}
             <Link
               href="/login"
-              className="block w-full text-center bg-[#22c55e] text-white py-2.5 rounded-full text-sm font-semibold hover:bg-green-600 transition-colors"
+              className="block w-full text-center bg-[#3B82F6] text-white py-2.5 rounded-full text-sm font-semibold hover:bg-blue-600 transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
               {c.nav.signIn}
@@ -326,9 +326,9 @@ export default function LandingPage() {
           {/* Left — copy */}
           <div className="space-y-8">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-green-200 bg-green-50">
-              <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
-              <span className="text-xs font-bold text-green-700 uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-200 bg-blue-50">
+              <span className="w-2 h-2 rounded-full bg-[#3B82F6]" />
+              <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">
                 {config.landing_badge}
               </span>
             </div>
@@ -359,14 +359,14 @@ export default function LandingPage() {
             <div className="flex flex-wrap gap-4">
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#22c55e] text-white rounded-2xl font-bold shadow-lg shadow-green-500/20 hover:bg-green-600 transition-colors"
+                className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#3B82F6] text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-colors"
               >
                 {config.landing_cta_text}
                 <ChevronRight className="w-4 h-4" />
               </Link>
               <Link
                 href="#how-it-works"
-                className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-[#0F172A] border-2 border-gray-200 rounded-2xl font-bold hover:border-[#22c55e] hover:text-[#22c55e] transition-colors"
+                className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-[#0F172A] border-2 border-gray-200 rounded-2xl font-bold hover:border-[#3B82F6] hover:text-[#3B82F6] transition-colors"
               >
                 {c.hero.secondaryCta}
               </Link>
@@ -380,13 +380,13 @@ export default function LandingPage() {
               {/* Card header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-bold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
                     LIVE
                   </span>
                   <span className="text-white font-semibold text-sm">Route A</span>
                 </div>
-                <Navigation className="w-4 h-4 text-green-400" />
+                <Navigation className="w-4 h-4 text-orange-400" />
               </div>
 
               {/* Student count */}
@@ -411,18 +411,18 @@ export default function LandingPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-slate-400 text-xs uppercase tracking-wider">ETA</p>
-                  <p className="text-green-400 font-semibold mt-0.5">4 min away</p>
+                  <p className="text-orange-400 font-semibold mt-0.5">4 min away</p>
                 </div>
               </div>
 
               {/* Progress bar */}
               <div className="relative h-2 bg-slate-700 rounded-full">
                 <div
-                  className="absolute left-0 top-0 h-full bg-[#22c55e] rounded-full"
+                  className="absolute left-0 top-0 h-full bg-[#3B82F6] rounded-full"
                   style={{ width: '37.5%' }}
                 />
                 <div
-                  className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-[#22c55e] rounded-full border-2 border-[#0F172A] shadow"
+                  className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-[#3B82F6] rounded-full border-2 border-[#0F172A] shadow"
                   style={{ left: 'calc(37.5% - 8px)' }}
                 />
               </div>
@@ -442,7 +442,7 @@ export default function LandingPage() {
 
             {/* Floating attendance badge */}
             <div className="absolute -bottom-4 -right-4 md:bottom-4 md:-right-8 bg-white rounded-xl shadow-lg border border-gray-100 px-4 py-3 flex items-center gap-2.5">
-              <CheckCircle2 className="w-5 h-5 text-[#22c55e] flex-shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-[#3B82F6] flex-shrink-0" />
               <div>
                 <p className="text-xs font-bold text-[#0F172A]">Attendance</p>
                 <p className="text-[11px] text-gray-500">26 / 28 marked</p>
@@ -564,7 +564,7 @@ export default function LandingPage() {
           {/* Steps */}
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-10">
             {/* Connector line (desktop only) */}
-            <div className="hidden md:block absolute top-8 left-[22%] right-[22%] h-px bg-gradient-to-r from-green-200 via-blue-200 to-orange-200 z-0" />
+            <div className="hidden md:block absolute top-8 left-[22%] right-[22%] h-px bg-gradient-to-r from-blue-200 via-blue-200 to-orange-200 z-0" />
 
             {c.how.steps.map((s, i) => {
               const Icon = iconFor(s.icon);
@@ -665,7 +665,7 @@ export default function LandingPage() {
       {/* ── CTA BANNER ──────────────────────────────────────────────────── */}
       <section className="bg-[#0F172A] py-24 px-6 md:px-10">
         <div className="max-w-3xl mx-auto text-center space-y-6">
-          <p className="text-green-400 font-bold text-xs uppercase tracking-widest">
+          <p className="text-orange-400 font-bold text-xs uppercase tracking-widest">
             {c.cta.eyebrow}
           </p>
           <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
@@ -677,7 +677,7 @@ export default function LandingPage() {
           <div className="flex flex-wrap justify-center gap-4 pt-2">
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 px-10 py-4 bg-[#22c55e] text-white rounded-2xl font-bold shadow-xl shadow-green-500/20 hover:bg-green-600 transition-colors"
+              className="inline-flex items-center gap-2 px-10 py-4 bg-[#3B82F6] text-white rounded-2xl font-bold shadow-xl shadow-blue-500/20 hover:bg-blue-600 transition-colors"
             >
               {c.cta.primary}
               <ChevronRight className="w-4 h-4" />
@@ -698,9 +698,12 @@ export default function LandingPage() {
           {/* Brand column */}
           <div className="space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-[#22c55e] rounded-full flex items-center justify-center flex-shrink-0">
-                <Bus className="w-[18px] h-[18px] text-white" />
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={config.platform_logo_url || '/icons/onlive-logo.png'}
+                alt={config.product_name}
+                className="w-11 h-11 rounded-xl object-contain bg-[#0a0f1e] flex-shrink-0 shadow"
+              />
               <span className="text-xl font-bold">{config.product_name}</span>
             </div>
             <p className="text-slate-400 max-w-xs leading-relaxed text-sm">
@@ -710,7 +713,7 @@ export default function LandingPage() {
 
           {/* Portal links */}
           <div>
-            <h4 className="font-bold mb-5 text-[#22c55e] uppercase tracking-widest text-xs">
+            <h4 className="font-bold mb-5 text-[#3B82F6] uppercase tracking-widest text-xs">
               {c.footer.portalHeading}
             </h4>
             <ul className="space-y-3 text-slate-400 text-sm">
@@ -734,7 +737,7 @@ export default function LandingPage() {
 
           {/* Contact */}
           <div>
-            <h4 className="font-bold mb-5 text-[#22c55e] uppercase tracking-widest text-xs">
+            <h4 className="font-bold mb-5 text-[#3B82F6] uppercase tracking-widest text-xs">
               {c.footer.contactHeading}
             </h4>
             <ul className="space-y-3 text-slate-400 text-sm">

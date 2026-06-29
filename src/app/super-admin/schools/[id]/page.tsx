@@ -113,7 +113,7 @@ export default function SchoolDetailPage() {
                     phone: s.phone || '',
                     email: s.email_contact || s.email || '',
                     logo_url: s.logo_url || '',
-                    primary_color: s.primary_color || '#2dbc75',
+                    primary_color: s.primary_color || '#3B82F6',
                 });
                 const perms: Record<string, boolean> = {};
                 PERMISSIONS.forEach(p => { perms[p.key] = s.permissions?.[p.key] ?? false; });
@@ -412,7 +412,7 @@ export default function SchoolDetailPage() {
                             <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5">
                                 <input
                                     type="color"
-                                    value={editForm.primary_color || '#2dbc75'}
+                                    value={editForm.primary_color || '#3B82F6'}
                                     onChange={e => setEditForm({ ...editForm, primary_color: e.target.value })}
                                     className="h-7 w-7 rounded-lg bg-transparent cursor-pointer"
                                 />

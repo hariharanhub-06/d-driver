@@ -161,10 +161,10 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 <div className="flex items-center justify-between h-16 px-5 border-b border-slate-100 dark:border-slate-700 shrink-0">
                     <div className="flex items-center gap-2.5 min-w-0">
                         {logoUrl ? (
-                            <img src={logoUrl} alt={schoolName} className="h-10 w-10 rounded-lg object-cover overflow-hidden shrink-0" />
+                            <img src={logoUrl} alt={schoolName} className="h-12 w-12 rounded-xl object-cover overflow-hidden shrink-0" />
                         ) : (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src="/icons/onlive-logo.png" alt="Onlive" className="h-10 w-10 rounded-lg object-contain bg-[#0a0f1e] shrink-0" />
+                            <img src="/icons/onlive-logo.png" alt="Onlive" className="h-12 w-12 rounded-xl object-contain bg-[#0a0f1e] shrink-0" />
                         )}
                         <span className="font-bold text-slate-900 dark:text-white text-sm truncate">{schoolName}</span>
                     </div>

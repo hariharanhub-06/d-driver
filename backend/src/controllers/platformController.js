@@ -35,7 +35,7 @@ const getLandingData = async (req, res) => {
         landing_badge: 'School Transport OS',
         landing_title: 'Every Mile, Every Child, Safe.',
         landing_subtitle: 'Complete school bus management — live GPS tracking for parents, digital attendance for drivers, and full ERP control for admins.',
-        landing_cta_text: 'Get Started Free',
+        landing_cta_text: 'Get Started',
         landing_footer_tagline: 'The complete school bus ERP — built for safety, transparency, and operational efficiency.',
         landing_footer_email: 'support@onlive.app',
         landing_footer_phone: null,

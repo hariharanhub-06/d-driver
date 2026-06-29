@@ -15,7 +15,7 @@ model School {
   slug                 String    @unique
   address              String?
   logo_url             String?
-  primary_color        String?   @default("#2dbc75")
+  primary_color        String?   @default("#3B82F6")
   phone                String?
   email_contact        String?
   subscription_plan    String    @default("Basic")
@@ -466,7 +466,7 @@ model PlatformConfig {
   landing_badge            String   @default("School Transport OS")
   landing_title            String   @default("Every Mile, Every Child, Safe.")
   landing_subtitle         String   @default("Complete school bus management — live GPS tracking for parents, digital attendance for drivers, and full ERP control for admins.")
-  landing_cta_text         String   @default("Get Started Free")
+  landing_cta_text         String   @default("Get Started")
   landing_footer_tagline   String   @default("The complete school bus ERP — built for safety, transparency, and operational efficiency.")
   landing_footer_email     String   @default("support@onlive.app")
   landing_footer_phone     String?

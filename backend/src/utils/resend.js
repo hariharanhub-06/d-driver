@@ -86,7 +86,7 @@ const sendEmail = async ({ to, subject, html, template, school_id, from }) => {
 // ─── EMAIL TEMPLATES ──────────────────────────────────────────────────────────
 
 const brandedHtml = (schoolName, color, logoUrl, bodyHtml) => {
-  const safeColor = color || '#2dbc75';
+  const safeColor = color || '#3B82F6';
   const safeName = schoolName || 'Onlive';
   const logo = logoUrl
     ? `<img src="${logoUrl}" alt="${safeName}" style="height:48px;margin-bottom:16px;">`
@@ -107,7 +107,7 @@ const sendPasswordReset = async ({ to, email, name, resetUrl, school, schoolName
   try {
     const recipient = email || to;
     const sName = schoolName || school?.name || 'Onlive';
-    const color = school?.primary_color || '#2dbc75';
+    const color = school?.primary_color || '#3B82F6';
     const logoUrl = school?.logo_url || null;
     const school_id = school?.id || null;
 
@@ -140,7 +140,7 @@ const sendWelcomeAdmin = async ({ to, adminEmail, name, adminName, loginUrl, pas
     const recipient = adminEmail || to;
     const displayName = adminName || name || 'Admin';
     const sName = schoolName || school?.name || 'Onlive';
-    const color = school?.primary_color || '#2dbc75';
+    const color = school?.primary_color || '#3B82F6';
     const logoUrl = school?.logo_url || null;
     const school_id = school?.id || null;
 
@@ -180,7 +180,7 @@ const sendParentWelcome = async ({ to, parentEmail, name, parentName, childName,
     const displayName = parentName || name || 'Parent';
     const childDisplayName = studentName || childName || 'your child';
     const sName = schoolName || school?.name || 'Onlive';
-    const color = school?.primary_color || '#2dbc75';
+    const color = school?.primary_color || '#3B82F6';
     const logoUrl = school?.logo_url || null;
     const school_id = school?.id || null;
 
@@ -218,7 +218,7 @@ const sendInvoiceGenerated = async ({ to, adminEmail, month, amount, school, sch
   try {
     const recipient = adminEmail || to;
     const sName = schoolName || school?.name || 'Onlive';
-    const color = school?.primary_color || '#2dbc75';
+    const color = school?.primary_color || '#3B82F6';
     const logoUrl = school?.logo_url || null;
     const school_id = school?.id || null;
 

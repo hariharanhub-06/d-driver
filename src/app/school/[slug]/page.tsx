@@ -75,7 +75,7 @@ export default function SchoolPortal() {
         );
     }
 
-    const themeColor = school.primary_color || '#2dbc75';
+    const themeColor = school.primary_color || '#3B82F6';
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex flex-col">
