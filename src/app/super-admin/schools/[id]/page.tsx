@@ -22,6 +22,7 @@ interface School {
     primary_color?: string;
     status: string;
     subscription_plan?: string;
+    plan_id?: string | null;
     permissions?: Record<string, boolean>;
     _count?: { buses: number; students: number; drivers: number; routes: number };
 }
@@ -29,6 +30,7 @@ interface School {
 interface Plan {
     id: string;
     name: string;
+    plan_type?: string;
 }
 
 interface Invoice {
@@ -118,7 +120,7 @@ export default function SchoolDetailPage() {
                 const perms: Record<string, boolean> = {};
                 PERMISSIONS.forEach(p => { perms[p.key] = s.permissions?.[p.key] ?? false; });
                 setPermissions(perms);
-                setSelectedPlan(s.subscription_plan || '');
+                setSelectedPlan(s.plan_id || '');
             }
             if (plansRes.status === 'fulfilled') setPlans(Array.isArray(plansRes.value.data) ? plansRes.value.data : []);
             if (invoicesRes.status === 'fulfilled') setInvoices(Array.isArray(invoicesRes.value.data) ? invoicesRes.value.data : []);
@@ -137,7 +139,7 @@ export default function SchoolDetailPage() {
                 email_contact: editForm.email || '',
                 logo_url: editForm.logo_url || '',
                 primary_color: editForm.primary_color || '#3B82F6',
-                ...(selectedPlan ? { subscription_plan: selectedPlan } : {}),
+                plan_id: selectedPlan || null,
             });
             fetchAll();
             alert('School updated.');
@@ -427,10 +429,7 @@ export default function SchoolDetailPage() {
                                 className={inputCls}
                             >
                                 <option value="">No plan</option>
-                                {plans.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-                                <option value="Basic">Basic</option>
-                                <option value="Standard">Standard</option>
-                                <option value="Enterprise">Enterprise</option>
+                                {plans.filter(p => (p.plan_type || 'school') === 'school').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
                         </div>
                     </div>

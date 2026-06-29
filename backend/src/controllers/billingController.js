@@ -473,20 +473,24 @@ const getBillingConfig = async (req, res) => {
 
 const getRevenueDashboard = async (req, res) => {
   try {
-    const [allInvoices, activeSchools] = await Promise.all([
+    const [allInvoices, activeSchools, studentInvoices] = await Promise.all([
       prisma.schoolInvoice.findMany({
         include: { school: { select: { id: true, name: true, plan_id: true } } },
       }),
       prisma.school.count({ where: { status: 'active' } }),
+      // Individual (per-student) invoices count toward platform revenue too.
+      prisma.studentInvoice.findMany({
+        select: { billing_month: true, subtotal: true, total_amount: true, status: true },
+      }).catch(() => []),
     ]);
 
-    const total_billed = allInvoices.reduce((sum, inv) => sum + inv.subtotal, 0);
-    const total_collected = allInvoices
-      .filter(inv => inv.status === 'paid')
-      .reduce((sum, inv) => sum + inv.total_amount, 0);
-    const total_overdue = allInvoices
-      .filter(inv => inv.status === 'overdue')
-      .reduce((sum, inv) => sum + inv.total_amount, 0);
+    const sumPaid = (arr) => arr.filter(i => i.status === 'paid').reduce((s, i) => s + i.total_amount, 0);
+    const sumOverdue = (arr) => arr.filter(i => i.status === 'overdue').reduce((s, i) => s + i.total_amount, 0);
+
+    const total_billed = allInvoices.reduce((sum, inv) => sum + inv.subtotal, 0)
+      + studentInvoices.reduce((s, i) => s + i.subtotal, 0);
+    const total_collected = sumPaid(allInvoices) + sumPaid(studentInvoices);
+    const total_overdue = sumOverdue(allInvoices) + sumOverdue(studentInvoices);
 
     const schoolsWithPlans = await prisma.school.findMany({
       where: { status: 'active' },
@@ -527,12 +531,12 @@ const getRevenueDashboard = async (req, res) => {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const monthInvoices = allInvoices.filter(inv => inv.billing_month === month);
+      const monthStudent = studentInvoices.filter(inv => inv.billing_month === month);
       monthly_revenue.push({
         month,
-        billed: monthInvoices.reduce((sum, inv) => sum + inv.subtotal, 0),
-        collected: monthInvoices
-          .filter(inv => inv.status === 'paid')
-          .reduce((sum, inv) => sum + inv.total_amount, 0),
+        billed: monthInvoices.reduce((sum, inv) => sum + inv.subtotal, 0)
+          + monthStudent.reduce((s, i) => s + i.subtotal, 0),
+        collected: sumPaid(monthInvoices) + sumPaid(monthStudent),
       });
     }
 
@@ -913,6 +917,41 @@ const generateStudentInvoice = async (req, res) => {
   }
 };
 
+// Generate this month's invoice for EVERY student that has an individual plan assigned.
+const generateAllStudentInvoices = async (req, res) => {
+  try {
+    const now = new Date();
+    const billing_month = req.body.billing_month ||
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const students = await prisma.student.findMany({
+      where: { individual_plan_id: { not: null } },
+      select: { id: true },
+    });
+    let generated = 0;
+    const errors = [];
+    for (const s of students) {
+      try {
+        const c = await computeInvoiceForStudent(s.id, billing_month);
+        await prisma.studentInvoice.create({
+          data: {
+            student_id: c.student.id, school_id: c.student.school_id, plan_id: c.plan.id,
+            billing_month, due_date: c.due_date, subtotal: c.subtotal,
+            overdue_amount: c.overdue_amount, total_amount: c.total_amount,
+            status: 'pending', line_items_snapshot: c.snapshot,
+          },
+        });
+        generated++;
+      } catch (e) {
+        errors.push({ student_id: s.id, error: e.message });
+      }
+    }
+    res.json({ generated, total: students.length, errors });
+  } catch (err) {
+    console.error('generateAllStudentInvoices error:', err.message);
+    res.status(500).json({ error: 'Error generating student invoices' });
+  }
+};
+
 const listStudentInvoices = async (req, res) => {
   try {
     const { student_id, status, month } = req.query;
@@ -984,6 +1023,7 @@ module.exports = {
   searchStudents,
   assignIndividualPlan,
   generateStudentInvoice,
+  generateAllStudentInvoices,
   listStudentInvoices,
   payStudentInvoiceCash,
   createStudentInvoiceOrder,

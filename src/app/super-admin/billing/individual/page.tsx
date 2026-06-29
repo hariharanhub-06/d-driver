@@ -36,6 +36,7 @@ export default function IndividualBillingPage() {
     const [searchError, setSearchError] = useState('');
     const [busyStudent, setBusyStudent] = useState<string | null>(null);
     const [payingId, setPayingId] = useState<string | null>(null);
+    const [genAll, setGenAll] = useState(false);
 
     useEffect(() => {
         api.get('/billing/plans').then(r => setPlans(Array.isArray(r.data) ? r.data : [])).catch(() => {});
@@ -82,6 +83,17 @@ export default function IndividualBillingPage() {
         } catch (e: any) {
             alert(e.response?.data?.error || 'Failed to generate invoice');
         } finally { setBusyStudent(null); }
+    };
+
+    const generateAll = async () => {
+        setGenAll(true);
+        try {
+            const r = await api.post('/billing/students/generate-all', {});
+            refreshInvoices();
+            alert(`${r.data?.generated ?? 0} / ${r.data?.total ?? 0} ${t('invoices generated', 'விலைப்பட்டியல்கள் உருவாக்கப்பட்டன')}`);
+        } catch (e: any) {
+            alert(e?.response?.data?.error || 'Failed to generate invoices');
+        } finally { setGenAll(false); }
     };
 
     const markPaid = async (invoiceId: string) => {
@@ -178,8 +190,17 @@ export default function IndividualBillingPage() {
 
             {/* Individual invoices */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-                <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700">
+                <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-3">
                     <h3 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Individual Invoices', 'தனிநபர் விலைப்பட்டியல்கள்')}</h3>
+                    <button
+                        onClick={generateAll}
+                        disabled={genAll}
+                        title={t('Generate this month for every student with a plan', 'திட்டம் உள்ள அனைத்து மாணவர்களுக்கும் உருவாக்கு')}
+                        className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2 font-semibold text-xs transition-all active:scale-95 disabled:opacity-60"
+                    >
+                        {genAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                        {t('Generate All', 'அனைத்தும் உருவாக்கு')}
+                    </button>
                 </div>
                 {invoices.length === 0 ? (
                     <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-10">{t('No individual invoices yet.', 'இன்னும் தனிநபர் விலைப்பட்டியல்கள் இல்லை.')}</p>

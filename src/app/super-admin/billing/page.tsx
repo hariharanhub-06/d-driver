@@ -144,7 +144,7 @@ export default function BillingPage() {
             resetPlanModal();
             fetchAll();
         } catch (e: any) {
-            alert(e.response?.data?.message || `Failed to ${editingPlanId ? 'update' : 'create'} plan`);
+            alert(e.response?.data?.error || e.response?.data?.message || `Failed to ${editingPlanId ? 'update' : 'create'} plan`);
         } finally {
             setSubmitting(false);
         }
@@ -172,7 +172,7 @@ export default function BillingPage() {
             setInvoiceForm({ school_id: '', billing_month: new Date().toISOString().slice(0, 7) });
             fetchAll();
         } catch (e: any) {
-            alert(e.response?.data?.message || 'Failed to generate invoice');
+            alert(e.response?.data?.error || e.response?.data?.message || 'Failed to generate invoice');
         } finally {
             setSubmitting(false);
         }
@@ -186,7 +186,7 @@ export default function BillingPage() {
             fetchAll();
             alert('Invoices generated for all schools.');
         } catch (e: any) {
-            alert(e.response?.data?.message || 'Failed to generate all invoices');
+            alert(e.response?.data?.error || e.response?.data?.message || 'Failed to generate all invoices');
         } finally {
             setGeneratingAll(false);
         }
@@ -198,7 +198,7 @@ export default function BillingPage() {
             await api.post(`/billing/invoices/${invoiceId}/pay-cash`, {});
             fetchAll();
         } catch (e: any) {
-            alert(e.response?.data?.message || 'Failed to record payment');
+            alert(e.response?.data?.error || e.response?.data?.message || 'Failed to record payment');
         }
     };
 
