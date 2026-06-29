@@ -41,6 +41,7 @@ const emptyAddForm = {
     parent_name: '',
     parent_email: '',
     parent_phone: '',
+    parent_password: '',
     route_id: '',
     stop_id: '',
     fee_amount: '',
@@ -69,6 +70,10 @@ export default function SchoolStudentsPage() {
     const [editError, setEditError] = useState('');
     const [uploadingEditPhoto, setUploadingEditPhoto] = useState(false);
     const editPhotoInputRef = useRef<HTMLInputElement>(null);
+    // Reset-password for an already-linked parent (mirrors the admin form).
+    const [newParentPassword, setNewParentPassword] = useState('');
+    const [settingPassword, setSettingPassword] = useState(false);
+    const [passwordMsg, setPasswordMsg] = useState('');
 
     // Add student modal state
     const [addModalOpen, setAddModalOpen] = useState(false);
@@ -155,12 +160,31 @@ export default function SchoolStudentsPage() {
             academic_year: student.feeStructure?.academic_year || String(new Date().getFullYear()),
         });
         setEditError('');
+        setNewParentPassword('');
+        setPasswordMsg('');
         if (routeId) fetchStopsForRoute(routeId);
     };
 
     const handleRouteChange = (routeId: string) => {
         setEditForm(f => ({ ...f, route_id: routeId, stop_id: '' }));
         fetchStopsForRoute(routeId);
+    };
+
+    const handleSetParentPassword = async () => {
+        const parentId = editingStudent?.parent?.id;
+        if (!parentId || !newParentPassword) return;
+        if (newParentPassword.length < 8) { setPasswordMsg('Password must be at least 8 characters.'); return; }
+        setSettingPassword(true);
+        setPasswordMsg('');
+        try {
+            await api.patch(`/users/${parentId}/reset-password`, { new_password: newParentPassword });
+            setPasswordMsg('✓ Password set. Parent must change it on next login.');
+            setNewParentPassword('');
+        } catch (err: any) {
+            setPasswordMsg(err?.response?.data?.error || 'Failed to set password.');
+        } finally {
+            setSettingPassword(false);
+        }
     };
 
     const handleSave = async () => {
@@ -256,6 +280,7 @@ export default function SchoolStudentsPage() {
                 parent_name: addForm.parent_name || undefined,
                 parent_email: addForm.parent_email.trim(),
                 parent_phone: addForm.parent_phone || undefined,
+                parent_password: addForm.parent_password || undefined,
                 route_id: addForm.route_id || undefined,
                 stop_id: addForm.stop_id || undefined,
                 school_id: id,
@@ -489,6 +514,10 @@ export default function SchoolStudentsPage() {
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Phone</label>
                                         <input type="tel" className={inputCls} placeholder="+91 9876543210" value={addForm.parent_phone} onChange={e => setAddForm(f => ({ ...f, parent_phone: e.target.value }))} />
                                     </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Password <span className="text-slate-400 font-normal">(leave blank to auto-generate)</span></label>
+                                        <input type="text" className={inputCls} placeholder="Set a password (min 8 chars)" value={addForm.parent_password} onChange={e => setAddForm(f => ({ ...f, parent_password: e.target.value }))} autoComplete="off" />
+                                    </div>
 
                                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Transport Assignment</p>
                                     <div>
@@ -655,6 +684,39 @@ export default function SchoolStudentsPage() {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Password <span className="text-slate-400 font-normal">(leave blank to auto-generate)</span></label>
                                     <input type="text" className={inputCls} placeholder="Set a password (min 8 chars)" value={editForm.parent_password} onChange={e => setEditForm(f => ({ ...f, parent_password: e.target.value }))} autoComplete="off" />
+                                </div>
+                            )}
+                            {editingStudent?.parent?.id && (
+                                <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 space-y-3">
+                                    <div>
+                                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Parent Login</p>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">{editForm.parent_email}</p>
+                                    </div>
+                                    <div className="pt-2 border-t border-slate-200 dark:border-slate-600 space-y-2">
+                                        <p className="text-xs text-slate-400">Set a new temporary password — parent must change it on first login.</p>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="New temp password (min 8 chars)"
+                                                value={newParentPassword}
+                                                onChange={e => { setNewParentPassword(e.target.value); setPasswordMsg(''); }}
+                                                className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[var(--brand)]"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleSetParentPassword}
+                                                disabled={settingPassword || !newParentPassword}
+                                                className="px-4 py-2 text-xs font-semibold rounded-xl bg-[var(--brand)] text-white hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+                                            >
+                                                {settingPassword ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Set Password'}
+                                            </button>
+                                        </div>
+                                        {passwordMsg && (
+                                            <p className={`text-xs font-medium ${passwordMsg.startsWith('✓') ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                {passwordMsg}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
