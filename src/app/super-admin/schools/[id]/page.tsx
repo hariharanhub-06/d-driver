@@ -429,7 +429,7 @@ export default function SchoolDetailPage() {
                                 className={inputCls}
                             >
                                 <option value="">No plan</option>
-                                {plans.filter(p => (p.plan_type || 'school') === 'school').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                {plans.map(p => <option key={p.id} value={p.id}>{p.name}{p.plan_type === 'individual' ? ' (individual)' : ''}</option>)}
                             </select>
                         </div>
                     </div>

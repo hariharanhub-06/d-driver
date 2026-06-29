@@ -149,6 +149,9 @@ const updateSchool = async (req, res) => {
     ];
     const data = {};
     allowed.forEach(f => { if (req.body[f] !== undefined && req.body[f] !== null) data[f] = req.body[f]; });
+    // plan_id is nullable — allow explicitly clearing it ("No plan") which the generic
+    // non-null guard above would otherwise skip.
+    if (req.body.plan_id !== undefined) data.plan_id = req.body.plan_id || null;
     const school = await prisma.school.update({ where: { id }, data });
     await logAction({ req, action: 'update_school', targetType: 'school', targetId: id, schoolId: id });
     res.json(school);

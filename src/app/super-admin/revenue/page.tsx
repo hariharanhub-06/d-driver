@@ -57,11 +57,14 @@ export default function RevenuePage() {
         ? data.per_school.reduce((sum, s) => sum + s.student_count, 0)
         : schools.reduce((sum, s) => sum + (s._count?.students || 0), 0);
 
+    // Show the real rupee amount (₹1, ₹1,250, ₹1,20,000…) instead of compacting tiny values to ₹0.0K.
+    const inr = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+
     const heroMetrics = [
-        { label: t('MRR', 'மாத வருவாய்'), value: `₹${(mrr / 1000).toFixed(1)}K`, icon: IndianRupee, iconColor: 'text-[var(--brand)]', bg: 'bg-[var(--brand)]/10' },
-        { label: t('ARR Projection', 'ஆண்டு வருவாய் கணிப்பு'), value: `₹${(arr / 100000).toFixed(2)}L`, icon: TrendingUp, iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
+        { label: t('MRR', 'மாத வருவாய்'), value: inr(mrr), icon: IndianRupee, iconColor: 'text-[var(--brand)]', bg: 'bg-[var(--brand)]/10' },
+        { label: t('ARR Projection', 'ஆண்டு வருவாய் கணிப்பு'), value: inr(arr), icon: TrendingUp, iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
         { label: t('Active Schools', 'செயலில் பள்ளிகள்'), value: activeSchoolCount, icon: Building2, iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
-        { label: t('Total Overdue', 'மொத்த தாமதம்'), value: `₹${(overdue / 1000).toFixed(1)}K`, icon: AlertCircle, iconColor: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30' },
+        { label: t('Total Overdue', 'மொத்த தாமதம்'), value: inr(overdue), icon: AlertCircle, iconColor: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30' },
         { label: t('Total Students', 'மொத்த மாணவர்கள்'), value: totalStudents.toLocaleString('en-IN'), icon: Users, iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30' },
     ];
 
