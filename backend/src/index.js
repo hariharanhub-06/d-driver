@@ -102,6 +102,18 @@ io.use(async (socket, next) => {
 const lastLocationWrite = {};
 
 io.on('connection', (socket) => {
+  // Auto-join the rooms this user needs, from the authenticated token — most clients never
+  // emit the join-* events, so without this parents/admins never received the real-time
+  // `location-updated` / notification / SOS broadcasts (they fell back to slow polling).
+  const u = socket.user || {};
+  if (u.id) socket.join(`user-${u.id}`);                 // personal notifications
+  if (u.role === 'parent') socket.join(`parent-${u.id}`);
+  if (u.school_id) {
+    socket.join(`school-${u.school_id}`);                // live bus location-updated
+    if (u.role === 'admin' || u.role === 'super_admin') socket.join(`admin-${u.school_id}`); // SOS
+  }
+
+  // Kept for backward-compatibility / explicit joins (e.g. cross-school cases).
   socket.on('join-parent-room',  (userId)   => socket.join(`parent-${userId}`));
   socket.on('join-driver-room',  (driverId) => socket.join(`driver-${driverId}`));
   socket.on('join-school-room',  (schoolId) => socket.join(`school-${schoolId}`));

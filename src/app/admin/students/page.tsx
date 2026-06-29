@@ -405,26 +405,26 @@ export default function StudentsPage() {
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('Students', 'மாணவர்கள்')}</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('Manage student profiles, parents and bus assignments.', 'மாணவர் சுயவிவரங்கள், பெற்றோர் மற்றும் பேருந்து ஒதுக்கீடுகளை நிர்வகிக்கவும்.')}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     <input ref={importRef} type="file" className="hidden" accept=".csv" onChange={handleImport} />
                     <button
                         onClick={downloadTemplate}
-                        className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
+                        className="flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-2.5 sm:px-4 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm transition-all"
                         title="Download CSV template"
                     >
-                        <Download className="w-4 h-4" /> {t('Template', 'வார்ப்புரு')}
+                        <Download className="w-4 h-4 shrink-0" /> <span className="hidden xs:inline">{t('Template', 'வார்ப்புரு')}</span>
                     </button>
                     <button
                         onClick={() => importRef.current?.click()}
-                        className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all"
+                        className="flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-2.5 sm:px-4 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm transition-all"
                     >
-                        <FileUp className="w-4 h-4" /> {t('Import CSV', 'CSV இறக்குமதி')}
+                        <FileUp className="w-4 h-4 shrink-0" /> <span className="hidden xs:inline">{t('Import CSV', 'CSV இறக்குமதி')}</span><span className="xs:hidden">CSV</span>
                     </button>
                     <button
                         onClick={openCreate}
-                        className="flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
+                        className="flex items-center gap-1.5 sm:gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-2.5 sm:px-4 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm transition-all active:scale-95"
                     >
-                        <Plus className="w-4 h-4" /> {t('Add Student', 'மாணவர் சேர்')}
+                        <Plus className="w-4 h-4 shrink-0" /> {t('Add', 'சேர்')}<span className="hidden sm:inline"> {t('Student', 'மாணவர்')}</span>
                     </button>
                 </div>
             </div>

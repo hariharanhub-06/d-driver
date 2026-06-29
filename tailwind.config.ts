@@ -9,6 +9,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      // Extra small breakpoint for phones (between base and sm/640px) so action labels can
+      // show on normal phones but collapse to icons on the narrowest screens.
+      screens: {
+        xs: '475px',
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",

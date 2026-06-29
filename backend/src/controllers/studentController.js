@@ -157,6 +157,29 @@ const createStudent = async (req, res) => {
             });
         }
 
+        // Notify the super-admin(s) overseeing this school (its assigned SA + dev super-admins).
+        try {
+            const school = await prisma.school.findUnique({
+                where: { id: schoolId }, select: { name: true, assigned_sa_id: true },
+            });
+            const saRecipients = await prisma.user.findMany({
+                where: {
+                    role: 'super_admin', is_active: true,
+                    OR: [
+                        ...(school?.assigned_sa_id ? [{ id: school.assigned_sa_id }] : []),
+                        { is_dev_sa: true },
+                    ],
+                },
+                select: { id: true },
+            });
+            await Promise.all(saRecipients.map(sa => prisma.notification.create({
+                data: {
+                    user_id: sa.id, school_id: schoolId, type: 'info', student_name: name,
+                    message: `New student "${name}" added to ${school?.name || 'a school'}.`,
+                },
+            })));
+        } catch { /* non-fatal */ }
+
         const fullStudent = await prisma.student.findUnique({
             where: { id: student.id },
             include: {
