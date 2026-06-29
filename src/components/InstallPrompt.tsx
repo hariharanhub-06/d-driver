@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePWAInstall } from '@/context/PWAInstallContext';
+import { usePlatformLogo } from '@/lib/usePlatformLogo';
 
 const SHOWN_KEY = 'onlive_install_prompt_at';
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
@@ -10,6 +11,7 @@ const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 // Users can still install any time from the header download icon (InstallButton).
 export default function InstallPrompt() {
     const { canInstall, isIOS, promptInstall } = usePWAInstall();
+    const platformLogo = usePlatformLogo();
     const [visible, setVisible] = useState(false);
 
     useEffect(() => {
@@ -42,7 +44,7 @@ export default function InstallPrompt() {
             }}
         >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icons/onlive-logo.png" alt="Onlive" width={44} height={44}
+            <img src={platformLogo} alt="Onlive" width={44} height={44}
                 style={{ borderRadius: 10, flexShrink: 0, objectFit: 'contain' }} />
             <div style={{ flex: 1, minWidth: 0, color: '#fff' }}>
                 <div style={{ fontWeight: 800, fontSize: 14 }}>Install Onlive</div>

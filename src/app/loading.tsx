@@ -1,5 +1,10 @@
-// Branded opening / route-loading screen — OnLive logo on the dark brand bg.
+'use client';
+
+// Branded opening / route-loading screen — platform logo on the dark brand bg.
+import { usePlatformLogo } from '@/lib/usePlatformLogo';
+
 export default function Loading() {
+  const platformLogo = usePlatformLogo();
   return (
     <div
       style={{
@@ -14,7 +19,7 @@ export default function Loading() {
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/icons/onlive-logo.png"
+        src={platformLogo}
         alt="Onlive"
         width={220}
         height={220}

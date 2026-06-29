@@ -10,6 +10,7 @@ import { useLang } from '@/context/LanguageContext';
 import api from '@/lib/api';
 import ProfileMenu from './ProfileMenu';
 import InstallButton from '@/components/InstallButton';
+import { usePlatformLogo } from '@/lib/usePlatformLogo';
 
 const notificationsRouteFor = (role?: string) =>
     role === 'driver' ? '/driver/notifications'
@@ -37,6 +38,7 @@ function LangButton() {
 // right — moved up here so the bottom nav can stay clean.
 export default function MobileTopBar() {
     const branding = useSchoolBranding();
+    const platformLogo = usePlatformLogo();
     const { user } = useAuth();
     const { theme, setTheme } = useTheme();
     const name = branding?.name || 'Onlive';
@@ -64,7 +66,7 @@ export default function MobileTopBar() {
                 {logo ? (
                     <img src={logo} alt={name} className="h-12 w-12 rounded-xl object-cover shrink-0" />
                 ) : (
-                    <img src="/icons/onlive-logo.png" alt="Onlive" className="h-12 w-12 rounded-xl object-contain bg-[#0a0f1e] shrink-0" />
+                    <img src={platformLogo} alt="Onlive" className="h-12 w-12 rounded-xl object-contain bg-[#0a0f1e] shrink-0" />
                 )}
                 <span className="font-bold text-sm text-slate-900 dark:text-white truncate">{name}</span>
             </div>

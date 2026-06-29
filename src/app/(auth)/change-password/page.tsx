@@ -7,8 +7,10 @@ import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/lib/authStorage';
 import PasswordRules from '@/components/ui/PasswordRules';
+import { usePlatformLogo } from '@/lib/usePlatformLogo';
 
 export default function ChangePasswordPage() {
+  const platformLogo = usePlatformLogo();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -58,7 +60,7 @@ export default function ChangePasswordPage() {
         {/* Logo + heading */}
         <div className="flex flex-col items-center mb-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icons/onlive-logo.png" alt="Onlive" className="w-24 h-24 rounded-2xl object-contain bg-[#0a0f1e] mb-4 shadow-md" />
+          <img src={platformLogo} alt="Onlive" className="w-24 h-24 rounded-2xl object-contain bg-[#0a0f1e] mb-4 shadow-md" />
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Set New Password</h1>
           <p className="text-xs text-slate-400 mt-1 text-center">First login — please secure your account</p>
         </div>

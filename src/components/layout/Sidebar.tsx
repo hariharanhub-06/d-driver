@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
+import { usePlatformLogo } from '@/lib/usePlatformLogo';
 
 // Tamil labels for bilingual sidebar
 const LABEL_TA: Record<string, string> = {
@@ -31,6 +32,7 @@ import { useLang } from '@/context/LanguageContext';
 
 export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const pathname = usePathname();
+    const platformLogo = usePlatformLogo();
     const { user, logout } = useAuth();
     const branding = useSchoolBranding();
     const { lang } = useLang();
@@ -165,7 +167,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                             <img src={logoUrl} alt={schoolName} className="h-12 w-12 rounded-xl object-cover overflow-hidden shrink-0" />
                         ) : (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src="/icons/onlive-logo.png" alt="Onlive" className="h-12 w-12 rounded-xl object-contain bg-[#0a0f1e] shrink-0" />
+                            <img src={platformLogo} alt="Onlive" className="h-12 w-12 rounded-xl object-contain bg-[#0a0f1e] shrink-0" />
                         )}
                         <span className="font-bold text-slate-900 dark:text-white text-sm truncate">{schoolName}</span>
                     </div>

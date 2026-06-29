@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import { useT, ta } from '@/lib/i18n';
 import EndTripSlider from '@/components/driver/EndTripSlider';
+import { usePlatformLogo } from '@/lib/usePlatformLogo';
 
 interface DriverRoute { id: string; name: string; route_type?: string; }
 interface DriverInfo {
@@ -23,6 +24,7 @@ export default function DriverDashboard() {
     const { user, logout } = useAuth();
     const router = useRouter();
     const t = useT();
+    const platformLogo = usePlatformLogo();
     const [currentTime, setCurrentTime] = useState(new Date());
     const [driverInfo, setDriverInfo] = useState<DriverInfo | null>(null);
     const [activeTrips, setActiveTrips] = useState<ActiveTrip[]>([]);
@@ -179,7 +181,7 @@ export default function DriverDashboard() {
                             <img src={driverInfo.school.logo_url} alt="" className="w-10 h-10 rounded-xl object-cover" />
                         ) : (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src="/icons/onlive-logo.png" alt="Onlive" className="w-10 h-10 rounded-xl object-contain bg-[#0a0f1e]" />
+                            <img src={platformLogo} alt="Onlive" className="w-10 h-10 rounded-xl object-contain bg-[#0a0f1e]" />
                         )}
                         <div>
                             <p className="text-white/60 text-xs">{driverInfo?.school?.name || 'Onlive'}</p>
