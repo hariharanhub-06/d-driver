@@ -18,8 +18,11 @@ interface SosAlert {
     triggered_at: string;
     latitude?: number;
     longitude?: number;
-    driver?: { user?: { name: string; phone?: string } };
-    bus?: { bus_number: string };
+    source?: string; // 'driver' | 'parent'
+    raised_by_name?: string;
+    driver_name?: string;
+    driver_phone?: string;
+    bus_number?: string;
 }
 
 interface FinancialPoint { date: string; income: number; expense: number; }
@@ -173,10 +176,13 @@ export default function Dashboard() {
                                 <AlertTriangle className="w-5 h-5 animate-pulse" />
                             </div>
                             <div className="flex-1">
-                                <p className="font-bold text-sm">SOS EMERGENCY ALERT</p>
+                                <p className="font-bold text-sm">
+                                    {alert.source === 'parent' ? t('SOS — PARENT EMERGENCY', 'SOS — பெற்றோர் அவசரம்') : t('SOS EMERGENCY ALERT', 'SOS அவசர எச்சரிக்கை')}
+                                </p>
                                 <p className="text-red-100 text-sm mt-0.5">
-                                    {alert.driver?.user?.name || t('Driver', 'ஓட்டுநர்')} · Bus {alert.bus?.bus_number || '—'}
-                                    {alert.driver?.user?.phone && <> · {alert.driver.user.phone}</>}
+                                    {alert.source === 'parent'
+                                        ? <>{t('Parent', 'பெற்றோர்')}: {alert.raised_by_name || '—'}{alert.bus_number && <> · Bus {alert.bus_number}</>}</>
+                                        : <>{alert.driver_name || t('Driver', 'ஓட்டுநர்')} · Bus {alert.bus_number || '—'}{alert.driver_phone && <> · {alert.driver_phone}</>}</>}
                                 </p>
                                 <p className="text-red-200 text-xs mt-1">
                                     {new Date(alert.triggered_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}

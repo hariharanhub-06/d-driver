@@ -51,8 +51,19 @@ export default function LiveTrackingMap({ child, heightClass = 'h-72', tripActiv
         try { await api.post('/sos/parent', {}); ok = true; } catch { ok = false; }
         setSosState(ok ? 'sent' : 'failed');
         setTimeout(() => setSosState('idle'), ok ? 4000 : 6000);
-        // Either way, attempt to dial the driver if a number is available.
-        if (sosPhone) { try { window.location.href = `tel:${sosPhone}`; } catch { /* blocked */ } }
+        // Attempt to dial the driver via a transient anchor click — opens the dialer on a phone
+        // but, unlike `window.location.href = 'tel:'`, never replaces the page with a broken
+        // view on desktop / inside an iframe where tel: isn't handled.
+        if (sosPhone) {
+            try {
+                const a = document.createElement('a');
+                a.href = `tel:${sosPhone}`;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } catch { /* dialing unavailable */ }
+        }
     };
 
     const busId = child ? resolveBusId(child) : null;

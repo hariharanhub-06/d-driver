@@ -653,9 +653,11 @@ model EmailLog {
 
 model SosAlert {
   id            String   @id @default(uuid())
-  driver_id     String
-  bus_id        String
+  driver_id     String?  // null for parent-raised SOS (child may have no bus/driver)
+  bus_id        String?
   school_id     String
+  source        String   @default("driver") // driver | parent
+  raised_by_name String? // parent name when source = parent
   latitude      Float?
   longitude     Float?
   status        String   @default("active") // active | resolved

@@ -91,11 +91,13 @@ const resolveSOS = async (req, res) => {
             data: { status: 'resolved', resolved_by: req.user.id, resolved_note: note || null },
         });
 
-        // Notify driver that SOS was resolved
-        const driver = await prisma.driver.findUnique({
-            where: { id: updated.driver_id },
-            include: { user: { select: { id: true } } },
-        });
+        // Notify the driver that their SOS was resolved (parent-raised alerts have no driver).
+        const driver = updated.driver_id
+            ? await prisma.driver.findUnique({
+                where: { id: updated.driver_id },
+                include: { user: { select: { id: true } } },
+            })
+            : null;
         if (driver) {
             await notifyUser(driver.user.id, 'Your SOS alert has been acknowledged and resolved by admin.', 'success', updated.school_id);
             if (_io) {
@@ -118,17 +120,25 @@ const getSOSAlerts = async (req, res) => {
             orderBy: { triggered_at: 'desc' },
         });
 
-        // Enrich with driver + bus info
+        // Enrich with driver + bus info. Parent-raised alerts have no driver_id; fall back to
+        // the linked bus (if any) for the bus number.
         const enriched = await Promise.all(alerts.map(async (alert) => {
-            const driver = await prisma.driver.findUnique({
-                where: { id: alert.driver_id },
-                include: { user: { select: { name: true, phone: true } }, bus: { select: { bus_number: true } } },
-            });
+            const driver = alert.driver_id
+                ? await prisma.driver.findUnique({
+                    where: { id: alert.driver_id },
+                    include: { user: { select: { name: true, phone: true } }, bus: { select: { bus_number: true } } },
+                })
+                : null;
+            let busNumber = driver?.bus?.bus_number;
+            if (!busNumber && alert.bus_id) {
+                const bus = await prisma.bus.findUnique({ where: { id: alert.bus_id }, select: { bus_number: true } });
+                busNumber = bus?.bus_number;
+            }
             return {
                 ...alert,
-                driver_name: driver?.user?.name,
+                driver_name: alert.source === 'parent' ? alert.raised_by_name : driver?.user?.name,
                 driver_phone: driver?.user?.phone,
-                bus_number: driver?.bus?.bus_number,
+                bus_number: busNumber,
             };
         }));
 
@@ -154,9 +164,9 @@ const getMyActiveSOS = async (req, res) => {
     }
 };
 
-// POST /sos/parent — a parent raises an emergency; notifies the school admins.
-// (SosAlert is driver/bus-shaped, so parent SOS is delivered as an admin notification +
-// socket event rather than a SosAlert row.)
+// POST /sos/parent — a parent raises an emergency. Creates a real SosAlert row per school
+// (source = 'parent') so it surfaces in the admin dashboard SOS panel exactly like a driver
+// SOS, AND fires the admin notification + socket event for real-time delivery.
 const triggerParentSOS = async (req, res) => {
     try {
         const parent = await prisma.user.findUnique({
@@ -164,30 +174,47 @@ const triggerParentSOS = async (req, res) => {
         });
         const students = await prisma.student.findMany({
             where: { parent_id: req.user.id },
-            select: { name: true, school_id: true, route: { select: { bus: { select: { bus_number: true } } } } },
+            select: {
+                name: true, school_id: true,
+                route: { select: { bus: { select: { id: true, bus_number: true } } } },
+            },
         });
         if (students.length === 0) return res.status(400).json({ error: 'No students linked to this account' });
 
         const bySchool = new Map();
         for (const s of students) {
             if (!bySchool.has(s.school_id)) bySchool.set(s.school_id, []);
-            bySchool.get(s.school_id).push({ child: s.name, bus: s.route?.bus?.bus_number });
+            bySchool.get(s.school_id).push({ child: s.name, busId: s.route?.bus?.id, bus: s.route?.bus?.bus_number });
         }
 
         for (const [schoolId, kids] of bySchool) {
             const childNames = [...new Set(kids.map(k => k.child))].join(', ');
             const buses = [...new Set(kids.map(k => k.bus).filter(Boolean))].join(', ');
+            const busId = kids.map(k => k.busId).find(Boolean) || null; // first child's bus, if any
             const busLabel = buses ? ` (Bus ${buses})` : '';
             const phoneLabel = parent?.phone ? ` — ${parent.phone}` : '';
             const message = `🚨 SOS: Parent ${parent?.name || 'Parent'}${phoneLabel} raised an emergency for ${childNames}${busLabel}.`;
+
+            // Persist as a SosAlert so the admin dashboard's /sos panel shows it like a driver SOS.
+            const sos = await prisma.sosAlert.create({
+                data: {
+                    driver_id: null,
+                    bus_id: busId,
+                    school_id: schoolId,
+                    source: 'parent',
+                    raised_by_name: parent?.name || 'Parent',
+                    status: 'active',
+                },
+            });
+
             const admins = await prisma.user.findMany({
                 where: { school_id: schoolId, role: 'admin', is_active: true }, select: { id: true },
             });
             await Promise.all(admins.map(a => notifyUser(a.id, message, 'alert', schoolId)));
             if (_io) {
                 _io.to(`admin-${schoolId}`).emit('sos-alert', {
-                    type: 'parent', parent_name: parent?.name, parent_phone: parent?.phone,
-                    child_names: childNames, bus_number: buses, triggered_at: new Date(),
+                    ...sos, type: 'parent', parent_name: parent?.name, parent_phone: parent?.phone,
+                    child_names: childNames, bus_number: buses,
                 });
             }
         }
