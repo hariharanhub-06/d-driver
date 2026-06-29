@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, usePathname } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
 
@@ -23,11 +23,17 @@ const TABS = [
 export default function SchoolDrillLayout({ children }: { children: React.ReactNode }) {
     const { id } = useParams<{ id: string }>();
     const pathname = usePathname();
+    const router = useRouter();
     const [school, setSchool] = useState<{ name: string } | null>(null);
 
     useEffect(() => {
         api.get(`/schools/${id}`).then(r => setSchool(r.data)).catch(() => {});
     }, [id]);
+
+    const base = `/super-admin/schools/${id}`;
+    const isActive = (path: string) =>
+        path === '' ? pathname === base : pathname.startsWith(`${base}${path}`);
+    const activePath = TABS.find(t => isActive(t.path))?.path ?? '';
 
     return (
         <div className="space-y-5">
@@ -40,32 +46,45 @@ export default function SchoolDrillLayout({ children }: { children: React.ReactN
                 <span className="text-slate-900 dark:text-white font-semibold">{school?.name || '...'}</span>
             </div>
 
-            {/* Tabs */}
-            <div className="overflow-x-auto pb-0.5 -mb-0.5">
-            <div className="flex gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-xl p-1 w-max min-w-full border border-slate-200 dark:border-slate-600">
-                {TABS.map(tab => {
-                    const href = `/super-admin/schools/${id}${tab.path}`;
-                    const isActive = tab.path === ''
-                        ? pathname === `/super-admin/schools/${id}`
-                        : pathname.startsWith(href);
-                    return (
-                        <Link
-                            key={tab.label}
-                            href={href}
-                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${
-                                isActive
-                                    ? 'bg-[var(--brand)] text-white'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700'
-                            }`}
-                        >
-                            {tab.label}
-                        </Link>
-                    );
-                })}
-            </div>
+            {/* Mobile: dropdown picker (no horizontal scrolling) */}
+            <div className="lg:hidden">
+                <select
+                    value={activePath}
+                    onChange={(e) => router.push(`${base}${e.target.value}`)}
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:border-[var(--brand)]"
+                >
+                    {TABS.map(tab => (
+                        <option key={tab.label} value={tab.path}>{tab.label}</option>
+                    ))}
+                </select>
             </div>
 
-            {children}
+            <div className="flex flex-col lg:flex-row gap-5">
+                {/* Desktop: vertical sidebar */}
+                <nav className="hidden lg:flex lg:flex-col gap-1 w-52 shrink-0 bg-slate-100 dark:bg-slate-700/50 rounded-xl p-2 border border-slate-200 dark:border-slate-600 h-max sticky top-4">
+                    {TABS.map(tab => {
+                        const active = isActive(tab.path);
+                        return (
+                            <Link
+                                key={tab.label}
+                                href={`${base}${tab.path}`}
+                                className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                                    active
+                                        ? 'bg-[var(--brand)] text-white'
+                                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700'
+                                }`}
+                            >
+                                {tab.label}
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                    {children}
+                </div>
+            </div>
         </div>
     );
 }

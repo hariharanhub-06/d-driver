@@ -11,7 +11,7 @@ import {
     Building2, Search, Plus, Loader2, ShieldCheck, Edit, Trash2,
     Globe, ExternalLink, Copy, Truck, Users, GraduationCap,
     X, MapPin, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight,
-    UserPlus, Settings2, Route, UserCheck,
+    UserPlus, Route, UserCheck,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/lib/i18n';
@@ -445,10 +445,12 @@ export default function SchoolsManagement() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                     {filtered.map(school => (
-                        <div key={school.id} className={cn(
-                            "bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md",
-                            school.status !== 'active' && "opacity-60"
-                        )}>
+                        <div key={school.id}
+                            onClick={() => router.push(`/super-admin/schools/${school.id}`)}
+                            className={cn(
+                                "bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md hover:border-[var(--brand)]/40 cursor-pointer",
+                                school.status !== 'active' && "opacity-60"
+                            )}>
                             <div className="h-1.5 w-full" style={{ backgroundColor: school.primary_color || '#3B82F6' }} />
                             <div className="p-5 flex flex-col flex-1">
                                 <div className="flex items-start justify-between mb-4">
@@ -459,11 +461,10 @@ export default function SchoolsManagement() {
                                         )}
                                     </div>
                                     <div className="flex items-center gap-1 ml-2">
-                                        <button onClick={() => router.push(`/super-admin/schools/${school.id}`)} title={t('View Details', 'விவரங்கள் காண்க')} className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Settings2 className="w-4 h-4" /></button>
-                                        <button onClick={() => openAdminModal(school)} title={t('Manage Admins', 'அட்மின்களை நிர்வகி')} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all"><ShieldCheck className="w-4 h-4" /></button>
-                                        <button onClick={() => openEdit(school)} title={t('Edit', 'திருத்து')} className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Edit className="w-4 h-4" /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); openAdminModal(school); }} title={t('Manage Admins', 'அட்மின்களை நிர்வகி')} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all"><ShieldCheck className="w-4 h-4" /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); openEdit(school); }} title={t('Edit', 'திருத்து')} className="p-1.5 rounded-lg hover:bg-[var(--brand)]/10 text-slate-400 hover:text-[var(--brand)] transition-all"><Edit className="w-4 h-4" /></button>
                                         <button
-                                            onClick={() => handleToggleStatus(school)}
+                                            onClick={(e) => { e.stopPropagation(); handleToggleStatus(school); }}
                                             title={school.status === 'active' ? t('Suspend', 'இடைநிறுத்து') : t('Activate', 'செயல்படுத்து')}
                                             disabled={toggleLoading === school.id}
                                             className={cn("p-1.5 rounded-lg transition-all", school.status === 'active' ? "hover:bg-orange-50 dark:hover:bg-orange-900/30 text-slate-400 hover:text-orange-500" : "hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-400 hover:text-emerald-500")}
@@ -473,7 +474,7 @@ export default function SchoolsManagement() {
                                                 : school.status === 'active' ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />
                                             }
                                         </button>
-                                        <button onClick={() => handleDelete(school.id)} title={t('Delete', 'நீக்கு')} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all"><Trash2 className="w-4 h-4" /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleDelete(school.id); }} title={t('Delete', 'நீக்கு')} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all"><Trash2 className="w-4 h-4" /></button>
                                     </div>
                                 </div>
 
@@ -492,7 +493,7 @@ export default function SchoolsManagement() {
 
                                 {currentUser?.is_dev_sa && (
                                     <div
-                                        onClick={() => openAssignSA(school)}
+                                        onClick={(e) => { e.stopPropagation(); openAssignSA(school); }}
                                         className="flex items-center justify-between mb-3 px-3 py-2 rounded-xl border cursor-pointer transition-all bg-violet-50 dark:bg-violet-900/20 border-violet-100 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-900/40"
                                     >
                                         <div className="flex items-center gap-2">
