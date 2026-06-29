@@ -1,70 +1,31 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePWAInstall } from '@/context/PWAInstallContext';
 
-interface BeforeInstallPromptEvent extends Event {
-    prompt: () => Promise<void>;
-    userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
+const SHOWN_KEY = 'onlive_install_prompt_at';
+const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
-// Shows an "Install app" banner on EVERY visit (until installed). Chrome throttles
-// its own native prompt after one dismissal, so we capture the install event and
-// drive our own banner — which re-appears each page load while the app isn't installed.
+// Auto-shows the install banner at most ONCE per ~month (and on the very first visit).
+// Users can still install any time from the header download icon (InstallButton).
 export default function InstallPrompt() {
-    const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
+    const { canInstall, isIOS, promptInstall } = usePWAInstall();
     const [visible, setVisible] = useState(false);
-    const [isIOS, setIsIOS] = useState(false);
 
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-
-        // Already installed / running as the PWA → never prompt.
-        const standalone =
-            window.matchMedia('(display-mode: standalone)').matches ||
-            (navigator as unknown as { standalone?: boolean }).standalone === true;
-        if (standalone) return;
-
-        // iOS Safari doesn't fire beforeinstallprompt → show manual instructions instead.
-        // iOS also can't tell us the app is already installed (no standalone signal in
-        // the browser tab), so we honour a persisted dismissal to avoid nagging users
-        // who've already added it to their home screen.
-        const ua = navigator.userAgent;
-        const ios = /iphone|ipad|ipod/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
-        if (ios) {
-            try {
-                if (localStorage.getItem('onlive_ios_install_dismissed') === '1') return;
-            } catch {
-                /* storage blocked — fall through and show */
-            }
-            setIsIOS(true);
-            setVisible(true);
-            return;
-        }
-
-        const onPrompt = (e: Event) => {
-            e.preventDefault();
-            setDeferred(e as BeforeInstallPromptEvent);
-            setVisible(true);
-        };
-        const onInstalled = () => setVisible(false);
-
-        window.addEventListener('beforeinstallprompt', onPrompt);
-        window.addEventListener('appinstalled', onInstalled);
-        return () => {
-            window.removeEventListener('beforeinstallprompt', onPrompt);
-            window.removeEventListener('appinstalled', onInstalled);
-        };
-    }, []);
+        if (!canInstall) return;
+        let lastShown = 0;
+        try { lastShown = Number(localStorage.getItem(SHOWN_KEY)) || 0; } catch { /* ignore */ }
+        if (Date.now() - lastShown < MONTH_MS) return; // already shown this month
+        setVisible(true);
+        try { localStorage.setItem(SHOWN_KEY, String(Date.now())); } catch { /* ignore */ }
+    }, [canInstall]);
 
     if (!visible) return null;
 
     const install = async () => {
-        if (!deferred) return;
-        await deferred.prompt();
-        await deferred.userChoice;
-        // Hide for now; the event re-fires on the next load if still not installed.
+        await promptInstall();
         setVisible(false);
-        setDeferred(null);
     };
 
     return (
@@ -72,32 +33,17 @@ export default function InstallPrompt() {
             role="dialog"
             aria-label="Install Onlive app"
             style={{
-                position: 'fixed',
-                left: 12,
-                right: 12,
+                position: 'fixed', left: 12, right: 12,
                 bottom: 'calc(12px + env(safe-area-inset-bottom))',
-                zIndex: 2147483000,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
-                borderRadius: 16,
-                background: '#0a0f1e',
-                border: '1px solid rgba(255,255,255,0.12)',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.45)',
-                maxWidth: 520,
-                margin: '0 auto',
-                fontFamily: 'system-ui, sans-serif',
+                zIndex: 2147483000, display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 14px', borderRadius: 16, background: '#0a0f1e',
+                border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 10px 30px rgba(0,0,0,0.45)',
+                maxWidth: 520, margin: '0 auto', fontFamily: 'system-ui, sans-serif',
             }}
         >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-                src="/icons/onlive-logo.png"
-                alt="Onlive"
-                width={44}
-                height={44}
-                style={{ borderRadius: 10, flexShrink: 0, objectFit: 'contain' }}
-            />
+            <img src="/icons/onlive-logo.png" alt="Onlive" width={44} height={44}
+                style={{ borderRadius: 10, flexShrink: 0, objectFit: 'contain' }} />
             <div style={{ flex: 1, minWidth: 0, color: '#fff' }}>
                 <div style={{ fontWeight: 800, fontSize: 14 }}>Install Onlive</div>
                 <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.35 }}>
@@ -107,50 +53,15 @@ export default function InstallPrompt() {
                 </div>
             </div>
             {!isIOS && (
-                <button
-                    type="button"
-                    onClick={install}
-                    style={{
-                        flexShrink: 0,
-                        background: '#facc15',
-                        color: '#0a0f1e',
-                        fontWeight: 800,
-                        fontSize: 13,
-                        border: 'none',
-                        borderRadius: 10,
-                        padding: '10px 16px',
-                        cursor: 'pointer',
-                    }}
-                >
+                <button type="button" onClick={install}
+                    style={{ flexShrink: 0, background: '#facc15', color: '#0a0f1e', fontWeight: 800,
+                        fontSize: 13, border: 'none', borderRadius: 10, padding: '10px 16px', cursor: 'pointer' }}>
                     Install
                 </button>
             )}
-            <button
-                type="button"
-                aria-label="Dismiss"
-                onClick={() => {
-                    setVisible(false);
-                    // On iOS we can't detect an existing install, so remember the
-                    // dismissal. On Android the event simply won't fire once installed.
-                    if (isIOS) {
-                        try {
-                            localStorage.setItem('onlive_ios_install_dismissed', '1');
-                        } catch {
-                            /* ignore */
-                        }
-                    }
-                }}
-                style={{
-                    flexShrink: 0,
-                    background: 'transparent',
-                    color: '#94a3b8',
-                    border: 'none',
-                    fontSize: 20,
-                    lineHeight: 1,
-                    cursor: 'pointer',
-                    padding: 4,
-                }}
-            >
+            <button type="button" aria-label="Dismiss" onClick={() => setVisible(false)}
+                style={{ flexShrink: 0, background: 'transparent', color: '#94a3b8', border: 'none',
+                    fontSize: 20, lineHeight: 1, cursor: 'pointer', padding: 4 }}>
                 ×
             </button>
         </div>

@@ -9,6 +9,7 @@ import { getSiteEnabled } from "@/lib/site-status";
 import AccessDenied403 from "@/components/AccessDenied403";
 import PWARegister from "@/components/PWARegister";
 import InstallPrompt from "@/components/InstallPrompt";
+import { PWAInstallProvider } from "@/context/PWAInstallContext";
 import dynamic from 'next/dynamic';
 
 const NotificationToast = dynamic(() => import('@/components/ui/NotificationToast'), { ssr: false });
@@ -70,11 +71,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <AuthProvider>
             <LanguageProvider>
               <SchoolBrandingProvider>
-                <NotificationToast />
-                <KeepAlive />
-                <PWARegister />
-                <InstallPrompt />
-                {children}
+                <PWAInstallProvider>
+                  <NotificationToast />
+                  <KeepAlive />
+                  <PWARegister />
+                  <InstallPrompt />
+                  {children}
+                </PWAInstallProvider>
               </SchoolBrandingProvider>
             </LanguageProvider>
           </AuthProvider>

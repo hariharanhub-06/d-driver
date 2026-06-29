@@ -11,6 +11,7 @@ import { useLang, type Lang } from '@/context/LanguageContext';
 import { useT } from '@/lib/i18n';
 import api from '@/lib/api';
 import { notificationHref } from '@/lib/notificationLink';
+import InstallButton from '@/components/InstallButton';
 
 // Map a role to its notifications route (kept in one place so "View all" never 404s).
 const notificationsRouteFor = (role?: string) =>
@@ -146,6 +147,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
 
             {/* Right: actions */}
             <div className="flex items-center gap-1.5">
+                <InstallButton />
                 {/* Dark mode toggle */}
                 <button
                     onClick={toggleTheme}

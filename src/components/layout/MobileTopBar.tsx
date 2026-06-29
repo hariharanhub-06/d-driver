@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLang } from '@/context/LanguageContext';
 import api from '@/lib/api';
 import ProfileMenu from './ProfileMenu';
+import InstallButton from '@/components/InstallButton';
 
 const notificationsRouteFor = (role?: string) =>
     role === 'driver' ? '/driver/notifications'
@@ -88,6 +89,7 @@ export default function MobileTopBar() {
                     {theme === 'dark' ? <Sun className="w-[18px] h-[18px] text-amber-400" /> : <Moon className="w-[18px] h-[18px]" />}
                 </button>
                 <LangButton />
+                <InstallButton />
                 <ProfileMenu />
             </div>
         </header>
