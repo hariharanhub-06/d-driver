@@ -631,8 +631,7 @@ const getPlatformUsage = async (req, res) => {
     // Each query is independent — a missing table won't crash the whole response.
     // NOTE: EmailLog timestamps the send in `sent_at` (not `created_at`); filtering the
     // wrong column silently returned 0 here, so emails appeared untracked.
-    const [emailCount, emailByTemplate, emailByStatus, paymentsThisMonth, studentCount, busCount] = await Promise.all([
-      prisma.emailLog.count({ where: { sent_at: { gte: monthStart, lt: monthEnd } } }).catch(() => 0),
+    const [emailByTemplate, emailByStatus, emailBySchool, paidBySchool, schools] = await Promise.all([
       prisma.emailLog.groupBy({
         by: ['template'],
         where: { sent_at: { gte: monthStart, lt: monthEnd } },
@@ -643,19 +642,52 @@ const getPlatformUsage = async (req, res) => {
         where: { sent_at: { gte: monthStart, lt: monthEnd } },
         _count: { _all: true },
       }).catch(() => []),
-      prisma.schoolInvoice.findMany({
-        where: { paid_at: { gte: monthStart, lt: monthEnd }, status: 'paid' },
-        select: { total_amount: true },
+      prisma.emailLog.groupBy({
+        by: ['school_id'],
+        where: { sent_at: { gte: monthStart, lt: monthEnd } },
+        _count: { _all: true },
       }).catch(() => []),
-      prisma.student.count().catch(() => 0),
-      prisma.bus.count().catch(() => 0),
+      prisma.schoolInvoice.groupBy({
+        by: ['school_id'],
+        where: { paid_at: { gte: monthStart, lt: monthEnd }, status: 'paid' },
+        _sum: { total_amount: true },
+      }).catch(() => []),
+      prisma.school.findMany({
+        select: { id: true, name: true, _count: { select: { buses: true, students: true } } },
+      }).catch(() => []),
     ]);
 
-    const razorpay_fees = paymentsThisMonth.reduce((sum, inv) => sum + inv.total_amount * 0.02, 0);
+    const studentCount = schools.reduce((s, sc) => s + (sc._count?.students || 0), 0);
+    const busCount = schools.reduce((s, sc) => s + (sc._count?.buses || 0), 0);
+    const emailCount = emailByStatus.reduce((s, r) => s + r._count._all, 0);
+    const razorpay_fees = paidBySchool.reduce((sum, r) => sum + (r._sum.total_amount || 0) * 0.02, 0);
     const neon_estimated_mb = Math.round(busCount * 0.1 + studentCount * 0.005 + 50);
     const imagekit_used_gb = parseFloat((busCount * 0.002 + studentCount * 0.0005 + 0.5).toFixed(2));
 
-    // "Partitions" — how the email utilisation breaks down, for the expenses page.
+    const nameById = new Map(schools.map(s => [s.id, s.name]));
+    // top N schools by a numeric `value`, descending
+    const topN = (arr, n = 5) => arr.filter(x => x.value > 0).sort((a, b) => b.value - a.value).slice(0, n);
+
+    // Per-integration "which school used the most" partitions.
+    const resendBySchool = topN(emailBySchool.map(r => ({
+      name: r.school_id ? (nameById.get(r.school_id) || 'Unknown school') : 'Platform',
+      value: r._count._all,
+    })));
+    const razorpayBySchool = topN(paidBySchool.map(r => ({
+      name: r.school_id ? (nameById.get(r.school_id) || 'Unknown school') : 'Unknown school',
+      value: Math.round((r._sum.total_amount || 0) * 0.02),
+    })));
+    // Storage/DB are estimated from each school's bus + student footprint.
+    const imagekitBySchool = topN(schools.map(s => ({
+      name: s.name,
+      value: parseFloat(((s._count.buses * 0.002) + (s._count.students * 0.0005)).toFixed(3)),
+    })));
+    const neonBySchool = topN(schools.map(s => ({
+      name: s.name,
+      value: Math.round((s._count.buses * 0.1) + (s._count.students * 0.005)),
+    })));
+
+    // Email utilisation broken down by template + send status.
     const by_template = emailByTemplate
       .map(r => ({ label: r.template || 'other', count: r._count._all }))
       .sort((a, b) => b.count - a.count);
@@ -663,10 +695,10 @@ const getPlatformUsage = async (req, res) => {
     const failed = emailByStatus.find(r => r.status === 'failed')?._count._all || 0;
 
     res.json({
-      resend: { used: emailCount, limit: 3000, unit: 'emails', by_template, sent, failed },
-      imagekit: { used_gb: imagekit_used_gb, limit_gb: 20 },
-      razorpay: { fees_this_month: Math.round(razorpay_fees) },
-      neon: { estimated_mb: neon_estimated_mb },
+      resend: { used: emailCount, limit: 3000, unit: 'emails', by_template, sent, failed, by_school: resendBySchool },
+      imagekit: { used_gb: imagekit_used_gb, limit_gb: 20, unit: 'GB', by_school: imagekitBySchool },
+      razorpay: { fees_this_month: Math.round(razorpay_fees), unit: '₹', by_school: razorpayBySchool },
+      neon: { estimated_mb: neon_estimated_mb, unit: 'MB', by_school: neonBySchool },
     });
   } catch (err) {
     console.error('getPlatformUsage error:', err);

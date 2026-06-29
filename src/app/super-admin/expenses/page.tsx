@@ -10,11 +10,12 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/lib/i18n';
 
+interface SchoolUsage { name: string; value: number }
 interface PlatformUsage {
-  resend: { used: number; limit: number; unit: string; by_template?: { label: string; count: number }[]; sent?: number; failed?: number };
-  imagekit: { used_gb: number; limit_gb: number };
-  razorpay: { fees_this_month: number };
-  neon: { estimated_mb: number };
+  resend: { used: number; limit: number; unit: string; by_template?: { label: string; count: number }[]; sent?: number; failed?: number; by_school?: SchoolUsage[] };
+  imagekit: { used_gb: number; limit_gb: number; unit?: string; by_school?: SchoolUsage[] };
+  razorpay: { fees_this_month: number; unit?: string; by_school?: SchoolUsage[] };
+  neon: { estimated_mb: number; unit?: string; by_school?: SchoolUsage[] };
 }
 
 interface RevenueData {
@@ -324,6 +325,41 @@ export default function SAExpensesPage() {
               {neonPct.toFixed(0)}% of free tier
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Top schools by usage — which school drives each integration this month */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700">
+          <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Top Schools by Usage', 'அதிக பயன்பாடு கொண்ட பள்ளிகள்')}</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{t('Which school used each integration the most this month', 'இந்த மாதம் எந்த பள்ளி அதிகம் பயன்படுத்தியது')}</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 p-5">
+          {[
+            { title: 'Resend', dot: 'bg-blue-500', list: usage?.resend.by_school, fmt: (v: number) => `${v.toLocaleString()} ${t('emails', 'மின்னஞ்சல்')}` },
+            { title: 'ImageKit', dot: 'bg-purple-500', list: usage?.imagekit.by_school, fmt: (v: number) => `${v} GB` },
+            { title: 'Razorpay', dot: 'bg-orange-500', list: usage?.razorpay.by_school, fmt: (v: number) => `₹${v.toLocaleString('en-IN')}` },
+            { title: 'Neon', dot: 'bg-emerald-500', list: usage?.neon.by_school, fmt: (v: number) => `${v} MB` },
+          ].map(intg => (
+            <div key={intg.title} className="rounded-xl border border-slate-100 dark:border-slate-700 p-4">
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className={cn('w-2 h-2 rounded-full', intg.dot)} />
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">{intg.title}</p>
+              </div>
+              {(intg.list?.length ?? 0) === 0 ? (
+                <p className="text-xs text-slate-400 dark:text-slate-500">{t('No usage yet', 'இன்னும் பயன்பாடு இல்லை')}</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {intg.list!.map((s, i) => (
+                    <div key={s.name + i} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-slate-600 dark:text-slate-300 truncate">{i + 1}. {s.name}</span>
+                      <span className="font-semibold text-slate-900 dark:text-white shrink-0">{intg.fmt(s.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
