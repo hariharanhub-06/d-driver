@@ -248,7 +248,7 @@ export default function SAExpensesPage() {
               {usage?.resend.used.toLocaleString() ?? 0}
             </p>
             <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
-              of {usage?.resend.limit.toLocaleString()} emails free
+              {t('emails this month', 'இந்த மாத மின்னஞ்சல்கள்')}
             </p>
             <ProgressBar pct={resendPct} />
             <p className={cn('text-xs font-semibold mt-1.5', resendPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400')}>
@@ -271,7 +271,7 @@ export default function SAExpensesPage() {
               {usage?.imagekit.used_gb.toFixed(1) ?? 0} GB
             </p>
             <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
-              of {usage?.imagekit.limit_gb} GB free
+              {t('media storage', 'மீடியா சேமிப்பு')}
             </p>
             <ProgressBar pct={imagekitPct} />
             <p className={cn('text-xs font-semibold mt-1.5', imagekitPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400')}>
@@ -314,7 +314,7 @@ export default function SAExpensesPage() {
             <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{t('Estimated usage', 'மதிப்பிடப்பட்ட பயன்பாடு')}</p>
             <ProgressBar pct={neonPct} />
             <p className={cn('text-xs font-semibold mt-1.5', neonPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400')}>
-              {neonPct.toFixed(0)}% of free tier
+              {neonPct.toFixed(0)}% {t('used', 'பயன்படுத்தப்பட்டது')}
             </p>
           </div>
         </div>
