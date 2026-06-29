@@ -3,18 +3,16 @@
 import { useState } from 'react';
 import { RefreshCw, LogOut, Smartphone } from 'lucide-react';
 
-// QA multi-login page: five phone frames, each an isolated session (via ?ns=).
+// QA multi-login page: N phone frames, each an isolated session (via ?ns=).
 // Log into a different role in each frame and test the whole app side by side.
-const FRAMES = [
-    { ns: 'qa1', label: 'Screen 1' },
-    { ns: 'qa2', label: 'Screen 2' },
-    { ns: 'qa3', label: 'Screen 3' },
-    { ns: 'qa4', label: 'Screen 4' },
-    { ns: 'qa5', label: 'Screen 5' },
-];
+// The number of frames is selectable from the toolbar dropdown.
+const MAX_SCREENS = 8;
 
 export default function QAPage() {
     const [reloadKey, setReloadKey] = useState(0);
+    const [count, setCount] = useState(5);
+
+    const frames = Array.from({ length: count }, (_, i) => ({ ns: `qa${i + 1}`, label: `Screen ${i + 1}` }));
 
     const reloadAll = () => setReloadKey(k => k + 1);
 
@@ -41,6 +39,19 @@ export default function QAPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                    <label className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold">
+                        <Smartphone className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="hidden sm:inline text-slate-400">Screens</span>
+                        <select
+                            value={count}
+                            onChange={e => setCount(Number(e.target.value))}
+                            className="bg-transparent text-white font-bold outline-none cursor-pointer"
+                        >
+                            {Array.from({ length: MAX_SCREENS }, (_, i) => i + 1).map(n => (
+                                <option key={n} value={n} className="bg-slate-800 text-white">{n}</option>
+                            ))}
+                        </select>
+                    </label>
                     <button
                         onClick={reloadAll}
                         className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
@@ -57,8 +68,8 @@ export default function QAPage() {
             </div>
 
             {/* Phone frames */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 p-4">
-                {FRAMES.map(frame => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 p-4">
+                {frames.map(frame => (
                     <div key={frame.ns} className="flex flex-col items-center">
                         <div className="w-full max-w-[380px] bg-slate-950 rounded-[2rem] border-4 border-slate-700 shadow-2xl overflow-hidden">
                             <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
