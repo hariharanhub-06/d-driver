@@ -36,8 +36,15 @@ const login = async (req, res) => {
       return res.status(403).json({ error: 'Account deactivated. Contact your administrator.' });
     }
 
-    // Check school status and portal permissions for non-SA users
-    if (user.school_id && user.role !== 'super_admin') {
+    // Check school status and portal permissions for non-SA users. Every non-SA account MUST
+    // belong to an active school. When a school is deleted, User.school_id is set to null
+    // (onDelete: SetNull), so a null school_id here means the school is gone — block the login
+    // (previously this whole check was skipped for null school_id, letting orphaned admins /
+    // drivers / parents / bus-staff of a deleted school still sign in).
+    if (user.role !== 'super_admin') {
+      if (!user.school_id) {
+        return res.status(403).json({ error: 'Account inactive. Contact your service provider.' });
+      }
       const school = await prisma.school.findUnique({ where: { id: user.school_id }, select: { status: true, permissions: true } });
       if (!school || school.status !== 'active') {
         return res.status(403).json({ error: 'Account inactive. Contact your service provider.' });

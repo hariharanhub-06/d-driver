@@ -42,8 +42,13 @@ const authenticateToken = async (req, res, next) => {
       return res.status(401).json({ error: 'Account not found or deactivated' });
     }
 
-    // Verify the school the user belongs to is still active (skip for super_admin)
-    if (dbUser.school_id && dbUser.role !== 'super_admin') {
+    // Verify the school the user belongs to is still active (skip for super_admin). A null
+    // school_id on a non-SA account means its school was deleted (User.school_id is SetNull on
+    // school delete) — reject it, so a lingering token from a deleted school can't keep working.
+    if (dbUser.role !== 'super_admin') {
+      if (!dbUser.school_id) {
+        return res.status(403).json({ error: 'Your school account has been suspended. Please contact your school administrator.', code: 'SCHOOL_SUSPENDED' });
+      }
       const school = await prisma.school.findUnique({
         where: { id: dbUser.school_id },
         select: { status: true },

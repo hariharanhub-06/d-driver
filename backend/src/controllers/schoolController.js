@@ -224,6 +224,12 @@ const deleteSchool = async (req, res) => {
       prisma.notification.deleteMany({ where: { school_id: id } }),
       prisma.schoolInvoice.deleteMany({ where: { school_id: id } }),
       prisma.feeStructure.deleteMany({ where: { school_id: id } }),
+      // Hard-delete the school's accounts (admins, drivers, bus-staff, parents) so they can't
+      // log in afterwards. User.school_id is SetNull on school delete, which would otherwise
+      // leave orphaned, still-loginable accounts behind. PasswordResetToken has a Restrict FK
+      // to User, so clear those first; deleting the users cascades their Driver rows.
+      prisma.passwordResetToken.deleteMany({ where: { user: { school_id: id } } }),
+      prisma.user.deleteMany({ where: { school_id: id } }),
     ]);
 
     // School.delete cascades: Bus, Driver, Route, RouteStop, Student, Attendance, Fee, Payment
