@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee, Pencil, Trash2, GraduationCap } from 'lucide-react';
+import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee, Pencil, Trash2, GraduationCap, Eye } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
@@ -15,11 +15,16 @@ interface Plan {
     lineItems?: { label: string; metric: string; unit_rate: number }[];
 }
 
+interface InvoiceLineItem { label: string; metric?: string; unit_rate?: number; quantity?: number; charge: number }
 interface Invoice {
     id: string;
     school?: { id: string; name: string };
     billing_month: string;
     total_amount: number;
+    subtotal?: number;
+    overdue_amount?: number;
+    due_date?: string;
+    line_items_snapshot?: { usage?: any; line_items?: InvoiceLineItem[]; plan_name?: string };
     status: string;
     paid_at?: string;
 }
@@ -76,6 +81,7 @@ export default function BillingPage() {
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [invoiceForm, setInvoiceForm] = useState({ school_id: '', billing_month: new Date().toISOString().slice(0, 7) });
     const [generatingAll, setGeneratingAll] = useState(false);
+    const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
 
     // Filters
     const [filterSchool, setFilterSchool] = useState('');
@@ -393,18 +399,24 @@ export default function BillingPage() {
                             </thead>
                             <tbody>
                                 {filteredInvoices.map(inv => (
-                                    <tr key={inv.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                    <tr key={inv.id} onClick={() => setViewInvoice(inv)} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer">
                                         <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">{inv.school?.name || '—'}</td>
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{inv.billing_month}</td>
                                         <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">₹{(inv.total_amount || 0).toLocaleString('en-IN')}</td>
                                         <td className="px-4 py-3"><span className={getStatusBadge(inv.status)}>{getStatusLabel(inv.status || 'pending')}</span></td>
                                         <td className="px-4 py-3">
-                                            {inv.status !== 'paid' && (
-                                                <button onClick={() => handleRecordPayment(inv.id)}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-200 dark:border-emerald-800 transition-all active:scale-95">
-                                                    <Check className="w-3 h-3" /> {t('Mark as Paid', 'செலுத்தியதாக குறி')}
+                                            <div className="flex items-center gap-2">
+                                                <button onClick={(e) => { e.stopPropagation(); setViewInvoice(inv); }} title={t('View breakup', 'விவரம் காண்க')}
+                                                    className="p-1.5 rounded-lg text-slate-400 hover:text-[var(--brand)] hover:bg-[var(--brand)]/10 transition-all">
+                                                    <Eye className="w-4 h-4" />
                                                 </button>
-                                            )}
+                                                {inv.status !== 'paid' && (
+                                                    <button onClick={(e) => { e.stopPropagation(); handleRecordPayment(inv.id); }}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-200 dark:border-emerald-800 transition-all active:scale-95">
+                                                        <Check className="w-3 h-3" /> {t('Mark as Paid', 'செலுத்தியதாக குறி')}
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -413,6 +425,67 @@ export default function BillingPage() {
                     </div>
                 )}
             </div>
+
+            {/* Invoice breakup modal */}
+            {viewInvoice && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setViewInvoice(null)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{viewInvoice.school?.name || '—'}</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">{t('Invoice', 'விலைப்பட்டியல்')} · {viewInvoice.billing_month}{viewInvoice.line_items_snapshot?.plan_name ? ` · ${viewInvoice.line_items_snapshot.plan_name}` : ''}</p>
+                            </div>
+                            <button onClick={() => setViewInvoice(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"><X className="w-5 h-5" /></button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-slate-500 dark:text-slate-400">{t('Due date', 'செலுத்த வேண்டிய தேதி')}</span>
+                                <span className="font-semibold text-slate-900 dark:text-white">{viewInvoice.due_date ? new Date(viewInvoice.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-slate-500 dark:text-slate-400">{t('Status', 'நிலை')}</span>
+                                <span className={getStatusBadge(viewInvoice.status)}>{getStatusLabel(viewInvoice.status || 'pending')}</span>
+                            </div>
+
+                            {/* Line items */}
+                            <div className="rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+                                <div className="px-4 py-2 bg-slate-50 dark:bg-slate-700/40 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex justify-between">
+                                    <span>{t('Item', 'விவரம்')}</span><span>{t('Amount', 'தொகை')}</span>
+                                </div>
+                                {(viewInvoice.line_items_snapshot?.line_items?.length ?? 0) === 0 ? (
+                                    <p className="px-4 py-3 text-xs text-slate-400">{t('No breakup available', 'விவரம் இல்லை')}</p>
+                                ) : viewInvoice.line_items_snapshot!.line_items!.map((li, i) => (
+                                    <div key={i} className="px-4 py-2.5 flex items-center justify-between text-sm border-t border-slate-50 dark:border-slate-700/50">
+                                        <div>
+                                            <p className="text-slate-800 dark:text-slate-200">{li.label}</p>
+                                            {(li.quantity !== undefined && li.unit_rate !== undefined) && (
+                                                <p className="text-[11px] text-slate-400">{li.quantity} × ₹{li.unit_rate.toLocaleString('en-IN')}{li.metric ? ` · ${li.metric.replace(/_/g, ' ')}` : ''}</p>
+                                            )}
+                                        </div>
+                                        <span className="font-semibold text-slate-900 dark:text-white">₹{(li.charge || 0).toLocaleString('en-IN')}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Totals */}
+                            <div className="space-y-1.5 text-sm">
+                                <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">{t('Subtotal', 'கூட்டுத்தொகை')}</span><span className="text-slate-800 dark:text-slate-200">₹{(viewInvoice.subtotal ?? 0).toLocaleString('en-IN')}</span></div>
+                                {(viewInvoice.overdue_amount ?? 0) > 0 && (
+                                    <div className="flex justify-between"><span className="text-red-500">{t('Overdue penalty', 'தாமத அபராதம்')}</span><span className="text-red-500">₹{(viewInvoice.overdue_amount ?? 0).toLocaleString('en-IN')}</span></div>
+                                )}
+                                <div className="flex justify-between pt-1.5 border-t border-slate-100 dark:border-slate-700 font-bold text-base"><span className="text-slate-900 dark:text-white">{t('Total', 'மொத்தம்')}</span><span className="text-slate-900 dark:text-white">₹{(viewInvoice.total_amount || 0).toLocaleString('en-IN')}</span></div>
+                            </div>
+
+                            {viewInvoice.status !== 'paid' && (
+                                <button onClick={() => { handleRecordPayment(viewInvoice.id); setViewInvoice(null); }}
+                                    className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl py-2.5 font-semibold text-sm transition-all active:scale-95">
+                                    <Check className="w-4 h-4" /> {t('Mark as Paid', 'செலுத்தியதாக குறி')}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Create / Edit Plan Modal */}
             {showPlanModal && (
