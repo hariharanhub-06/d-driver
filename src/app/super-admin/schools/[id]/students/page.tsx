@@ -16,7 +16,7 @@ interface Student {
     stop_id?: string;
     route?: { id: string; name: string } | null;
     stop?: { id: string; name: string } | null;
-    parent?: { name: string; phone?: string; email?: string } | null;
+    parent?: { id?: string; name: string; phone?: string; email?: string } | null;
     feeStructure?: { amount: number; frequency: string; due_day: number; academic_year: string } | null;
 }
 
@@ -61,7 +61,7 @@ export default function SchoolStudentsPage() {
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [editForm, setEditForm] = useState({
         name: '', grade: '', section: '', gr_no: '',
-        parent_name: '', parent_phone: '',
+        parent_name: '', parent_email: '', parent_phone: '',
         route_id: '', stop_id: '', photo_url: '',
         fee_amount: '', fee_frequency: 'monthly', fee_due_day: '5', academic_year: String(new Date().getFullYear()),
     });
@@ -143,6 +143,7 @@ export default function SchoolStudentsPage() {
             section: student.section || '',
             gr_no: student.gr_no || '',
             parent_name: student.parent?.name || '',
+            parent_email: student.parent?.email || '',
             parent_phone: student.parent?.phone || '',
             route_id: routeId,
             stop_id: stopId,
@@ -167,12 +168,13 @@ export default function SchoolStudentsPage() {
         setSaving(true);
         setEditError('');
         try {
-            await api.put(`/students/${editingStudent.id}`, {
+            const res = await api.put(`/students/${editingStudent.id}`, {
                 name: editForm.name.trim(),
                 grade: editForm.grade || undefined,
                 section: editForm.section || undefined,
                 gr_no: editForm.gr_no || undefined,
                 parent_name: editForm.parent_name || undefined,
+                parent_email: editForm.parent_email || undefined,
                 parent_phone: editForm.parent_phone || undefined,
                 route_id: editForm.route_id || null,
                 stop_id: editForm.stop_id || null,
@@ -184,8 +186,15 @@ export default function SchoolStudentsPage() {
                     academic_year: editForm.academic_year,
                 }),
             });
+            // If a brand-new parent login was created from the edit form, the backend returns a
+            // one-time temp password — surface it so the super-admin can pass it to the parent.
+            const pwd = res.data?.temp_password || '';
+            const email = editForm.parent_email;
             setEditingStudent(null);
             fetchAll();
+            if (pwd) {
+                window.alert(`Parent login created.\n\nEmail (Login ID): ${email}\nTemporary password: ${pwd}\n\nShare these with the parent — they'll set their own password on first login.`);
+            }
         } catch (e: any) {
             setEditError(e.response?.data?.message || 'Failed to save changes.');
         } finally {
@@ -628,6 +637,13 @@ export default function SchoolStudentsPage() {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Name</label>
                                 <input className={inputCls} placeholder="Full name" value={editForm.parent_name} onChange={e => setEditForm(f => ({ ...f, parent_name: e.target.value }))} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Email (Login ID)</label>
+                                <input type="email" className={inputCls} placeholder="parent@email.com" value={editForm.parent_email} onChange={e => setEditForm(f => ({ ...f, parent_email: e.target.value }))} />
+                                {!editingStudent?.parent?.id && editForm.parent_email && (
+                                    <p className="text-xs text-blue-500 mt-1">A parent login will be created with this email on save.</p>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Phone</label>
