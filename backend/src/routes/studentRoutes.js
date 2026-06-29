@@ -2,6 +2,7 @@ const { Router } = require('express');
 const {
   getAllStudents, getStudentById, createStudent, updateStudent,
   deleteStudent, uploadStudentPhoto, bulkCreateStudents, getMyStudents,
+  searchParents,
 } = require('../controllers/studentController');
 const { authenticateToken, requireRole, requireSchoolScope, requirePasswordChanged } = require('../middleware/authMiddleware');
 const { requirePermission } = require('../middleware/permissionMiddleware');
@@ -16,6 +17,9 @@ router.use(authenticateToken, requirePasswordChanged);
 router.get('/', requireRole('admin', 'super_admin', 'driver'), requireSchoolScope, getAllStudents);
 router.get('/my', requireRole('parent'), getMyStudents);
 router.get('/my-children', requireRole('parent'), getMyStudents);
+// Cross-school parent lookup so an admin can LINK a new student to an existing parent
+// account (same person, child in another school) instead of creating a duplicate.
+router.get('/parent-search', requireRole('admin', 'super_admin'), searchParents);
 router.get('/:id', requireRole('admin', 'super_admin', 'driver'), requireSchoolScope, getStudentById);
 router.post('/upload-photo', requireRole('admin', 'super_admin'), upload.single('photo'), uploadStudentPhoto);
 router.post('/bulk', requireRole('admin', 'super_admin'), bulkCreateStudents);

@@ -13,6 +13,7 @@ interface LinkedAccount {
 interface Child {
   id: string;
   name: string;
+  school?: string;
 }
 
 export default function AccountSwitcher() {
@@ -43,7 +44,7 @@ export default function AccountSwitcher() {
     api.get('/students/my-children')
       .then(r => {
         const list = Array.isArray(r.data) ? r.data : [];
-        setChildren(list.map((c: any) => ({ id: c.id, name: c.name })));
+        setChildren(list.map((c: any) => ({ id: c.id, name: c.name, school: c.school?.name })));
       })
       .catch(() => {});
   }, [user]);
@@ -103,8 +104,11 @@ export default function AccountSwitcher() {
                     <div className="w-6 h-6 rounded-full bg-[var(--brand)]/20 flex items-center justify-center text-[var(--brand)] font-bold text-xs shrink-0">
                       {child.name.charAt(0)}
                     </div>
-                    <span className="text-sm font-semibold">{child.name}</span>
-                    {activeChildId === child.id && <span className="ml-auto text-[10px] font-bold">Active</span>}
+                    <div className="min-w-0">
+                      <span className="text-sm font-semibold block truncate">{child.name}</span>
+                      {child.school && <span className="text-[10px] text-slate-400 block truncate">{child.school}</span>}
+                    </div>
+                    {activeChildId === child.id && <span className="ml-auto text-[10px] font-bold shrink-0">Active</span>}
                   </button>
                 ))}
               </>

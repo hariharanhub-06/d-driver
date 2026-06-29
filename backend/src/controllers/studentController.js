@@ -462,6 +462,9 @@ const getMyStudents = async (req, res) => {
         const students = await prisma.student.findMany({
             where: { parent_id: parent.id },
             include: {
+                // School name lets the parent app label which school each child belongs to
+                // (children can be in different schools — see the account switcher).
+                school: { select: { id: true, name: true } },
                 route: {
                     select: {
                         id: true, name: true, route_type: true, bus_id: true,
@@ -479,6 +482,38 @@ const getMyStudents = async (req, res) => {
     }
 };
 
+// Cross-school parent search for the admin "link to existing parent" flow. Matches active
+// parent accounts by email / phone / name so a child in a second school can be attached to
+// the SAME parent account (one login, multiple children — switchable in the parent app).
+const searchParents = async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim();
+        if (q.length < 3) return res.json([]);
+        const parents = await prisma.user.findMany({
+            where: {
+                role: 'parent',
+                is_active: true,
+                OR: [
+                    { email: { contains: q, mode: 'insensitive' } },
+                    { phone: { contains: q } },
+                    { name: { contains: q, mode: 'insensitive' } },
+                ],
+            },
+            take: 15,
+            orderBy: { name: 'asc' },
+            select: {
+                id: true, name: true, email: true, phone: true,
+                school: { select: { name: true } },
+                _count: { select: { children: true } },
+            },
+        });
+        res.json(parents);
+    } catch (error) {
+        console.error('searchParents error:', error.message);
+        res.status(500).json({ error: 'Error searching parents' });
+    }
+};
+
 module.exports = {
     getAllStudents,
     getStudentById,
@@ -488,4 +523,5 @@ module.exports = {
     uploadStudentPhoto,
     bulkCreateStudents,
     getMyStudents,
+    searchParents,
 };

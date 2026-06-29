@@ -124,9 +124,11 @@ export default function StudentsPage() {
 
     const searchParents = async (q: string) => {
         setParentSearch(q);
-        if (q.length < 2) { setParents([]); return; }
+        if (q.length < 3) { setParents([]); return; }
         try {
-            const { data } = await api.get('/users', { params: { role: 'parent', search: q } });
+            // Cross-school search: lets you LINK a new student to an existing parent account
+            // (same person, child already enrolled at another school).
+            const { data } = await api.get('/students/parent-search', { params: { q } });
             setParents(Array.isArray(data) ? data : []);
         } catch { setParents([]); }
     };
@@ -640,14 +642,14 @@ export default function StudentsPage() {
                                         {formData.parent_mode === 'existing' ? (
                                             <div>
                                                 <label className={labelCls}>{t('Search Parent', 'பெற்றோரை தேடு')}</label>
-                                                <input type="text" placeholder={t('Type name or email...', 'பெயர் அல்லது மின்னஞ்சல் தட்டச்சு செய்யவும்...')} className={`${inputCls} mb-2`} value={parentSearch} onChange={e => searchParents(e.target.value)} />
+                                                <input type="text" placeholder={t('Type name, email or mobile...', 'பெயர், மின்னஞ்சல் அல்லது மொபைல்...')} className={`${inputCls} mb-2`} value={parentSearch} onChange={e => searchParents(e.target.value)} />
                                                 {parents.length > 0 && (
                                                     <div className="border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden">
                                                         {parents.map(p => (
                                                             <button key={p.id} type="button" onClick={() => { setFormData({ ...formData, parent_id: p.id, parent_name: p.name, parent_email: p.email }); setParentSearch(p.name); setParents([]); }}
                                                                 className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--brand)]/5 transition-all ${formData.parent_id === p.id ? 'bg-[var(--brand)]/10 text-[var(--brand)]' : ''}`}>
                                                                 <p className="font-semibold">{p.name}</p>
-                                                                <p className="text-xs text-slate-400">{p.email}</p>
+                                                                <p className="text-xs text-slate-400">{p.email}{p.phone ? ` · ${p.phone}` : ''}{p.school?.name ? ` · ${p.school.name}` : ''}{typeof p._count?.children === 'number' ? ` · ${p._count.children} ${t('child(ren)', 'குழந்தை')}` : ''}</p>
                                                             </button>
                                                         ))}
                                                     </div>
@@ -848,9 +850,9 @@ export default function StudentsPage() {
                                     value={editParentSearch}
                                     onChange={async e => {
                                         setEditParentSearch(e.target.value);
-                                        if (e.target.value.length >= 2) {
+                                        if (e.target.value.length >= 3) {
                                             try {
-                                                const { data } = await api.get('/users', { params: { role: 'parent', search: e.target.value } });
+                                                const { data } = await api.get('/students/parent-search', { params: { q: e.target.value } });
                                                 setEditParents(Array.isArray(data) ? data : []);
                                             } catch { setEditParents([]); }
                                         } else { setEditParents([]); }
@@ -863,7 +865,7 @@ export default function StudentsPage() {
                                                 onClick={() => { setEditForm(f => ({ ...f, parent_id: p.id, parent_name: p.name, parent_email: p.email, parent_phone: p.phone || f.parent_phone })); setEditParentSearch(p.name); setEditParents([]); }}
                                                 className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--brand)]/5 transition-all">
                                                 <span className="font-medium text-slate-800 dark:text-white">{p.name}</span>
-                                                <span className="text-slate-400 text-xs ml-2">{p.email}</span>
+                                                <span className="text-slate-400 text-xs ml-2">{p.email}{p.school?.name ? ` · ${p.school.name}` : ''}</span>
                                             </button>
                                         ))}
                                     </div>
