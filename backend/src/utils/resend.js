@@ -135,79 +135,20 @@ const sendPasswordReset = async ({ to, email, name, resetUrl, school, schoolName
 // Supports two call patterns:
 //   New: { adminEmail, adminName, schoolName, slug, tempPassword }
 //   Old: { to, name, loginUrl, password, schoolName, school }
-const sendWelcomeAdmin = async ({ to, adminEmail, name, adminName, loginUrl, password, tempPassword, schoolName, slug, school }) => {
-  try {
-    const recipient = adminEmail || to;
-    const displayName = adminName || name || 'Admin';
-    const sName = schoolName || school?.name || 'Onlive';
-    const color = school?.primary_color || '#3B82F6';
-    const logoUrl = school?.logo_url || null;
-    const school_id = school?.id || null;
-
-    const baseDomain = process.env.BASE_DOMAIN || 'localhost:3000';
-    const resolvedLoginUrl = loginUrl || (slug ? `http://${slug}.${baseDomain}` : `http://${baseDomain}`);
-    const resolvedPassword = tempPassword || password || '(see your portal)';
-
-    const html = brandedHtml(sName, color, logoUrl, `
-      <p>Hi ${displayName},</p>
-      <p>Your school <strong>${sName}</strong> has been set up on Onlive.</p>
-      <p>
-        Login at: <a href="${resolvedLoginUrl}">${resolvedLoginUrl}</a><br>
-        Temporary password: <code style="background:#f1f5f9;padding:4px 8px;border-radius:4px;">${resolvedPassword}</code>
-      </p>
-      <p style="color:#64748b;font-size:13px;">You will be asked to change your password on first login.</p>
-    `);
-
-    await sendEmail({
-      to: recipient,
-      subject: `Welcome to ${sName} Bus Portal — your login`,
-      html,
-      template: 'welcome_admin',
-      school_id,
-    });
-  } catch (err) {
-    console.error('sendWelcomeAdmin error:', err.message);
-  }
+// Disabled by request: the platform only sends password-reset emails. New admins receive
+// their credentials in-app (shown to whoever creates the school) and set a password via the
+// forgot/reset flow — so no welcome email is sent (and none is logged against usage).
+const sendWelcomeAdmin = async () => {
+  return { status: 'skipped', reason: 'welcome emails disabled' };
 };
 
 // ─── sendParentWelcome ────────────────────────────────────────────────────────
 // Supports two call patterns:
 //   New: { parentEmail, parentName, studentName, schoolName, slug, tempPassword }
 //   Old: { to, name, childName, loginUrl, password, school }
-const sendParentWelcome = async ({ to, parentEmail, name, parentName, childName, studentName, loginUrl, password, tempPassword, schoolName, slug, school }) => {
-  try {
-    const recipient = parentEmail || to;
-    const displayName = parentName || name || 'Parent';
-    const childDisplayName = studentName || childName || 'your child';
-    const sName = schoolName || school?.name || 'Onlive';
-    const color = school?.primary_color || '#3B82F6';
-    const logoUrl = school?.logo_url || null;
-    const school_id = school?.id || null;
-
-    const baseDomain = process.env.BASE_DOMAIN || 'localhost:3000';
-    const resolvedLoginUrl = loginUrl || (slug ? `http://${slug}.${baseDomain}` : `http://${baseDomain}`);
-    const resolvedPassword = tempPassword || password || '(see your portal)';
-
-    const html = brandedHtml(sName, color, logoUrl, `
-      <p>Hi ${displayName},</p>
-      <p>Your child <strong>${childDisplayName}</strong>'s bus tracking account is ready.</p>
-      <p>
-        Login at: <a href="${resolvedLoginUrl}">${resolvedLoginUrl}</a><br>
-        Password: <code style="background:#f1f5f9;padding:4px 8px;border-radius:4px;">${resolvedPassword}</code>
-      </p>
-      <p style="color:#64748b;font-size:13px;">You will be asked to change your password on first login.</p>
-    `);
-
-    await sendEmail({
-      to: recipient,
-      subject: `${childDisplayName}'s bus tracking account is ready`,
-      html,
-      template: 'welcome_parent',
-      school_id,
-    });
-  } catch (err) {
-    console.error('sendParentWelcome error:', err.message);
-  }
+// Disabled by request — see sendWelcomeAdmin. Only password-reset emails are sent.
+const sendParentWelcome = async () => {
+  return { status: 'skipped', reason: 'welcome emails disabled' };
 };
 
 // ─── sendInvoiceGenerated ─────────────────────────────────────────────────────
