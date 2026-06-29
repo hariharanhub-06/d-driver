@@ -170,12 +170,13 @@ const listPlans = async (req, res) => {
 
 const createPlan = async (req, res) => {
   try {
-    const { name, description, is_template, lineItems = [] } = req.body;
+    const { name, description, is_template, plan_type, lineItems = [] } = req.body;
     const plan = await prisma.$transaction(async (tx) => {
       const created = await tx.pricingPlan.create({
         data: {
           name,
           description,
+          plan_type: plan_type === 'individual' ? 'individual' : 'school',
           is_template: is_template ?? true,
           created_by: req.user.id,
           lineItems: {
@@ -202,7 +203,7 @@ const createPlan = async (req, res) => {
 const updatePlan = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, is_template, lineItems = [] } = req.body;
+    const { name, description, is_template, plan_type, lineItems = [] } = req.body;
     const plan = await prisma.$transaction(async (tx) => {
       await tx.pricingLineItem.deleteMany({ where: { plan_id: id } });
       const updated = await tx.pricingPlan.update({
@@ -211,6 +212,7 @@ const updatePlan = async (req, res) => {
           name,
           description,
           is_template,
+          ...(plan_type ? { plan_type: plan_type === 'individual' ? 'individual' : 'school' } : {}),
           lineItems: {
             createMany: {
               data: lineItems.map(item => ({
@@ -698,11 +700,234 @@ const deleteManualExpense = async (req, res) => {
   }
 };
 
+// ─── INDIVIDUAL (per-student) BILLING ──────────────────────────────────────────
+// Super-admin charges individual students directly (independent of school charging).
+
+// SA global student search — by student name, parent name, parent email, parent phone.
+const searchStudents = async (req, res) => {
+  try {
+    const q = (req.query.q || '').trim();
+    if (!q) return res.json([]);
+    const students = await prisma.student.findMany({
+      where: {
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { parent: { name: { contains: q, mode: 'insensitive' } } },
+          { parent: { email: { contains: q, mode: 'insensitive' } } },
+          { parent: { phone: { contains: q } } },
+        ],
+      },
+      take: 25,
+      orderBy: { name: 'asc' },
+      select: {
+        id: true, name: true, grade: true,
+        school: { select: { id: true, name: true } },
+        parent: { select: { id: true, name: true, email: true, phone: true } },
+        individualPlan: { select: { id: true, name: true } },
+      },
+    });
+    res.json(students);
+  } catch (err) {
+    console.error('searchStudents error:', err.message);
+    res.status(500).json({ error: 'Error searching students' });
+  }
+};
+
+const assignIndividualPlan = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { plan_id } = req.body;
+    const student = await prisma.student.update({
+      where: { id },
+      data: { individual_plan_id: plan_id || null },
+      select: {
+        id: true, name: true,
+        individualPlan: { select: { id: true, name: true } },
+      },
+    });
+    res.json(student);
+  } catch (err) {
+    console.error('assignIndividualPlan error:', err.message);
+    res.status(500).json({ error: 'Error assigning plan to student' });
+  }
+};
+
+async function computeInvoiceForStudent(student_id, billing_month) {
+  const student = await prisma.student.findUnique({
+    where: { id: student_id },
+    select: { id: true, name: true, school_id: true, individual_plan_id: true },
+  });
+  if (!student) throw new Error('Student not found');
+  if (!student.individual_plan_id) throw new Error('Student has no individual plan assigned');
+
+  const plan = await prisma.pricingPlan.findUnique({
+    where: { id: student.individual_plan_id },
+    include: { lineItems: true },
+  });
+  if (!plan) throw new Error('Pricing plan not found');
+
+  // Individual billing = one student → each billable line item is charged once.
+  const billableLineItems = plan.lineItems.filter(
+    item => !['expense', 'profit'].includes(item.metric)
+  );
+  const lineItemsCalc = billableLineItems.map(item => {
+    const quantity = 1;
+    let charge = quantity * item.unit_rate;
+    if (item.min_value !== null && item.min_value !== undefined && charge < item.min_value) {
+      charge = item.min_value;
+    }
+    return {
+      label: item.label, description: item.description, metric: item.metric,
+      unit_rate: item.unit_rate, quantity, charge,
+      is_mandatory: item.is_mandatory, min_value: item.min_value,
+    };
+  });
+  const subtotal = lineItemsCalc.reduce((sum, i) => sum + i.charge, 0);
+
+  const billingConfig = await prisma.billingConfig.findUnique({ where: { id: 'singleton' } });
+  const graceDays = billingConfig?.overdue_grace_days ?? 7;
+  const overdueRateType = billingConfig?.overdue_rate_type ?? 'percentage';
+  const overdueRate = billingConfig?.overdue_rate ?? 2;
+
+  const unpaidInvoices = await prisma.studentInvoice.findMany({
+    where: { student_id, status: { not: 'paid' } },
+    select: { due_date: true, total_amount: true },
+  });
+  let overdue_amount = 0;
+  for (const inv of unpaidInvoices) {
+    const daysOverdue = Math.floor((Date.now() - new Date(inv.due_date)) / (24 * 3600 * 1000));
+    if (daysOverdue > graceDays) {
+      overdue_amount += overdueRateType === 'percentage'
+        ? inv.total_amount * (overdueRate / 100)
+        : overdueRate;
+    }
+  }
+
+  const total_amount = subtotal + overdue_amount;
+  const [year, month] = billing_month.split('-').map(Number);
+  const billingCycleDay = billingConfig?.billing_cycle_day ?? 1;
+  const due_date = new Date(year, month - 1 + 1, billingCycleDay);
+  const snapshot = { student_name: student.name, line_items: lineItemsCalc, plan_name: plan.name };
+
+  return { student, plan, subtotal, overdue_amount, total_amount, due_date, snapshot };
+}
+
+const generateStudentInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const now = new Date();
+    const billing_month = req.body.billing_month ||
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const c = await computeInvoiceForStudent(id, billing_month);
+    const invoice = await prisma.studentInvoice.create({
+      data: {
+        student_id: c.student.id,
+        school_id: c.student.school_id,
+        plan_id: c.plan.id,
+        billing_month,
+        due_date: c.due_date,
+        subtotal: c.subtotal,
+        overdue_amount: c.overdue_amount,
+        total_amount: c.total_amount,
+        status: 'pending',
+        line_items_snapshot: c.snapshot,
+      },
+    });
+    // Notify the parent (best-effort).
+    const student = await prisma.student.findUnique({
+      where: { id }, select: { parent_id: true, school_id: true },
+    });
+    if (student?.parent_id) {
+      await prisma.notification.create({
+        data: {
+          user_id: student.parent_id,
+          school_id: student.school_id,
+          message: `New invoice for ${billing_month}. Amount due: ₹${c.total_amount.toFixed(2)}`,
+          type: 'info',
+        },
+      }).catch(() => {});
+    }
+    res.status(201).json(invoice);
+  } catch (err) {
+    console.error('generateStudentInvoice error:', err.message);
+    res.status(400).json({ error: err.message });
+  }
+};
+
+const listStudentInvoices = async (req, res) => {
+  try {
+    const { student_id, status, month } = req.query;
+    const where = {};
+    if (student_id) where.student_id = student_id;
+    if (status) where.status = status;
+    if (month) where.billing_month = month;
+    const invoices = await prisma.studentInvoice.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      include: {
+        student: {
+          select: {
+            id: true, name: true,
+            school: { select: { name: true } },
+            parent: { select: { name: true, phone: true } },
+          },
+        },
+      },
+    });
+    res.json(invoices);
+  } catch (err) {
+    console.error('listStudentInvoices error:', err.message);
+    res.status(500).json({ error: 'Error fetching student invoices' });
+  }
+};
+
+const payStudentInvoiceCash = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = await prisma.studentInvoice.update({
+      where: { id },
+      data: { status: 'paid', payment_method: 'cash', paid_at: new Date() },
+    });
+    res.json(invoice);
+  } catch (err) {
+    console.error('payStudentInvoiceCash error:', err.message);
+    res.status(500).json({ error: 'Error processing cash payment' });
+  }
+};
+
+const createStudentInvoiceOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = await prisma.studentInvoice.findUnique({ where: { id } });
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+    const razorpay = await getRazorpayInstance();
+    const order = await razorpay.orders.create({
+      amount: Math.round(invoice.total_amount * 100),
+      currency: 'INR',
+      receipt: `sinv_${invoice.id}`,
+      notes: { student_invoice_id: invoice.id, student_id: invoice.student_id },
+    });
+    await prisma.studentInvoice.update({
+      where: { id }, data: { razorpay_order_id: order.id },
+    });
+    res.json({ order, invoice_id: invoice.id });
+  } catch (err) {
+    console.error('createStudentInvoiceOrder error:', err.message);
+    res.status(500).json({ error: 'Error creating Razorpay order' });
+  }
+};
+
 module.exports = {
   listPlans,
   createPlan,
   updatePlan,
   deletePlan,
+  searchStudents,
+  assignIndividualPlan,
+  generateStudentInvoice,
+  listStudentInvoices,
+  payStudentInvoiceCash,
+  createStudentInvoiceOrder,
   generateInvoice,
   generateAllInvoices,
   listInvoices,

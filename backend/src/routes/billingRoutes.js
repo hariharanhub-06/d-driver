@@ -4,6 +4,12 @@ const {
   createPlan,
   updatePlan,
   deletePlan,
+  searchStudents,
+  assignIndividualPlan,
+  generateStudentInvoice,
+  listStudentInvoices,
+  payStudentInvoiceCash,
+  createStudentInvoiceOrder,
   generateInvoice,
   generateAllInvoices,
   listInvoices,
@@ -61,6 +67,14 @@ router.get('/revenue', requireRole('super_admin'), getRevenueDashboard);
 
 // SA — assign plan to school
 router.put('/schools/:id/plan', requireRole('super_admin'), assignPlan);
+
+// SA — individual (per-student) billing
+router.get('/students/search',              requireRole('super_admin'), searchStudents);
+router.put('/students/:id/plan',            requireRole('super_admin'), assignIndividualPlan);
+router.post('/students/:id/generate',       requireRole('super_admin'), generateStudentInvoice);
+router.get('/student-invoices',             requireRole('super_admin'), listStudentInvoices);
+router.post('/student-invoices/:id/pay-cash',   requireRole('super_admin'), payStudentInvoiceCash);
+router.post('/student-invoices/:id/pay-online', requireRole('super_admin'), createStudentInvoiceOrder);
 
 // School admin — own invoices
 router.get('/my-invoices', requireRole('admin'), getMyInvoices);

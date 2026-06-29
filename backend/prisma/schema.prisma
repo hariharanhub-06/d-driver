@@ -19,62 +19,62 @@ model School {
   phone                String?
   email_contact        String?
   subscription_plan    String    @default("Basic")
-  status               String    @default("active")    // active | inactive
+  status               String    @default("active") // active | inactive
   suspended_at         DateTime?
   suspension_reason    String?
   permissions          Json?
   notification_email   String?
   onboarding_dismissed Boolean   @default(false)
   tour_completed       Boolean   @default(false)
-  razorpay_key_id      String?   // AES-256-GCM encrypted
-  razorpay_key_secret  String?   // AES-256-GCM encrypted
+  razorpay_key_id      String? // AES-256-GCM encrypted
+  razorpay_key_secret  String? // AES-256-GCM encrypted
   razorpay_configured  Boolean   @default(false)
   plan_id              String?
   assigned_sa_id       String?
   created_at           DateTime  @default(now())
 
-  pricingPlan         PricingPlan?        @relation(fields: [plan_id], references: [id])
-  assignedSA          User?               @relation("AssignedSA", fields: [assigned_sa_id], references: [id], onDelete: SetNull)
-  users               User[]
-  buses               Bus[]
-  drivers             Driver[]
-  routes              Route[]
-  students            Student[]
-  attendance          Attendance[]
-  fees                Fee[]
-  payments            Payment[]
-  locations           Location[]
-  notifications       Notification[]
-  stops               Stop[]
-  feeStructures       FeeStructure[]
-  shifts              DriverShift[]
-  fuelRequests        FuelRequest[]
-  fuelFillEntries     FuelFillEntry[]
-  busSwitchLogs       BusSwitchLog[]
-  stopChangeRequests  StopChangeRequest[]
-  absenceReports      AbsenceReport[]
-  activeTrips         ActiveTrip[]
-  schoolInvoices      SchoolInvoice[]
-  emailLogs           EmailLog[]
-  auditLogs           AuditLog[]
+  pricingPlan        PricingPlan?        @relation(fields: [plan_id], references: [id])
+  assignedSA         User?               @relation("AssignedSA", fields: [assigned_sa_id], references: [id], onDelete: SetNull)
+  users              User[]
+  buses              Bus[]
+  drivers            Driver[]
+  routes             Route[]
+  students           Student[]
+  attendance         Attendance[]
+  fees               Fee[]
+  payments           Payment[]
+  locations          Location[]
+  notifications      Notification[]
+  stops              Stop[]
+  feeStructures      FeeStructure[]
+  shifts             DriverShift[]
+  fuelRequests       FuelRequest[]
+  fuelFillEntries    FuelFillEntry[]
+  busSwitchLogs      BusSwitchLog[]
+  stopChangeRequests StopChangeRequest[]
+  absenceReports     AbsenceReport[]
+  activeTrips        ActiveTrip[]
+  schoolInvoices     SchoolInvoice[]
+  emailLogs          EmailLog[]
+  auditLogs          AuditLog[]
 }
 
 model User {
-  id                 String    @id @default(uuid())
+  id                 String   @id @default(uuid())
   name               String
-  email              String    @unique
+  email              String   @unique
   password           String
-  phone              String?   @unique
-  role               String    // super_admin | admin | driver | parent | bus_staff
+  phone              String?  @unique
+  role               String // super_admin | admin | driver | parent | bus_staff
   school_id          String?
   assigned_bus_id    String?
-  is_first_login     Boolean   @default(true)
-  is_active          Boolean   @default(true)
-  is_dev_sa          Boolean   @default(false)
+  is_first_login     Boolean  @default(true)
+  is_active          Boolean  @default(true)
+  is_dev_sa          Boolean  @default(false)
   notification_prefs Json?
   profile_photo_url  String?
   expo_push_token    String?
-  created_at         DateTime  @default(now())
+  created_at         DateTime @default(now())
 
   school              School?              @relation(fields: [school_id], references: [id], onDelete: SetNull)
   assignedBus         Bus?                 @relation("BusStaffAssignment", fields: [assigned_bus_id], references: [id], onDelete: SetNull)
@@ -169,26 +169,29 @@ model Stop {
 // ─── STUDENTS ────────────────────────────────────────────────────────────────
 
 model Student {
-  id        String  @id @default(uuid())
-  name      String
-  grade     String?
-  section   String?
-  gr_no     String?
-  parent_id String?
-  route_id  String?
-  stop_id   String?
-  school_id String
-  photo_url String?
+  id                 String  @id @default(uuid())
+  name               String
+  grade              String?
+  section            String?
+  gr_no              String?
+  parent_id          String?
+  route_id           String?
+  stop_id            String?
+  school_id          String
+  photo_url          String?
+  individual_plan_id String?
 
   school             School              @relation(fields: [school_id], references: [id], onDelete: Cascade)
   route              Route?              @relation(fields: [route_id], references: [id], onDelete: SetNull)
   stop               Stop?               @relation(fields: [stop_id], references: [id], onDelete: SetNull)
   parent             User?               @relation("ParentStudents", fields: [parent_id], references: [id], onDelete: SetNull)
+  individualPlan     PricingPlan?        @relation("IndividualPlanStudents", fields: [individual_plan_id], references: [id], onDelete: SetNull)
   attendance         Attendance[]
   fees               Fee[]
   feeStructure       FeeStructure?
   absenceReports     AbsenceReport[]
   stopChangeRequests StopChangeRequest[]
+  studentInvoices    StudentInvoice[]
 }
 
 // ─── ATTENDANCE ───────────────────────────────────────────────────────────────
@@ -196,13 +199,13 @@ model Student {
 model Attendance {
   id              String   @id @default(uuid())
   student_id      String
-  date_only       String?  // "YYYY-MM-DD" for day-scoped uniqueness per role
+  date_only       String? // "YYYY-MM-DD" for day-scoped uniqueness per role
   date            DateTime @default(now())
-  status          String   // present | absent | missed
+  status          String // present | absent | missed
   school_id       String
   note            String?
   marked_at       DateTime @default(now())
-  marked_by_role  String?  // driver | bus_staff | admin
+  marked_by_role  String? // driver | bus_staff | admin
   trip_id         String?
   attendance_type String   @default("pickup") // pickup | dropoff
 
@@ -215,15 +218,15 @@ model Attendance {
 // ─── FINANCE ─────────────────────────────────────────────────────────────────
 
 model Fee {
-  id                  String    @id @default(uuid())
-  student_id          String
-  total_amount        Float
-  due_amount          Float
-  due_date            DateTime
-  school_id           String
-  payment_method      String?
-  razorpay_order_id   String?
-  last_alert_sent_at  DateTime? // tracks when fee alert was last sent (cron dedup)
+  id                 String    @id @default(uuid())
+  student_id         String
+  total_amount       Float
+  due_amount         Float
+  due_date           DateTime
+  school_id          String
+  payment_method     String?
+  razorpay_order_id  String?
+  last_alert_sent_at DateTime? // tracks when fee alert was last sent (cron dedup)
 
   student       Student           @relation(fields: [student_id], references: [id], onDelete: Cascade)
   school        School            @relation(fields: [school_id], references: [id], onDelete: Cascade)
@@ -235,10 +238,10 @@ model Payment {
   id                  String   @id @default(uuid())
   fee_id              String
   amount              Float
-  status              String   // paid | pending | overdue
+  status              String // paid | pending | overdue
   payment_date        DateTime @default(now())
   school_id           String
-  payment_method      String?  // razorpay | cash
+  payment_method      String? // razorpay | cash
   razorpay_payment_id String?
   receipt_url         String?
 
@@ -251,7 +254,7 @@ model FeeStructure {
   student_id    String   @unique
   school_id     String
   amount        Float
-  frequency     String   // monthly | weekly | quarterly | half-yearly | yearly
+  frequency     String // monthly | weekly | quarterly | half-yearly | yearly
   due_day       Int      @default(5)
   academic_year String
   is_active     Boolean  @default(true)
@@ -268,7 +271,7 @@ model Location {
   bus_id    String
   latitude  Float
   longitude Float
-  heading   Float?   // 0–360 degrees for bus icon rotation
+  heading   Float? // 0–360 degrees for bus icon rotation
   timestamp DateTime @default(now())
   school_id String
 
@@ -284,16 +287,16 @@ model ActiveTrip {
   shift_id           String?
   current_stop_index Int       @default(0)
   status             String    @default("running") // running | completed | paused
-  trip_type          String?   // morning | evening — the driver's chosen direction
+  trip_type          String? // morning | evening — the driver's chosen direction
   started_at         DateTime  @default(now())
   completed_at       DateTime?
   school_id          String
 
-  route   Route        @relation(fields: [route_id], references: [id])
-  driver  Driver       @relation(fields: [driver_id], references: [id])
-  bus     Bus          @relation(fields: [bus_id], references: [id])
-  school  School       @relation(fields: [school_id], references: [id])
-  shift   DriverShift? @relation(fields: [shift_id], references: [id])
+  route  Route        @relation(fields: [route_id], references: [id])
+  driver Driver       @relation(fields: [driver_id], references: [id])
+  bus    Bus          @relation(fields: [bus_id], references: [id])
+  school School       @relation(fields: [school_id], references: [id])
+  shift  DriverShift? @relation(fields: [shift_id], references: [id])
 }
 
 // ─── DRIVER SHIFTS & KM ──────────────────────────────────────────────────────
@@ -307,8 +310,8 @@ model DriverShift {
   status     String    @default("active") // active | completed
   school_id  String
 
-  driver      Driver          @relation(fields: [driver_id], references: [id])
-  school      School          @relation(fields: [school_id], references: [id])
+  driver      Driver         @relation(fields: [driver_id], references: [id])
+  school      School         @relation(fields: [school_id], references: [id])
   kmEntries   ShiftKmEntry[]
   busSwitches BusSwitchLog[]
   activeTrips ActiveTrip[]
@@ -319,7 +322,7 @@ model ShiftKmEntry {
   shift_id    String
   bus_id      String
   km_reading  Float
-  entry_type  String   // shift_start | route_start | route_end | bus_switch | shift_end
+  entry_type  String // shift_start | route_start | route_end | bus_switch | shift_end
   note        String?
   recorded_at DateTime @default(now())
 
@@ -333,7 +336,7 @@ model BusSwitchLog {
   driver_id       String
   original_bus_id String
   new_bus_id      String?
-  reason          String   // breakdown | accident | maintenance | other
+  reason          String // breakdown | accident | maintenance | other
   notes           String?
   km_at_switch    Float?
   switched_at     DateTime @default(now())
@@ -388,7 +391,7 @@ model StopChangeRequest {
   parent_id         String
   current_stop_id   String?
   requested_stop_id String
-  change_type       String   // temporary | permanent
+  change_type       String // temporary | permanent
   effective_date    DateTime
   reason            String?
   status            String   @default("pending") // pending | approved | rejected
@@ -396,8 +399,8 @@ model StopChangeRequest {
   created_at        DateTime @default(now())
   school_id         String
 
-  student       Student  @relation(fields: [student_id], references: [id])
-  currentStop   Stop?    @relation("CurrentStop", fields: [current_stop_id], references: [id])
+  student       Student @relation(fields: [student_id], references: [id])
+  currentStop   Stop?   @relation("CurrentStop", fields: [current_stop_id], references: [id])
   requestedStop Stop    @relation("RequestedStop", fields: [requested_stop_id], references: [id])
   school        School  @relation(fields: [school_id], references: [id])
 }
@@ -421,7 +424,7 @@ model Notification {
   id         String   @id @default(uuid())
   user_id    String
   message    String
-  type       String   // alert | info | success
+  type       String // alert | info | success
   is_read    Boolean  @default(false)
   created_at DateTime @default(now())
   school_id  String
@@ -452,28 +455,28 @@ model BlockedToken {
 // ─── PLATFORM CONFIG (SINGLETON) ─────────────────────────────────────────────
 
 model PlatformConfig {
-  id                      String   @id @default("singleton")
-  razorpay_key_id         String?
-  razorpay_key_secret     String?
-  razorpay_configured     Boolean  @default(false)
-  default_from_email      String?
-  platform_logo_url       String?
+  id                       String   @id @default("singleton")
+  razorpay_key_id          String?
+  razorpay_key_secret      String?
+  razorpay_configured      Boolean  @default(false)
+  default_from_email       String?
+  platform_logo_url        String?
   // Landing page content — editable by Dev SA
-  product_name            String   @default("ONLIVE")
-  landing_badge           String   @default("School Transport OS")
-  landing_title           String   @default("Every Mile, Every Child, Safe.")
-  landing_subtitle        String   @default("Complete school bus management — live GPS tracking for parents, digital attendance for drivers, and full ERP control for admins.")
-  landing_cta_text        String   @default("Get Started Free")
-  landing_footer_tagline  String   @default("The complete school bus ERP — built for safety, transparency, and operational efficiency.")
-  landing_footer_email    String   @default("support@onlive.app")
-  landing_footer_phone    String?
-  landing_footer_address  String?
-  landing_footer_copyright String  @default("ONLIVE. All rights reserved.")
+  product_name             String   @default("ONLIVE")
+  landing_badge            String   @default("School Transport OS")
+  landing_title            String   @default("Every Mile, Every Child, Safe.")
+  landing_subtitle         String   @default("Complete school bus management — live GPS tracking for parents, digital attendance for drivers, and full ERP control for admins.")
+  landing_cta_text         String   @default("Get Started Free")
+  landing_footer_tagline   String   @default("The complete school bus ERP — built for safety, transparency, and operational efficiency.")
+  landing_footer_email     String   @default("support@onlive.app")
+  landing_footer_phone     String?
+  landing_footer_address   String?
+  landing_footer_copyright String   @default("ONLIVE. All rights reserved.")
   // Full landing-page content (every section's text, icon names, colours, images).
   // Stored as one JSON blob so any line can be made editable without a migration per field.
-  landing_content         Json?
-  created_at              DateTime @default(now())
-  updated_at              DateTime @updatedAt
+  landing_content          Json?
+  created_at               DateTime @default(now())
+  updated_at               DateTime @updatedAt
 }
 
 model LandingPartner {
@@ -513,12 +516,14 @@ model PricingPlan {
   id          String   @id @default(uuid())
   name        String
   description String?
+  plan_type   String   @default("school") // school | individual
   is_template Boolean  @default(true)
   created_at  DateTime @default(now())
   created_by  String
 
-  lineItems PricingLineItem[]
-  schools   School[]
+  lineItems          PricingLineItem[]
+  schools            School[]
+  individualStudents Student[]         @relation("IndividualPlanStudents")
 }
 
 model PricingLineItem {
@@ -526,7 +531,7 @@ model PricingLineItem {
   plan_id      String
   label        String
   description  String?
-  metric       String  // fixed | per_bus | per_student | per_route | per_gps_hour | per_km | per_shift | custom
+  metric       String // fixed | per_bus | per_student | per_route | per_gps_hour | per_km | per_shift | custom
   unit_rate    Float
   is_mandatory Boolean @default(true)
   min_value    Float?
@@ -537,13 +542,13 @@ model PricingLineItem {
 model SchoolInvoice {
   id                  String    @id @default(uuid())
   school_id           String
-  billing_month       String    // YYYY-MM
+  billing_month       String // YYYY-MM
   due_date            DateTime
   subtotal            Float
   overdue_amount      Float     @default(0)
   total_amount        Float
   status              String    @default("pending") // pending | paid | overdue | partial
-  payment_method      String?   // razorpay | cash
+  payment_method      String? // razorpay | cash
   razorpay_order_id   String?
   razorpay_payment_id String?
   paid_at             DateTime?
@@ -552,6 +557,28 @@ model SchoolInvoice {
   created_at          DateTime  @default(now())
 
   school School @relation(fields: [school_id], references: [id])
+}
+
+model StudentInvoice {
+  id                  String    @id @default(uuid())
+  student_id          String
+  school_id           String
+  plan_id             String?
+  billing_month       String // YYYY-MM
+  due_date            DateTime
+  subtotal            Float
+  overdue_amount      Float     @default(0)
+  total_amount        Float
+  status              String    @default("pending") // pending | paid | overdue | partial
+  payment_method      String? // razorpay | cash
+  razorpay_order_id   String?
+  razorpay_payment_id String?
+  paid_at             DateTime?
+  sa_note             String?
+  line_items_snapshot Json
+  created_at          DateTime  @default(now())
+
+  student Student @relation(fields: [student_id], references: [id], onDelete: Cascade)
 }
 
 model OverdueRecord {
@@ -583,8 +610,8 @@ model ManualExpense {
   id         String   @id @default(uuid())
   label      String
   amount     Float
-  month      String   // YYYY-MM
-  category   String   // hosting | storage | email | payment | misc
+  month      String // YYYY-MM
+  category   String // hosting | storage | email | payment | misc
   notes      String?
   created_at DateTime @default(now())
 }
@@ -609,7 +636,7 @@ model EmailLog {
   id        String   @id @default(uuid())
   to        String
   subject   String
-  template  String   // password_reset | welcome | notification | invoice
+  template  String // password_reset | welcome | notification | invoice
   school_id String?
   status    String   @default("sent") // sent | failed
   sent_at   DateTime @default(now())
@@ -641,7 +668,7 @@ model MaintenanceRecord {
   school_id   String
   date        DateTime
   description String
-  items       Json     // [{part: string, cost: number}]
+  items       Json // [{part: string, cost: number}]
   total_cost  Float
   status      String   @default("pending") // pending | approved | rejected
   admin_note  String?

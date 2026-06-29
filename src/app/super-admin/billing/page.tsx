@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee, Pencil, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee, Pencil, Trash2, GraduationCap } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
@@ -10,6 +11,7 @@ interface Plan {
     id: string;
     name: string;
     description?: string;
+    plan_type?: string;
     lineItems?: { label: string; metric: string; unit_rate: number }[];
 }
 
@@ -64,7 +66,7 @@ export default function BillingPage() {
 
     // Plan modal
     const [showPlanModal, setShowPlanModal] = useState(false);
-    const [planForm, setPlanForm] = useState({ name: '', description: '' });
+    const [planForm, setPlanForm] = useState({ name: '', description: '', plan_type: 'school' });
     const [revenueItems, setRevenueItems] = useState<RevenueItem[]>([{ label: '', metric: 'per_bus', unit_rate: '' }]);
     const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>(DEFAULT_EXPENSE_ITEMS);
     const [profitAmount, setProfitAmount] = useState('');
@@ -100,7 +102,7 @@ export default function BillingPage() {
     const resetPlanModal = () => {
         setShowPlanModal(false);
         setEditingPlanId(null);
-        setPlanForm({ name: '', description: '' });
+        setPlanForm({ name: '', description: '', plan_type: 'school' });
         setRevenueItems([{ label: '', metric: 'per_bus', unit_rate: '' }]);
         setExpenseItems(DEFAULT_EXPENSE_ITEMS);
         setProfitAmount('');
@@ -109,7 +111,7 @@ export default function BillingPage() {
 
     const openEditModal = (plan: Plan) => {
         setEditingPlanId(plan.id);
-        setPlanForm({ name: plan.name, description: plan.description || '' });
+        setPlanForm({ name: plan.name, description: plan.description || '', plan_type: plan.plan_type || 'school' });
         const allItems = plan.lineItems || [];
         const revenueRows = allItems
             .filter(li => !['expense', 'profit'].includes(li.metric))
@@ -193,7 +195,7 @@ export default function BillingPage() {
     const handleRecordPayment = async (invoiceId: string) => {
         if (!confirm(t('Mark this invoice as paid?', 'இந்த விலைப்பட்டியலை செலுத்தியதாக குறிக்கவா?'))) return;
         try {
-            await api.patch(`/billing/invoices/${invoiceId}/pay`);
+            await api.post(`/billing/invoices/${invoiceId}/pay-cash`, {});
             fetchAll();
         } catch (e: any) {
             alert(e.response?.data?.message || 'Failed to record payment');
@@ -251,6 +253,12 @@ export default function BillingPage() {
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t('School billing management', 'பள்ளி பில்லிங் மேலாண்மை')}</p>
                 </div>
+                <Link
+                    href="/super-admin/billing/individual"
+                    className="flex items-center gap-2 bg-[var(--accent)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95"
+                >
+                    <GraduationCap className="w-4 h-4" /> {t('Individual Charging', 'தனிநபர் கட்டணம்')}
+                </Link>
             </div>
 
             {/* Pricing Plans */}
@@ -416,6 +424,32 @@ export default function BillingPage() {
                         </div>
 
                         <div className="p-6 space-y-6">
+                            {/* Plan type — School (billed to the school) vs Individual (billed per student) */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('Plan Type', 'திட்ட வகை')}</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                        { key: 'school', label: t('School', 'பள்ளி'), desc: t('Billed to the school', 'பள்ளிக்கு கட்டணம்') },
+                                        { key: 'individual', label: t('Individual', 'தனிநபர்'), desc: t('Billed per student', 'மாணவருக்கு கட்டணம்') },
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.key}
+                                            type="button"
+                                            onClick={() => setPlanForm({ ...planForm, plan_type: opt.key })}
+                                            className={cn(
+                                                "rounded-xl border px-4 py-3 text-left transition-all",
+                                                planForm.plan_type === opt.key
+                                                    ? "border-[var(--brand)] bg-[var(--brand)]/10"
+                                                    : "border-slate-200 dark:border-slate-600 hover:border-slate-300"
+                                            )}
+                                        >
+                                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{opt.label}</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">{opt.desc}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
                             {/* Name & Description */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
