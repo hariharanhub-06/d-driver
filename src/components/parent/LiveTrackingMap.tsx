@@ -39,17 +39,19 @@ export default function LiveTrackingMap({ child, heightClass = 'h-72', tripActiv
     const [now, setNow] = useState<number>(Date.now());
     const [eta, setEta] = useState<EtaResult | null>(null);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-    const [sosState, setSosState] = useState<'idle' | 'sending' | 'sent'>('idle');
+    const [sosState, setSosState] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
     const etaCall = useRef<{ t: number; pos: LatLng | null }>({ t: 0, pos: null });
 
     const raiseSos = async () => {
         if (sosState === 'sending') return;
         setSosState('sending');
-        // Always alert the school admin (works even when tel: is blocked inside a PWA/iframe).
-        try { await api.post('/sos/parent', {}); } catch { /* non-fatal */ }
-        setSosState('sent');
-        setTimeout(() => setSosState('idle'), 4000);
-        // Then attempt to dial the driver if a number is available.
+        // Alert the school admin (works even when tel: is blocked inside a PWA/iframe). Only
+        // report success when the alert actually reaches the server — this is safety-critical.
+        let ok = false;
+        try { await api.post('/sos/parent', {}); ok = true; } catch { ok = false; }
+        setSosState(ok ? 'sent' : 'failed');
+        setTimeout(() => setSosState('idle'), ok ? 4000 : 6000);
+        // Either way, attempt to dial the driver if a number is available.
         if (sosPhone) { try { window.location.href = `tel:${sosPhone}`; } catch { /* blocked */ } }
     };
 
@@ -166,7 +168,7 @@ export default function LiveTrackingMap({ child, heightClass = 'h-72', tripActiv
                 <FreeMap center={mapCenter} zoom={14} markers={markers} />
             </div>
 
-            <div className="px-4 py-3 flex items-center gap-3">
+            <div className="px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-2">
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 min-w-0">
                     <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <span className="truncate">{myStop?.name || t('Your Stop', 'உங்கள் நிறுத்தம்')}</span>
@@ -189,9 +191,11 @@ export default function LiveTrackingMap({ child, heightClass = 'h-72', tripActiv
                     <button
                         onClick={raiseSos}
                         disabled={sosState === 'sending'}
-                        className={`font-black text-[11px] px-2.5 py-1.5 rounded-lg shadow active:scale-95 transition-all shrink-0 text-white ${sosState === 'sent' ? 'bg-emerald-500' : 'bg-red-500 hover:bg-red-600'}`}
+                        className={`font-black text-[11px] px-2.5 py-1.5 rounded-lg shadow active:scale-95 transition-all shrink-0 text-white ${sosState === 'sent' ? 'bg-emerald-500' : sosState === 'failed' ? 'bg-amber-600' : 'bg-red-500 hover:bg-red-600'}`}
                     >
-                        {sosState === 'sent' ? t('Sent ✓', 'அனுப்பப்பட்டது ✓') : sosState === 'sending' ? '…' : 'SOS'}
+                        {sosState === 'sent' ? t('Sent ✓', 'அனுப்பப்பட்டது ✓')
+                            : sosState === 'failed' ? t('Retry SOS', 'மீண்டும் SOS')
+                            : sosState === 'sending' ? '…' : 'SOS'}
                     </button>
                 </div>
             </div>

@@ -79,7 +79,7 @@ export default function ParentFees() {
                     student_name: inv.student?.name,
                     due_date: inv.due_date,
                     paid_date: inv.paid_at,
-                    status: inv.status === 'paid' ? 'paid' : 'pending',
+                    status: (inv.status === 'paid' ? 'paid' : inv.status === 'overdue' ? 'overdue' : 'pending') as Fee['status'],
                     description: 'Super Admin Charge',
                     source: 'individual' as const,
                 }))

@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { RefreshCw, LogOut, Smartphone } from 'lucide-react';
 
-// QA multi-login page: four phone frames, each an isolated session (via ?ns=).
+// QA multi-login page: five phone frames, each an isolated session (via ?ns=).
 // Log into a different role in each frame and test the whole app side by side.
 const FRAMES = [
     { ns: 'qa1', label: 'Screen 1' },
     { ns: 'qa2', label: 'Screen 2' },
     { ns: 'qa3', label: 'Screen 3' },
     { ns: 'qa4', label: 'Screen 4' },
+    { ns: 'qa5', label: 'Screen 5' },
 ];
 
 export default function QAPage() {
@@ -56,7 +57,7 @@ export default function QAPage() {
             </div>
 
             {/* Phone frames */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 p-4">
                 {FRAMES.map(frame => (
                     <div key={frame.ns} className="flex flex-col items-center">
                         <div className="w-full max-w-[380px] bg-slate-950 rounded-[2rem] border-4 border-slate-700 shadow-2xl overflow-hidden">

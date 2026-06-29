@@ -73,6 +73,7 @@ async function runIndividualAutoBilling(now) {
         await prisma.notification.create({
           data: {
             user_id: s.parent_id, school_id: s.school_id, type: 'info',
+            student_name: c.student.name,
             message: `New invoice generated. Amount due: ₹${c.total_amount.toFixed(2)}`,
           },
         }).catch(() => {});
@@ -102,6 +103,7 @@ async function runOverdueReminders(now) {
         await prisma.notification.create({
           data: {
             user_id: inv.student.parent_id, school_id: inv.student.school_id, type: 'alert',
+            student_name: inv.student.name,
             message: `Payment overdue for ${inv.student.name}: ₹${inv.total_amount.toFixed(2)}. Please pay at the earliest.`,
           },
         }).catch(() => {});

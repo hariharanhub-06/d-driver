@@ -16,7 +16,7 @@ async function generateInvoiceForSchool(schoolId, billingMonth) {
   // ── School & Plan ─────────────────────────────────────────────────────────
   const school = await prisma.school.findUnique({
     where: { id: schoolId },
-    select: { id: true, name: true, plan_id: true },
+    select: { id: true, name: true, plan_id: true, billing_due_day: true },
   });
   if (!school || !school.plan_id) {
     throw new Error('School has no pricing plan assigned');
@@ -130,7 +130,11 @@ async function generateInvoiceForSchool(schoolId, billingMonth) {
   const total_amount = subtotal + overdue_amount;
 
   const billingCycleDay = billingConfig?.billing_cycle_day ?? 1;
-  const due_date = new Date(year, month - 1 + 1, billingCycleDay);
+  // Honour the school's configured billing due day within the billing month. Fall back to the
+  // legacy "due on the global cycle day of the following month" only when no per-school day is set.
+  const due_date = school.billing_due_day
+    ? new Date(year, month - 1, Math.min(school.billing_due_day, 28))
+    : new Date(year, month - 1 + 1, billingCycleDay);
 
   const snapshot = { usage, line_items: lineItemsCalc, plan_name: plan.name };
 

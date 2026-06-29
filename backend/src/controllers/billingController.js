@@ -30,7 +30,7 @@ async function computeInvoiceForSchool(school_id, billing_month) {
 
   const school = await prisma.school.findUnique({
     where: { id: school_id },
-    select: { id: true, name: true, plan_id: true },
+    select: { id: true, name: true, plan_id: true, billing_due_day: true },
   });
   if (!school || !school.plan_id) {
     throw new Error('School has no pricing plan assigned');
@@ -147,7 +147,9 @@ async function computeInvoiceForSchool(school_id, billing_month) {
 
   const billingCycleDay = billingConfig ? billingConfig.billing_cycle_day : 1;
   const [year, month] = billing_month.split('-').map(Number);
-  const due_date = new Date(year, month - 1 + 1, billingCycleDay);
+  const due_date = school.billing_due_day
+    ? new Date(year, month - 1, Math.min(school.billing_due_day, 28))
+    : new Date(year, month - 1 + 1, billingCycleDay);
 
   const snapshot = { usage, line_items: lineItemsCalc, plan_name: plan.name };
 
@@ -384,6 +386,13 @@ const handleInvoiceWebhook = async (req, res) => {
       webhookSecret = decrypt(config.razorpay_key_secret);
     } else {
       webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+    }
+
+    // Without a secret, HMAC verification is meaningless — reject rather than risk accepting
+    // a forged/unverifiable signature.
+    if (!webhookSecret) {
+      console.error('handleInvoiceWebhook: no Razorpay webhook secret configured');
+      return res.status(400).json({ error: 'Webhook secret not configured' });
     }
 
     const body = JSON.stringify(req.body);
