@@ -131,19 +131,19 @@ export default function LoginPage() {
                     <div className="flex items-center gap-3 mb-4">
                         {currentSchool?.logo && !logoError && (
                             <div
-                                className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-md overflow-hidden"
+                                className="w-24 h-24 rounded-2xl flex items-center justify-center shadow-md overflow-hidden"
                                 style={{ backgroundColor: brandColor }}
                             >
                                 <img
                                     src={currentSchool.logo}
                                     alt={currentSchool.name}
-                                    className="w-12 h-12 rounded-xl object-cover"
+                                    className="w-20 h-20 rounded-xl object-cover"
                                     onError={() => setLogoError(true)}
                                 />
                             </div>
                         )}
                         {/* Onlive logo — always shown (on its dark background). */}
-                        <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-md overflow-hidden bg-[#0a0f1e]">
+                        <div className="w-24 h-24 rounded-2xl flex items-center justify-center shadow-md overflow-hidden bg-[#0a0f1e]">
                             <img
                                 src={platformLogo || "/icons/onlive-logo.png"}
                                 alt="Onlive"
@@ -159,7 +159,7 @@ export default function LoginPage() {
                         {currentSchool?.name || 'ONLIVE'}
                     </h1>
                     <p className="text-xs text-slate-400 tracking-widest uppercase mt-1">
-                        {currentSchool ? 'School Bus Portal' : 'School Bus Management Platform'}
+                        {currentSchool ? 'School Portal' : 'Track and Manage Smarter'}
                     </p>
                 </div>
 

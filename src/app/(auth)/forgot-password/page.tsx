@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icons/onlive-logo.png" alt="Onlive" className="w-14 h-14 rounded-2xl object-contain bg-[#0a0f1e] mb-4 shadow-md" />
+          <img src="/icons/onlive-logo.png" alt="Onlive" className="w-24 h-24 rounded-2xl object-contain bg-[#0a0f1e] mb-4 shadow-md" />
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
             {submitted ? 'Check Your Email' : 'Forgot Password'}
           </h1>
