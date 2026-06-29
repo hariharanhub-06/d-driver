@@ -61,7 +61,7 @@ export default function SchoolStudentsPage() {
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [editForm, setEditForm] = useState({
         name: '', grade: '', section: '', gr_no: '',
-        parent_name: '', parent_email: '', parent_phone: '',
+        parent_name: '', parent_email: '', parent_phone: '', parent_password: '',
         route_id: '', stop_id: '', photo_url: '',
         fee_amount: '', fee_frequency: 'monthly', fee_due_day: '5', academic_year: String(new Date().getFullYear()),
     });
@@ -145,6 +145,7 @@ export default function SchoolStudentsPage() {
             parent_name: student.parent?.name || '',
             parent_email: student.parent?.email || '',
             parent_phone: student.parent?.phone || '',
+            parent_password: '',
             route_id: routeId,
             stop_id: stopId,
             photo_url: student.photo_url || '',
@@ -176,6 +177,7 @@ export default function SchoolStudentsPage() {
                 parent_name: editForm.parent_name || undefined,
                 parent_email: editForm.parent_email || undefined,
                 parent_phone: editForm.parent_phone || undefined,
+                parent_password: editForm.parent_password || undefined,
                 route_id: editForm.route_id || null,
                 stop_id: editForm.stop_id || null,
                 photo_url: editForm.photo_url || undefined,
@@ -649,6 +651,12 @@ export default function SchoolStudentsPage() {
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Phone</label>
                                 <input type="tel" className={inputCls} placeholder="+91 9876543210" value={editForm.parent_phone} onChange={e => setEditForm(f => ({ ...f, parent_phone: e.target.value }))} />
                             </div>
+                            {!editingStudent?.parent?.id && editForm.parent_email && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Password <span className="text-slate-400 font-normal">(leave blank to auto-generate)</span></label>
+                                    <input type="text" className={inputCls} placeholder="Set a password (min 8 chars)" value={editForm.parent_password} onChange={e => setEditForm(f => ({ ...f, parent_password: e.target.value }))} autoComplete="off" />
+                                </div>
+                            )}
 
                             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Transport Assignment</p>
                             <div>
