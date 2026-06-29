@@ -67,11 +67,15 @@ export default function QAPage() {
                 </div>
             </div>
 
-            {/* Phone frames */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 p-4">
+            {/* Phone frames — auto-fit so the layout adapts to the chosen count AND the window
+                width (each frame stays 300–420px, columns fill the row and wrap, centered). */}
+            <div
+                className="grid gap-4 p-4 justify-center"
+                style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 420px))' }}
+            >
                 {frames.map(frame => (
-                    <div key={frame.ns} className="flex flex-col items-center">
-                        <div className="w-full max-w-[380px] bg-slate-950 rounded-[2rem] border-4 border-slate-700 shadow-2xl overflow-hidden">
+                    <div key={frame.ns} className="flex flex-col items-center w-full">
+                        <div className="w-full max-w-[420px] bg-slate-950 rounded-[2rem] border-4 border-slate-700 shadow-2xl overflow-hidden">
                             <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
                                 <span className="text-xs font-bold text-slate-200">{frame.label}</span>
                                 <span className="text-[10px] text-slate-500 font-mono">{frame.ns}</span>
