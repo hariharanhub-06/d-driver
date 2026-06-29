@@ -1,7 +1,7 @@
 /* Onlive service worker — minimal, safe app-shell cache.
    Deliberately conservative: it NEVER caches API or auth traffic, only
    same-origin static assets and a navigation fallback. */
-const CACHE = 'ddriver-shell-v1';
+const CACHE = 'ddriver-shell-v2';
 const SHELL = ['/', '/offline.html', '/icons/icon.svg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -9,6 +9,11 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {})
   );
   self.skipWaiting();
+});
+
+// Let the page trigger an immediate activation of a freshly-installed worker.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

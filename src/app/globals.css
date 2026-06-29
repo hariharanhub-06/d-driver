@@ -6,6 +6,9 @@
 
 :root {
   --brand: #3B82F6;
+  /* Onlive logo accent — orange. Use for highlights / active states / CTAs / SOS,
+     while --brand (blue) stays the primary UI colour for readability. */
+  --accent: #F97316;
   /* Tinted base so white cards/sidebar stand out — gives real surface hierarchy */
   --background: #EBEFF5;
   --foreground: #0F172A;

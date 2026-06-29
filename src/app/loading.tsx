@@ -16,8 +16,8 @@ export default function Loading() {
       <img
         src="/icons/onlive-logo.png"
         alt="Onlive"
-        width={150}
-        height={150}
+        width={220}
+        height={220}
         style={{ objectFit: "contain", animation: "onlivePulse 1.6s ease-in-out infinite" }}
       />
       <div

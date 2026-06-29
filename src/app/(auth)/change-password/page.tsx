@@ -85,7 +85,7 @@ export default function ChangePasswordPage() {
                   onChange={(e) => set(e.target.value)}
                   autoComplete={autoComplete}
                   className="w-full border-0 border-b-2 border-slate-200 dark:border-slate-700 bg-transparent py-3 text-slate-900 dark:text-white text-sm outline-none transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600 pr-10"
-                  onFocus={e => (e.currentTarget.style.borderBottomColor = '#22c55e')}
+                  onFocus={e => (e.currentTarget.style.borderBottomColor = '#3B82F6')}
                   onBlur={e => (e.currentTarget.style.borderBottomColor = '')}
                   placeholder="••••••••"
                   required
@@ -107,8 +107,8 @@ export default function ChangePasswordPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 text-white font-bold rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg bg-green-500"
-            style={{ boxShadow: '0 8px 24px #22c55e33' }}
+            className="w-full py-3.5 text-white font-bold rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg bg-blue-500"
+            style={{ boxShadow: '0 8px 24px #3B82F633' }}
             onMouseEnter={e => !isLoading && (e.currentTarget.style.filter = 'brightness(0.9)')}
             onMouseLeave={e => (e.currentTarget.style.filter = '')}
           >

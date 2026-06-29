@@ -77,7 +77,8 @@ export default function LoginPage() {
 
     // Standard UI colour (school colour is no longer used for buttons/links — a
     // white/light school colour made the Sign In button & fields invisible).
-    const brandColor = '#22c55e';
+    // Onlive primary blue (matches --brand); was green.
+    const brandColor = '#3B82F6';
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -182,7 +183,7 @@ export default function LoginPage() {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full border-0 border-b-2 border-slate-200 dark:border-slate-700 focus:border-[#22c55e] bg-transparent py-3 text-slate-900 dark:text-white text-sm outline-none transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                            className="w-full border-0 border-b-2 border-slate-200 dark:border-slate-700 focus:border-[#3B82F6] bg-transparent py-3 text-slate-900 dark:text-white text-sm outline-none transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600"
                             style={{ '--focus-color': brandColor } as React.CSSProperties}
                             onFocus={e => (e.currentTarget.style.borderBottomColor = brandColor)}
                             onBlur={e => (e.currentTarget.style.borderBottomColor = '')}
@@ -211,7 +212,7 @@ export default function LoginPage() {
                                 type={showPassword ? 'text' : 'password'}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full border-0 border-b-2 border-slate-200 dark:border-slate-700 focus:border-[#22c55e] bg-transparent py-3 text-slate-900 dark:text-white text-sm outline-none transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600 pr-10"
+                                className="w-full border-0 border-b-2 border-slate-200 dark:border-slate-700 focus:border-[#3B82F6] bg-transparent py-3 text-slate-900 dark:text-white text-sm outline-none transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600 pr-10"
                                 onFocus={e => (e.currentTarget.style.borderBottomColor = brandColor)}
                                 onBlur={e => (e.currentTarget.style.borderBottomColor = '')}
                                 placeholder="••••••••"
@@ -279,7 +280,7 @@ export default function LoginPage() {
                         </button>
                         <Link
                             href="/"
-                            className="text-xs text-slate-400 hover:text-green-600 dark:hover:text-green-400 flex items-center gap-1 transition-colors"
+                            className="text-xs text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition-colors"
                         >
                             <ArrowLeft size={11} />
                             Home
