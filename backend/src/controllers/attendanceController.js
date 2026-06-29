@@ -14,7 +14,7 @@ const { logAction } = require('../utils/auditLog');
  *   one absent, one not marked    → notify parent: absent
  *   both not marked               → handled by completeTrip (end-of-trip check)
  */
-async function reconcileAttendance(student_id, date_only, school_id, io) {
+async function reconcileAttendance(student_id, date_only, school_id, io, attendanceType = 'pickup') {
     const [driverMark, staffMark] = await Promise.all([
         prisma.attendance.findUnique({
             where: { student_id_date_only_marked_by_role: { student_id, date_only, marked_by_role: 'driver' } },
@@ -29,8 +29,17 @@ async function reconcileAttendance(student_id, date_only, school_id, io) {
     const student = driverMark?.student || staffMark?.student;
     if (!student) return;
 
-    const d = driverMark?.status;
-    const s = staffMark?.status;
+    // Read the status for THIS phase from its column, falling back to the legacy single
+    // `status` field for old rows written before the two-phase columns existed.
+    const phaseStatus = (mark) => {
+        if (!mark) return undefined;
+        const col = attendanceType === 'dropoff' ? mark.dropoff_status : mark.pickup_status;
+        if (col != null) return col;
+        // Legacy row: its single status belongs to whichever phase it recorded.
+        return (mark.attendance_type === attendanceType) ? mark.status : undefined;
+    };
+    const d = phaseStatus(driverMark);
+    const s = phaseStatus(staffMark);
 
     // Conflict: one present, one absent → admin only, no parent notification
     if (d && s && d !== s) {
@@ -44,22 +53,26 @@ async function reconcileAttendance(student_id, date_only, school_id, io) {
 
     // Agreed or one-sided → determine final status
     const finalStatus = d || s;
-    if (!finalStatus) return; // both missing — handled by completeTrip
+    if (!finalStatus) return; // this phase not marked by either — handled by completeTrip
 
     if (!student.parent_id) return;
 
-    const attendanceType = driverMark?.attendance_type || staffMark?.attendance_type || 'pickup';
     const stopName = student.stop?.name;
 
-    // Remove any prior same-day attendance notification for this student to avoid duplicates
+    // Remove any prior notification for THIS phase today (avoid duplicates) without wiping the
+    // other phase's notification — scope the match to this phase's wording.
     const startOfDay = new Date(date_only);
     startOfDay.setHours(0, 0, 0, 0);
+    const phrasePool = attendanceType === 'dropoff'
+        ? [{ message: { contains: 'dropped off' } }, { message: { contains: 'drop-off' } }]
+        : [{ message: { contains: 'present in the bus' } }, { message: { contains: 'marked absent today' } }];
     await prisma.notification.deleteMany({
         where: {
             user_id: student.parent_id,
             message: { contains: student.name },
             created_at: { gte: startOfDay },
             type: { in: ['success', 'alert'] },
+            OR: phrasePool,
         },
     });
 
@@ -127,6 +140,14 @@ const markAttendance = async (req, res) => {
 
         const dateOnly = new Date().toLocaleDateString('en-CA'); // "YYYY-MM-DD"
         const markedByRole = req.user.role; // driver | bus_staff | admin | super_admin
+        const now = new Date();
+
+        // Two-phase: write the marked phase into its own column (+ timestamp) on the single
+        // per-(student, date, role) row, so a child can be both "picked up" and "dropped"
+        // in the evening without one overwriting the other.
+        const phaseFields = attendanceType === 'dropoff'
+            ? { dropoff_status: status, dropoff_at: now }
+            : { pickup_status: status, pickup_at: now };
 
         // Upsert: one record per (student, date, role) — idempotent re-marking
         const record = await prisma.attendance.upsert({
@@ -140,29 +161,31 @@ const markAttendance = async (req, res) => {
             create: {
                 student_id,
                 date_only: dateOnly,
-                date: new Date(),
+                date: now,
                 status,
                 note: note || null,
                 school_id: schoolId,
                 marked_by_role: markedByRole,
                 trip_id: trip_id || null,
                 attendance_type: attendanceType,
+                ...phaseFields,
             },
             update: {
                 status,
                 note: note || null,
-                marked_at: new Date(),
+                marked_at: now,
                 attendance_type: attendanceType,
+                ...phaseFields,
             },
             include: {
                 student: { select: { id: true, name: true, parent_id: true, stop_id: true } },
             },
         });
 
-        // Reconcile: apply conflict rules and send the right notification
+        // Reconcile: apply conflict rules and send the right notification for THIS phase
         try {
             const io = req.app.get('io');
-            await reconcileAttendance(student_id, dateOnly, schoolId, io);
+            await reconcileAttendance(student_id, dateOnly, schoolId, io, attendanceType);
         } catch (reconcileErr) {
             console.error('Reconcile error:', reconcileErr.message);
         }

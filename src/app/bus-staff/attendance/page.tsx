@@ -41,6 +41,9 @@ export default function BusStaffAttendancePage() {
     const [isEvening, setIsEvening] = useState(false);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
+    // Keyed by `${studentId}|${phase}` where phase is 'pickup' | 'dropoff'. Morning trips only
+    // use 'pickup'; evening trips use both ('pickup' = boarded at school, 'dropoff' = alighted
+    // at the child's stop).
     const [attendance, setAttendance] = useState<Record<string, 'present' | 'absent'>>({});
     const [marking, setMarking] = useState<string | null>(null);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
@@ -145,23 +148,30 @@ export default function BusStaffAttendancePage() {
         }
     };
 
-    const handleMark = async (student: Student, status: 'present' | 'absent') => {
-        setMarking(student.id);
+    const markOf = (studentId: string, phase: 'pickup' | 'dropoff') => attendance[`${studentId}|${phase}`];
+
+    // A student is "done" when, morning: pickup is marked; evening: BOTH picked up and dropped.
+    const studentDone = (s: Student) =>
+        isEvening ? !!markOf(s.id, 'pickup') && !!markOf(s.id, 'dropoff') : !!markOf(s.id, 'pickup');
+
+    const handleMark = async (student: Student, status: 'present' | 'absent', phase: 'pickup' | 'dropoff') => {
+        const key = `${student.id}|${phase}`;
+        setMarking(key);
         try {
             await api.post('/attendance/mark', {
                 student_id: student.id,
                 status,
                 trip_id: tripId || undefined,
-                attendance_type: isEvening ? 'dropoff' : 'pickup',
+                attendance_type: phase,
             });
-            setAttendance(prev => ({ ...prev, [student.id]: status }));
+            setAttendance(prev => ({ ...prev, [key]: status }));
         } finally {
             setMarking(null);
         }
     };
 
     const isStopComplete = (stop: TripStop) =>
-        stop.students.length > 0 && stop.students.every(s => attendance[s.id]);
+        stop.students.length > 0 && stop.students.every(studentDone);
 
     const completedCount = stops.filter(isStopComplete).length;
 
@@ -209,58 +219,86 @@ export default function BusStaffAttendancePage() {
         </div>
     );
 
+    // One phase's control: shows a coloured badge once marked, or Absent / Present(Picked/Dropped)
+    // buttons while unmarked. `presentLabel` is the green-button wording for this phase.
+    const renderPhase = (student: Student, phase: 'pickup' | 'dropoff', presentLabel: string) => {
+        const marked = markOf(student.id, phase);
+        const key = `${student.id}|${phase}`;
+        const isMarkingThis = marking === key;
+        if (marked) {
+            return (
+                <span className={cn(
+                    'text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0',
+                    marked === 'present' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                )}>
+                    {marked === 'present' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                    {marked === 'present' ? presentLabel : t('Absent', 'வரவில்லை')}
+                </span>
+            );
+        }
+        return (
+            <div className="flex gap-2 shrink-0">
+                <button
+                    disabled={isMarkingThis}
+                    onClick={() => handleMark(student, 'absent', phase)}
+                    className="w-9 h-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 transition-all active:scale-95 disabled:opacity-40"
+                    aria-label={t('Mark absent', 'வரவில்லை என குறிக்கவும்')}
+                >
+                    {isMarkingThis ? <div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" /> : <X className="w-4 h-4" />}
+                </button>
+                <button
+                    disabled={isMarkingThis}
+                    onClick={() => handleMark(student, 'present', phase)}
+                    className="px-2.5 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center gap-1 text-xs font-semibold hover:bg-emerald-200 transition-all active:scale-95 disabled:opacity-40"
+                >
+                    {isMarkingThis ? <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /> : <><Check className="w-3.5 h-3.5" />{presentLabel}</>}
+                </button>
+            </div>
+        );
+    };
+
     const renderStudent = (student: Student) => {
-        const marked = attendance[student.id];
-        const isMarkingThis = marking === student.id;
+        const done = studentDone(student);
+        const anyAbsent = markOf(student.id, 'pickup') === 'absent' || markOf(student.id, 'dropoff') === 'absent';
         return (
             <div
                 key={student.id}
                 className={cn(
-                    'flex items-center gap-3 p-3 rounded-2xl border transition-all',
-                    marked === 'present' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' :
-                    marked === 'absent'  ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+                    'p-3 rounded-2xl border transition-all',
+                    anyAbsent ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+                    done      ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' :
                     'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'
                 )}
             >
-                <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
-                    {student.photo_url ? (
-                        <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
-                    ) : (
-                        <span className="text-sm font-bold text-slate-500 dark:text-slate-300">
-                            {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                        </span>
-                    )}
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                        {student.photo_url ? (
+                            <img src={student.photo_url} alt={student.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="text-sm font-bold text-slate-500 dark:text-slate-300">
+                                {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-900 dark:text-white text-sm truncate">{student.name}</p>
+                        <p className="text-xs text-slate-400">{student.grade || t('Student', 'மாணவர்')}</p>
+                    </div>
+                    {/* Morning: single Present control inline. */}
+                    {!isEvening && renderPhase(student, 'pickup', t('Present', 'வந்தனர்'))}
                 </div>
-                <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-900 dark:text-white text-sm truncate">{student.name}</p>
-                    <p className="text-xs text-slate-400">{student.grade || t('Student', 'மாணவர்')}</p>
-                </div>
-                {marked ? (
-                    <span className={cn(
-                        'text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1',
-                        marked === 'present' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                    )}>
-                        {marked === 'present' ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                        {marked === 'present' ? (isEvening ? t('Dropped', 'இறங்கினர்') : t('Present', 'வந்தனர்')) : t('Absent', 'வரவில்லை')}
-                    </span>
-                ) : (
-                    <div className="flex gap-2">
-                        <button
-                            disabled={isMarkingThis}
-                            onClick={() => handleMark(student, 'absent')}
-                            className="w-9 h-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 transition-all active:scale-95 disabled:opacity-40"
-                            aria-label={t('Mark absent', 'வரவில்லை என குறிக்கவும்')}
-                        >
-                            {isMarkingThis ? <div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" /> : <X className="w-4 h-4" />}
-                        </button>
-                        <button
-                            disabled={isMarkingThis}
-                            onClick={() => handleMark(student, 'present')}
-                            className="px-2.5 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center gap-1 text-xs font-semibold hover:bg-emerald-200 transition-all active:scale-95 disabled:opacity-40"
-                            aria-label={isEvening ? t('Mark dropped', 'இறங்கியதாக குறிக்கவும்') : t('Mark present', 'வந்ததாக குறிக்கவும்')}
-                        >
-                            {isMarkingThis ? <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /> : <><Check className="w-3.5 h-3.5" />{isEvening ? t('Dropped', 'இறங்கினர்') : t('Present', 'வந்தனர்')}</>}
-                        </button>
+
+                {/* Evening: two labelled phases — Picked up (at school) then Dropped (at stop). */}
+                {isEvening && (
+                    <div className="mt-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t('Picked up', 'ஏற்றப்பட்டது')}</span>
+                            {renderPhase(student, 'pickup', t('Picked up', 'ஏற்றப்பட்டது'))}
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t('Dropped', 'இறக்கப்பட்டது')}</span>
+                            {renderPhase(student, 'dropoff', t('Dropped', 'இறக்கப்பட்டது'))}
+                        </div>
                     </div>
                 )}
             </div>
@@ -308,7 +346,7 @@ export default function BusStaffAttendancePage() {
                 {stops.map((stop, i) => {
                     const list = q ? stop.students.filter(s => s.name.toLowerCase().includes(q)) : stop.students;
                     if (q && list.length === 0) return null;
-                    const markedCount = stop.students.filter(s => attendance[s.id]).length;
+                    const markedCount = stop.students.filter(studentDone).length;
                     const complete = isStopComplete(stop);
                     return (
                         <section

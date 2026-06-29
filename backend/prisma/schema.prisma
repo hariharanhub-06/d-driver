@@ -209,7 +209,13 @@ model Attendance {
   marked_at       DateTime @default(now())
   marked_by_role  String? // driver | bus_staff | admin
   trip_id         String?
-  attendance_type String   @default("pickup") // pickup | dropoff
+  attendance_type String   @default("pickup") // last phase marked: pickup | dropoff
+  // Two-phase per day on a single row: pickup = boarded (morning: at stop, evening: at school),
+  // dropoff = alighted (evening: at the child's stop). Morning trips only set pickup_*.
+  pickup_status   String? // present | absent
+  dropoff_status  String? // present | absent
+  pickup_at       DateTime?
+  dropoff_at      DateTime?
 
   student Student @relation(fields: [student_id], references: [id], onDelete: Cascade)
   school  School  @relation(fields: [school_id], references: [id], onDelete: Cascade)

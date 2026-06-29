@@ -12,6 +12,10 @@ interface AttendanceRecord {
   note?: string;
   marked_at?: string;
   stop_name?: string;
+  pickup_status?: 'present' | 'absent' | null;
+  dropoff_status?: 'present' | 'absent' | null;
+  pickup_at?: string | null;
+  dropoff_at?: string | null;
 }
 interface Child { id: string; name: string; }
 
@@ -75,12 +79,21 @@ export default function AttendancePage() {
   const selectedRecord = selectedDay ? recordMap[selectedDay] : null;
 
   const timeline = useMemo(() => {
-    if (!selectedRecord || selectedRecord.status !== 'present') return [];
-    const items = [];
-    if (selectedRecord.stop_name) {
-      items.push({ icon: MapPin, label: `Boarded at ${selectedRecord.stop_name}`, time: selectedRecord.marked_at ? new Date(selectedRecord.marked_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—', colorClass: 'text-[var(--brand)]' });
+    const r = selectedRecord;
+    if (!r) return [];
+    const wasPresent = r.status === 'present' || r.pickup_status === 'present' || r.dropoff_status === 'present';
+    if (!wasPresent) return [];
+    const fmt = (ts?: string | null) => ts ? new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—';
+    const items: { icon: typeof Bus; label: string; time: string; colorClass: string }[] = [];
+    // Picked up / boarded (morning: at the stop; evening: at school). Old rows without the
+    // per-phase column fall back to the single `status`.
+    if (r.pickup_status === 'present' || (!r.pickup_status && !r.dropoff_status && r.status === 'present')) {
+      items.push({ icon: r.stop_name ? MapPin : Bus, label: r.stop_name ? `Picked up at ${r.stop_name}` : 'Picked up', time: fmt(r.pickup_at || r.marked_at), colorClass: 'text-[var(--brand)]' });
     }
-    items.push({ icon: Bus, label: 'Marked Present at School', time: selectedRecord.marked_at ? new Date(selectedRecord.marked_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—', colorClass: 'text-emerald-600 dark:text-emerald-400' });
+    // Dropped off (evening: at the child's stop).
+    if (r.dropoff_status === 'present') {
+      items.push({ icon: Bus, label: r.stop_name ? `Dropped off at ${r.stop_name}` : 'Dropped off', time: fmt(r.dropoff_at || r.marked_at), colorClass: 'text-emerald-600 dark:text-emerald-400' });
+    }
     return items;
   }, [selectedRecord]);
 
