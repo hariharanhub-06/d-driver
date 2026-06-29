@@ -75,6 +75,7 @@ export default function SchoolsManagement() {
     const [schools, setSchools] = useState<School[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [navigatingId, setNavigatingId] = useState<string | null>(null);
 
     // ── Assign SA modal ──────────────────────────────────────────────────────
     const [assignSASchool, setAssignSASchool] = useState<School | null>(null);
@@ -446,11 +447,17 @@ export default function SchoolsManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                     {filtered.map(school => (
                         <div key={school.id}
-                            onClick={() => router.push(`/super-admin/schools/${school.id}`)}
+                            onClick={() => { setNavigatingId(school.id); router.push(`/super-admin/schools/${school.id}`); }}
                             className={cn(
-                                "bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md hover:border-[var(--brand)]/40 cursor-pointer",
+                                "relative bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col transition-all cursor-pointer",
+                                "hover:shadow-lg hover:-translate-y-0.5 hover:border-[var(--brand)]/50 hover:ring-2 hover:ring-[var(--brand)]/20 active:scale-[0.98] active:shadow-sm",
                                 school.status !== 'active' && "opacity-60"
                             )}>
+                            {navigatingId === school.id && (
+                                <div className="absolute inset-0 z-20 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[1px] flex items-center justify-center">
+                                    <Loader2 className="w-6 h-6 animate-spin text-[var(--brand)]" />
+                                </div>
+                            )}
                             <div className="h-1.5 w-full" style={{ backgroundColor: school.primary_color || '#3B82F6' }} />
                             <div className="p-5 flex flex-col flex-1">
                                 <div className="flex items-start justify-between mb-4">
