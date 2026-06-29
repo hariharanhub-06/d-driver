@@ -15,6 +15,7 @@ interface Fee {
     status: 'pending' | 'paid' | 'overdue';
     description?: string;
     order_id?: string;
+    source?: 'school' | 'individual';
 }
 
 interface SchoolConfig {
@@ -62,14 +63,33 @@ export default function ParentFees() {
     const fetchFees = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/finance/my-fees');
-            setFees(Array.isArray(res.data) ? res.data : []);
-        } catch (e: any) {
-            if (e.response?.status === 403) {
-                setPermissionDenied(true);
-            } else {
-                setError('Failed to load fees');
-            }
+            // School fees (fee_management gated) + individual super-admin charges, merged.
+            const [feesRes, indivRes] = await Promise.allSettled([
+                api.get('/finance/my-fees'),
+                api.get('/billing/my-student-invoices'),
+            ]);
+
+            const schoolFees: Fee[] = feesRes.status === 'fulfilled' && Array.isArray(feesRes.value.data)
+                ? feesRes.value.data.map((f: any) => ({ ...f, source: 'school' as const }))
+                : [];
+            const individual: Fee[] = indivRes.status === 'fulfilled' && Array.isArray(indivRes.value.data)
+                ? indivRes.value.data.map((inv: any) => ({
+                    id: `si_${inv.id}`,
+                    amount: inv.total_amount,
+                    student_name: inv.student?.name,
+                    due_date: inv.due_date,
+                    paid_date: inv.paid_at,
+                    status: inv.status === 'paid' ? 'paid' : 'pending',
+                    description: 'Super Admin Charge',
+                    source: 'individual' as const,
+                }))
+                : [];
+            // Only block on the school-fee 403 if there are no individual charges to show.
+            const feesForbidden = feesRes.status === 'rejected' && (feesRes.reason as any)?.response?.status === 403;
+            if (feesForbidden && individual.length === 0) setPermissionDenied(true);
+            setFees([...schoolFees, ...individual]);
+        } catch {
+            setError('Failed to load fees');
         } finally {
             setLoading(false);
         }
@@ -238,9 +258,14 @@ export default function ParentFees() {
                             >
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
-                                        <h3 className="font-bold text-slate-800 dark:text-white text-base">
-                                            {fee.description || t('Transport Fee', 'போக்குவரத்து கட்டணம்')}
-                                        </h3>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <h3 className="font-bold text-slate-800 dark:text-white text-base">
+                                                {fee.source === 'individual' ? t('Super Admin Charge', 'நிர்வாக கட்டணம்') : (fee.description || t('Transport Fee', 'போக்குவரத்து கட்டணம்'))}
+                                            </h3>
+                                            {fee.source === 'individual' && (
+                                                <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)]">{t('Platform', 'தளம்')}</span>
+                                            )}
+                                        </div>
                                         {fee.student_name && (
                                             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{fee.student_name}</p>
                                         )}
@@ -274,7 +299,12 @@ export default function ParentFees() {
                                             </div>
                                         )}
                                         <div className="flex gap-2">
-                                            {schoolConfig.razorpay_configured && (
+                                            {fee.source === 'individual' && (
+                                                <div className="flex-1 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700/40 rounded-xl px-3 py-2.5">
+                                                    {t('Payable to the platform — your school admin will collect this.', 'தளத்திற்கு செலுத்த வேண்டியது — உங்கள் பள்ளி நிர்வாகி வசூலிப்பார்.')}
+                                                </div>
+                                            )}
+                                            {schoolConfig.razorpay_configured && fee.source !== 'individual' && (
                                                 <button
                                                     onClick={() => handlePayOnline(fee)}
                                                     disabled={payingId === fee.id}
@@ -287,12 +317,14 @@ export default function ParentFees() {
                                                     )}
                                                 </button>
                                             )}
-                                            <button
-                                                onClick={() => openDelayModal(fee)}
-                                                className="flex items-center gap-1.5 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                                            >
-                                                <Calendar className="w-3.5 h-3.5" /> {t('Delay', 'தாமதம்')}
-                                            </button>
+                                            {fee.source !== 'individual' && (
+                                                <button
+                                                    onClick={() => openDelayModal(fee)}
+                                                    className="flex items-center gap-1.5 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                                >
+                                                    <Calendar className="w-3.5 h-3.5" /> {t('Delay', 'தாமதம்')}
+                                                </button>
+                                            )}
                                         </div>
                                     </>
                                 )}

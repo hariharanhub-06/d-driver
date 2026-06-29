@@ -23,6 +23,7 @@ const {
   getRevenueDashboard,
   assignPlan,
   getMyInvoices,
+  getMyStudentInvoices,
   updatePlatformRazorpay,
   getPlatformRazorpayStatus,
   getPlatformUsage,
@@ -80,6 +81,9 @@ router.post('/student-invoices/:id/pay-online', requireRole('super_admin'), crea
 
 // School admin — own invoices
 router.get('/my-invoices', requireRole('admin'), getMyInvoices);
+
+// Parent — their children's individual (super-admin) invoices
+router.get('/my-student-invoices', requireRole('parent'), getMyStudentInvoices);
 
 // SA — platform Razorpay keys
 router.get('/platform-razorpay', requireRole('super_admin'), getPlatformRazorpayStatus);

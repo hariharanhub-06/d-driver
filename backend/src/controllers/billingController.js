@@ -1023,6 +1023,27 @@ const createStudentInvoiceOrder = async (req, res) => {
   }
 };
 
+// GET /billing/my-student-invoices (parent) — the super-admin "individual" charges raised
+// against this parent's children, so the parent Fees page can show them alongside school fees.
+const getMyStudentInvoices = async (req, res) => {
+  try {
+    const students = await prisma.student.findMany({
+      where: { parent_id: req.user.id }, select: { id: true },
+    });
+    const ids = students.map(s => s.id);
+    if (ids.length === 0) return res.json([]);
+    const invoices = await prisma.studentInvoice.findMany({
+      where: { student_id: { in: ids } },
+      orderBy: { created_at: 'desc' },
+      include: { student: { select: { id: true, name: true } } },
+    });
+    res.json(invoices);
+  } catch (err) {
+    console.error('getMyStudentInvoices error:', err.message);
+    res.status(500).json({ error: 'Error fetching invoices' });
+  }
+};
+
 module.exports = {
   listPlans,
   createPlan,
@@ -1036,6 +1057,7 @@ module.exports = {
   listStudentInvoices,
   payStudentInvoiceCash,
   createStudentInvoiceOrder,
+  getMyStudentInvoices,
   generateInvoice,
   generateAllInvoices,
   listInvoices,
