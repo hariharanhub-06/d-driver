@@ -78,6 +78,15 @@ export default function ParentDashboard() {
         if (stored) setActiveChildId(stored);
     }, []);
 
+    // When a live notification arrives (e.g. the admin just linked a new child), refresh so the
+    // child list + activity update without the parent having to reload the app.
+    useEffect(() => {
+        const s = getSocket();
+        const onNotif = () => { fetchAll(); };
+        s.on('new-notification', onNotif);
+        return () => { s.off('new-notification', onNotif); };
+    }, []);
+
     // Live trip progress for the stop timeline — poll + refresh on trip socket events.
     useEffect(() => {
         const pc = (activeChildId ? children.find(c => c.id === activeChildId) : null) || children[0];

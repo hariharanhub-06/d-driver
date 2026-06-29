@@ -19,6 +19,21 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config;
     const isAuthEndpoint = original?.url?.includes('/auth/');
+
+    // First-login accounts are blocked from every gated endpoint with a 403 FIRST_LOGIN code.
+    // Without this, a restored session (PWA reopen / refresh / direct nav) that skips the login
+    // redirect just renders empty pages (e.g. parent dashboard shows "No children linked").
+    // Force them to the password-change screen wherever they are.
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.code === 'FIRST_LOGIN' &&
+      typeof window !== 'undefined' &&
+      !window.location.pathname.includes('/change-password')
+    ) {
+      window.location.href = '/change-password';
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !original._retry && !isAuthEndpoint) {
       original._retry = true;
       try {

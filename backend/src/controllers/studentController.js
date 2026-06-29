@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../prisma');
 const { uploadImage } = require('../utils/imagekit');
 const { logAction } = require('../utils/auditLog');
+const { notifyUser } = require('../utils/notifications');
 
 const getAllStudents = async (req, res) => {
     try {
@@ -147,14 +148,14 @@ const createStudent = async (req, res) => {
         }
 
         if (resolvedParentId) {
-            await prisma.notification.create({
-                data: {
-                    user_id: resolvedParentId,
-                    school_id: schoolId,
-                    type: 'info',
-                    message: `${name} has been registered as your child in the school bus system.`,
-                },
-            });
+            // notifyUser persists the notification AND pushes it live (socket + native push),
+            // so a parent with the app already open sees the new child without a manual reload.
+            await notifyUser(
+                resolvedParentId,
+                `${name} has been registered as your child in the school bus system.`,
+                'info',
+                schoolId,
+            );
         }
 
         // Notify the super-admin(s) overseeing this school (its assigned SA + dev super-admins).
