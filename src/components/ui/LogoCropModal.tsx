@@ -21,8 +21,17 @@ function centerAspectCrop(width: number, height: number): Crop {
 const MAX_LOGO_SIZE = 512;
 
 async function cropImageToFile(img: HTMLImageElement, pixelCrop: PixelCrop, fileName: string): Promise<File> {
+    // pixelCrop is in displayed-image pixels; scale into the full-resolution source so the
+    // crop maps to the region the user actually selected (not just the top-left fraction).
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+    const sx = pixelCrop.x * scaleX;
+    const sy = pixelCrop.y * scaleY;
+    const sWidth = pixelCrop.width * scaleX;
+    const sHeight = pixelCrop.height * scaleY;
+
     const canvas = document.createElement('canvas');
-    const srcSize = Math.max(pixelCrop.width, pixelCrop.height);
+    const srcSize = Math.max(sWidth, sHeight);
     const outSize = Math.min(srcSize, MAX_LOGO_SIZE);
     canvas.width = outSize;
     canvas.height = outSize;
@@ -33,8 +42,8 @@ async function cropImageToFile(img: HTMLImageElement, pixelCrop: PixelCrop, file
     ctx.fillRect(0, 0, outSize, outSize);
     ctx.drawImage(
         img,
-        pixelCrop.x, pixelCrop.y,
-        pixelCrop.width, pixelCrop.height,
+        sx, sy,
+        sWidth, sHeight,
         0, 0, outSize, outSize,
     );
     return new Promise(resolve => {

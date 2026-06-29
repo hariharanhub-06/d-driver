@@ -42,17 +42,27 @@ async function cropToFile(
   fileName: string,
   outputSize: number,
 ): Promise<File> {
+  // react-image-crop reports the crop in the *displayed* image's pixels; the source image is
+  // full resolution. Scale the crop rect into natural pixels before reading from it, otherwise
+  // drawImage grabs only the top-left fraction of the original (what you cropped != what shows).
+  const scaleX = img.naturalWidth / img.width;
+  const scaleY = img.naturalHeight / img.height;
+  const sx = pixelCrop.x * scaleX;
+  const sy = pixelCrop.y * scaleY;
+  const sWidth = pixelCrop.width * scaleX;
+  const sHeight = pixelCrop.height * scaleY;
+
   const canvas = document.createElement('canvas');
-  const scale = Math.min(outputSize / pixelCrop.width, outputSize / pixelCrop.height);
-  canvas.width = Math.round(pixelCrop.width * scale);
-  canvas.height = Math.round(pixelCrop.height * scale);
+  const scale = Math.min(outputSize / sWidth, outputSize / sHeight);
+  canvas.width = Math.round(sWidth * scale);
+  canvas.height = Math.round(sHeight * scale);
   const ctx = canvas.getContext('2d')!;
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(
     img,
-    pixelCrop.x, pixelCrop.y,
-    pixelCrop.width, pixelCrop.height,
+    sx, sy,
+    sWidth, sHeight,
     0, 0, canvas.width, canvas.height,
   );
   return new Promise(resolve => {
