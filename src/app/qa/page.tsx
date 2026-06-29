@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RefreshCw, LogOut, Smartphone } from 'lucide-react';
 
 // QA multi-login page: N phone frames, each an isolated session (via ?ns=).
@@ -11,6 +11,17 @@ const MAX_SCREENS = 8;
 export default function QAPage() {
     const [reloadKey, setReloadKey] = useState(0);
     const [count, setCount] = useState(5);
+
+    // Restore the last-chosen screen count on load so a refresh keeps the same number of frames.
+    useEffect(() => {
+        const saved = Number(localStorage.getItem('qa_screen_count'));
+        if (saved >= 1 && saved <= MAX_SCREENS) setCount(saved);
+    }, []);
+
+    const changeCount = (n: number) => {
+        setCount(n);
+        try { localStorage.setItem('qa_screen_count', String(n)); } catch { /* ignore */ }
+    };
 
     const frames = Array.from({ length: count }, (_, i) => ({ ns: `qa${i + 1}`, label: `Screen ${i + 1}` }));
 
@@ -44,7 +55,7 @@ export default function QAPage() {
                         <span className="hidden sm:inline text-slate-400">Screens</span>
                         <select
                             value={count}
-                            onChange={e => setCount(Number(e.target.value))}
+                            onChange={e => changeCount(Number(e.target.value))}
                             className="bg-transparent text-white font-bold outline-none cursor-pointer"
                         >
                             {Array.from({ length: MAX_SCREENS }, (_, i) => i + 1).map(n => (
