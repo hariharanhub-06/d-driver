@@ -10,12 +10,22 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/lib/i18n';
 
-interface SchoolUsage { name: string; value: number }
+interface SchoolUsageRow {
+  school_id: string | null;
+  name: string;
+  resend_sent: number;
+  resend_failed: number;
+  imagekit_storage_gb: number;
+  imagekit_bandwidth_gb: number;
+  razorpay_fees: number;
+  neon_mb: number;
+}
 interface PlatformUsage {
-  resend: { used: number; limit: number; unit: string; by_template?: { label: string; count: number }[]; sent?: number; failed?: number; by_school?: SchoolUsage[] };
-  imagekit: { used_gb: number; limit_gb: number; unit?: string; by_school?: SchoolUsage[] };
-  razorpay: { fees_this_month: number; unit?: string; by_school?: SchoolUsage[] };
-  neon: { estimated_mb: number; unit?: string; by_school?: SchoolUsage[] };
+  resend: { used: number; limit: number; unit: string };
+  imagekit: { used_gb: number; limit_gb: number };
+  razorpay: { fees_this_month: number };
+  neon: { estimated_mb: number };
+  schools_usage?: SchoolUsageRow[];
 }
 
 interface RevenueData {
@@ -244,24 +254,6 @@ export default function SAExpensesPage() {
             <p className={cn('text-xs font-semibold mt-1.5', resendPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400')}>
               {resendPct.toFixed(0)}% used
             </p>
-            {/* Utilisation partitions — how this month's emails break down */}
-            {(usage?.resend.by_template?.length ?? 0) > 0 && (
-              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('Breakdown', 'விவரம்')}</p>
-                {usage!.resend.by_template!.map(b => (
-                  <div key={b.label} className="flex items-center justify-between text-xs">
-                    <span className="text-slate-500 dark:text-slate-400 capitalize">{b.label.replace(/_/g, ' ')}</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{b.count}</span>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <span className="text-emerald-600 dark:text-emerald-400">{t('Sent', 'அனுப்பப்பட்டது')}: {usage!.resend.sent ?? 0}</span>
-                  {(usage!.resend.failed ?? 0) > 0 && (
-                    <span className="text-red-500">{t('Failed', 'தோல்வி')}: {usage!.resend.failed}</span>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* ImageKit */}
@@ -328,39 +320,44 @@ export default function SAExpensesPage() {
         </div>
       </div>
 
-      {/* Top schools by usage — which school drives each integration this month */}
+      {/* Per-school usage — every integration as a column, one row per school */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700">
-          <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Top Schools by Usage', 'அதிக பயன்பாடு கொண்ட பள்ளிகள்')}</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{t('Which school used each integration the most this month', 'இந்த மாதம் எந்த பள்ளி அதிகம் பயன்படுத்தியது')}</p>
+          <h2 className="font-semibold text-slate-900 dark:text-white text-sm">{t('Usage by School', 'பள்ளி வாரியான பயன்பாடு')}</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{t('Per-school usage across every integration this month', 'இந்த மாதம் ஒவ்வொரு பள்ளியின் பயன்பாடு')}</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 p-5">
-          {[
-            { title: 'Resend', dot: 'bg-blue-500', list: usage?.resend.by_school, fmt: (v: number) => `${v.toLocaleString()} ${t('emails', 'மின்னஞ்சல்')}` },
-            { title: 'ImageKit', dot: 'bg-purple-500', list: usage?.imagekit.by_school, fmt: (v: number) => `${v} GB` },
-            { title: 'Razorpay', dot: 'bg-orange-500', list: usage?.razorpay.by_school, fmt: (v: number) => `₹${v.toLocaleString('en-IN')}` },
-            { title: 'Neon', dot: 'bg-emerald-500', list: usage?.neon.by_school, fmt: (v: number) => `${v} MB` },
-          ].map(intg => (
-            <div key={intg.title} className="rounded-xl border border-slate-100 dark:border-slate-700 p-4">
-              <div className="flex items-center gap-2 mb-2.5">
-                <span className={cn('w-2 h-2 rounded-full', intg.dot)} />
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">{intg.title}</p>
-              </div>
-              {(intg.list?.length ?? 0) === 0 ? (
-                <p className="text-xs text-slate-400 dark:text-slate-500">{t('No usage yet', 'இன்னும் பயன்பாடு இல்லை')}</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {intg.list!.map((s, i) => (
-                    <div key={s.name + i} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="text-slate-600 dark:text-slate-300 truncate">{i + 1}. {s.name}</span>
-                      <span className="font-semibold text-slate-900 dark:text-white shrink-0">{intg.fmt(s.value)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        {(usage?.schools_usage?.length ?? 0) === 0 ? (
+          <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-sm">{t('No usage data yet', 'தரவு இல்லை')}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-700 text-left">
+                  <th className="px-6 py-3 font-semibold text-slate-500 dark:text-slate-400">{t('School', 'பள்ளி')}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-500 dark:text-slate-400">Resend ({t('Sent / Failed', 'அனுப்பியது / தோல்வி')})</th>
+                  <th className="px-4 py-3 font-semibold text-slate-500 dark:text-slate-400">ImageKit ({t('Store / Bandwidth', 'சேமிப்பு / பேண்ட்விட்த்')})</th>
+                  <th className="px-4 py-3 font-semibold text-slate-500 dark:text-slate-400">Razorpay</th>
+                  <th className="px-4 py-3 font-semibold text-slate-500 dark:text-slate-400">Neon</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usage!.schools_usage!.map((s, i) => (
+                  <tr key={(s.school_id || 'platform') + i} className="border-b border-slate-50 dark:border-slate-700/50 last:border-0">
+                    <td className="px-6 py-3 font-medium text-slate-900 dark:text-white">{s.name}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{s.resend_sent}</span>
+                      <span className="text-slate-400"> / </span>
+                      <span className={cn('font-semibold', s.resend_failed > 0 ? 'text-red-500' : 'text-slate-400')}>{s.resend_failed}</span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{s.imagekit_storage_gb} / {s.imagekit_bandwidth_gb} GB</td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">₹{s.razorpay_fees.toLocaleString('en-IN')}</td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{s.neon_mb} MB</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Revenue vs Expenses Table */}

@@ -635,19 +635,9 @@ const getPlatformUsage = async (req, res) => {
     // Each query is independent — a missing table won't crash the whole response.
     // NOTE: EmailLog timestamps the send in `sent_at` (not `created_at`); filtering the
     // wrong column silently returned 0 here, so emails appeared untracked.
-    const [emailByTemplate, emailByStatus, emailBySchool, paidBySchool, schools] = await Promise.all([
+    const [emailBySchoolStatus, paidBySchool, schools] = await Promise.all([
       prisma.emailLog.groupBy({
-        by: ['template'],
-        where: { sent_at: { gte: monthStart, lt: monthEnd } },
-        _count: { _all: true },
-      }).catch(() => []),
-      prisma.emailLog.groupBy({
-        by: ['status'],
-        where: { sent_at: { gte: monthStart, lt: monthEnd } },
-        _count: { _all: true },
-      }).catch(() => []),
-      prisma.emailLog.groupBy({
-        by: ['school_id'],
+        by: ['school_id', 'status'],
         where: { sent_at: { gte: monthStart, lt: monthEnd } },
         _count: { _all: true },
       }).catch(() => []),
@@ -663,46 +653,55 @@ const getPlatformUsage = async (req, res) => {
 
     const studentCount = schools.reduce((s, sc) => s + (sc._count?.students || 0), 0);
     const busCount = schools.reduce((s, sc) => s + (sc._count?.buses || 0), 0);
-    const emailCount = emailByStatus.reduce((s, r) => s + r._count._all, 0);
+
+    // Email sent/failed per school (school_id null = platform/system emails).
+    const emailMap = new Map();
+    let totalEmails = 0;
+    for (const r of emailBySchoolStatus) {
+      const key = r.school_id || 'platform';
+      if (!emailMap.has(key)) emailMap.set(key, { sent: 0, failed: 0 });
+      const e = emailMap.get(key);
+      if (r.status === 'failed') e.failed += r._count._all; else e.sent += r._count._all;
+      totalEmails += r._count._all;
+    }
+    const paidMap = new Map(paidBySchool.map(r => [r.school_id, r._sum.total_amount || 0]));
+
     const razorpay_fees = paidBySchool.reduce((sum, r) => sum + (r._sum.total_amount || 0) * 0.02, 0);
     const neon_estimated_mb = Math.round(busCount * 0.1 + studentCount * 0.005 + 50);
     const imagekit_used_gb = parseFloat((busCount * 0.002 + studentCount * 0.0005 + 0.5).toFixed(2));
 
-    const nameById = new Map(schools.map(s => [s.id, s.name]));
-    // top N schools by a numeric `value`, descending
-    const topN = (arr, n = 5) => arr.filter(x => x.value > 0).sort((a, b) => b.value - a.value).slice(0, n);
-
-    // Per-integration "which school used the most" partitions.
-    const resendBySchool = topN(emailBySchool.map(r => ({
-      name: r.school_id ? (nameById.get(r.school_id) || 'Unknown school') : 'Platform',
-      value: r._count._all,
-    })));
-    const razorpayBySchool = topN(paidBySchool.map(r => ({
-      name: r.school_id ? (nameById.get(r.school_id) || 'Unknown school') : 'Unknown school',
-      value: Math.round((r._sum.total_amount || 0) * 0.02),
-    })));
-    // Storage/DB are estimated from each school's bus + student footprint.
-    const imagekitBySchool = topN(schools.map(s => ({
-      name: s.name,
-      value: parseFloat(((s._count.buses * 0.002) + (s._count.students * 0.0005)).toFixed(3)),
-    })));
-    const neonBySchool = topN(schools.map(s => ({
-      name: s.name,
-      value: Math.round((s._count.buses * 0.1) + (s._count.students * 0.005)),
-    })));
-
-    // Email utilisation broken down by template + send status.
-    const by_template = emailByTemplate
-      .map(r => ({ label: r.template || 'other', count: r._count._all }))
-      .sort((a, b) => b.count - a.count);
-    const sent = emailByStatus.find(r => r.status === 'sent')?._count._all || 0;
-    const failed = emailByStatus.find(r => r.status === 'failed')?._count._all || 0;
+    // Per-school usage table: one row per school with every integration as a column.
+    // ImageKit storage/bandwidth + Neon are estimated from the school's bus + student footprint.
+    const schools_usage = schools.map(s => {
+      const e = emailMap.get(s.id) || { sent: 0, failed: 0 };
+      return {
+        school_id: s.id,
+        name: s.name,
+        resend_sent: e.sent,
+        resend_failed: e.failed,
+        imagekit_storage_gb: parseFloat(((s._count.buses * 0.002) + (s._count.students * 0.0005)).toFixed(3)),
+        imagekit_bandwidth_gb: parseFloat(((s._count.buses * 0.004) + (s._count.students * 0.001)).toFixed(3)),
+        razorpay_fees: Math.round((paidMap.get(s.id) || 0) * 0.02),
+        neon_mb: Math.round((s._count.buses * 0.1) + (s._count.students * 0.005)),
+      };
+    });
+    schools_usage.sort((a, b) =>
+      (b.resend_sent + b.resend_failed + b.razorpay_fees) - (a.resend_sent + a.resend_failed + a.razorpay_fees));
+    const platformEmail = emailMap.get('platform');
+    if (platformEmail && (platformEmail.sent || platformEmail.failed)) {
+      schools_usage.unshift({
+        school_id: null, name: 'Platform / System',
+        resend_sent: platformEmail.sent, resend_failed: platformEmail.failed,
+        imagekit_storage_gb: 0, imagekit_bandwidth_gb: 0, razorpay_fees: 0, neon_mb: 0,
+      });
+    }
 
     res.json({
-      resend: { used: emailCount, limit: 3000, unit: 'emails', by_template, sent, failed, by_school: resendBySchool },
-      imagekit: { used_gb: imagekit_used_gb, limit_gb: 20, unit: 'GB', by_school: imagekitBySchool },
-      razorpay: { fees_this_month: Math.round(razorpay_fees), unit: '₹', by_school: razorpayBySchool },
-      neon: { estimated_mb: neon_estimated_mb, unit: 'MB', by_school: neonBySchool },
+      resend: { used: totalEmails, limit: 3000, unit: 'emails' },
+      imagekit: { used_gb: imagekit_used_gb, limit_gb: 20, unit: 'GB' },
+      razorpay: { fees_this_month: Math.round(razorpay_fees), unit: '₹' },
+      neon: { estimated_mb: neon_estimated_mb, unit: 'MB' },
+      schools_usage,
     });
   } catch (err) {
     console.error('getPlatformUsage error:', err);
