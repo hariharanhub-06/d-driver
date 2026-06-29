@@ -154,4 +154,48 @@ const getMyActiveSOS = async (req, res) => {
     }
 };
 
-module.exports = { triggerSOS, cancelSOS, resolveSOS, getSOSAlerts, getMyActiveSOS, setIo };
+// POST /sos/parent — a parent raises an emergency; notifies the school admins.
+// (SosAlert is driver/bus-shaped, so parent SOS is delivered as an admin notification +
+// socket event rather than a SosAlert row.)
+const triggerParentSOS = async (req, res) => {
+    try {
+        const parent = await prisma.user.findUnique({
+            where: { id: req.user.id }, select: { id: true, name: true, phone: true },
+        });
+        const students = await prisma.student.findMany({
+            where: { parent_id: req.user.id },
+            select: { name: true, school_id: true, route: { select: { bus: { select: { bus_number: true } } } } },
+        });
+        if (students.length === 0) return res.status(400).json({ error: 'No students linked to this account' });
+
+        const bySchool = new Map();
+        for (const s of students) {
+            if (!bySchool.has(s.school_id)) bySchool.set(s.school_id, []);
+            bySchool.get(s.school_id).push({ child: s.name, bus: s.route?.bus?.bus_number });
+        }
+
+        for (const [schoolId, kids] of bySchool) {
+            const childNames = [...new Set(kids.map(k => k.child))].join(', ');
+            const buses = [...new Set(kids.map(k => k.bus).filter(Boolean))].join(', ');
+            const busLabel = buses ? ` (Bus ${buses})` : '';
+            const phoneLabel = parent?.phone ? ` — ${parent.phone}` : '';
+            const message = `🚨 SOS: Parent ${parent?.name || 'Parent'}${phoneLabel} raised an emergency for ${childNames}${busLabel}.`;
+            const admins = await prisma.user.findMany({
+                where: { school_id: schoolId, role: 'admin', is_active: true }, select: { id: true },
+            });
+            await Promise.all(admins.map(a => notifyUser(a.id, message, 'alert', schoolId)));
+            if (_io) {
+                _io.to(`admin-${schoolId}`).emit('sos-alert', {
+                    type: 'parent', parent_name: parent?.name, parent_phone: parent?.phone,
+                    child_names: childNames, bus_number: buses, triggered_at: new Date(),
+                });
+            }
+        }
+        res.status(201).json({ ok: true });
+    } catch (err) {
+        console.error('triggerParentSOS error:', err);
+        res.status(500).json({ error: 'Failed to trigger SOS' });
+    }
+};
+
+module.exports = { triggerSOS, cancelSOS, resolveSOS, getSOSAlerts, getMyActiveSOS, triggerParentSOS, setIo };

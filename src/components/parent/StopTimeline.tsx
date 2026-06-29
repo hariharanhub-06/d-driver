@@ -64,7 +64,7 @@ export default function StopTimeline({ stops, currentStopIndex, myStopId, status
                     let dot: string;
                     if (isMyStop) dot = 'bg-orange-500 border-orange-500';
                     else if (passed) dot = 'bg-emerald-500 border-emerald-500';
-                    else if (isCurrent) dot = 'bg-[var(--brand)] border-[var(--brand)] animate-pulse';
+                    else if (isCurrent) dot = 'bg-[var(--accent)] border-[var(--accent)] animate-pulse';
                     else dot = 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-500';
 
                     return (

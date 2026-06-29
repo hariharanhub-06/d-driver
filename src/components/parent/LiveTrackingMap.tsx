@@ -39,7 +39,19 @@ export default function LiveTrackingMap({ child, heightClass = 'h-72', tripActiv
     const [now, setNow] = useState<number>(Date.now());
     const [eta, setEta] = useState<EtaResult | null>(null);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+    const [sosState, setSosState] = useState<'idle' | 'sending' | 'sent'>('idle');
     const etaCall = useRef<{ t: number; pos: LatLng | null }>({ t: 0, pos: null });
+
+    const raiseSos = async () => {
+        if (sosState === 'sending') return;
+        setSosState('sending');
+        // Always alert the school admin (works even when tel: is blocked inside a PWA/iframe).
+        try { await api.post('/sos/parent', {}); } catch { /* non-fatal */ }
+        setSosState('sent');
+        setTimeout(() => setSosState('idle'), 4000);
+        // Then attempt to dial the driver if a number is available.
+        if (sosPhone) { try { window.location.href = `tel:${sosPhone}`; } catch { /* blocked */ } }
+    };
 
     const busId = child ? resolveBusId(child) : null;
     const busNumber = child?.route?.bus?.bus_number || child?.bus?.bus_number;
@@ -174,14 +186,13 @@ export default function LiveTrackingMap({ child, heightClass = 'h-72', tripActiv
                             {t("Hasn't started yet", 'இன்னும் தொடங்கவில்லை')}
                         </span>
                     )}
-                    {sosPhone && (
-                        <a
-                            href={`tel:${sosPhone}`}
-                            className="bg-red-500 hover:bg-red-600 text-white font-black text-[11px] px-2.5 py-1.5 rounded-lg shadow active:scale-95 transition-all shrink-0"
-                        >
-                            SOS
-                        </a>
-                    )}
+                    <button
+                        onClick={raiseSos}
+                        disabled={sosState === 'sending'}
+                        className={`font-black text-[11px] px-2.5 py-1.5 rounded-lg shadow active:scale-95 transition-all shrink-0 text-white ${sosState === 'sent' ? 'bg-emerald-500' : 'bg-red-500 hover:bg-red-600'}`}
+                    >
+                        {sosState === 'sent' ? t('Sent ✓', 'அனுப்பப்பட்டது ✓') : sosState === 'sending' ? '…' : 'SOS'}
+                    </button>
                 </div>
             </div>
         </div>

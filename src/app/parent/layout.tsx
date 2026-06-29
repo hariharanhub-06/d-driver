@@ -129,10 +129,11 @@ function ParentNav() {
                             key={tab.href}
                             href={tab.href}
                             className={cn(
-                                'flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors',
+                                'relative flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors',
                                 isActive ? 'text-[var(--brand)]' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
                             )}
                         >
+                            {isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-[var(--accent)] rounded-b-full" />}
                             {tab.icon(isActive)}
                             <span className={cn('text-[8px] font-semibold leading-none text-center px-0.5', isActive ? 'text-[var(--brand)]' : 'text-slate-500 dark:text-slate-400')}>
                                 {lang === 'ta' ? tab.labelTa : tab.labelEn}

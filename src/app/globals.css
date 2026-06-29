@@ -67,6 +67,8 @@
     background-color: color-mix(in srgb, var(--brand) 10%, transparent);
     color: var(--brand) !important;
     font-weight: 600;
+    /* Orange (--accent) left edge so the active item carries the brand accent. */
+    box-shadow: inset 3px 0 0 var(--accent);
   }
 
   .input-field {
