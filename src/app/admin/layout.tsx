@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { TourProvider } from '@/components/tour/TourProvider';
 import AdminTour from '@/components/tour/AdminTour';
+import SosWatcher from '@/components/admin/SosWatcher';
 import api from '@/lib/api';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -48,6 +49,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
         <TourProvider>
             <AdminTour />
+            <SosWatcher />
             <MainLayout>{children}</MainLayout>
         </TourProvider>
     );

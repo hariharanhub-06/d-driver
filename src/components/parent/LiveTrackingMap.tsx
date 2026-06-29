@@ -51,18 +51,22 @@ export default function LiveTrackingMap({ child, heightClass = 'h-72', tripActiv
         try { await api.post('/sos/parent', {}); ok = true; } catch { ok = false; }
         setSosState(ok ? 'sent' : 'failed');
         setTimeout(() => setSosState('idle'), ok ? 4000 : 6000);
-        // Attempt to dial the driver via a transient anchor click — opens the dialer on a phone
-        // but, unlike `window.location.href = 'tel:'`, never replaces the page with a broken
-        // view on desktop / inside an iframe where tel: isn't handled.
-        if (sosPhone) {
-            try {
-                const a = document.createElement('a');
-                a.href = `tel:${sosPhone}`;
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-            } catch { /* dialing unavailable */ }
+        // Only auto-dial the driver on a real phone, and never inside an iframe (e.g. the QA
+        // multi-login frames). On desktop / iframes, `tel:` navigates to the browser's blocker
+        // page — so we skip it there; the admin alert above has already been sent regardless.
+        if (sosPhone && typeof window !== 'undefined') {
+            const inIframe = window.self !== window.top;
+            const isPhone = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+            if (isPhone && !inIframe) {
+                try {
+                    const a = document.createElement('a');
+                    a.href = `tel:${sosPhone}`;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } catch { /* dialing unavailable */ }
+            }
         }
     };
 

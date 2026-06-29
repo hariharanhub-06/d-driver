@@ -104,6 +104,8 @@ const resolveSOS = async (req, res) => {
                 _io.to(`user-${driver.user.id}`).emit('sos-resolved', { id });
             }
         }
+        // Clear the alert from every admin's live banner (whoever was viewing it).
+        if (_io) _io.to(`admin-${updated.school_id}`).emit('sos-resolved', { id });
 
         res.json(updated);
     } catch (err) {

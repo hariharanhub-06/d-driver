@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Bus, Map as MapIcon, GraduationCap, UserCheck, AlertTriangle, X, TrendingUp, TrendingDown, Loader2, CalendarRange } from 'lucide-react';
+import { Bus, Map as MapIcon, GraduationCap, UserCheck, X, TrendingUp, TrendingDown, Loader2, CalendarRange } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import api from '@/lib/api';
 import Link from 'next/link';
@@ -11,19 +11,6 @@ import { useT } from '@/lib/i18n';
 const EMPTY_STATS = { students: 0, buses: 0, drivers: 0, routes: 0 };
 
 type Period = 'current' | 'past' | 'custom';
-
-interface SosAlert {
-    id: string;
-    status: string;
-    triggered_at: string;
-    latitude?: number;
-    longitude?: number;
-    source?: string; // 'driver' | 'parent'
-    raised_by_name?: string;
-    driver_name?: string;
-    driver_phone?: string;
-    bus_number?: string;
-}
 
 interface FinancialPoint { date: string; income: number; expense: number; }
 interface FinancialSummary { total_income: number; total_expenses: number; net: number; period: string; from: string; to: string; }
@@ -51,10 +38,7 @@ export default function Dashboard() {
     const [schoolData, setSchoolData] = useState<any>(null);
     const [overview, setOverview] = useState<OverviewStats>({ feeCollectionRate: 0, busUtilization: 0, routeCoverage: 0 });
 
-    // SOS
-    const [sosAlerts, setSosAlerts] = useState<SosAlert[]>([]);
-    const [sosLoading, setSosLoading] = useState(false);
-    const [resolvingId, setResolvingId] = useState<string | null>(null);
+    // (SOS alerts are handled app-wide by the global SosWatcher banner in the admin layout.)
 
     // Financials
     const [period, setPeriod] = useState<Period>('current');
@@ -64,15 +48,6 @@ export default function Dashboard() {
     const [summary, setSummary] = useState<FinancialSummary | null>(null);
     const [chartLoading, setChartLoading] = useState(false);
     const [showCustom, setShowCustom] = useState(false);
-
-    const fetchSos = useCallback(async () => {
-        setSosLoading(true);
-        try {
-            const { data } = await api.get('/sos');
-            setSosAlerts((Array.isArray(data) ? data : data.alerts || []).filter((a: SosAlert) => a.status === 'active'));
-        } catch { setSosAlerts([]); }
-        finally { setSosLoading(false); }
-    }, []);
 
     const fetchFinancials = useCallback(async (p: Period, from?: string, to?: string) => {
         setChartLoading(true);
@@ -115,18 +90,8 @@ export default function Dashboard() {
             finally { setLoading(false); }
         };
         fetchStats();
-        fetchSos();
         fetchFinancials('current');
-    }, [fetchSos, fetchFinancials]);
-
-    const resolvesSos = async (id: string) => {
-        setResolvingId(id);
-        try {
-            await api.put(`/sos/${id}/resolve`, { resolved_note: 'Resolved by admin' });
-            setSosAlerts(prev => prev.filter(a => a.id !== id));
-        } catch { alert('Failed to resolve SOS'); }
-        finally { setResolvingId(null); }
-    };
+    }, [fetchFinancials]);
 
     const handlePeriodChange = (p: Period) => {
         setPeriod(p);
@@ -166,38 +131,6 @@ export default function Dashboard() {
                     <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">{t('Live Data', 'நேரடி தரவு')}</span>
                 </div>
             </div>
-
-            {/* SOS Alerts */}
-            {!sosLoading && sosAlerts.length > 0 && (
-                <div className="space-y-2">
-                    {sosAlerts.map(alert => (
-                        <div key={alert.id} className="bg-red-600 text-white rounded-2xl p-4 flex items-start gap-4 animate-in shadow-lg shadow-red-900/20">
-                            <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center shrink-0">
-                                <AlertTriangle className="w-5 h-5 animate-pulse" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="font-bold text-sm">
-                                    {alert.source === 'parent' ? t('SOS — PARENT EMERGENCY', 'SOS — பெற்றோர் அவசரம்') : t('SOS EMERGENCY ALERT', 'SOS அவசர எச்சரிக்கை')}
-                                </p>
-                                <p className="text-red-100 text-sm mt-0.5">
-                                    {alert.source === 'parent'
-                                        ? <>{t('Parent', 'பெற்றோர்')}: {alert.raised_by_name || '—'}{alert.bus_number && <> · Bus {alert.bus_number}</>}</>
-                                        : <>{alert.driver_name || t('Driver', 'ஓட்டுநர்')} · Bus {alert.bus_number || '—'}{alert.driver_phone && <> · {alert.driver_phone}</>}</>}
-                                </p>
-                                <p className="text-red-200 text-xs mt-1">
-                                    {new Date(alert.triggered_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                                    {alert.latitude && alert.longitude && (
-                                        <> · <a href={`https://maps.google.com/?q=${alert.latitude},${alert.longitude}`} target="_blank" rel="noreferrer" className="underline">{t('View Location', 'இடத்தை காண்க')}</a></>
-                                    )}
-                                </p>
-                            </div>
-                            <button onClick={() => resolvesSos(alert.id)} disabled={resolvingId === alert.id} className="shrink-0 bg-white text-red-600 font-bold text-xs px-4 py-2 rounded-xl disabled:opacity-70 hover:bg-red-50 transition-all active:scale-95">
-                                {resolvingId === alert.id ? <Loader2 className="w-4 h-4 animate-spin" /> : t('Resolve', 'தீர்')}
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            )}
 
             {/* Onboarding checklist */}
             {schoolData && !schoolData.onboarding_dismissed && (
