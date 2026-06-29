@@ -628,9 +628,21 @@ const getPlatformUsage = async (req, res) => {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-    // Each query is independent — a missing table won't crash the whole response
-    const [emailCount, paymentsThisMonth, studentCount, busCount] = await Promise.all([
-      prisma.emailLog.count({ where: { created_at: { gte: monthStart, lt: monthEnd } } }).catch(() => 0),
+    // Each query is independent — a missing table won't crash the whole response.
+    // NOTE: EmailLog timestamps the send in `sent_at` (not `created_at`); filtering the
+    // wrong column silently returned 0 here, so emails appeared untracked.
+    const [emailCount, emailByTemplate, emailByStatus, paymentsThisMonth, studentCount, busCount] = await Promise.all([
+      prisma.emailLog.count({ where: { sent_at: { gte: monthStart, lt: monthEnd } } }).catch(() => 0),
+      prisma.emailLog.groupBy({
+        by: ['template'],
+        where: { sent_at: { gte: monthStart, lt: monthEnd } },
+        _count: { _all: true },
+      }).catch(() => []),
+      prisma.emailLog.groupBy({
+        by: ['status'],
+        where: { sent_at: { gte: monthStart, lt: monthEnd } },
+        _count: { _all: true },
+      }).catch(() => []),
       prisma.schoolInvoice.findMany({
         where: { paid_at: { gte: monthStart, lt: monthEnd }, status: 'paid' },
         select: { total_amount: true },
@@ -643,8 +655,15 @@ const getPlatformUsage = async (req, res) => {
     const neon_estimated_mb = Math.round(busCount * 0.1 + studentCount * 0.005 + 50);
     const imagekit_used_gb = parseFloat((busCount * 0.002 + studentCount * 0.0005 + 0.5).toFixed(2));
 
+    // "Partitions" — how the email utilisation breaks down, for the expenses page.
+    const by_template = emailByTemplate
+      .map(r => ({ label: r.template || 'other', count: r._count._all }))
+      .sort((a, b) => b.count - a.count);
+    const sent = emailByStatus.find(r => r.status === 'sent')?._count._all || 0;
+    const failed = emailByStatus.find(r => r.status === 'failed')?._count._all || 0;
+
     res.json({
-      resend: { used: emailCount, limit: 3000, unit: 'emails' },
+      resend: { used: emailCount, limit: 3000, unit: 'emails', by_template, sent, failed },
       imagekit: { used_gb: imagekit_used_gb, limit_gb: 20 },
       razorpay: { fees_this_month: Math.round(razorpay_fees) },
       neon: { estimated_mb: neon_estimated_mb },

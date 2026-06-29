@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/lib/i18n';
 
 interface PlatformUsage {
-  resend: { used: number; limit: number; unit: string };
+  resend: { used: number; limit: number; unit: string; by_template?: { label: string; count: number }[]; sent?: number; failed?: number };
   imagekit: { used_gb: number; limit_gb: number };
   razorpay: { fees_this_month: number };
   neon: { estimated_mb: number };
@@ -243,6 +243,24 @@ export default function SAExpensesPage() {
             <p className={cn('text-xs font-semibold mt-1.5', resendPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400')}>
               {resendPct.toFixed(0)}% used
             </p>
+            {/* Utilisation partitions — how this month's emails break down */}
+            {(usage?.resend.by_template?.length ?? 0) > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('Breakdown', 'விவரம்')}</p>
+                {usage!.resend.by_template!.map(b => (
+                  <div key={b.label} className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 dark:text-slate-400 capitalize">{b.label.replace(/_/g, ' ')}</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{b.count}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="text-emerald-600 dark:text-emerald-400">{t('Sent', 'அனுப்பப்பட்டது')}: {usage!.resend.sent ?? 0}</span>
+                  {(usage!.resend.failed ?? 0) > 0 && (
+                    <span className="text-red-500">{t('Failed', 'தோல்வி')}: {usage!.resend.failed}</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ImageKit */}

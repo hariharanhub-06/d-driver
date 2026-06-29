@@ -133,6 +133,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 { icon: MapPin, label: 'Stop Requests', href: '/admin/stop-change-requests', disabled: !allow('stop_change_requests') },
                 { icon: CalendarX, label: 'Leave Requests', href: '/admin/leave-requests' },
                 { icon: Bell, label: 'Notifications', href: '/admin/notifications' },
+                { icon: DollarSign, label: 'Billing', href: '/admin/billing' },
                 { icon: BarChart2, label: 'Reports', href: '/admin/reports' },
                 { icon: Settings, label: 'Settings', href: '/admin/settings', tourId: 'settings' },
             ]},
