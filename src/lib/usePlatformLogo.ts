@@ -10,6 +10,13 @@ export const FALLBACK_LOGO = '/icons/onlive-logo.png';
 // (no flash of the fallback) and we only hit /platform/config once per load.
 let cached: string | null = null;
 
+/** Update the shared logo cache immediately (e.g. right after a super-admin saves a new logo)
+ *  so subsequent pages/navigations show it without flashing the previously-cached logo. */
+export function setPlatformLogoCache(url: string) {
+    cached = url || FALLBACK_LOGO;
+    try { localStorage.setItem('platform_logo_url', cached); } catch { /* ignore */ }
+}
+
 /**
  * Returns the platform logo URL to display anywhere in the app. Resolves to the super-admin's
  * uploaded `platform_logo_url` (from /platform/config) and falls back to the bundled logo.

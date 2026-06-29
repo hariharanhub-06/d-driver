@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import ImageUpload from '@/components/ui/ImageUpload';
 import { useT } from '@/lib/i18n';
+import { setPlatformLogoCache } from '@/lib/usePlatformLogo';
 import { DEFAULT_LANDING_CONTENT, mergeLandingContent, ICON_OPTIONS, COLOR_OPTIONS, type LandingContent } from '@/lib/landingContent';
 
 interface BillingConfig {
@@ -212,7 +213,11 @@ function LandingPageTab() {
     setHeroSaving(true);
     setHeroMsg(null);
     try {
-      await api.put('/platform/config', { ...heroForm, landing_content: content });
+      // The platform logo is owned solely by the dedicated "Platform Branding" section, so
+      // exclude it here — otherwise saving landing content could revert a newly-set logo.
+      const heroPayload: LandingConfig & { landing_content: typeof content } = { ...heroForm, landing_content: content };
+      delete heroPayload.platform_logo_url;
+      await api.put('/platform/config', heroPayload);
       setHeroMsg({ type: 'success', text: 'Landing page content saved.' });
     } catch (err: any) {
       setHeroMsg({ type: 'error', text: err.response?.data?.error || 'Failed to save.' });
@@ -407,10 +412,7 @@ function LandingPageTab() {
           </div>
         ) : (
           <div className="p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Platform Logo</label>
-              <ImageUpload value={heroForm.platform_logo_url || ''} onChange={url => setHeroForm(p => ({ ...p, platform_logo_url: url }))} folder="platform" />
-            </div>
+            {/* Platform Logo lives in the dedicated "Platform Branding" section — not duplicated here. */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Product Name</label>
@@ -1073,7 +1075,11 @@ export default function SASettingsPage() {
     setPlatformLogoSaving(true);
     setPlatformLogoMsg(null);
     try {
-      await api.put('/platform/config', { platform_logo_url: platformLogo.trim() });
+      const url = platformLogo.trim();
+      await api.put('/platform/config', { platform_logo_url: url });
+      // Refresh the shared logo cache immediately so other pages show the new logo right away
+      // instead of flashing the old (cached) one until the next /platform/config fetch.
+      setPlatformLogoCache(url);
       setPlatformLogoMsg({ type: 'success', text: 'Platform logo updated.' });
     } catch (err: any) {
       setPlatformLogoMsg({ type: 'error', text: err.response?.data?.error || 'Failed to save.' });
