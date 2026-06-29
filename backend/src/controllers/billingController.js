@@ -913,6 +913,7 @@ const generateStudentInvoice = async (req, res) => {
           user_id: student.parent_id,
           school_id: student.school_id,
           message: `New invoice for ${billing_month}. Amount due: ₹${c.total_amount.toFixed(2)}`,
+          student_name: c.student.name,
           type: 'info',
         },
       }).catch(() => {});

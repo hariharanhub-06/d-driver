@@ -116,6 +116,7 @@ const updateLocation = async (req, res) => {
                                 user_id: parentId,
                                 school_id: schoolId,
                                 type: 'alert',
+                                student_name: nameStr,
                                 message: `Bus is 1 km away from ${stop.name}. ${nameStr} — please be ready!`,
                             },
                         });
@@ -137,6 +138,7 @@ const updateLocation = async (req, res) => {
                                 user_id: parentId,
                                 school_id: schoolId,
                                 type: 'info',
+                                student_name: nameStr,
                                 message: isEvening
                                     ? `Bus has arrived at ${stop.name} to drop off ${nameStr}.`
                                     : `Bus has arrived at ${stop.name} to pick up ${nameStr}.`,

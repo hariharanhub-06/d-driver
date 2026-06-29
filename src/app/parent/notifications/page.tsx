@@ -11,6 +11,7 @@ interface Notification {
     id: string;
     message: string;
     type: 'alert' | 'info' | 'success';
+    student_name?: string | null;
     is_read: boolean;
     created_at: string;
 }
@@ -90,6 +91,11 @@ export default function ParentNotificationsPage() {
         <div onClick={() => handleCardClick(n)} className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${typeBg(n.type, n.is_read)}`}>
             <span className="text-xl shrink-0 mt-0.5">{typeIcon(n.type)}</span>
             <div className="flex-1 min-w-0">
+                {n.student_name && (
+                    <span className="inline-block mb-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)]">
+                        {n.student_name}
+                    </span>
+                )}
                 <p className="text-sm text-slate-800 dark:text-slate-200 leading-snug">{n.message}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{fmtTime(n.created_at)}</p>
             </div>

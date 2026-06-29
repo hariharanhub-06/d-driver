@@ -88,6 +88,7 @@ const startTrip = async (req, res) => {
           message: tripDirection === 'evening'
             ? `Bus is on the way to drop off ${nameStr}. Route: "${routeName}".`
             : `Bus is on the way to pick up ${nameStr}. Route: "${routeName}".`,
+          student_name: nameStr,
           type: 'info',
           school_id: schoolId,
         },
@@ -175,6 +176,7 @@ const completeTrip = async (req, res) => {
           message: isEvening
             ? `Trip complete. ${nameStr} dropped home safely. Route: "${trip.route.name}".`
             : `Bus has arrived at school. ${nameStr} reached school safely. Route: "${trip.route.name}".`,
+          student_name: nameStr,
           type: 'success',
           school_id: schoolId,
         },

@@ -423,13 +423,14 @@ model AbsenceReport {
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
 
 model Notification {
-  id         String   @id @default(uuid())
-  user_id    String
-  message    String
-  type       String // alert | info | success
-  is_read    Boolean  @default(false)
-  created_at DateTime @default(now())
-  school_id  String
+  id           String   @id @default(uuid())
+  user_id      String
+  message      String
+  type         String // alert | info | success
+  student_name String? // which student this is about (shown as a tag for multi-child parents)
+  is_read      Boolean  @default(false)
+  created_at   DateTime @default(now())
+  school_id    String
 
   school School @relation(fields: [school_id], references: [id])
 }
