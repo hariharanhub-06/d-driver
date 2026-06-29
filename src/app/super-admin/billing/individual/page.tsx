@@ -33,6 +33,7 @@ export default function IndividualBillingPage() {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<StudentResult[]>([]);
     const [searching, setSearching] = useState(false);
+    const [searchError, setSearchError] = useState('');
     const [busyStudent, setBusyStudent] = useState<string | null>(null);
     const [payingId, setPayingId] = useState<string | null>(null);
 
@@ -49,12 +50,16 @@ export default function IndividualBillingPage() {
 
     const search = async (e?: React.FormEvent) => {
         e?.preventDefault();
+        setSearchError('');
         if (!query.trim()) { setResults([]); return; }
         setSearching(true);
         try {
-            const r = await api.get(`/billing/students/search?q=${encodeURIComponent(query.trim())}`);
+            const r = await api.get('/billing/students/search', { params: { q: query.trim() } });
             setResults(Array.isArray(r.data) ? r.data : []);
-        } catch { setResults([]); }
+        } catch (err: any) {
+            setResults([]);
+            setSearchError(err?.response?.data?.error || 'Search failed. Please try again.');
+        }
         finally { setSearching(false); }
     };
 
@@ -163,8 +168,11 @@ export default function IndividualBillingPage() {
                         ))}
                     </div>
                 )}
-                {!searching && query.trim() && results.length === 0 && (
-                    <p className="mt-4 text-sm text-slate-500 dark:text-slate-400 text-center py-4">{t('No students found.', 'மாணவர்கள் யாரும் இல்லை.')}</p>
+                {searchError && (
+                    <p className="mt-4 text-sm text-red-600 dark:text-red-400 text-center py-4">{searchError}</p>
+                )}
+                {!searching && !searchError && query.trim() && results.length === 0 && (
+                    <p className="mt-4 text-sm text-slate-500 dark:text-slate-400 text-center py-4">{t('No students found. Try the parent name, mobile number, or student name.', 'மாணவர் இல்லை. பெற்றோர் பெயர், மொபைல், அல்லது மாணவர் பெயரை முயற்சிக்கவும்.')}</p>
                 )}
             </div>
 

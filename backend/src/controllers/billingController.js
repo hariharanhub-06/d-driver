@@ -759,24 +759,32 @@ const searchStudents = async (req, res) => {
   try {
     const q = (req.query.q || '').trim();
     if (!q) return res.json([]);
-    const students = await prisma.student.findMany({
-      where: {
-        OR: [
-          { name: { contains: q, mode: 'insensitive' } },
-          { parent: { name: { contains: q, mode: 'insensitive' } } },
-          { parent: { email: { contains: q, mode: 'insensitive' } } },
-          { parent: { phone: { contains: q } } },
-        ],
-      },
-      take: 25,
-      orderBy: { name: 'asc' },
-      select: {
-        id: true, name: true, grade: true,
-        school: { select: { id: true, name: true } },
-        parent: { select: { id: true, name: true, email: true, phone: true } },
-        individualPlan: { select: { id: true, name: true } },
-      },
-    });
+    const where = {
+      OR: [
+        { name: { contains: q, mode: 'insensitive' } },
+        { gr_no: { contains: q, mode: 'insensitive' } },
+        { parent: { name: { contains: q, mode: 'insensitive' } } },
+        { parent: { email: { contains: q, mode: 'insensitive' } } },
+        { parent: { phone: { contains: q } } },
+      ],
+    };
+    const baseSelect = {
+      id: true, name: true, grade: true,
+      school: { select: { id: true, name: true } },
+      parent: { select: { id: true, name: true, email: true, phone: true } },
+    };
+    let students;
+    try {
+      students = await prisma.student.findMany({
+        where, take: 25, orderBy: { name: 'asc' },
+        select: { ...baseSelect, individualPlan: { select: { id: true, name: true } } },
+      });
+    } catch (inner) {
+      // individual_plan relation may not be migrated on this DB yet — degrade gracefully
+      // so search still works (the assigned-plan chip just won't pre-fill).
+      console.error('searchStudents (individualPlan) fallback:', inner.message);
+      students = await prisma.student.findMany({ where, take: 25, orderBy: { name: 'asc' }, select: baseSelect });
+    }
     res.json(students);
   } catch (err) {
     console.error('searchStudents error:', err.message);
