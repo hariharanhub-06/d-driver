@@ -12,6 +12,25 @@ interface StopMarker {
     lng: number;
 }
 
+// leaflet-rotate's setBearing() is instant; tween it over ~450ms so heading changes rotate
+// smoothly (like the old CSS transition) instead of snapping. Takes the shortest way round.
+function animateBearing(map: any, target: number, rafRef: { current: number | null }) {
+    if (!map || typeof map.setBearing !== 'function') return;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    const start = map.getBearing();
+    const delta = (((target - start) % 360) + 540) % 360 - 180; // signed shortest delta
+    if (Math.abs(delta) < 0.4) { map.setBearing(target); return; }
+    const dur = 450;
+    const t0 = performance.now();
+    const step = () => {
+        const k = Math.min(1, (performance.now() - t0) / dur);
+        const e = 1 - Math.pow(1 - k, 3); // easeOutCubic
+        map.setBearing(start + delta * e);
+        rafRef.current = k < 1 ? requestAnimationFrame(step) : null;
+    };
+    rafRef.current = requestAnimationFrame(step);
+}
+
 interface Props {
     userPosition: [number, number];
     userHeading?: number | null;
@@ -54,6 +73,8 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     // Auto-resume following a few seconds after the user stops panning/rotating.
     const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const resumeFollowRef = useRef<(() => void) | null>(null);
+    // requestAnimationFrame id for the smooth bearing tween (native setBearing is instant).
+    const rotateRafRef = useRef<number | null>(null);
 
     useEffect(() => { currentPosRef.current = userPosition; });
 
@@ -91,10 +112,8 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 const [lat, lng] = currentPosRef.current;
                 m.flyTo([lat, lng], Math.max(m.getZoom(), 16), { animate: true, duration: 0.6 });
                 lastAppliedHeadingRef.current = null;
-                if (typeof (m as any).setBearing === 'function') {
-                    (m as any).setBearing(-accHeadingRef.current); // heading-up (0 = north-up if no heading)
-                    lastAppliedHeadingRef.current = accHeadingRef.current;
-                }
+                animateBearing(m, -accHeadingRef.current, rotateRafRef); // heading-up, smoothly
+                lastAppliedHeadingRef.current = accHeadingRef.current;
                 updateArrowRef.current?.();
             };
             resumeFollowRef.current = resumeFollow;
@@ -108,7 +127,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             };
             const onManualEnd = () => {
                 if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
-                resumeTimerRef.current = setTimeout(resumeFollow, 5000);
+                resumeTimerRef.current = setTimeout(resumeFollow, 3000);
             };
             map.on('dragstart', onManualStart);
             map.on('rotatestart', onManualStart);
@@ -126,6 +145,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
 
         return () => {
             if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+            if (rotateRafRef.current) cancelAnimationFrame(rotateRafRef.current);
             if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -176,9 +196,9 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             };
             updateArrowRef.current = renderArrow;
 
-            // Heading-up rotation while FOLLOWING (native, not CSS). Manual pan/rotate opts out.
-            if (headingMoved && !userDraggedRef.current && userHeading != null && typeof (map as any).setBearing === 'function') {
-                (map as any).setBearing(-rawHeading);
+            // Heading-up rotation while FOLLOWING — smoothly tweened (not an instant snap).
+            if (headingMoved && !userDraggedRef.current && userHeading != null) {
+                animateBearing(map, -rawHeading, rotateRafRef);
             }
 
             if (!userMarkerRef.current) {
