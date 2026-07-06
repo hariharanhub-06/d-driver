@@ -12,7 +12,7 @@ interface BeforeInstallPromptEvent extends Event {
     userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-export default function LandingInstallButton() {
+export default function LandingInstallButton({ compact = false }: { compact?: boolean }) {
     const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
     const [installed, setInstalled] = useState(false);
 
@@ -33,22 +33,21 @@ export default function LandingInstallButton() {
         };
     }, []);
 
+    // Compact = icon-only pill (for the header). Full = icon + label (for the footer).
+    const compactCls = 'inline-flex items-center justify-center w-9 h-9 rounded-full border border-white/20 text-white hover:bg-white/10 transition-colors';
+    const fullCls = 'inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors';
+
     // Play Store mode (future): a simple link.
     if (PLAY_STORE_URL) {
         return (
-            <a
-                href={PLAY_STORE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                title="Get the app"
-            >
+            <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className={compact ? compactCls : fullCls} title="Get the app">
                 <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Get the App</span>
+                {!compact && <span className="hidden sm:inline">Get the App</span>}
             </a>
         );
     }
 
+    // Hide entirely once the app is installed / running as a PWA.
     if (installed) return null;
 
     const onClick = async () => {
@@ -63,14 +62,9 @@ export default function LandingInstallButton() {
     };
 
     return (
-        <button
-            type="button"
-            onClick={onClick}
-            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-            title="Install app"
-        >
+        <button type="button" onClick={onClick} className={compact ? compactCls : fullCls} title="Install app">
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Install App</span>
+            {!compact && <span className="hidden sm:inline">Install App</span>}
         </button>
     );
 }

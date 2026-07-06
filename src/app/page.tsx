@@ -226,6 +226,7 @@ export default function LandingPage() {
             <Link href="#contact" className="hover:text-blue-400 transition-colors">About Us</Link>
           </div>
           <div className="flex items-center gap-2">
+            <LandingInstallButton compact />
             <Link href="/login" className="hidden sm:inline-flex px-4 py-2 rounded-lg border border-white/20 text-sm font-semibold hover:bg-white/10 transition-colors">Login</Link>
             <Link href="/login" className="px-4 py-2 rounded-lg bg-[#f97316] hover:bg-[#ea6a0c] text-white text-sm font-bold transition-colors shadow-lg shadow-orange-500/20">Book a Demo</Link>
             <button onClick={() => setMenuOpen(v => !v)} className="lg:hidden p-2 text-slate-300">{menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}</button>
