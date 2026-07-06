@@ -32,8 +32,6 @@ const BTN: React.CSSProperties = {
 };
 
 export default function DriverMap({ userPosition, userHeading, userAccuracy, stops = [], nextStopIndex = 0 }: Props) {
-    // The mapWrapRef div is 142% × 142% and receives CSS rotation — prevents black corners
-    const mapWrapRef    = useRef<HTMLDivElement>(null);
     // Leaflet renders inside this div (100% of the 142% wrapper)
     const containerRef  = useRef<HTMLDivElement>(null);
     const recentreBtnRef  = useRef<HTMLButtonElement | null>(null);
@@ -51,35 +49,17 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     const lastAppliedHeadingRef = useRef<number | null>(null);
 
     const [mapReady, setMapReady] = useState(false);
-    // The rotating layer must be a square as large as the viewport's diagonal so that NO
-    // black corner is ever exposed at any rotation angle (142% only covers a square viewport).
-    const rootRef = useRef<HTMLDivElement>(null);
-    const [wrapStyle, setWrapStyle] = useState<React.CSSProperties>({ width: '142%', height: '142%', top: '-21%', left: '-21%' });
+    // Keeps the newest "redraw driver arrow" fn so the map's 'rotate' event can call it.
+    const updateArrowRef = useRef<(() => void) | null>(null);
 
     useEffect(() => { currentPosRef.current = userPosition; });
 
-    // Size the rotating layer to a diagonal-sized square, centered, and keep Leaflet in sync.
-    useEffect(() => {
-        const el = rootRef.current;
-        if (!el) return;
-        const compute = () => {
-            const W = el.clientWidth, H = el.clientHeight;
-            if (!W || !H) return;
-            const side = Math.ceil(Math.sqrt(W * W + H * H)) + 4; // diagonal + small margin
-            setWrapStyle({ width: side, height: side, left: Math.round((W - side) / 2), top: Math.round((H - side) / 2) });
-            setTimeout(() => mapRef.current?.invalidateSize(), 60);
-        };
-        compute();
-        const ro = new ResizeObserver(compute);
-        ro.observe(el);
-        return () => ro.disconnect();
-    }, [mapReady]);
-
-    // ── Init Leaflet (runs once) ─────────────────────────────────────────────
+    // ── Init Leaflet + native rotation (runs once) ───────────────────────────
     useEffect(() => {
         if (!containerRef.current || mapRef.current) return;
 
-        import('leaflet').then(L => {
+        // leaflet-rotate patches L.Map with native rotation (setBearing) + two-finger rotate.
+        Promise.all([import('leaflet'), import('leaflet-rotate')]).then(([L]) => {
             if (!containerRef.current) return;
 
             const map = L.map(containerRef.current, {
@@ -87,20 +67,26 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 zoom: 16,
                 zoomControl: false,
                 attributionControl: false,
-            });
+                // Google-Maps-like: native rotation, free pan/zoom, two-finger rotate.
+                rotate: true,
+                touchRotate: true,
+                rotateControl: false,
+                bearing: 0,
+            } as any);
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 maxZoom: 20, minZoom: 3, subdomains: 'abcd', keepBuffer: 8,
             }).addTo(map);
 
-            map.on('dragstart', () => {
+            // Any manual gesture (pan or two-finger rotate) stops auto-follow / heading-up.
+            const onManual = () => {
                 userDraggedRef.current = true;
                 if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#94a3b8';
-                // Snap the view north-up while the user pans manually. Panning a CSS-rotated map
-                // inverts the drag direction (drag left → moves right); north-up keeps it intuitive.
-                if (mapWrapRef.current) mapWrapRef.current.style.transform = '';
-                lastAppliedHeadingRef.current = null;
-            });
+            };
+            map.on('dragstart', onManual);
+            map.on('rotatestart', onManual);
+            // Keep the driver arrow pointing along travel direction as the bearing changes.
+            map.on('rotate', () => updateArrowRef.current?.());
 
             mapRef.current = map;
             setMapReady(true);
@@ -137,34 +123,42 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             const heading = headingMoved ? rawHeading : lastAppliedHeadingRef.current!;
             if (headingMoved) lastAppliedHeadingRef.current = rawHeading;
 
-            // Rotate the map wrapper so travel direction faces "up" — but ONLY while following
-            // the driver. While the user is manually panning we keep it north-up (see dragstart).
-            if (mapWrapRef.current && headingMoved && !userDraggedRef.current) {
-                mapWrapRef.current.style.transform = userHeading != null
-                    ? `rotate(${-heading}deg)`
-                    : '';
-            }
-            // Arrow rotates with heading so it points in direction of travel on screen.
-            // The map also rotates by -heading, so net visual = arrow always points "up" (forward).
-            const arrowHtml = `
-                <div style="transform:rotate(${heading}deg);display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.55));">
+            const ARROW_SVG = `
                   <svg width="26" height="32" viewBox="0 0 44 52" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22 2 L42 48 L22 36 L2 48 Z" fill="white" opacity="0.92"/>
                     <path d="M22 5 L40 46 L22 34 L4 46 Z" fill="#1A1A2E"/>
                     <path d="M22 5 L4 46 L22 34 Z" fill="rgba(255,255,255,0.15)"/>
                     <line x1="22" y1="8" x2="22" y2="34" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
-                </div>`;
+                  </svg>`;
 
-            if (userMarkerRef.current) {
-                userMarkerRef.current.setLatLng([lat, lng]); // position updates every tick (smooth)
-                if (headingMoved) {
-                    userMarkerRef.current.setIcon(L.divIcon({ className: '', html: arrowHtml, iconSize: [26, 32], iconAnchor: [13, 16] }));
-                }
-            } else {
-                const icon = L.divIcon({ className: '', html: arrowHtml, iconSize: [26, 32], iconAnchor: [13, 16] });
-                userMarkerRef.current = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
+            // Draw the driver arrow so it always points along the travel direction ON SCREEN.
+            // The map panes rotate by +getBearing() (CSS), so a geographic heading H appears at
+            // screen angle H + bearing. (When following, bearing = -heading → arrow points up.)
+            const renderArrow = () => {
+                const m = mapRef.current;
+                if (!m || !userMarkerRef.current) return;
+                const b = typeof (m as any).getBearing === 'function' ? (m as any).getBearing() : 0;
+                const screen = accHeadingRef.current + b;
+                const html = `<div style="transform:rotate(${screen}deg);display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.55));">${ARROW_SVG}</div>`;
+                userMarkerRef.current.setIcon(L.divIcon({ className: '', html, iconSize: [26, 32], iconAnchor: [13, 16] }));
+            };
+            updateArrowRef.current = renderArrow;
+
+            // Heading-up rotation while FOLLOWING (native, not CSS). Manual pan/rotate opts out.
+            if (headingMoved && !userDraggedRef.current && userHeading != null && typeof (map as any).setBearing === 'function') {
+                (map as any).setBearing(-rawHeading);
             }
+
+            if (!userMarkerRef.current) {
+                userMarkerRef.current = L.marker([lat, lng], {
+                    icon: L.divIcon({ className: '', html: `<div>${ARROW_SVG}</div>`, iconSize: [26, 32], iconAnchor: [13, 16] }),
+                    zIndexOffset: 1000,
+                    rotateWithView: false,
+                } as any).addTo(map);
+            } else {
+                userMarkerRef.current.setLatLng([lat, lng]); // smooth position every tick
+            }
+            renderArrow();
 
             // Accuracy ring
             const acc = userAccuracy ?? 0;
@@ -333,35 +327,27 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     const handleRecenter = () => {
         userDraggedRef.current = false;
         if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#2563EB';
+        const map = mapRef.current;
+        if (!map) return;
         const [lat, lng] = currentPosRef.current;
-        if (mapRef.current) mapRef.current.flyTo([lat, lng], Math.max(mapRef.current.getZoom(), 16), { animate: true, duration: 0.6 });
-        // Resume heading-up rotation right away (don't wait for the next heading change).
+        map.flyTo([lat, lng], Math.max(map.getZoom(), 16), { animate: true, duration: 0.6 });
+        // Resume heading-up orientation immediately (native rotation).
         lastAppliedHeadingRef.current = null;
-        if (mapWrapRef.current && userHeading != null) {
-            mapWrapRef.current.style.transform = `rotate(${-accHeadingRef.current}deg)`;
+        if (userHeading != null && typeof (map as any).setBearing === 'function') {
+            (map as any).setBearing(-accHeadingRef.current);
             lastAppliedHeadingRef.current = accHeadingRef.current;
         }
+        updateArrowRef.current?.();
     };
 
     return (
-        <div ref={rootRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', background: '#e8e0d8' }}>
 
-            {/* ── Map wrapper (rotates with heading) ── */}
-            {/* Sized to the viewport diagonal (square) so no black corner shows at any angle. */}
-            <div
-                ref={mapWrapRef}
-                style={{
-                    position: 'absolute',
-                    ...wrapStyle,
-                    transition: 'transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
-                    willChange: 'transform',
-                    background: '#e8e0d8',
-                }}
-            >
-                <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: '#e8e0d8' }} />
-            </div>
+            {/* Leaflet map — native rotation via leaflet-rotate (no CSS-rotated wrapper). The
+                plugin over-renders tiles to fill the rotated view, so there are no black corners. */}
+            <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: '#e8e0d8' }} />
 
-            {/* ── UI overlay (never rotates) ── */}
+            {/* ── UI overlay (fixed to the screen) ── */}
             <div style={{ position: 'absolute', inset: 0, zIndex: 900, pointerEvents: 'none' }}>
 
                 {/* Map controls — right side, above bottom sheet: Zoom+, Zoom−, Recenter */}

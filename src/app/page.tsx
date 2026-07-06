@@ -176,11 +176,16 @@ export default function LandingPage() {
     if (!apiUrl) { setData({ config: DEFAULT_CONFIG, stats: DEFAULT_STATS, schools: [] }); return; }
     fetch(`${apiUrl}/platform/landing`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((j: any) => setData({
-        config: { ...DEFAULT_CONFIG, ...j.config },
-        stats: { ...DEFAULT_STATS, ...j.stats },
-        schools: j.schools ?? [],
-      }))
+      .then((j: any) => {
+        const config = { ...DEFAULT_CONFIG, ...j.config };
+        // Keep the OnLIVE brand contact details in the footer when the platform config
+        // leaves them blank (so the mobile number / email always show).
+        config.landing_footer_phone = config.landing_footer_phone || DEFAULT_CONFIG.landing_footer_phone;
+        config.landing_footer_email = config.landing_footer_email || DEFAULT_CONFIG.landing_footer_email;
+        config.landing_footer_address = config.landing_footer_address || DEFAULT_CONFIG.landing_footer_address;
+        config.landing_footer_tagline = config.landing_footer_tagline || DEFAULT_CONFIG.landing_footer_tagline;
+        setData({ config, stats: { ...DEFAULT_STATS, ...j.stats }, schools: j.schools ?? [] });
+      })
       .catch(() => setData({ config: DEFAULT_CONFIG, stats: DEFAULT_STATS, schools: [] }));
   }, []);
 
