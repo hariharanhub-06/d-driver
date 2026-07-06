@@ -64,8 +64,12 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     useEffect(() => {
         if (!containerRef.current || mapRef.current) return;
 
-        // leaflet-rotate patches L.Map with native rotation (setBearing) + two-finger rotate.
-        Promise.all([import('leaflet'), import('leaflet-rotate')]).then(([L]) => {
+        import('leaflet').then(async (Lmod) => {
+            const L: any = (Lmod as any).default ?? Lmod;
+            // Enable native rotation (leaflet-rotate) — but never let a plugin failure stop the
+            // map from loading. If it fails, the map still works (just without rotation).
+            let rotateOk = false;
+            try { await import('leaflet-rotate'); rotateOk = true; } catch (e) { console.warn('leaflet-rotate failed to load:', e); }
             if (!containerRef.current) return;
 
             const map = L.map(containerRef.current, {
@@ -74,10 +78,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 zoomControl: false,
                 attributionControl: false,
                 // Google-Maps-like: native rotation, free pan/zoom, two-finger rotate.
-                rotate: true,
-                touchRotate: true,
-                rotateControl: false,
-                bearing: 0,
+                ...(rotateOk ? { rotate: true, touchRotate: true, rotateControl: false, bearing: 0 } : {}),
             } as any);
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
