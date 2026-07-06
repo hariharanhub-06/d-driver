@@ -51,8 +51,29 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     const lastAppliedHeadingRef = useRef<number | null>(null);
 
     const [mapReady, setMapReady] = useState(false);
+    // The rotating layer must be a square as large as the viewport's diagonal so that NO
+    // black corner is ever exposed at any rotation angle (142% only covers a square viewport).
+    const rootRef = useRef<HTMLDivElement>(null);
+    const [wrapStyle, setWrapStyle] = useState<React.CSSProperties>({ width: '142%', height: '142%', top: '-21%', left: '-21%' });
 
     useEffect(() => { currentPosRef.current = userPosition; });
+
+    // Size the rotating layer to a diagonal-sized square, centered, and keep Leaflet in sync.
+    useEffect(() => {
+        const el = rootRef.current;
+        if (!el) return;
+        const compute = () => {
+            const W = el.clientWidth, H = el.clientHeight;
+            if (!W || !H) return;
+            const side = Math.ceil(Math.sqrt(W * W + H * H)) + 4; // diagonal + small margin
+            setWrapStyle({ width: side, height: side, left: Math.round((W - side) / 2), top: Math.round((H - side) / 2) });
+            setTimeout(() => mapRef.current?.invalidateSize(), 60);
+        };
+        compute();
+        const ro = new ResizeObserver(compute);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, [mapReady]);
 
     // ── Init Leaflet (runs once) ─────────────────────────────────────────────
     useEffect(() => {
@@ -75,6 +96,10 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             map.on('dragstart', () => {
                 userDraggedRef.current = true;
                 if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#94a3b8';
+                // Snap the view north-up while the user pans manually. Panning a CSS-rotated map
+                // inverts the drag direction (drag left → moves right); north-up keeps it intuitive.
+                if (mapWrapRef.current) mapWrapRef.current.style.transform = '';
+                lastAppliedHeadingRef.current = null;
             });
 
             mapRef.current = map;
@@ -112,8 +137,9 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             const heading = headingMoved ? rawHeading : lastAppliedHeadingRef.current!;
             if (headingMoved) lastAppliedHeadingRef.current = rawHeading;
 
-            // Rotate the map wrapper so travel direction faces "up" (only when heading moved)
-            if (mapWrapRef.current && headingMoved) {
+            // Rotate the map wrapper so travel direction faces "up" — but ONLY while following
+            // the driver. While the user is manually panning we keep it north-up (see dragstart).
+            if (mapWrapRef.current && headingMoved && !userDraggedRef.current) {
                 mapWrapRef.current.style.transform = userHeading != null
                     ? `rotate(${-heading}deg)`
                     : '';
@@ -309,19 +335,24 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#2563EB';
         const [lat, lng] = currentPosRef.current;
         if (mapRef.current) mapRef.current.flyTo([lat, lng], Math.max(mapRef.current.getZoom(), 16), { animate: true, duration: 0.6 });
+        // Resume heading-up rotation right away (don't wait for the next heading change).
+        lastAppliedHeadingRef.current = null;
+        if (mapWrapRef.current && userHeading != null) {
+            mapWrapRef.current.style.transform = `rotate(${-accHeadingRef.current}deg)`;
+            lastAppliedHeadingRef.current = accHeadingRef.current;
+        }
     };
 
     return (
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+        <div ref={rootRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
 
             {/* ── Map wrapper (rotates with heading) ── */}
-            {/* 142% × 142% ensures no black corners at any rotation angle */}
+            {/* Sized to the viewport diagonal (square) so no black corner shows at any angle. */}
             <div
                 ref={mapWrapRef}
                 style={{
                     position: 'absolute',
-                    width: '142%', height: '142%',
-                    top: '-21%', left: '-21%',
+                    ...wrapStyle,
                     transition: 'transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
                     willChange: 'transform',
                     background: '#e8e0d8',
