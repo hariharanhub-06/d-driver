@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Pressable, Linking } from 'react-native';
+import { View, Pressable, Linking, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
@@ -9,6 +9,7 @@ import { getMyChildren, type Child } from '@/lib/api';
 import { resolveBusId, formatDistance, formatEta } from '@/lib/tracking';
 import { useBusLocation } from '@/hooks/useBusLocation';
 import { useEta } from '@/hooks/useEta';
+import { useAuth } from '@/context/AuthContext';
 import { useHasPermission } from '@/context/BrandingContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useT } from '@/lib/i18n';
@@ -21,10 +22,12 @@ export default function Tracking() {
     const t = useTheme();
     const insets = useSafeAreaInsets();
     const tr = useT();
+    const { user } = useAuth();
     const canTrack = useHasPermission('gps_tracking');
 
     const { data: children = [], isLoading } = useQuery({ queryKey: ['children'], queryFn: getMyChildren });
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [showDetails, setShowDetails] = useState(false);
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
     useEffect(() => {
@@ -97,46 +100,48 @@ export default function Tracking() {
                 />
             </View>
 
-            {/* Status chip top */}
+            {/* Parent visiting card (top) — welcome + bus/student summary, expandable for full details */}
             <View style={{ position: 'absolute', top: insets.top + 8, left: 12, right: 12 }}>
-                <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 }}>
-                    <View
-                        style={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: 12,
-                            backgroundColor: t.color.brand,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
-                        <Feather name="truck" size={18} color={t.color.brandText} />
+                <Card style={{ gap: 10, paddingVertical: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: t.color.brand, alignItems: 'center', justifyContent: 'center' }}>
+                            <Feather name="truck" size={18} color={t.color.brandText} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <AppText size="sm" muted weight="700">{tr('Welcome', 'வரவேற்பு')}, {user?.name?.split(' ')[0] || tr('Parent', 'பெற்றோர்')}</AppText>
+                            <AppText weight="800" numberOfLines={1}>
+                                {child?.route?.bus?.bus_number ? `Bus ${child.route.bus.bus_number}` : child?.name}
+                                {'  ·  '}
+                                <AppText size="sm" muted>{tripStarted ? tr('Live · en route', 'நேரடி · வழியில்') : tr('Not started', 'தொடங்கவில்லை')}</AppText>
+                            </AppText>
+                        </View>
+                        {driverPhone ? (
+                            <Pressable
+                                onPress={callDriver}
+                                accessibilityRole="button"
+                                accessibilityLabel={tr('Call driver', 'ஓட்டுநரை அழை')}
+                                style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.color.success, alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <Feather name="phone" size={18} color="#fff" />
+                            </Pressable>
+                        ) : null}
                     </View>
-                    <View style={{ flex: 1 }}>
-                        <AppText weight="800" numberOfLines={1}>
-                            {child?.route?.bus?.bus_number ? `Bus ${child.route.bus.bus_number}` : child?.name}
+
+                    {showDetails && (
+                        <View style={{ gap: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.color.border, paddingTop: 10 }}>
+                            <DetailLine label={tr('Student', 'மாணவர்')} value={child?.name || '—'} />
+                            <DetailLine label={tr('Route', 'வழி')} value={child?.route?.name || '—'} />
+                            <DetailLine label={tr('Stop', 'நிறுத்தம்')} value={stop?.name || '—'} />
+                            <DetailLine label={tr('Driver', 'ஓட்டுநர்')} value={child?.route?.bus?.drivers?.[0]?.user?.name || tr('Not assigned', 'ஒதுக்கப்படவில்லை')} />
+                        </View>
+                    )}
+
+                    <Pressable onPress={() => setShowDetails(v => !v)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingTop: 2 }}>
+                        <AppText size="sm" weight="700" color={t.color.brand}>
+                            {showDetails ? tr('Hide details', 'மறை') : tr('View more details', 'மேலும் விவரங்கள்')}
                         </AppText>
-                        <AppText size="sm" muted>
-                            {tripStarted ? tr('Live · en route', 'நேரடி · வழியில்') : tr("Bus hasn't started yet", 'பேருந்து தொடங்கவில்லை')}
-                        </AppText>
-                    </View>
-                    {driverPhone ? (
-                        <Pressable
-                            onPress={callDriver}
-                            accessibilityRole="button"
-                            accessibilityLabel={tr('Call driver', 'ஓட்டுநரை அழை')}
-                            style={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: 20,
-                                backgroundColor: t.color.success,
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            <Feather name="phone" size={18} color="#fff" />
-                        </Pressable>
-                    ) : null}
+                        <Feather name={showDetails ? 'chevron-up' : 'chevron-down'} size={14} color={t.color.brand} />
+                    </Pressable>
                 </Card>
             </View>
 
@@ -185,6 +190,16 @@ export default function Tracking() {
                     )}
                 </Card>
             </View>
+        </View>
+    );
+}
+
+function DetailLine({ label, value }: { label: string; value: string }) {
+    const t = useTheme();
+    return (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <AppText size="sm" muted>{label}</AppText>
+            <AppText size="sm" weight="600" numberOfLines={1} style={{ flex: 1, textAlign: 'right' }}>{value}</AppText>
         </View>
     );
 }

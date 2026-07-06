@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, X, DollarSign, Loader2 } from 'lucide-react';
+import { Bus, Navigation, Bell, Fuel, AlertTriangle, CheckCircle, X, DollarSign, Loader2, Gauge } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import { useT, ta } from '@/lib/i18n';
@@ -29,6 +29,7 @@ export default function DriverDashboard() {
     const [driverInfo, setDriverInfo] = useState<DriverInfo | null>(null);
     const [activeTrips, setActiveTrips] = useState<ActiveTrip[]>([]);
     const [absenceCount, setAbsenceCount] = useState(0);
+    const [distance, setDistance] = useState<{ total_km: number; month_km: number } | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -103,12 +104,19 @@ export default function DriverDashboard() {
     const fetchAll = async (initial = false) => {
         if (initial) setLoading(true);
         try {
-            const [driverRes, absenceRes, tripsRes, sosRes] = await Promise.allSettled([
+            const [driverRes, absenceRes, tripsRes, sosRes, distRes] = await Promise.allSettled([
                 api.get('/drivers/me'),
                 api.get('/absence'),
                 api.get('/trips/active'),
                 api.get('/sos/mine'),
+                api.get('/shifts/mine/summary'),
             ]);
+            if (distRes.status === 'fulfilled' && distRes.value.data) {
+                setDistance({
+                    total_km: Number(distRes.value.data.total_km) || 0,
+                    month_km: Number(distRes.value.data.month_km) || 0,
+                });
+            }
             if (driverRes.status === 'fulfilled') {
                 const d: DriverInfo = driverRes.value.data;
                 setDriverInfo(d);
@@ -233,6 +241,25 @@ export default function DriverDashboard() {
                                 ? t('TRIP IN PROGRESS', 'பயணம் நடக்கிறது')
                                 : t('TRIP NOT STARTED', 'பயணம் தொடங்கவில்லை')}
                         </p>
+                    </div>
+                </div>
+
+                {/* Total distance covered card */}
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-5">
+                    <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-[var(--brand)]/10 text-[var(--brand)] flex items-center justify-center shrink-0">
+                            <Gauge className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">{t('Total Distance Covered', 'மொத்த தூரம்')}</p>
+                            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                                {distance ? distance.total_km.toLocaleString('en-IN') : '—'} <span className="text-sm font-semibold text-slate-400">km</span>
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xs text-slate-400 dark:text-slate-500">{t('This month', 'இந்த மாதம்')}</p>
+                            <p className="text-base font-bold text-slate-700 dark:text-slate-200">{distance ? distance.month_km.toLocaleString('en-IN') : '—'} km</p>
+                        </div>
                     </div>
                 </div>
 

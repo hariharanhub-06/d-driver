@@ -9,6 +9,7 @@ import { useT } from '@/lib/i18n';
 interface Driver {
     id: string;
     license_no?: string;
+    license_expiry?: string | null;
     phone?: string;
     is_active?: boolean;
     assigned_bus_id?: string | null;
@@ -26,6 +27,7 @@ const EMPTY_FORM = {
     email: '',
     phone: '',
     license_no: '',
+    license_expiry: '',
     password: '',
 };
 
@@ -101,10 +103,12 @@ export default function DriversPage() {
     const openEdit = (driver: Driver) => {
         setEditDriver(driver);
         setFormData({
+            ...EMPTY_FORM,
             name: driver.user?.name || '',
             email: driver.user?.email || '',
             phone: driver.user?.phone || driver.phone || '',
             license_no: driver.license_no || '',
+            license_expiry: driver.license_expiry ? String(driver.license_expiry).slice(0, 10) : '',
         });
         setFormError('');
         setIsModalOpen(true);
@@ -166,6 +170,7 @@ export default function DriversPage() {
                 email: formData.email,
                 phone: formData.phone,
                 license_no: formData.license_no,
+                license_expiry: formData.license_expiry || null,
                 school_id: user?.school_id,
                 ...((!editDriver && formData.password) && { password: formData.password }),
             };
@@ -508,15 +513,26 @@ export default function DriversPage() {
                                 />
                             </div>
 
-                            <div>
-                                <label className={labelCls}>{t('License Number', 'உரிம எண்')}</label>
-                                <input
-                                    type="text"
-                                    placeholder={t('e.g. MH-01-20200012345', 'எ.கா. MH-01-20200012345')}
-                                    className={`${inputCls} font-mono`}
-                                    value={formData.license_no}
-                                    onChange={e => setFormData({ ...formData, license_no: e.target.value })}
-                                />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className={labelCls}>{t('License Number', 'உரிம எண்')}</label>
+                                    <input
+                                        type="text"
+                                        placeholder={t('e.g. MH-01-2020...', 'எ.கா. MH-01-2020...')}
+                                        className={`${inputCls} font-mono`}
+                                        value={formData.license_no}
+                                        onChange={e => setFormData({ ...formData, license_no: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className={labelCls}>{t('License Expiry', 'உரிமம் முடிவு')}</label>
+                                    <input
+                                        type="date"
+                                        className={inputCls}
+                                        value={formData.license_expiry}
+                                        onChange={e => setFormData({ ...formData, license_expiry: e.target.value })}
+                                    />
+                                </div>
                             </div>
 
                             {!editDriver && (

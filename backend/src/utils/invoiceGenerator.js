@@ -16,7 +16,11 @@ async function generateInvoiceForSchool(schoolId, billingMonth) {
   // ── School & Plan ─────────────────────────────────────────────────────────
   const school = await prisma.school.findUnique({
     where: { id: schoolId },
-    select: { id: true, name: true, plan_id: true, billing_due_day: true },
+    select: {
+      id: true, name: true, plan_id: true, billing_due_day: true,
+      address: true, phone: true, email_contact: true, website: true,
+      logo_url: true, primary_color: true,
+    },
   });
   if (!school || !school.plan_id) {
     throw new Error('School has no pricing plan assigned');
@@ -155,10 +159,26 @@ async function generateInvoiceForSchool(schoolId, billingMonth) {
     },
   });
 
-  // ── Notify school admin ───────────────────────────────────────────────────
+  // ── Branded PDF (best-effort; never blocks billing) ────────────────────────
+  let pdfUrl = null;
+  let pdfBuffer = null;
+  try {
+    const { renderAndUploadInvoicePdf } = require('./invoicePdf');
+    const res = await renderAndUploadInvoicePdf({ invoice, school, kind: 'school' });
+    pdfUrl = res.url;
+    pdfBuffer = res.buffer;
+    if (pdfUrl) {
+      await prisma.schoolInvoice.update({ where: { id: invoice.id }, data: { pdf_url: pdfUrl } });
+      invoice.pdf_url = pdfUrl;
+    }
+  } catch (err) {
+    console.error('invoice pdf (school) error:', err.message);
+  }
+
+  // ── Notify school admin (in-app + email with PDF) ──────────────────────────
   const adminUser = await prisma.user.findFirst({
     where: { school_id: schoolId, role: 'admin', is_active: true },
-    select: { id: true },
+    select: { id: true, email: true },
   });
   if (adminUser) {
     await prisma.notification.create({
@@ -169,6 +189,21 @@ async function generateInvoiceForSchool(schoolId, billingMonth) {
         type: 'info',
       },
     });
+    if (adminUser.email) {
+      try {
+        const { sendInvoiceGenerated } = require('./resend');
+        await sendInvoiceGenerated({
+          adminEmail: adminUser.email,
+          month: billingMonth,
+          amount: total_amount.toFixed(2),
+          school,
+          pdfBuffer,
+          pdfUrl,
+        });
+      } catch (err) {
+        console.error('sendInvoiceGenerated (school) error:', err.message);
+      }
+    }
   }
 
   return invoice;

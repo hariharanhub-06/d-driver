@@ -7,6 +7,7 @@ const createSchoolSchema = z.object({
   primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   phone: z.string().optional(),
   email_contact: z.string().email().optional(),
+  website: z.union([z.string(), z.literal('')]).optional(),
   logo_url: z.string().optional(),
   plan_id: z.string().uuid().optional(),
   // First admin (required at creation)
@@ -23,6 +24,7 @@ const updateSchoolSchema = z.object({
   phone: z.string().optional(),
   email_contact: z.union([z.string().email(), z.literal('')]).optional(),
   notification_email: z.union([z.string().email(), z.literal('')]).optional(),
+  website: z.union([z.string(), z.literal('')]).optional(),
   logo_url: z.string().optional(),
   subscription_plan: z.string().optional(),
 });

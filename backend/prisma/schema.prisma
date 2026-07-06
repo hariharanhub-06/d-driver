@@ -18,6 +18,7 @@ model School {
   primary_color        String?   @default("#3B82F6")
   phone                String?
   email_contact        String?
+  website              String?
   subscription_plan    String    @default("Basic")
   status               String    @default("active") // active | inactive
   suspended_at         DateTime?
@@ -98,6 +99,9 @@ model Bus {
   last_fuel_km        Float?
   initial_fuel_liters Float?
   total_km_run        Float?  @default(0)
+  insurance_expiry    DateTime?
+  rc_expiry           DateTime?
+  last_expiry_reminder_at DateTime? // dedupe for the daily expiry reminder
 
   school                School          @relation(fields: [school_id], references: [id], onDelete: Cascade)
   drivers               Driver[]
@@ -116,6 +120,8 @@ model Driver {
   id              String  @id @default(uuid())
   user_id         String  @unique
   license_no      String?
+  license_expiry  DateTime?
+  last_expiry_reminder_at DateTime? // dedupe for the daily expiry reminder
   assigned_bus_id String?
   school_id       String
 
@@ -528,6 +534,7 @@ model PricingPlan {
   description String?
   plan_type   String   @default("school") // school | individual
   is_template Boolean  @default(true)
+  permissions Json? // feature-permission toggles this plan grants (keys mirror School.permissions)
   created_at  DateTime @default(now())
   created_by  String
 
@@ -563,6 +570,7 @@ model SchoolInvoice {
   razorpay_payment_id String?
   paid_at             DateTime?
   sa_note             String?
+  pdf_url             String?
   line_items_snapshot Json
   created_at          DateTime  @default(now())
 
@@ -586,6 +594,7 @@ model StudentInvoice {
   paid_at             DateTime?
   sa_note             String?
   reminder_sent_at    DateTime? // last "payment overdue" reminder sent to the parent
+  pdf_url             String?
   line_items_snapshot Json
   created_at          DateTime  @default(now())
 

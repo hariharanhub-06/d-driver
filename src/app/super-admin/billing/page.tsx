@@ -2,18 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee, Pencil, Trash2, GraduationCap, Eye } from 'lucide-react';
+import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee, Pencil, Trash2, GraduationCap, Eye, Download } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
+import { PLAN_FEATURES } from '@/lib/planFeatures';
 
 interface Plan {
     id: string;
     name: string;
     description?: string;
     plan_type?: string;
+    permissions?: Record<string, boolean>;
     lineItems?: { label: string; metric: string; unit_rate: number }[];
 }
+
+// Every feature is included by default; the SA toggles OFF what a given tier excludes.
+const ALL_FEATURES_ON = (): Record<string, boolean> =>
+    Object.fromEntries(PLAN_FEATURES.map(f => [f.key, true]));
 
 interface InvoiceLineItem { label: string; metric?: string; unit_rate?: number; quantity?: number; charge: number }
 interface Invoice {
@@ -27,6 +33,7 @@ interface Invoice {
     line_items_snapshot?: { usage?: any; line_items?: InvoiceLineItem[]; plan_name?: string };
     status: string;
     paid_at?: string;
+    pdf_url?: string;
 }
 
 interface School {
@@ -72,6 +79,7 @@ export default function BillingPage() {
     // Plan modal
     const [showPlanModal, setShowPlanModal] = useState(false);
     const [planForm, setPlanForm] = useState({ name: '', description: '', plan_type: 'school' });
+    const [planPermissions, setPlanPermissions] = useState<Record<string, boolean>>(ALL_FEATURES_ON());
     const [revenueItems, setRevenueItems] = useState<RevenueItem[]>([{ label: '', metric: 'per_bus', unit_rate: '' }]);
     const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>(DEFAULT_EXPENSE_ITEMS);
     const [profitAmount, setProfitAmount] = useState('');
@@ -109,6 +117,7 @@ export default function BillingPage() {
         setShowPlanModal(false);
         setEditingPlanId(null);
         setPlanForm({ name: '', description: '', plan_type: 'school' });
+        setPlanPermissions(ALL_FEATURES_ON());
         setRevenueItems([{ label: '', metric: 'per_bus', unit_rate: '' }]);
         setExpenseItems(DEFAULT_EXPENSE_ITEMS);
         setProfitAmount('');
@@ -118,6 +127,8 @@ export default function BillingPage() {
     const openEditModal = (plan: Plan) => {
         setEditingPlanId(plan.id);
         setPlanForm({ name: plan.name, description: plan.description || '', plan_type: plan.plan_type || 'school' });
+        // Merge saved permissions over the all-on default so newly-added features default to included.
+        setPlanPermissions({ ...ALL_FEATURES_ON(), ...(plan.permissions || {}) });
         const allItems = plan.lineItems || [];
         const revenueRows = allItems
             .filter(li => !['expense', 'profit'].includes(li.metric))
@@ -143,9 +154,9 @@ export default function BillingPage() {
                 ...(profitAmount ? [{ label: 'Profit Target', metric: 'profit', unit_rate: parseFloat(profitAmount) || 0 }] : []),
             ];
             if (editingPlanId) {
-                await api.put(`/billing/plans/${editingPlanId}`, { ...planForm, lineItems: allLineItems });
+                await api.put(`/billing/plans/${editingPlanId}`, { ...planForm, permissions: planPermissions, lineItems: allLineItems });
             } else {
-                await api.post('/billing/plans', { ...planForm, lineItems: allLineItems });
+                await api.post('/billing/plans', { ...planForm, permissions: planPermissions, lineItems: allLineItems });
             }
             resetPlanModal();
             fetchAll();
@@ -410,6 +421,12 @@ export default function BillingPage() {
                                                     className="p-1.5 rounded-lg text-slate-400 hover:text-[var(--brand)] hover:bg-[var(--brand)]/10 transition-all">
                                                     <Eye className="w-4 h-4" />
                                                 </button>
+                                                {inv.pdf_url && (
+                                                    <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title={t('Download PDF', 'PDF பதிவிறக்கம்')}
+                                                        className="p-1.5 rounded-lg text-slate-400 hover:text-[var(--brand)] hover:bg-[var(--brand)]/10 transition-all">
+                                                        <Download className="w-4 h-4" />
+                                                    </a>
+                                                )}
                                                 {inv.status !== 'paid' && (
                                                     <button onClick={(e) => { e.stopPropagation(); handleRecordPayment(inv.id); }}
                                                         className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-200 dark:border-emerald-800 transition-all active:scale-95">
@@ -577,6 +594,42 @@ export default function BillingPage() {
                                             )}
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+
+                            {/* ── Included Features (permissions this plan grants) ── */}
+                            <div className="border-t border-slate-100 dark:border-slate-700 pt-5">
+                                <div className="mb-3">
+                                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                        <Check className="w-4 h-4 text-emerald-500" /> {t('Included Features', 'உள்ளடங்கிய அம்சங்கள்')}
+                                    </p>
+                                    <p className="text-xs text-slate-400 dark:text-slate-500">{t('Turn OFF what this plan does not include. On assignment these toggles are enforced.', 'இந்த திட்டத்தில் இல்லாதவற்றை அணைக்கவும். ஒதுக்கும்போது இவை அமல்படுத்தப்படும்.')}</p>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {PLAN_FEATURES.map(f => {
+                                        const on = planPermissions[f.key] !== false;
+                                        return (
+                                            <button
+                                                key={f.key}
+                                                type="button"
+                                                onClick={() => setPlanPermissions(p => ({ ...p, [f.key]: !on }))}
+                                                className={cn(
+                                                    'flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all',
+                                                    on
+                                                        ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/20'
+                                                        : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 opacity-70'
+                                                )}
+                                            >
+                                                <span className={cn('mt-0.5 w-4 h-4 rounded flex items-center justify-center shrink-0', on ? 'bg-emerald-500 text-white' : 'bg-slate-300 dark:bg-slate-600')}>
+                                                    {on && <Check className="w-3 h-3" />}
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span className="block text-xs font-semibold text-slate-800 dark:text-white">{f.label}</span>
+                                                    <span className="block text-[11px] text-slate-400 dark:text-slate-500 leading-tight">{f.description}</span>
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 

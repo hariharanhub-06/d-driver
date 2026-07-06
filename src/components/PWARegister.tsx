@@ -35,6 +35,9 @@ export default function PWARegister() {
                 };
                 if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
                 reg.addEventListener('updatefound', () => promote(reg.installing));
+                // Actively check for a newer worker on every load (e.g. reopening the installed
+                // PWA), so a device that kept showing an old cached build updates promptly.
+                reg.update().catch(() => {});
             }).catch(() => {
                 /* registration failure is non-fatal */
             });

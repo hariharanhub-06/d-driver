@@ -23,7 +23,7 @@ const getClient = () => {
  *   from?: string,
  * }} opts
  */
-const sendEmail = async ({ to, subject, html, template, school_id, from }) => {
+const sendEmail = async ({ to, subject, html, template, school_id, from, attachments }) => {
   // Default to the verified domain (onlive.co.in). ddriver.app is NOT verified in Resend,
   // so any send from it 403s. Falls back here only if RESEND_FROM_DEFAULT isn't set.
   let fromAddress = from || process.env.RESEND_FROM_DEFAULT || 'noreply@onlive.co.in';
@@ -59,7 +59,9 @@ const sendEmail = async ({ to, subject, html, template, school_id, from }) => {
     try {
       // The Resend SDK returns { data, error } — it does NOT throw on API errors
       // (e.g. unverified domain / invalid from). Must inspect `error` explicitly.
-      const { error } = await resendClient.emails.send({ from: fromAddress, to, subject, html });
+      const payload = { from: fromAddress, to, subject, html };
+      if (Array.isArray(attachments) && attachments.length) payload.attachments = attachments;
+      const { error } = await resendClient.emails.send(payload);
       if (error) {
         status = 'failed';
         errorMessage = error.message || error.name || 'send failed';
@@ -155,7 +157,7 @@ const sendParentWelcome = async () => {
 // Supports two call patterns:
 //   New: { adminEmail, schoolName, month, amount }
 //   Old: { to, month, amount, school }
-const sendInvoiceGenerated = async ({ to, adminEmail, month, amount, school, schoolName }) => {
+const sendInvoiceGenerated = async ({ to, adminEmail, month, amount, school, schoolName, pdfBuffer, pdfUrl }) => {
   try {
     const recipient = adminEmail || to;
     const sName = schoolName || school?.name || 'Onlive';
@@ -163,11 +165,20 @@ const sendInvoiceGenerated = async ({ to, adminEmail, month, amount, school, sch
     const logoUrl = school?.logo_url || null;
     const school_id = school?.id || null;
 
+    const downloadLink = pdfUrl
+      ? `<p><a href="${pdfUrl}" style="background:${color};color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;">Download Invoice (PDF)</a></p>`
+      : '';
+
     const html = brandedHtml(sName, color, logoUrl, `
       <p>Invoice for <strong>${month}</strong> has been generated.</p>
       <p style="font-size:24px;font-weight:700;">₹${Number(amount).toLocaleString('en-IN')}</p>
-      <p>Please log in to your portal to view and pay.</p>
+      ${downloadLink}
+      <p>Please log in to your portal to view and pay${pdfBuffer ? ', or see the attached PDF' : ''}.</p>
     `);
+
+    const attachments = pdfBuffer
+      ? [{ filename: `invoice-${month}.pdf`, content: pdfBuffer }]
+      : undefined;
 
     await sendEmail({
       to: recipient,
@@ -175,6 +186,7 @@ const sendInvoiceGenerated = async ({ to, adminEmail, month, amount, school, sch
       html,
       template: 'invoice',
       school_id,
+      attachments,
     });
   } catch (err) {
     console.error('sendInvoiceGenerated error:', err.message);

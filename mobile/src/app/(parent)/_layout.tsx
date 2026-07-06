@@ -39,6 +39,13 @@ export default function ParentLayout() {
                 }}
             />
             <Tabs.Screen
+                name="passport"
+                options={{
+                    title: tr('Passport', 'பாஸ்போர்ட்'),
+                    tabBarIcon: ({ color, size }) => <Feather name="credit-card" color={color} size={size} />,
+                }}
+            />
+            <Tabs.Screen
                 name="more"
                 options={{
                     title: tr('More', 'மேலும்'),

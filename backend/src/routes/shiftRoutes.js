@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { authenticateToken, requireRole, requireSchoolScope, requirePasswordChanged } = require('../middleware/authMiddleware');
-const { startShift, addKmEntry, endShift, getActiveShift, listShifts, myShifts, getShiftEntries } = require('../controllers/driverShiftController');
+const { startShift, addKmEntry, endShift, getActiveShift, listShifts, myShifts, myShiftSummary, getShiftEntries } = require('../controllers/driverShiftController');
 const { validate, shiftStartSchema, kmEntrySchema } = require('../validators');
 
 const router = Router();
@@ -12,6 +12,7 @@ router.post('/end',              requireRole('driver'),                         
 router.get('/active',            requireRole('driver'),                             getActiveShift);
 router.get('/',                  requireRole('admin', 'super_admin'), requireSchoolScope, listShifts);
 router.get('/mine',              requireRole('driver'),               myShifts);
+router.get('/mine/summary',      requireRole('driver'),               myShiftSummary);
 router.get('/:id/entries',       requireRole('admin', 'super_admin'), requireSchoolScope, getShiftEntries);
 
 module.exports = router;

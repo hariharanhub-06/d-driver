@@ -12,7 +12,7 @@ const getLandingData = async (req, res) => {
       prisma.landingFounder.findMany({ where: { is_active: true }, orderBy: { sort_order: 'asc' } }),
       prisma.school.findMany({
         where: { status: 'active' },
-        select: { id: true, name: true, logo_url: true },
+        select: { id: true, name: true, logo_url: true, website: true },
         orderBy: { created_at: 'asc' },
       }),
       Promise.allSettled([

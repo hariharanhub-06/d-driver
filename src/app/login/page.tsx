@@ -10,7 +10,7 @@ import { useTheme } from 'next-themes';
 import api from '@/lib/api';
 
 export default function LoginPage() {
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(''); // holds an email OR a mobile number (identifier)
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
@@ -86,7 +86,8 @@ export default function LoginPage() {
         setIsLoading(true);
 
         try {
-            const response = await api.post('/auth/login', { email, password });
+            // Backend accepts an email or a mobile number under `identifier`.
+            const response = await api.post('/auth/login', { identifier: email.trim(), password });
             const { access_token, refresh_token, user } = response.data;
 
             if (user?.is_first_login === true) {
@@ -177,19 +178,19 @@ export default function LoginPage() {
                     {/* Email */}
                     <div>
                         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                            Email
+                            Email or Mobile
                         </label>
                         <input
-                            type="email"
+                            type="text"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full border-0 border-b-2 border-slate-200 dark:border-slate-700 focus:border-[#3B82F6] bg-transparent py-3 text-slate-900 dark:text-white text-sm outline-none transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600"
                             style={{ '--focus-color': brandColor } as React.CSSProperties}
                             onFocus={e => (e.currentTarget.style.borderBottomColor = brandColor)}
                             onBlur={e => (e.currentTarget.style.borderBottomColor = '')}
-                            placeholder="you@school.com"
+                            placeholder="you@school.com or 9876543210"
                             required
-                            autoComplete="email"
+                            autoComplete="username"
                         />
                     </div>
 

@@ -132,10 +132,13 @@ export function FormModal({
     const t = useTheme();
     return (
         <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-            <View style={{ flex: 1, backgroundColor: '#00000088', justifyContent: 'flex-end' }}>
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1, backgroundColor: '#00000088', justifyContent: 'flex-end' }}
+            >
                     <View
                         style={{
+                            width: '100%',
                             backgroundColor: t.color.bg,
                             borderTopLeftRadius: 22,
                             borderTopRightRadius: 22,
@@ -155,8 +158,7 @@ export function FormModal({
                             <View style={{ height: t.spacing.lg }} />
                         </ScrollView>
                     </View>
-                </KeyboardAvoidingView>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }

@@ -122,14 +122,31 @@ export interface Branding {
     permissions?: Record<string, boolean> | null;
 }
 
-export async function loginRequest(email: string, password: string) {
-    const { data } = await axios.post(`${API_URL}/auth/login`, { email, password });
+// `identifier` may be an email or a mobile number — the backend resolves either.
+export async function loginRequest(identifier: string, password: string) {
+    const { data } = await axios.post(`${API_URL}/auth/login`, { identifier, password });
     return data as { access_token: string; refresh_token: string; user: any };
+}
+
+export async function forgotPasswordRequest(value: string, method: 'email' | 'mobile') {
+    const { data } = await axios.post(`${API_URL}/auth/forgot-password`, { value, method });
+    return data as { message: string };
 }
 
 export async function getMyChildren(): Promise<Child[]> {
     const { data } = await api.get('/students/my-children');
     return Array.isArray(data) ? data : [];
+}
+
+export type IndividualPlan = { id: string; name: string; description?: string; permissions?: Record<string, boolean> };
+export type ParentSubscription = { student_id: string; student_name: string; plan: IndividualPlan };
+export async function getMySubscription(): Promise<ParentSubscription[]> {
+    try {
+        const { data } = await api.get('/billing/my-subscription');
+        return Array.isArray(data?.subscriptions) ? data.subscriptions : [];
+    } catch {
+        return [];
+    }
 }
 
 export async function getBusLocation(busId: string): Promise<BusLocation | null> {
@@ -223,6 +240,16 @@ export async function getActiveTrips(): Promise<ActiveTrip[]> {
         return Array.isArray(data) ? data : [];
     } catch {
         return [];
+    }
+}
+
+export type ShiftSummary = { total_km: number; month_km: number; total_shifts: number; shifts_with_distance: number };
+export async function getMyShiftSummary(): Promise<ShiftSummary | null> {
+    try {
+        const { data } = await api.get('/shifts/mine/summary');
+        return data as ShiftSummary;
+    } catch {
+        return null;
     }
 }
 

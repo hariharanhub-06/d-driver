@@ -20,6 +20,8 @@ interface Bus {
     registration_no?: string | null;
     mileage?: number | null;
     fuel_liters?: number | null;
+    insurance_expiry?: string | null;
+    rc_expiry?: string | null;
     current_status?: string | null;
     drivers?: DriverLite[];
 }
@@ -30,7 +32,7 @@ interface DriverRow {
     bus?: { id?: string } | null;
 }
 
-const EMPTY = { bus_number: '', capacity: '', registration_no: '', mileage: '', initial_fuel_liters: '' };
+const EMPTY = { bus_number: '', capacity: '', registration_no: '', mileage: '', initial_fuel_liters: '', insurance_expiry: '', rc_expiry: '' };
 
 export default function ManageBusesScreen() {
     const tr = useT();
@@ -76,6 +78,8 @@ export default function ManageBusesScreen() {
             registration_no: b.registration_no || '',
             mileage: b.mileage != null ? String(b.mileage) : '',
             initial_fuel_liters: b.fuel_liters != null ? String(b.fuel_liters) : '',
+            insurance_expiry: b.insurance_expiry ? String(b.insurance_expiry).slice(0, 10) : '',
+            rc_expiry: b.rc_expiry ? String(b.rc_expiry).slice(0, 10) : '',
         });
         setVisible(true);
     };
@@ -90,6 +94,8 @@ export default function ManageBusesScreen() {
             };
             if (form.registration_no.trim()) payload.registration_no = form.registration_no.trim();
             if (form.mileage.trim()) payload.mileage = parseFloat(form.mileage);
+            payload.insurance_expiry = form.insurance_expiry.trim() || null;
+            payload.rc_expiry = form.rc_expiry.trim() || null;
             if (editingId) {
                 if (form.initial_fuel_liters.trim()) payload.fuel_liters = parseFloat(form.initial_fuel_liters);
                 await api.put(`/buses/${editingId}`, payload);
@@ -201,6 +207,8 @@ export default function ManageBusesScreen() {
                 <Field label={tr('Registration No.', 'பதிவு எண்')} value={form.registration_no} onChangeText={(v) => setForm((f) => ({ ...f, registration_no: v }))} autoCapitalize="characters" placeholder="TN01AB1234" />
                 <Field label={tr('Mileage (km/L)', 'மைலேஜ்')} value={form.mileage} onChangeText={(v) => setForm((f) => ({ ...f, mileage: v }))} keyboardType="decimal-pad" placeholder="12.5" />
                 <Field label={editingId ? tr('Fuel (L)', 'எரிபொருள் (L)') : tr('Initial Fuel (L)', 'தொடக்க எரிபொருள் (L)')} value={form.initial_fuel_liters} onChangeText={(v) => setForm((f) => ({ ...f, initial_fuel_liters: v }))} keyboardType="decimal-pad" placeholder="0" />
+                <Field label={tr('Insurance Expiry (YYYY-MM-DD)', 'காப்பீடு முடிவு (YYYY-MM-DD)')} value={form.insurance_expiry} onChangeText={(v) => setForm((f) => ({ ...f, insurance_expiry: v }))} placeholder="2026-07-31" />
+                <Field label={tr('RC Expiry (YYYY-MM-DD)', 'RC முடிவு (YYYY-MM-DD)')} value={form.rc_expiry} onChangeText={(v) => setForm((f) => ({ ...f, rc_expiry: v }))} placeholder="2027-03-15" />
             </FormModal>
         </>
     );

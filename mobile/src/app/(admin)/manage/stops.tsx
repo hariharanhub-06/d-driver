@@ -67,11 +67,15 @@ export default function StopsScreen() {
 
     const save = useMutation({
         mutationFn: async () => {
+            // Latitude/longitude are optional in the form. When left blank we keep the
+            // stop's existing coordinates on edit, and fall back to 0 only when creating.
+            const latBlank = !form.latitude.trim();
+            const lngBlank = !form.longitude.trim();
             const payload = {
                 name: form.name.trim(),
                 route_id: form.route_id,
-                latitude: form.latitude.trim() ? parseFloat(form.latitude) : 0,
-                longitude: form.longitude.trim() ? parseFloat(form.longitude) : 0,
+                latitude: latBlank ? (editing?.latitude ?? 0) : parseFloat(form.latitude),
+                longitude: lngBlank ? (editing?.longitude ?? 0) : parseFloat(form.longitude),
                 pickup_time: form.pickup_time.trim() || null,
                 sequence: form.sequence.trim() ? parseInt(form.sequence, 10) : 0,
             };
@@ -155,8 +159,8 @@ export default function StopsScreen() {
                 ) : (
                     <Select label={tr('Route', 'வழி')} value={form.route_id} options={routeOpts} onChange={(v) => set('route_id', v)} />
                 )}
-                <Field label={tr('Latitude', 'அட்சரேகை')} value={form.latitude} onChangeText={(v) => set('latitude', v)} placeholder="13.0827" keyboardType="decimal-pad" />
-                <Field label={tr('Longitude', 'தீர்க்கரேகை')} value={form.longitude} onChangeText={(v) => set('longitude', v)} placeholder="80.2707" keyboardType="decimal-pad" />
+                <Field label={tr('Latitude (optional)', 'அட்சரேகை (விருப்பம்)')} value={form.latitude} onChangeText={(v) => set('latitude', v)} placeholder="13.0827" keyboardType="decimal-pad" />
+                <Field label={tr('Longitude (optional)', 'தீர்க்கரேகை (விருப்பம்)')} value={form.longitude} onChangeText={(v) => set('longitude', v)} placeholder="80.2707" keyboardType="decimal-pad" />
                 <Field label={tr('Pickup Time', 'ஏற்றும் நேரம்')} value={form.pickup_time} onChangeText={(v) => set('pickup_time', v)} placeholder="07:30" />
                 <Field label={tr('Sequence', 'வரிசை')} value={form.sequence} onChangeText={(v) => set('sequence', v)} placeholder="1" keyboardType="numeric" />
             </FormModal>

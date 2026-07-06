@@ -172,7 +172,7 @@ const listPlans = async (req, res) => {
 
 const createPlan = async (req, res) => {
   try {
-    const { name, description, is_template, plan_type, lineItems = [] } = req.body;
+    const { name, description, is_template, plan_type, permissions, lineItems = [] } = req.body;
     const plan = await prisma.$transaction(async (tx) => {
       const created = await tx.pricingPlan.create({
         data: {
@@ -180,6 +180,7 @@ const createPlan = async (req, res) => {
           description,
           plan_type: plan_type === 'individual' ? 'individual' : 'school',
           is_template: is_template ?? true,
+          permissions: permissions && typeof permissions === 'object' ? permissions : undefined,
           created_by: req.user.id,
           lineItems: {
             create: lineItems.map(item => ({
@@ -205,7 +206,7 @@ const createPlan = async (req, res) => {
 const updatePlan = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, is_template, plan_type, lineItems = [] } = req.body;
+    const { name, description, is_template, plan_type, permissions, lineItems = [] } = req.body;
     const plan = await prisma.$transaction(async (tx) => {
       await tx.pricingLineItem.deleteMany({ where: { plan_id: id } });
       const updated = await tx.pricingPlan.update({
@@ -215,6 +216,7 @@ const updatePlan = async (req, res) => {
           description,
           is_template,
           ...(plan_type ? { plan_type: plan_type === 'individual' ? 'individual' : 'school' } : {}),
+          ...(permissions && typeof permissions === 'object' ? { permissions } : {}),
           lineItems: {
             createMany: {
               data: lineItems.map(item => ({
@@ -579,9 +581,26 @@ const assignPlan = async (req, res) => {
   try {
     const { id } = req.params;
     const { plan_id } = req.body;
+
+    // When the assigned plan carries a permissions set, merge it into the school's
+    // permissions so the feature toggles the plan grants are actually enforced (all
+    // existing gating reads School.permissions). Keys the plan doesn't define are kept.
+    let mergedPermissions;
+    if (plan_id) {
+      const plan = await prisma.pricingPlan.findUnique({
+        where: { id: plan_id }, select: { permissions: true },
+      });
+      if (plan?.permissions && typeof plan.permissions === 'object') {
+        const current = await prisma.school.findUnique({
+          where: { id }, select: { permissions: true },
+        });
+        mergedPermissions = { ...(current?.permissions || {}), ...plan.permissions };
+      }
+    }
+
     const school = await prisma.school.update({
       where: { id },
-      data: { plan_id },
+      data: { plan_id, ...(mergedPermissions ? { permissions: mergedPermissions } : {}) },
     });
     res.json(school);
   } catch (err) {
@@ -904,6 +923,46 @@ async function computeInvoiceForStudent(student_id, billing_month) {
   return { student, plan, subtotal, overdue_amount, total_amount, due_date, snapshot };
 }
 
+// Render a branded PDF for a student invoice, store its URL, and email the parent.
+// Best-effort: any failure here is logged and swallowed so billing never breaks.
+async function finalizeStudentInvoicePdf(invoice, studentName) {
+  try {
+    const school = await prisma.school.findUnique({
+      where: { id: invoice.school_id },
+      select: {
+        name: true, address: true, phone: true, email_contact: true,
+        website: true, logo_url: true, primary_color: true,
+      },
+    });
+    const { renderAndUploadInvoicePdf } = require('../utils/invoicePdf');
+    const { url, buffer } = await renderAndUploadInvoicePdf({
+      invoice, school, kind: 'student', billToName: studentName, billToSub: school?.name,
+    });
+    if (url) {
+      await prisma.studentInvoice.update({ where: { id: invoice.id }, data: { pdf_url: url } });
+      invoice.pdf_url = url;
+    }
+    if (invoice.parent_id) {
+      const parent = await prisma.user.findUnique({ where: { id: invoice.parent_id }, select: { email: true } });
+      if (parent?.email) {
+        const { sendInvoiceGenerated } = require('../utils/resend');
+        await sendInvoiceGenerated({
+          adminEmail: parent.email,
+          month: invoice.billing_month,
+          amount: Number(invoice.total_amount).toFixed(2),
+          school,
+          pdfBuffer: buffer,
+          pdfUrl: url,
+        });
+      }
+    }
+    return url;
+  } catch (err) {
+    console.error('finalizeStudentInvoicePdf error:', err.message);
+    return null;
+  }
+}
+
 const generateStudentInvoice = async (req, res) => {
   try {
     const { id } = req.params;
@@ -944,6 +1003,8 @@ const generateStudentInvoice = async (req, res) => {
         },
       }).catch(() => {});
     }
+    // Branded PDF + email to parent (best-effort).
+    await finalizeStudentInvoicePdf({ ...invoice, parent_id: student?.parent_id }, c.student.name);
     res.status(201).json(invoice);
   } catch (err) {
     console.error('generateStudentInvoice error:', err.message);
@@ -972,7 +1033,7 @@ const generateAllStudentInvoices = async (req, res) => {
         });
         if (dup) { skipped++; continue; }
         const c = await computeInvoiceForStudent(s.id, billing_month);
-        await prisma.studentInvoice.create({
+        const created = await prisma.studentInvoice.create({
           data: {
             student_id: c.student.id, school_id: c.student.school_id, plan_id: c.plan.id,
             billing_month, due_date: c.due_date, subtotal: c.subtotal,
@@ -980,6 +1041,8 @@ const generateAllStudentInvoices = async (req, res) => {
             status: 'pending', line_items_snapshot: c.snapshot,
           },
         });
+        const stu = await prisma.student.findUnique({ where: { id: s.id }, select: { parent_id: true } });
+        await finalizeStudentInvoicePdf({ ...created, parent_id: stu?.parent_id }, c.student.name);
         generated++;
       } catch (e) {
         errors.push({ student_id: s.id, error: e.message });
@@ -1076,11 +1139,65 @@ const getMyStudentInvoices = async (req, res) => {
   }
 };
 
+// ─── SUBSCRIPTION (admin + parent) ────────────────────────────────────────────
+// Returns the current user's active plan(s) + the feature permissions they grant, so
+// the admin/parent subscription pages can render "what's included" from real data.
+const getMySubscription = async (req, res) => {
+  try {
+    if (req.user.role === 'admin') {
+      const school = await prisma.school.findUnique({
+        where: { id: req.user.school_id },
+        select: {
+          name: true, permissions: true,
+          pricingPlan: {
+            select: {
+              id: true, name: true, description: true, plan_type: true,
+              permissions: true, lineItems: true,
+            },
+          },
+        },
+      });
+      return res.json({
+        role: 'admin',
+        scope: 'school',
+        holder_name: school?.name || null,
+        plan: school?.pricingPlan || null,
+        effective_permissions: school?.permissions || {},
+      });
+    }
+
+    if (req.user.role === 'parent') {
+      const kids = await prisma.student.findMany({
+        where: { parent_id: req.user.id },
+        select: {
+          id: true, name: true,
+          individualPlan: {
+            select: {
+              id: true, name: true, description: true, plan_type: true,
+              permissions: true, lineItems: true,
+            },
+          },
+        },
+      });
+      const subs = kids
+        .filter(k => k.individualPlan)
+        .map(k => ({ student_id: k.id, student_name: k.name, plan: k.individualPlan }));
+      return res.json({ role: 'parent', scope: 'individual', subscriptions: subs });
+    }
+
+    return res.json({ role: req.user.role, plan: null });
+  } catch (err) {
+    console.error('getMySubscription error:', err.message);
+    res.status(500).json({ error: 'Error fetching subscription' });
+  }
+};
+
 module.exports = {
   listPlans,
   createPlan,
   updatePlan,
   deletePlan,
+  getMySubscription,
   searchStudents,
   assignIndividualPlan,
   generateStudentInvoice,

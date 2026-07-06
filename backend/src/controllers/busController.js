@@ -37,7 +37,7 @@ const getBusById = async (req, res) => {
 
 const createBus = async (req, res) => {
     try {
-        const { bus_number, capacity, registration_no, mileage, initial_fuel_liters, school_id } = req.body;
+        const { bus_number, capacity, registration_no, mileage, initial_fuel_liters, school_id, insurance_expiry, rc_expiry } = req.body;
         const schoolId = req.user.role === 'super_admin' ? (school_id || req.query.school_id) : req.user.school_id;
 
         const parsedInitialFuel = initial_fuel_liters ? parseFloat(initial_fuel_liters) : 0;
@@ -51,6 +51,8 @@ const createBus = async (req, res) => {
                 mileage: mileage ? parseFloat(mileage) : null,
                 initial_fuel_liters: parsedInitialFuel,
                 fuel_liters: parsedInitialFuel,
+                insurance_expiry: insurance_expiry ? new Date(insurance_expiry) : null,
+                rc_expiry: rc_expiry ? new Date(rc_expiry) : null,
             },
         });
 
@@ -72,6 +74,8 @@ const updateBus = async (req, res) => {
             mileage,
             fuel_liters,
             initial_fuel_liters,
+            insurance_expiry,
+            rc_expiry,
         } = req.body;
 
         const data = {};
@@ -81,6 +85,9 @@ const updateBus = async (req, res) => {
         if (mileage !== undefined) data.mileage = parseFloat(mileage);
         if (fuel_liters !== undefined) data.fuel_liters = parseFloat(fuel_liters);
         if (initial_fuel_liters !== undefined) data.initial_fuel_liters = parseFloat(initial_fuel_liters);
+        // Expiry dates — accept a date string, or '' / null to clear. Re-arm the reminder on change.
+        if (insurance_expiry !== undefined) { data.insurance_expiry = insurance_expiry ? new Date(insurance_expiry) : null; data.last_expiry_reminder_at = null; }
+        if (rc_expiry !== undefined) { data.rc_expiry = rc_expiry ? new Date(rc_expiry) : null; data.last_expiry_reminder_at = null; }
 
         const updatedBus = await prisma.bus.update({
             where: { id },

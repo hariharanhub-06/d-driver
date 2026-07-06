@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, TextInput, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { View, TextInput, KeyboardAvoidingView, Platform, Image, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useT } from '@/lib/i18n';
@@ -9,6 +10,7 @@ export default function Login() {
     const { login } = useAuth();
     const t = useTheme();
     const tr = useT();
+    const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -19,13 +21,16 @@ export default function Login() {
         setLoading(true);
         setError('');
         try {
-            await login(email.trim().toLowerCase(), password);
+            // Lowercase only emails; a mobile number is passed through unchanged.
+            const raw = email.trim();
+            const identifier = raw.includes('@') ? raw.toLowerCase() : raw;
+            await login(identifier, password);
             // Gate in _layout handles navigation by role.
         } catch (e: any) {
             setError(
                 e?.response?.data?.error ||
                     e?.response?.data?.message ||
-                    tr('Invalid email or password', 'தவறான மின்னஞ்சல் அல்லது கடவுச்சொல்'),
+                    tr('Invalid email/mobile or password', 'தவறான மின்னஞ்சல்/மொபைல் அல்லது கடவுச்சொல்'),
             );
         } finally {
             setLoading(false);
@@ -51,8 +56,8 @@ export default function Login() {
             >
                 <View style={{ alignItems: 'center', gap: t.spacing.sm, marginBottom: t.spacing.lg }}>
                     <Image
-                        source={require('../../../assets/images/Square.png')}
-                        style={{ width: 188, height: 188 }}
+                        source={require('../../../assets/images/onlive-logo.png')}
+                        style={{ width: 220, height: 120 }}
                         resizeMode="contain"
                     />
                     <AppText muted>{tr('Sign in to continue', 'தொடர உள்நுழையவும்')}</AppText>
@@ -75,15 +80,15 @@ export default function Login() {
 
                     <View style={{ gap: 6 }}>
                         <AppText size="sm" muted weight="600">
-                            {tr('Email', 'மின்னஞ்சல்')}
+                            {tr('Email or Mobile', 'மின்னஞ்சல் / மொபைல்')}
                         </AppText>
                         <TextInput
                             value={email}
                             onChangeText={setEmail}
                             autoCapitalize="none"
-                            keyboardType="email-address"
-                            autoComplete="email"
-                            placeholder="you@example.com"
+                            keyboardType="default"
+                            autoComplete="username"
+                            placeholder={tr('you@example.com or 9876543210', 'you@example.com / 9876543210')}
                             placeholderTextColor={t.color.textMuted}
                             style={inputStyle}
                         />
@@ -113,6 +118,12 @@ export default function Login() {
                         disabled={!email.trim() || !password}
                         style={{ marginTop: t.spacing.sm }}
                     />
+
+                    <Pressable onPress={() => router.push('/(auth)/forgot-password' as any)} style={{ alignSelf: 'center', paddingVertical: 4 }}>
+                        <AppText size="sm" weight="600" color={t.color.brand}>
+                            {tr('Forgot password?', 'கடவுச்சொல் மறந்துவிட்டதா?')}
+                        </AppText>
+                    </Pressable>
                 </Card>
             </KeyboardAvoidingView>
         </Screen>

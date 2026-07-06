@@ -553,8 +553,14 @@ function LandingPageTab() {
               <div className="space-y-2">
                 <p className="text-sm font-bold text-slate-800 dark:text-white">Hero</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <LField label="Badge" value={content.hero.badge} onChange={v => editC(d => { d.hero.badge = v; })} />
+                  <LField label="Trust line" value={content.hero.trustLine} onChange={v => editC(d => { d.hero.trustLine = v; })} />
+                  <LField label="Title (line 1)" value={content.hero.title} onChange={v => editC(d => { d.hero.title = v; })} />
+                  <LField label="Title accent (orange)" value={content.hero.titleAccent} onChange={v => editC(d => { d.hero.titleAccent = v; })} />
+                  <LField label="Primary button" value={content.hero.primaryCta} onChange={v => editC(d => { d.hero.primaryCta = v; })} />
                   <LField label="Secondary button" value={content.hero.secondaryCta} onChange={v => editC(d => { d.hero.secondaryCta = v; })} />
                 </div>
+                <LField label="Subtitle" textarea value={content.hero.subtitle} onChange={v => editC(d => { d.hero.subtitle = v; })} />
                 <div>
                   <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Hero image (optional — replaces the demo card)</label>
                   <ImageUpload value={content.hero.image_url || ''} onChange={url => editC(d => { d.hero.image_url = url || null; })} folder="landing" />
@@ -635,6 +641,102 @@ function LandingPageTab() {
                   <LField label="Partners heading" value={content.partnersHeading} onChange={v => editC(d => { d.partnersHeading = v; })} />
                   <LField label="Team heading" value={content.teamHeading} onChange={v => editC(d => { d.teamHeading = v; })} />
                   <LField label="Team subtitle ({product} = product name)" value={content.teamSubtitle} onChange={v => editC(d => { d.teamSubtitle = v; })} />
+                </div>
+              </div>
+
+              {/* OnLIVE section headings */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">OnLIVE section headings</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <LField label="Ecosystem heading" value={content.ecosystemHeading} onChange={v => editC(d => { d.ecosystemHeading = v; })} />
+                  <LField label="Solutions heading" value={content.solutions.heading} onChange={v => editC(d => { d.solutions.heading = v; })} />
+                  <LField label="Smart features heading" value={content.smartFeatures.heading} onChange={v => editC(d => { d.smartFeatures.heading = v; })} />
+                  <LField label="Super-app heading" value={content.superAppHeading} onChange={v => editC(d => { d.superAppHeading = v; })} />
+                  <LField label="Analytics heading" value={content.analyticsHeading} onChange={v => editC(d => { d.analyticsHeading = v; })} />
+                  <LField label="Go-green heading" value={content.goGreenHeading} onChange={v => editC(d => { d.goGreenHeading = v; })} />
+                </div>
+              </div>
+
+              {/* Solutions cards */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Solutions cards</p>
+                {content.solutions.cards.map((card, i) => (
+                  <div key={i} className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-slate-500">Solution {i + 1}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <IconSelect value={card.icon} onChange={v => editC(d => { d.solutions.cards[i].icon = v; })} />
+                      <LField label="Title" value={card.title} onChange={v => editC(d => { d.solutions.cards[i].title = v; })} />
+                      <LField label="Subtext" value={card.sub} onChange={v => editC(d => { d.solutions.cards[i].sub = v; })} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Smart features */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Smart features (icon grid)</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {content.smartFeatures.items.map((f, i) => (
+                    <div key={i} className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-2 grid grid-cols-2 gap-2">
+                      <IconSelect value={f.icon} onChange={v => editC(d => { d.smartFeatures.items[i].icon = v; })} />
+                      <LField label="Label" value={f.label} onChange={v => editC(d => { d.smartFeatures.items[i].label = v; })} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Challenges section */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Challenges Without OnLIVE</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <LField label="Title (1st word navy, rest red)" value={content.challenges.title} onChange={v => editC(d => { d.challenges.title = v; })} />
+                  <LField label="Subtitle" value={content.challenges.subtitle} onChange={v => editC(d => { d.challenges.subtitle = v; })} />
+                </div>
+                {content.challenges.groups.map((g, gi) => (
+                  <div key={gi} className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-slate-500">Column {gi + 1}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <IconSelect value={g.icon} onChange={v => editC(d => { d.challenges.groups[gi].icon = v; })} />
+                      <LField label="Role (Drivers/Parents/Schools)" value={g.role} onChange={v => editC(d => { d.challenges.groups[gi].role = v; })} />
+                      <LField label="Colour (blue/orange/purple)" value={g.color} onChange={v => editC(d => { d.challenges.groups[gi].color = v; })} />
+                      <LField label="Tagline" value={g.tagline} onChange={v => editC(d => { d.challenges.groups[gi].tagline = v; })} />
+                    </div>
+                    {g.items.map((it, ii) => (
+                      <div key={ii} className="grid grid-cols-2 gap-2">
+                        <LField label={`Item ${ii + 1} title`} value={it.title} onChange={v => editC(d => { d.challenges.groups[gi].items[ii].title = v; })} />
+                        <LField label={`Item ${ii + 1} desc`} value={it.desc} onChange={v => editC(d => { d.challenges.groups[gi].items[ii].desc = v; })} />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* Contact / demo / follow */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Contact &amp; demo section</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <LField label="Contact heading" value={content.contact.contactHeading} onChange={v => editC(d => { d.contact.contactHeading = v; })} />
+                  <LField label="Contact subtext" value={content.contact.contactSub} onChange={v => editC(d => { d.contact.contactSub = v; })} />
+                  <LField label="Demo heading" value={content.contact.demoHeading} onChange={v => editC(d => { d.contact.demoHeading = v; })} />
+                  <LField label="Demo button" value={content.contact.demoCta} onChange={v => editC(d => { d.contact.demoCta = v; })} />
+                  <LField label="Follow heading" value={content.contact.followHeading} onChange={v => editC(d => { d.contact.followHeading = v; })} />
+                </div>
+                <LField label="Demo body" textarea value={content.contact.demoBody} onChange={v => editC(d => { d.contact.demoBody = v; })} />
+              </div>
+
+              {/* Social links */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Social links</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Paste a full URL to show that icon on the landing page. Leave blank to hide it.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <LField label="Facebook URL" value={content.socials.facebook} onChange={v => editC(d => { d.socials.facebook = v; })} />
+                  <LField label="Instagram URL" value={content.socials.instagram} onChange={v => editC(d => { d.socials.instagram = v; })} />
+                  <LField label="LinkedIn URL" value={content.socials.linkedin} onChange={v => editC(d => { d.socials.linkedin = v; })} />
+                  <LField label="YouTube URL" value={content.socials.youtube} onChange={v => editC(d => { d.socials.youtube = v; })} />
+                  <LField label="X (Twitter) URL" value={content.socials.twitter} onChange={v => editC(d => { d.socials.twitter = v; })} />
+                  <LField label="WhatsApp URL" value={content.socials.whatsapp} onChange={v => editC(d => { d.socials.whatsapp = v; })} />
+                  <LField label="Telegram URL" value={content.socials.telegram} onChange={v => editC(d => { d.socials.telegram = v; })} />
+                  <LField label="Website URL" value={content.socials.website} onChange={v => editC(d => { d.socials.website = v; })} />
                 </div>
               </div>
 

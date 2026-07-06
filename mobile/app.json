@@ -5,7 +5,7 @@
     "owner": "hari-onlive",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/Icon_new.png",
     "scheme": "onlive",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -20,7 +20,7 @@
       "package": "com.onlive.app",
       "adaptiveIcon": {
         "backgroundColor": "#0a0f1e",
-        "foregroundImage": "./assets/images/android-icon-foreground.png"
+        "foregroundImage": "./assets/images/Icon_new.png"
       },
       "permissions": [
         "ACCESS_FINE_LOCATION",
@@ -36,14 +36,14 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/Icon_new.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/Icon_new.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#0a0f1e"

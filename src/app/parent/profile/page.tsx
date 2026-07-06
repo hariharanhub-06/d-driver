@@ -155,6 +155,7 @@ export default function ParentProfile() {
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
                     {[
                         { label: t('Notification Preferences', 'அறிவிப்பு விருப்பங்கள்'), sublabel: ta.notificationPreferences, href: '/parent/notifications' },
+                        { label: t('My Subscription', 'எனது சந்தா'), sublabel: t('Plan & features', 'திட்டம் & அம்சங்கள்'), href: '/parent/subscription' },
                         { label: t('Language', 'மொழி'), sublabel: 'English · தமிழ்', href: '#' },
                         { label: t('Help & Support', 'உதவி & ஆதரவு'), sublabel: ta.helpSupport, href: '#' },
                     ].map((item, idx) => (

@@ -16,13 +16,14 @@ interface BusLite {
 interface Driver {
     id: string;
     license_no?: string | null;
+    license_expiry?: string | null;
     assigned_bus_id?: string | null;
     phone?: string | null;
     user?: { id?: string; name?: string; email?: string; phone?: string; is_active?: boolean };
     bus?: BusLite | null;
 }
 
-const EMPTY = { name: '', email: '', phone: '', license_no: '', password: '', assigned_bus_id: '' };
+const EMPTY = { name: '', email: '', phone: '', license_no: '', license_expiry: '', password: '', assigned_bus_id: '' };
 
 export default function ManageDriversScreen() {
     const tr = useT();
@@ -67,6 +68,7 @@ export default function ManageDriversScreen() {
             email: d.user?.email || '',
             phone: d.user?.phone || d.phone || '',
             license_no: d.license_no || '',
+            license_expiry: d.license_expiry ? String(d.license_expiry).slice(0, 10) : '',
             password: '',
             assigned_bus_id: d.assigned_bus_id || d.bus?.id || '',
         });
@@ -80,6 +82,7 @@ export default function ManageDriversScreen() {
             if (editingId) {
                 await api.put(`/drivers/${editingId}`, {
                     license_no: form.license_no.trim() || null,
+                    license_expiry: form.license_expiry.trim() || null,
                     assigned_bus_id: form.assigned_bus_id || null,
                 });
                 // Name/phone live on the user account.
@@ -92,6 +95,7 @@ export default function ManageDriversScreen() {
                     email: form.email.trim(),
                     phone: form.phone.trim() || undefined,
                     license_no: form.license_no.trim() || undefined,
+                    license_expiry: form.license_expiry.trim() || undefined,
                     assigned_bus_id: form.assigned_bus_id || undefined,
                     ...(form.password ? { password: form.password } : {}),
                 });
@@ -180,6 +184,7 @@ export default function ManageDriversScreen() {
                 <Field label={tr('Email', 'மின்னஞ்சல்')} value={form.email} onChangeText={(v) => setForm((f) => ({ ...f, email: v }))} keyboardType="email-address" editable={!editingId} placeholder="ravi@school.com" />
                 <Field label={tr('Phone', 'தொலைபேசி')} value={form.phone} onChangeText={(v) => setForm((f) => ({ ...f, phone: v }))} keyboardType="phone-pad" editable={!editingId} placeholder="9876543210" />
                 <Field label={tr('License No.', 'உரிம எண்')} value={form.license_no} onChangeText={(v) => setForm((f) => ({ ...f, license_no: v }))} autoCapitalize="characters" placeholder="TN-1234" />
+                <Field label={tr('License Expiry (YYYY-MM-DD)', 'உரிமம் முடிவு (YYYY-MM-DD)')} value={form.license_expiry} onChangeText={(v) => setForm((f) => ({ ...f, license_expiry: v }))} placeholder="2027-05-20" />
                 {!editingId ? (
                     <Field label={tr('Temporary Password (optional)', 'தற்காலிக கடவுச்சொல்')} value={form.password} onChangeText={(v) => setForm((f) => ({ ...f, password: v }))} placeholder={tr('Auto-generated if blank', 'வெறுமையாக இருந்தால் தானாக')} />
                 ) : null}

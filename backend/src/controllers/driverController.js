@@ -44,7 +44,7 @@ const getDriverById = async (req, res) => {
 
 const createDriver = async (req, res) => {
     try {
-        const { user_id, license_no, assigned_bus_id, school_id, name, email: rawEmail, phone, password: providedPassword } = req.body;
+        const { user_id, license_no, license_expiry, assigned_bus_id, school_id, name, email: rawEmail, phone, password: providedPassword } = req.body;
         const effectiveSchoolId = req.user.role === 'super_admin' ? school_id : req.user.school_id;
 
         let resolvedUserId = user_id;
@@ -87,7 +87,7 @@ const createDriver = async (req, res) => {
         }
 
         const newDriver = await prisma.driver.create({
-            data: { user_id: resolvedUserId, license_no: license_no || null, assigned_bus_id: assigned_bus_id || null, school_id: effectiveSchoolId },
+            data: { user_id: resolvedUserId, license_no: license_no || null, license_expiry: license_expiry ? new Date(license_expiry) : null, assigned_bus_id: assigned_bus_id || null, school_id: effectiveSchoolId },
             include: {
                 user: { select: { id: true, name: true, email: true, phone: true, is_active: true } },
                 bus: { select: { id: true, bus_number: true } },
@@ -115,10 +115,32 @@ const updateDriver = async (req, res) => {
             if (!existing) return res.status(404).json({ error: 'Driver not found' });
             if (existing.school_id !== schoolId) return res.status(403).json({ error: 'Access denied' });
         }
+        const { license_no, license_expiry, assigned_bus_id, name, email, phone } = req.body;
+
+        // Driver-model fields only (name/email/phone live on the linked User, updated below).
+        const data = {};
+        if (license_no !== undefined) data.license_no = license_no || null;
+        if (assigned_bus_id !== undefined) data.assigned_bus_id = assigned_bus_id || null;
+        if (license_expiry !== undefined) {
+            data.license_expiry = license_expiry ? new Date(license_expiry) : null;
+            data.last_expiry_reminder_at = null; // re-arm the daily reminder on change
+        }
+
         const updatedDriver = await prisma.driver.update({
             where: { id },
-            data: req.body,
+            data,
+            include: { user: { select: { id: true } } },
         });
+
+        // Keep the linked User account in sync when the form edits those fields.
+        const userData = {};
+        if (name !== undefined) userData.name = name;
+        if (email !== undefined) userData.email = email?.toLowerCase().trim();
+        if (phone !== undefined) userData.phone = phone || null;
+        if (Object.keys(userData).length && updatedDriver.user?.id) {
+            await prisma.user.update({ where: { id: updatedDriver.user.id }, data: userData }).catch(() => {});
+        }
+
         await logAction({ req, action: 'update_driver', targetType: 'driver', targetId: id });
         res.json(updatedDriver);
     } catch (error) {

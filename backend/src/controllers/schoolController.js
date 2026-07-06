@@ -28,7 +28,7 @@ const getAllSchools = async (req, res) => {
       where,
       select: {
         id: true, name: true, slug: true, status: true, logo_url: true,
-        primary_color: true, address: true, phone: true, email_contact: true,
+        primary_color: true, address: true, phone: true, email_contact: true, website: true,
         permissions: true, plan_id: true, created_at: true, razorpay_configured: true,
         assigned_sa_id: true,
         assignedSA: { select: { id: true, name: true, email: true } },
@@ -55,7 +55,7 @@ const getSchoolById = async (req, res) => {
       where: { id },
       select: {
         id: true, name: true, slug: true, status: true, logo_url: true,
-        primary_color: true, address: true, phone: true, email_contact: true,
+        primary_color: true, address: true, phone: true, email_contact: true, website: true,
         permissions: true, plan_id: true, subscription_plan: true, billing_due_day: true, created_at: true,
         notification_email: true, razorpay_configured: true, onboarding_dismissed: true,
         tour_completed: true, suspended_at: true, suspension_reason: true, assigned_sa_id: true,
@@ -77,7 +77,7 @@ const getSchoolById = async (req, res) => {
 const registerSchool = async (req, res) => {
   try {
     const {
-      name, slug, address, phone, email_contact, logo_url, primary_color,
+      name, slug, address, phone, email_contact, website, logo_url, primary_color,
       plan_id, admin_name, admin_email, admin_phone, admin_password,
     } = req.body;
 
@@ -89,7 +89,7 @@ const registerSchool = async (req, res) => {
 
     const school = await prisma.school.create({
       data: {
-        name, slug, address, phone, email_contact, logo_url, primary_color,
+        name, slug, address, phone, email_contact, website: website || null, logo_url, primary_color,
         plan_id: plan_id || null,
         status: 'active',
         assigned_sa_id: req.user.is_dev_sa ? null : req.user.id,
@@ -144,7 +144,7 @@ const updateSchool = async (req, res) => {
   try {
     const { id } = req.params;
     const allowed = [
-      'name', 'address', 'phone', 'email_contact', 'logo_url',
+      'name', 'address', 'phone', 'email_contact', 'website', 'logo_url',
       'primary_color', 'plan_id', 'subscription_plan', 'notification_email',
     ];
     const data = {};
@@ -327,7 +327,33 @@ const getSchoolBranding = async (req, res) => {
       where: { id: req.user.school_id },
       select: { name: true, logo_url: true, primary_color: true, slug: true, permissions: true },
     });
-    res.json(school || {});
+    if (!school) return res.json({});
+
+    let permissions = school.permissions || {};
+
+    // Individual-plan parents: a feature is available only if the SCHOOL allows it AND at
+    // least one of the parent's children is on an individual plan that grants it. Plans with
+    // no permissions set (the default) don't restrict anything — fully backward compatible.
+    if (req.user.role === 'parent') {
+      const kids = await prisma.student.findMany({
+        where: { parent_id: req.user.id, individual_plan_id: { not: null } },
+        select: { individualPlan: { select: { permissions: true } } },
+      });
+      const planPerms = kids.map(k => k.individualPlan?.permissions).filter(p => p && typeof p === 'object');
+      if (planPerms.length) {
+        const eff = { ...permissions };
+        const keys = new Set();
+        planPerms.forEach(p => Object.keys(p).forEach(k => keys.add(k)));
+        for (const k of keys) {
+          const schoolAllows = permissions[k] !== false;
+          const anyPlanAllows = planPerms.some(p => p[k] === true);
+          eff[k] = schoolAllows && anyPlanAllows;
+        }
+        permissions = eff;
+      }
+    }
+
+    res.json({ ...school, permissions });
   } catch (err) {
     res.status(500).json({ error: 'Error fetching school branding' });
   }

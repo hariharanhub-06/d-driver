@@ -199,7 +199,11 @@ setMaintenanceIo(io);
 const cron = require('node-cron');
 const { startFeeAlertJob } = require('./jobs/feeAlertJob');
 const { startAutoBillingJob } = require('./jobs/autoBillingJob');
+const { startExpiryAlertJob } = require('./jobs/expiryAlertJob');
 startFeeAlertJob();
+// Daily reminder to school admins when a bus insurance/RC or a driver licence is within
+// 5 days of expiry (or already expired). Fires once per day per record.
+startExpiryAlertJob();
 // Automated billing: per-school invoices 5 days before each school's due day, individual
 // (per-student) invoices on their cadence, and overdue reminders. Supersedes the old
 // fixed monthly cron (which ignored per-school due dates).

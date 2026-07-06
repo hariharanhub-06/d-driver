@@ -42,19 +42,13 @@ function IconRequests({ active }: { active: boolean }) {
         </svg>
     );
 }
-function IconBell({ active, badge }: { active: boolean; badge?: number }) {
+function IconPassport({ active }: { active: boolean }) {
     return (
-        <div className="relative">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--brand)' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-            {badge && badge > 0 ? (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 bg-red-500 rounded-full text-white text-[9px] font-black flex items-center justify-center px-0.5 leading-none">
-                    {badge > 9 ? '9+' : badge}
-                </span>
-            ) : null}
-        </div>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? 'var(--brand)' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="2" width="16" height="20" rx="2"/>
+            <circle cx="12" cy="10" r="3"/>
+            <path d="M8 18h8"/>
+        </svg>
     );
 }
 function IconUser({ active }: { active: boolean }) {
@@ -96,10 +90,10 @@ function ParentNav() {
             disabled: false,
         },
         {
-            href: '/parent/notifications',
-            labelEn: 'Alerts',
-            labelTa: ta.alerts,
-            icon: (active: boolean) => <IconBell active={active} />,
+            href: '/parent/passport',
+            labelEn: 'Passport',
+            labelTa: 'பாஸ்போர்ட்',
+            icon: (active: boolean) => <IconPassport active={active} />,
             disabled: false,
         },
         {

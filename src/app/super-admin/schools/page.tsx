@@ -21,6 +21,7 @@ interface School {
     name: string;
     slug: string;
     address?: string;
+    website?: string;
     logo_url?: string;
     primary_color?: string;
     status: string;
@@ -94,7 +95,7 @@ export default function SchoolsManagement() {
 
     const [formData, setFormData] = useState({
         name: '', slug: '', address: '', primary_color: '#3B82F6', logo_url: '',
-        phone: '', email_contact: '',
+        phone: '', email_contact: '', website: '',
         // First admin (only for new school)
         admin_name: '', admin_email: '', admin_phone: '', admin_password: '',
     });
@@ -179,7 +180,7 @@ export default function SchoolsManagement() {
 
     const openCreate = () => {
         setEditingId(null);
-        setFormData({ name: '', slug: '', address: '', primary_color: '#3B82F6', logo_url: '', phone: '', email_contact: '', admin_name: '', admin_email: '', admin_phone: '', admin_password: '' });
+        setFormData({ name: '', slug: '', address: '', primary_color: '#3B82F6', logo_url: '', phone: '', email_contact: '', website: '', admin_name: '', admin_email: '', admin_phone: '', admin_password: '' });
         setPermissions(DEFAULT_PERMISSIONS);
         setLogoFile(null);
         setActiveTab('profile');
@@ -194,7 +195,7 @@ export default function SchoolsManagement() {
         setFormData({
             name: school.name || '', slug: school.slug || '',
             address: school.address || '', primary_color: school.primary_color || '#3B82F6',
-            logo_url: school.logo_url || '', phone: '', email_contact: '',
+            logo_url: school.logo_url || '', phone: '', email_contact: '', website: school.website || '',
             admin_name: '', admin_email: '', admin_phone: '', admin_password: '',
         });
         setPermissions({ ...DEFAULT_PERMISSIONS, ...(school.permissions || {}) });
@@ -252,6 +253,7 @@ export default function SchoolsManagement() {
                     logo_url: finalLogoUrl || undefined,
                     phone: formData.phone || undefined,
                     email_contact: formData.email_contact || undefined,
+                    website: formData.website || '',
                 });
                 // Update permissions separately
                 await api.put(`/schools/${editingId}/permissions`, { permissions });
@@ -265,6 +267,7 @@ export default function SchoolsManagement() {
                     logo_url: finalLogoUrl || undefined,
                     phone: formData.phone || undefined,
                     email_contact: formData.email_contact || undefined,
+                    website: formData.website || undefined,
                     admin_name: formData.admin_name, admin_email: formData.admin_email,
                     admin_phone: formData.admin_phone || undefined,
                     admin_password: formData.admin_password,
@@ -666,6 +669,12 @@ export default function SchoolsManagement() {
                                             <div>
                                                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('Address', 'முகவரி')}</label>
                                                 <input type="text" value={formData.address} onChange={e => setFormData(p => ({ ...p, address: e.target.value }))} placeholder="123 Main St, Chennai, Tamil Nadu" className={inputCls} />
+                                            </div>
+
+                                            {/* Row 2b: Website (optional) — links the school name on the landing page */}
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">{t('Website', 'இணையதளம்')} <span className="text-slate-400 normal-case font-normal">({t('optional', 'விருப்பம்')})</span></label>
+                                                <input type="url" value={formData.website} onChange={e => setFormData(p => ({ ...p, website: e.target.value }))} placeholder="https://school.edu" className={inputCls} />
                                             </div>
 
                                             {/* Row 3: Logo + Brand Color */}

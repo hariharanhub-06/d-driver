@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bus, AlertTriangle, MapPin, Phone, X, Navigation, User2, GraduationCap } from 'lucide-react';
+import { Bus, AlertTriangle, MapPin, Phone, X, Navigation, User2, GraduationCap, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useSchoolBranding } from '@/context/SchoolBrandingContext';
@@ -64,6 +64,7 @@ export default function ParentDashboard() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [showCardDetails, setShowCardDetails] = useState(false);
     const [showAbsentModal, setShowAbsentModal] = useState(false);
     const [activeChildId, setActiveChildId] = useState<string | null>(null);
     const today = new Date().toLocaleDateString('en-CA');
@@ -186,6 +187,58 @@ export default function ParentDashboard() {
                 {loading && (
                     <div className="flex justify-center py-12">
                         <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin" />
+                    </div>
+                )}
+
+                {/* Parent visiting card — welcome + bus/student summary, expandable for full details */}
+                {!loading && primaryChild && (
+                    <div className="bg-gradient-to-br from-[var(--brand)] to-[var(--accent)] rounded-2xl shadow-lg overflow-hidden text-white">
+                        <div className="p-5">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="text-white/80 text-xs font-semibold uppercase tracking-wider">{t('Welcome', 'வரவேற்பு')}</p>
+                                    <p className="text-lg font-black leading-tight truncate">{user?.name || t('Parent', 'பெற்றோர்')}</p>
+                                </div>
+                                <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                                    <User2 className="w-5 h-5" />
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                                <span className="inline-flex items-center gap-1.5 bg-white/15 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
+                                    <GraduationCap className="w-3.5 h-3.5" /> {primaryChild.name}{primaryChild.grade ? ` · ${primaryChild.grade}${primaryChild.section ? '-' + primaryChild.section : ''}` : ''}
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 bg-white/15 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
+                                    <Bus className="w-3.5 h-3.5" /> {busNumber || t('No bus', 'பேருந்து இல்லை')}
+                                </span>
+                            </div>
+                        </div>
+                        {/* Expandable details */}
+                        <div className={`transition-all duration-300 overflow-hidden ${showCardDetails ? 'max-h-72' : 'max-h-0'}`}>
+                            <div className="px-5 pb-4 pt-1 space-y-2 border-t border-white/15">
+                                {[
+                                    { label: t('Route', 'வழி'), value: routeName || '—' },
+                                    { label: t('Stop', 'நிறுத்தம்'), value: stopName ? stopName + (primaryChild.stop?.pickup_time ? ` · ${primaryChild.stop.pickup_time}` : '') : '—' },
+                                    { label: t('Driver', 'ஓட்டுநர்'), value: driverName || t('Not assigned', 'ஒதுக்கப்படவில்லை') },
+                                ].map(row => (
+                                    <div key={row.label} className="flex items-center justify-between text-sm">
+                                        <span className="text-white/70">{row.label}</span>
+                                        <span className="font-semibold text-right truncate ml-3">{row.value}</span>
+                                    </div>
+                                ))}
+                                {driverPhone && (
+                                    <a href={`tel:${driverPhone}`} className="flex items-center justify-center gap-1.5 bg-white text-[var(--brand)] rounded-lg px-3 py-2 text-xs font-bold mt-2 active:scale-95 transition-all">
+                                        <Phone className="w-3.5 h-3.5" /> {t('Call Driver', 'ஓட்டுநரை அழை')}
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setShowCardDetails(v => !v)}
+                            className="w-full flex items-center justify-center gap-1 bg-white/10 hover:bg-white/20 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors"
+                        >
+                            {showCardDetails ? t('Hide details', 'விவரங்களை மறை') : t('View more details', 'மேலும் விவரங்கள்')}
+                            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showCardDetails ? 'rotate-180' : ''}`} />
+                        </button>
                     </div>
                 )}
 

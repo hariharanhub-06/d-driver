@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   Receipt, CreditCard, CheckCircle2, AlertCircle, Clock,
-  ChevronDown, ChevronUp, Loader2, IndianRupee,
+  ChevronDown, ChevronUp, Loader2, IndianRupee, Download,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,7 @@ interface Invoice {
   paid_at?: string;
   payment_method?: string;
   razorpay_order_id?: string;
+  pdf_url?: string;
   line_items_snapshot?: {
     plan_name?: string;
     line_items?: LineItem[];
@@ -243,6 +244,17 @@ export default function AdminBillingPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 ml-auto">
+                      {inv.pdf_url && (
+                        <a
+                          href={inv.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-white rounded-xl px-4 py-2.5 font-semibold text-sm hover:border-[var(--brand)] transition-all"
+                          title="Download invoice PDF"
+                        >
+                          <Download className="w-3.5 h-3.5" /> PDF
+                        </a>
+                      )}
                       {(inv.status === 'pending' || inv.status === 'overdue') && (
                         <button
                           onClick={() => handlePayOnline(inv)}

@@ -12,13 +12,15 @@ type Bus = {
     registration_no?: string;
     mileage?: number;
     fuel_liters?: number;
+    insurance_expiry?: string | null;
+    rc_expiry?: string | null;
     current_status?: string;
     drivers?: { id: string; user: { id: string; name: string } }[];
 };
 
 type DriverOption = { id: string; user: { id: string; name: string }; assigned_bus_id?: string | null; bus?: { id: string; bus_number: string } };
 
-const EMPTY_FORM = { bus_number: '', capacity: '', registration_no: '', mileage: '', initial_fuel_liters: '' };
+const EMPTY_FORM = { bus_number: '', capacity: '', registration_no: '', mileage: '', initial_fuel_liters: '', insurance_expiry: '', rc_expiry: '' };
 
 function fuelColor(liters?: number) {
     if (!liters && liters !== 0) return 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400';
@@ -84,6 +86,8 @@ export default function BusesPage() {
             registration_no: bus.registration_no || '',
             mileage: bus.mileage ? String(bus.mileage) : '',
             initial_fuel_liters: bus.fuel_liters ? String(bus.fuel_liters) : '',
+            insurance_expiry: bus.insurance_expiry ? String(bus.insurance_expiry).slice(0, 10) : '',
+            rc_expiry: bus.rc_expiry ? String(bus.rc_expiry).slice(0, 10) : '',
         });
         setFormError('');
         setIsModalOpen(true);
@@ -105,6 +109,9 @@ export default function BusesPage() {
                 ...(formData.registration_no && { registration_no: formData.registration_no }),
                 ...(formData.mileage && { mileage: parseFloat(formData.mileage) }),
                 ...(formData.initial_fuel_liters && { initial_fuel_liters: parseFloat(formData.initial_fuel_liters) }),
+                // Always send expiry dates (even blank) so clearing them persists on edit.
+                insurance_expiry: formData.insurance_expiry || null,
+                rc_expiry: formData.rc_expiry || null,
             };
             if (editBus) {
                 const { data } = await api.put(`/buses/${editBus.id}`, payload);
@@ -431,6 +438,27 @@ export default function BusesPage() {
                                         className={inputCls}
                                         value={formData.initial_fuel_liters}
                                         onChange={e => setFormData({ ...formData, initial_fuel_liters: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            {/* Compliance expiry dates — admin is reminded daily from 5 days before expiry */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className={labelCls}>{t('Insurance Expiry', 'காப்பீடு முடிவு')}</label>
+                                    <input
+                                        type="date"
+                                        className={inputCls}
+                                        value={formData.insurance_expiry}
+                                        onChange={e => setFormData({ ...formData, insurance_expiry: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className={labelCls}>{t('RC Expiry', 'RC முடிவு')}</label>
+                                    <input
+                                        type="date"
+                                        className={inputCls}
+                                        value={formData.rc_expiry}
+                                        onChange={e => setFormData({ ...formData, rc_expiry: e.target.value })}
                                     />
                                 </div>
                             </div>

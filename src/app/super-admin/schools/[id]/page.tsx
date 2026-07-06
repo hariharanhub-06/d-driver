@@ -18,6 +18,7 @@ interface School {
     phone?: string;
     email?: string;
     email_contact?: string;
+    website?: string;
     logo_url?: string;
     primary_color?: string;
     status: string;
@@ -116,6 +117,7 @@ export default function SchoolDetailPage() {
                     address: s.address || '',
                     phone: s.phone || '',
                     email: s.email_contact || s.email || '',
+                    website: s.website || '',
                     logo_url: s.logo_url || '',
                     primary_color: s.primary_color || '#3B82F6',
                 });
@@ -140,6 +142,7 @@ export default function SchoolDetailPage() {
                 address: editForm.address || '',
                 phone: editForm.phone || '',
                 email_contact: editForm.email || '',
+                website: editForm.website || '',
                 logo_url: editForm.logo_url || '',
                 primary_color: editForm.primary_color || '#3B82F6',
                 plan_id: selectedPlan || null,
@@ -323,18 +326,23 @@ export default function SchoolDetailPage() {
                 })()}
             </div>
 
-            {/* Quick stats */}
+            {/* Quick stats — each tile drills into that school's detail subpage */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                    { label: t('Buses', 'பேருந்துகள்'), value: school._count?.buses ?? 0 },
-                    { label: t('Students', 'மாணவர்கள்'), value: school._count?.students ?? 0 },
-                    { label: t('Drivers', 'ஓட்டுநர்கள்'), value: school._count?.drivers ?? 0 },
-                    { label: t('Routes', 'வழிகள்'), value: school._count?.routes ?? 0 },
+                    { label: t('Buses', 'பேருந்துகள்'), value: school._count?.buses ?? 0, seg: 'buses' },
+                    { label: t('Students', 'மாணவர்கள்'), value: school._count?.students ?? 0, seg: 'students' },
+                    { label: t('Drivers', 'ஓட்டுநர்கள்'), value: school._count?.drivers ?? 0, seg: 'drivers' },
+                    { label: t('Routes', 'வழிகள்'), value: school._count?.routes ?? 0, seg: 'routes' },
                 ].map(s => (
-                    <div key={s.label} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center min-w-0">
-                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{s.value}</p>
+                    <button
+                        key={s.label}
+                        type="button"
+                        onClick={() => router.push(`/super-admin/schools/${id}/${s.seg}`)}
+                        className="group bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-4 text-center min-w-0 transition-all hover:border-[var(--brand)] hover:shadow-md active:scale-[0.98] cursor-pointer"
+                    >
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white group-hover:text-[var(--brand)] transition-colors">{s.value}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1 truncate">{s.label}</p>
-                    </div>
+                    </button>
                 ))}
             </div>
 
@@ -367,6 +375,7 @@ export default function SchoolDetailPage() {
                             { label: t('Address', 'முகவரி'), key: 'address' as const },
                             { label: t('Phone', 'தொலைபேசி'), key: 'phone' as const },
                             { label: t('Email', 'மின்னஞ்சல்'), key: 'email' as const },
+                            { label: t('Website', 'இணையதளம்'), key: 'website' as const },
                         ].map(field => (
                             <div key={field.key}>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{field.label}</label>

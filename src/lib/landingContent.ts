@@ -12,13 +12,34 @@ import {
 export interface FeatureCard { icon: string; color: string; badge: string; title: string; desc: string }
 export interface FeaturePill { icon: string; color: string; label: string; sub: string }
 export interface HowStep { icon: string; color: string; title: string; desc: string }
+export interface ChallengeItem { title: string; desc: string }
+export interface ChallengeGroup { role: string; tagline: string; icon: string; color: string; items: ChallengeItem[] }
+
+export interface SolutionCardC { icon: string; title: string; sub: string }
+export interface SmartFeatureC { icon: string; label: string }
 
 export interface LandingContent {
     nav: { features: string; how: string; schools: string; signIn: string };
-    hero: { secondaryCta: string; image_url: string | null };
+    hero: {
+        secondaryCta: string; image_url: string | null;
+        // OnLIVE ecosystem-design hero copy (all editable by the super-admin).
+        badge: string; title: string; titleAccent: string; subtitle: string;
+        primaryCta: string; trustLine: string;
+    };
+    // New OnLIVE-design editable marketing sections.
+    ecosystemHeading: string;
+    solutions: { heading: string; cards: SolutionCardC[] };
+    smartFeatures: { heading: string; items: SmartFeatureC[] };
+    superAppHeading: string;
+    analyticsHeading: string;
+    goGreenHeading: string;
+    contact: { contactHeading: string; contactSub: string; demoHeading: string; demoBody: string; demoCta: string; followHeading: string };
+    // Social links — a platform's icon is shown ONLY when its URL is filled in.
+    socials: { facebook: string; instagram: string; linkedin: string; youtube: string; twitter: string; whatsapp: string; telegram: string; website: string };
     statLabels: { schools: string; parents: string; buses_live: string; drivers: string; staff_admins: string };
     features: { badge: string; title: string; subtitle: string; cards: FeatureCard[]; pills: FeaturePill[] };
     how: { badge: string; title: string; subtitle: string; steps: HowStep[] };
+    challenges: { badge: string; title: string; subtitle: string; groups: ChallengeGroup[] };
     schoolsHeading: string;
     partnersHeading: string;
     teamHeading: string;
@@ -53,7 +74,53 @@ export const colorFor = (name?: string) => COLOR_MAP[name || ''] || COLOR_MAP.gr
 
 export const DEFAULT_LANDING_CONTENT: LandingContent = {
     nav: { features: 'Features', how: 'How It Works', schools: 'Schools', signIn: 'Sign In' },
-    hero: { secondaryCta: 'See How It Works', image_url: null },
+    hero: {
+        secondaryCta: 'Explore Ecosystem', image_url: null,
+        badge: "India's First AI-Powered",
+        title: 'Smart Transport', titleAccent: 'Ecosystem',
+        subtitle: 'One Platform. Every Journey. Every Student. Every Parent. Every School.',
+        primaryCta: 'Book a Demo',
+        trustLine: 'Trusted by 5000+ Schools & 10 Lakh+ Parents',
+    },
+    ecosystemHeading: 'OnLIVE Transport Ecosystem',
+    solutions: {
+        heading: 'Powerful Solutions for Everyone',
+        cards: [
+            { icon: 'MapPin', title: 'Live GPS Tracking', sub: 'Real-time location of every vehicle' },
+            { icon: 'Route', title: 'Smart Route Optimization', sub: 'AI-powered efficient & safe routes' },
+            { icon: 'CheckCircle2', title: 'Attendance Management', sub: 'Automated student & driver attendance' },
+            { icon: 'CreditCard', title: 'Cashless Payment', sub: 'Fees, tickets & more — all digital' },
+            { icon: 'Heart', title: 'Parent-Student Engagement', sub: 'Connect, engage & grow together' },
+            { icon: 'Bell', title: 'Transport Alerts', sub: 'Vehicle Health, Fuel, Reports & more' },
+            { icon: 'Users', title: 'School ERP', sub: 'Complete school management' },
+            { icon: 'Star', title: 'Student Talent Passport', sub: 'Discover, record & nurture talent' },
+            { icon: 'Bus', title: 'Fleet Management', sub: 'Vehicle health, fuel, maintenance & more' },
+        ],
+    },
+    smartFeatures: {
+        heading: 'Smart Features at a Glance',
+        items: [
+            { icon: 'MapPin', label: 'Live Tracking' }, { icon: 'Bell', label: 'ETA & Alerts' },
+            { icon: 'CheckCircle2', label: 'Student Attendance' }, { icon: 'FileText', label: 'Digital ID Card' },
+            { icon: 'Route', label: 'Route Optimization' }, { icon: 'BarChart3', label: 'Trip Reports' },
+            { icon: 'Gauge', label: 'Vehicle Health' }, { icon: 'Navigation', label: 'Driver Behavior' },
+            { icon: 'Fuel', label: 'Fuel Monitoring' }, { icon: 'Bell', label: 'Maintenance Alerts' },
+            { icon: 'CreditCard', label: 'Cashless Payments' }, { icon: 'ShieldCheck', label: 'SOS Emergency' },
+            { icon: 'Heart', label: 'Go Green Initiative' }, { icon: 'Users', label: 'Parent-Student Engagement' },
+        ],
+    },
+    superAppHeading: 'Simple. Smart. Super App Experience',
+    analyticsHeading: 'Analytics Dashboard Preview',
+    goGreenHeading: 'Go Green Initiative',
+    contact: {
+        contactHeading: 'CONTACT US',
+        contactSub: "Let's Connect & Build the Future of Smart School Mobility",
+        demoHeading: 'BOOK A FREE DEMO TODAY!',
+        demoBody: 'Our experts are ready to help your school digitize transport management.',
+        demoCta: 'Schedule a Free Demo',
+        followHeading: 'Follow OnLIVE',
+    },
+    socials: { facebook: '', instagram: '', linkedin: '', youtube: '', twitter: '', whatsapp: '', telegram: '', website: '' },
     statLabels: {
         schools: 'Schools', parents: 'Parents Enrolled', buses_live: 'Buses Live Now',
         drivers: 'Drivers', staff_admins: 'Staff & Admins',
@@ -84,6 +151,40 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
             { icon: 'Bell', color: 'orange', title: 'Parents Track Live', desc: 'Parents watch the bus on a real-time map. Get a "Bus 1 km away" alert. See their child marked as boarded — every mile, every child.' },
         ],
     },
+    challenges: {
+        badge: 'The Problem',
+        title: 'Challenges Without OnLIVE',
+        subtitle: 'Real problems, every day — for drivers on the road, parents waiting at home, and schools drowning in manual work.',
+        groups: [
+            {
+                role: 'Drivers', tagline: 'On the road. Under pressure.', icon: 'Navigation', color: 'blue',
+                items: [
+                    { title: 'Constant calls from parents', desc: 'Distracted driving every day.' },
+                    { title: 'Difficulty finding students', desc: 'Unfamiliar routes and wrong stops.' },
+                    { title: 'Manual attendance', desc: 'Time-consuming and error-prone.' },
+                    { title: 'No emergency support', desc: 'No help in case of breakdowns.' },
+                ],
+            },
+            {
+                role: 'Parents', tagline: 'Worry. Waiting. No updates.', icon: 'MapPin', color: 'orange',
+                items: [
+                    { title: '“Where is my child?”', desc: 'No real-time information about the bus.' },
+                    { title: 'No live bus location', desc: "Can't track the bus in real-time." },
+                    { title: 'Driver not answering', desc: 'Calls go unanswered when needed most.' },
+                    { title: 'Daily anxiety and stress', desc: 'Worry becomes a routine.' },
+                ],
+            },
+            {
+                role: 'Schools', tagline: 'Manual work. More complaints.', icon: 'Users', color: 'purple',
+                items: [
+                    { title: 'Hundreds of parent calls', desc: 'Front desk overwhelmed all day.' },
+                    { title: 'Manual attendance management', desc: 'Time-consuming and prone to errors.' },
+                    { title: 'No centralized transport system', desc: 'Information scattered and unorganized.' },
+                    { title: 'Poor parent satisfaction', desc: 'Affects trust and school reputation.' },
+                ],
+            },
+        ],
+    },
     schoolsHeading: 'Trusted by Schools',
     partnersHeading: 'Our Partners',
     teamHeading: 'Meet the Team',
@@ -108,6 +209,20 @@ export function mergeLandingContent(saved: any): LandingContent {
     return {
         nav: { ...d.nav, ...s.nav },
         hero: { ...d.hero, ...s.hero },
+        ecosystemHeading: s.ecosystemHeading ?? d.ecosystemHeading,
+        solutions: {
+            ...d.solutions, ...s.solutions,
+            cards: Array.isArray(s.solutions?.cards) && s.solutions.cards.length ? s.solutions.cards : d.solutions.cards,
+        },
+        smartFeatures: {
+            ...d.smartFeatures, ...s.smartFeatures,
+            items: Array.isArray(s.smartFeatures?.items) && s.smartFeatures.items.length ? s.smartFeatures.items : d.smartFeatures.items,
+        },
+        superAppHeading: s.superAppHeading ?? d.superAppHeading,
+        analyticsHeading: s.analyticsHeading ?? d.analyticsHeading,
+        goGreenHeading: s.goGreenHeading ?? d.goGreenHeading,
+        contact: { ...d.contact, ...s.contact },
+        socials: { ...d.socials, ...s.socials },
         statLabels: { ...d.statLabels, ...s.statLabels },
         features: {
             ...d.features, ...s.features,
@@ -117,6 +232,10 @@ export function mergeLandingContent(saved: any): LandingContent {
         how: {
             ...d.how, ...s.how,
             steps: Array.isArray(s.how?.steps) && s.how.steps.length ? s.how.steps : d.how.steps,
+        },
+        challenges: {
+            ...d.challenges, ...s.challenges,
+            groups: Array.isArray(s.challenges?.groups) && s.challenges.groups.length ? s.challenges.groups : d.challenges.groups,
         },
         schoolsHeading: s.schoolsHeading ?? d.schoolsHeading,
         partnersHeading: s.partnersHeading ?? d.partnersHeading,

@@ -25,12 +25,29 @@ const signRefresh = (user) =>
 
 const login = async (req, res) => {
   try {
-    const { email: rawEmail, password } = req.body;
-    const email = rawEmail?.toLowerCase().trim();
+    // Accept either an email or a mobile number. Older clients send `email`; newer
+    // clients send `identifier`. An "@" means email; anything else is treated as a phone
+    // (digits are normalised so "+91 90000 00000" / "090000-00000" all match a stored phone).
+    const { identifier: rawIdentifier, email: rawEmail, password } = req.body;
+    const raw = (rawIdentifier ?? rawEmail ?? '').trim();
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    let user = null;
+    if (raw.includes('@')) {
+      user = await prisma.user.findUnique({ where: { email: raw.toLowerCase() } });
+    } else {
+      const digits = raw.replace(/\D/g, '');
+      // Match on the stored phone, tolerating a leading country code (e.g. 91) on either side.
+      const candidates = [raw, digits];
+      if (digits.length > 10) candidates.push(digits.slice(-10));
+      for (const c of candidates) {
+        if (!c) continue;
+        user = await prisma.user.findUnique({ where: { phone: c } });
+        if (user) break;
+      }
+    }
+
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Invalid email/mobile or password' });
     }
     if (!user.is_active) {
       return res.status(403).json({ error: 'Account deactivated. Contact your administrator.' });
@@ -180,9 +197,20 @@ const forgotPassword = async (req, res) => {
   try {
     const { value, method } = req.body; // value = email or phone
 
-    const user = method === 'email'
-      ? await prisma.user.findUnique({ where: { email: value } })
-      : await prisma.user.findUnique({ where: { phone: value } });
+    let user = null;
+    if (method === 'email') {
+      user = await prisma.user.findUnique({ where: { email: value?.toLowerCase().trim() } });
+    } else {
+      // Normalise the phone the same way login does so formatted numbers still match.
+      const digits = (value || '').replace(/\D/g, '');
+      const candidates = [value?.trim(), digits];
+      if (digits.length > 10) candidates.push(digits.slice(-10));
+      for (const c of candidates) {
+        if (!c) continue;
+        user = await prisma.user.findUnique({ where: { phone: c } });
+        if (user) break;
+      }
+    }
 
     // Always return success to prevent user enumeration
     if (!user) return res.json({ message: 'If an account exists, a reset link has been sent.' });

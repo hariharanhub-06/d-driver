@@ -2,34 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useTheme } from 'next-themes';
 import LandingInstallButton from '@/components/LandingInstallButton';
 import {
-  Bus,
-  Users,
-  CheckCircle2,
-  MapPin,
-  Navigation,
-  Menu,
-  X,
-  Linkedin,
-  Mail,
-  Phone,
-  ChevronRight,
-  Sun,
-  Moon,
+  Bus, Users, CheckCircle2, MapPin, Navigation, Menu, X, Linkedin, Mail, Phone, Globe,
+  ShieldCheck, Zap, Leaf, Cpu, Bell, BarChart3, CreditCard, Route as RouteIcon, IdCard,
+  Gauge, Fuel, Wrench, Activity, Siren, Heart, Star, TrendingUp, Award, Building2,
+  Handshake, GraduationCap, Store, Calendar, Trophy, TreePine, FileText, ChevronDown,
+  ArrowRight, Facebook, Instagram, Youtube, Twitter, Send, MessageCircle, Wallet, Camera,
 } from 'lucide-react';
-import { mergeLandingContent, iconFor, colorFor, type LandingContent } from '@/lib/landingContent';
+import { mergeLandingContent, iconFor, type LandingContent } from '@/lib/landingContent';
 
 // ─── TypeScript interfaces ────────────────────────────────────────────────────
-
 interface Config {
   product_name: string;
   platform_logo_url: string | null;
-  landing_badge: string;
-  landing_title: string;
-  landing_subtitle: string;
-  landing_cta_text: string;
   landing_footer_tagline: string;
   landing_footer_email: string | null;
   landing_footer_phone: string | null;
@@ -37,746 +23,587 @@ interface Config {
   landing_footer_copyright: string;
   landing_content?: LandingContent | null;
 }
-
-interface Stats {
-  schools: number;
-  parents: number;
-  buses_live: number;
-  drivers: number;
-  staff_admins: number;
-}
-
-interface Partner {
-  id: string;
-  name: string;
-  logo_url: string | null;
-}
-
-interface Founder {
-  id: string;
-  name: string;
-  title: string;
-  photo_url: string | null;
-  linkedin: string | null;
-}
-
-interface School {
-  id: string;
-  name: string;
-  logo_url: string | null;
-}
-
-interface LandingData {
-  config: Config;
-  stats: Stats;
-  partners: Partner[];
-  founders: Founder[];
-  schools: School[];
-}
-
-// ─── Default / fallback values ────────────────────────────────────────────────
+interface Stats { schools: number; parents: number; buses_live: number; drivers: number; staff_admins: number }
+interface School { id: string; name: string; logo_url: string | null; website?: string | null }
+interface LandingData { config: Config; stats: Stats; schools: School[] }
 
 const DEFAULT_CONFIG: Config = {
-  product_name: 'ONLIVE',
+  product_name: 'OnLIVE',
   platform_logo_url: null,
-  landing_badge: 'School Transport OS',
-  landing_title: 'Every Mile, Every Child, Safe.',
-  landing_subtitle:
-    'Complete school bus management — live GPS tracking for parents, digital attendance for drivers, and full ERP control for admins.',
-  landing_cta_text: 'Get Started',
   landing_footer_tagline:
-    'The complete school bus ERP — built for safety, transparency, and operational efficiency.',
-  landing_footer_email: 'support@onlive.app',
-  landing_footer_phone: null,
-  landing_footer_address: null,
-  landing_footer_copyright: 'ONLIVE. All rights reserved.',
+    "India's most advanced AI-powered school transport management platform for schools, parents, students, drivers & fleet owners.",
+  landing_footer_email: 'onliveecosystem@gmail.com',
+  landing_footer_phone: '+91 91509 50444',
+  landing_footer_address: 'www.onlive.co.in',
+  landing_footer_copyright: 'OnLIVE Ecosystem. All rights reserved.',
 };
+const DEFAULT_STATS: Stats = { schools: 0, parents: 0, buses_live: 0, drivers: 0, staff_admins: 0 };
 
-const DEFAULT_STATS: Stats = {
-  schools: 0,
-  parents: 0,
-  buses_live: 0,
-  drivers: 0,
-  staff_admins: 0,
-};
+// ─── Static marketing content (mirrors the OnLIVE reference design) ────────────
+const HERO_CHIPS = [
+  { icon: ShieldCheck, label: 'Safe', color: 'text-emerald-400' },
+  { icon: Zap, label: 'Smart', color: 'text-amber-400' },
+  { icon: IdCard, label: 'Secure', color: 'text-blue-400' },
+  { icon: Leaf, label: 'Sustainable', color: 'text-green-400' },
+];
 
-// ─── Helper: initials avatar ──────────────────────────────────────────────────
+const HERO_PANEL = [
+  { icon: MapPin, title: 'Live Tracking', sub: 'ETA 08 min', color: 'bg-blue-500' },
+  { icon: ShieldCheck, title: 'Safety First', sub: 'SOS Alert', color: 'bg-red-500' },
+  { icon: RouteIcon, title: 'AI Route Optimization', sub: '', color: 'bg-emerald-500' },
+  { icon: CheckCircle2, title: 'Attendance Checked', sub: '', color: 'bg-amber-500' },
+  { icon: Users, title: 'Parent-Student Engagement', sub: 'Platform', color: 'bg-purple-500' },
+];
 
-function InitialsAvatar({
-  name,
-  size = 'md',
-  className = '',
-}: {
-  name: string;
-  size?: 'sm' | 'md' | 'lg';
-  className?: string;
-}) {
-  const initials = name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+const HERO_STATS = [
+  { icon: Users, value: '10 Lakh+', label: 'Students' },
+  { icon: Building2, value: '5000+', label: 'Schools' },
+  { icon: Bus, value: '20,000+', label: 'Buses' },
+  { icon: MapPin, value: '50+', label: 'Cities' },
+  { icon: TrendingUp, value: '99.9%', label: 'Uptime' },
+];
 
-  const sizeClasses = {
-    sm: 'w-10 h-10 text-sm',
-    md: 'w-14 h-14 text-base',
-    lg: 'w-20 h-20 text-xl',
-  };
+const ECOSYSTEM_NODES = [
+  { icon: Users, title: 'Parent App', sub: 'Live Tracking, Alerts, Payments & more' },
+  { icon: GraduationCap, title: 'Student App', sub: 'ID Card, Attendance, Alerts, SOS & more' },
+  { icon: Building2, title: 'School ERP', sub: 'Fees, Attendance, Timetable, Communication' },
+  { icon: Navigation, title: 'Driver App', sub: 'Navigation, Pickup/Drop, Attendance & more' },
+  { icon: Bus, title: 'Fleet Owner', sub: 'Vehicle Health, Fuel, Reports' },
+];
 
+const ECOSYSTEM_PILLS = [
+  { icon: MapPin, label: 'GPS Tracking' }, { icon: RouteIcon, label: 'AI Route Optimization' },
+  { icon: CheckCircle2, label: 'Attendance' }, { icon: Siren, label: 'SOS Emergency' },
+  { icon: IdCard, label: 'Digital ID' }, { icon: CreditCard, label: 'Cashless Payments' },
+  { icon: Trophy, label: 'Talent Passport' }, { icon: Leaf, label: 'Go Green Initiative' },
+  { icon: BarChart3, label: 'Analytics & Reports' },
+];
+
+// Gradient palette applied to solution cards by index (visual design, not editable copy).
+const SOLUTION_GRADIENTS = [
+  'from-blue-500 to-blue-700', 'from-emerald-500 to-emerald-700', 'from-amber-500 to-orange-600',
+  'from-cyan-500 to-blue-600', 'from-pink-500 to-rose-600', 'from-red-500 to-rose-700',
+  'from-indigo-500 to-indigo-700', 'from-violet-500 to-purple-700', 'from-teal-500 to-emerald-700',
+];
+
+const PARTNER_PROGRAMS = [
+  { icon: Building2, label: 'School Founder Program' }, { icon: Wallet, label: 'Referral Income' },
+  { icon: Store, label: 'Franchise Opportunities' }, { icon: Handshake, label: 'Transport Operator Partnership' },
+  { icon: Users, label: 'Consultancy Services' }, { icon: GraduationCap, label: 'College Admission Support' },
+  { icon: Store, label: 'Student Marketplace' }, { icon: Calendar, label: 'Events & Competitions' },
+];
+
+const PARTNER_BADGES = [
+  { icon: TrendingUp, label: 'High ROI Business Model' }, { icon: Wallet, label: 'Recurring Revenue' },
+  { icon: ShieldCheck, label: 'Complete Support' }, { icon: Handshake, label: 'Win-Win Partnership' },
+];
+
+const APP_PREVIEWS = [
+  { name: 'PARENT APP', accent: 'text-blue-400', lines: ['Live Tracking', 'Bus-07 · KA-01 AB 1234', 'Pickup 07:35 AM', 'School 07:55 AM'] },
+  { name: 'STUDENT APP', accent: 'text-emerald-400', lines: ['My ID Card', 'BE STU094966', 'Class 6 - A', 'Attendance · Present'] },
+  { name: 'DRIVER APP', accent: 'text-amber-400', lines: ['Current Trip', 'Route - 12', 'Stop 1 · 07:15 AM', 'Trip Started'] },
+  { name: 'SCHOOL ERP', accent: 'text-purple-400', lines: ['Dashboard', 'Students 1,250', 'Buses 32', 'Drivers 45'] },
+];
+
+const ANALYTICS = [
+  { value: '10,245', label: 'Total Students', delta: '+12.5%' },
+  { value: '235', label: 'Active Buses', delta: '+8.2%' },
+  { value: '58', label: 'Total Routes', delta: '+6.1%' },
+  { value: '468', label: 'Daily Trips', delta: '+10.3%' },
+];
+
+const GO_GREEN = [
+  { icon: TreePine, value: '1,25,000+', label: 'Trees Saved' },
+  { icon: FileText, value: '8.5 Cr+', label: 'Paperless Pages' },
+  { icon: Leaf, value: '2,300+ Tons', label: 'CO₂ Reduced' },
+  { icon: Award, value: '3-Star', label: 'Eco Score for Schools' },
+];
+
+// Fixed platform icon/colour; the URL comes from editable content and empty ones are hidden.
+const SOCIAL_META = [
+  { key: 'facebook', icon: Facebook, label: 'Facebook', color: 'bg-[#1877f2]' },
+  { key: 'instagram', icon: Instagram, label: 'Instagram', color: 'bg-gradient-to-br from-[#feda75] via-[#d62976] to-[#4f5bd5]' },
+  { key: 'linkedin', icon: Linkedin, label: 'LinkedIn', color: 'bg-[#0a66c2]' },
+  { key: 'youtube', icon: Youtube, label: 'YouTube', color: 'bg-[#ff0000]' },
+  { key: 'twitter', icon: Twitter, label: 'X (Twitter)', color: 'bg-black' },
+  { key: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', color: 'bg-[#25d366]' },
+  { key: 'telegram', icon: Send, label: 'Telegram', color: 'bg-[#229ED9]' },
+  { key: 'website', icon: Globe, label: 'Website', color: 'bg-slate-600' },
+] as const;
+
+const normUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : `https://${u}`);
+
+// ─── Small presentational helpers ─────────────────────────────────────────────
+function Logo({ url }: { url: string | null }) {
+  // Prefer the configured platform logo, then the bundled OnLIVE logo asset; fall back to
+  // a styled wordmark only if the image fails to load.
+  const [err, setErr] = useState(false);
+  const src = url || '/onlive-logo.png';
+  if (!err) {
+    return <img src={src} alt="OnLIVE" className="h-9 w-auto object-contain" onError={() => setErr(true)} />;
+  }
   return (
-    <div
-      className={`${sizeClasses[size]} rounded-full bg-[#0F172A] flex items-center justify-center text-white font-bold flex-shrink-0 ${className}`}
-    >
-      {initials}
+    <div className="flex flex-col leading-none">
+      <span className="text-xl font-black tracking-tight">
+        <span className="text-white">On</span><span className="text-blue-400">LIVE</span>
+      </span>
+      <span className="text-[7px] font-bold text-slate-400 tracking-[0.2em] uppercase">Smart Transport Ecosystem</span>
     </div>
   );
 }
 
-// ─── Loading skeleton ─────────────────────────────────────────────────────────
-
-function LoadingSkeleton() {
+function Panel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className="min-h-screen bg-white animate-pulse">
-      {/* Nav skeleton */}
-      <div className="h-16 bg-gray-100 border-b border-gray-200" />
-      {/* Hero skeleton */}
-      <div className="max-w-7xl mx-auto px-6 md:px-20 py-24 grid grid-cols-1 lg:grid-cols-2 gap-12">
-        <div className="space-y-5">
-          <div className="h-6 w-40 bg-gray-200 rounded-full" />
-          <div className="h-14 w-full bg-gray-200 rounded-xl" />
-          <div className="h-14 w-3/4 bg-gray-200 rounded-xl" />
-          <div className="h-5 w-full bg-gray-100 rounded" />
-          <div className="h-5 w-4/5 bg-gray-100 rounded" />
-          <div className="flex gap-6 pt-2">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="space-y-1">
-                <div className="h-8 w-16 bg-gray-200 rounded" />
-                <div className="h-3 w-16 bg-gray-100 rounded" />
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-4 pt-2">
-            <div className="h-12 w-44 bg-gray-200 rounded-2xl" />
-            <div className="h-12 w-44 bg-gray-100 rounded-2xl" />
-          </div>
-        </div>
-        <div className="h-64 bg-gray-100 rounded-3xl" />
-      </div>
-    </div>
+    <div className={`rounded-2xl bg-[#0d162b]/80 border border-white/10 ${className}`}>{children}</div>
   );
 }
 
-// ─── Main page component ──────────────────────────────────────────────────────
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-center text-lg md:text-xl font-black tracking-wide text-white uppercase mb-6 flex items-center justify-center gap-2">
+      <span className="text-amber-400">◆</span>{children}
+    </h2>
+  );
+}
 
+// ─── Main page ────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const [data, setData] = useState<LandingData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl) {
-      setData({
-        config: DEFAULT_CONFIG,
-        stats: DEFAULT_STATS,
-        partners: [],
-        founders: [],
-        schools: [],
-      });
-      setLoading(false);
-      return;
-    }
-
+    if (!apiUrl) { setData({ config: DEFAULT_CONFIG, stats: DEFAULT_STATS, schools: [] }); return; }
     fetch(`${apiUrl}/platform/landing`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch landing data');
-        return res.json();
-      })
-      .then((json: LandingData) => {
-        setData({
-          config: { ...DEFAULT_CONFIG, ...json.config },
-          stats: { ...DEFAULT_STATS, ...json.stats },
-          partners: json.partners ?? [],
-          founders: json.founders ?? [],
-          schools: json.schools ?? [],
-        });
-      })
-      .catch(() => {
-        setData({
-          config: DEFAULT_CONFIG,
-          stats: DEFAULT_STATS,
-          partners: [],
-          founders: [],
-          schools: [],
-        });
-      })
-      .finally(() => setLoading(false));
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((j: any) => setData({
+        config: { ...DEFAULT_CONFIG, ...j.config },
+        stats: { ...DEFAULT_STATS, ...j.stats },
+        schools: j.schools ?? [],
+      }))
+      .catch(() => setData({ config: DEFAULT_CONFIG, stats: DEFAULT_STATS, schools: [] }));
   }, []);
 
-  if (loading) return <LoadingSkeleton />;
-
-  const { config, stats, partners, founders, schools } = data!;
-  // All editable landing copy/icons/images (defaults merged with the super-admin's saved content).
+  const config = data?.config ?? DEFAULT_CONFIG;
+  const schools = data?.schools ?? [];
+  // All editable marketing copy (super-admin Settings → Landing content), merged with defaults.
   const c = mergeLandingContent(config.landing_content);
-
-  const statItems = [
-    { value: stats.schools, label: c.statLabels.schools },
-    { value: stats.parents, label: c.statLabels.parents },
-    { value: stats.buses_live, label: c.statLabels.buses_live },
-    { value: stats.drivers, label: c.statLabels.drivers },
-    { value: stats.staff_admins, label: c.statLabels.staff_admins },
-  ];
+  const navLinks = ['Home', 'Solutions', 'Ecosystem', 'Features', 'Pricing', 'Resources', 'About Us'];
+  const chWords = (c.challenges.title || '').trim().split(' ');
+  const chFirst = chWords[0] || '';
+  const chRest = chWords.slice(1).join(' ');
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 font-sans">
-
-      {/* ── NAVBAR ──────────────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-gray-100 dark:border-slate-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full overflow-hidden bg-[#0a0f1e] flex items-center justify-center shadow flex-shrink-0">
-              {config.platform_logo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={config.platform_logo_url} alt={config.product_name} className="w-full h-full object-contain" />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src="/icons/onlive-logo.png" alt={config.product_name} className="w-full h-full object-contain" />
-              )}
-            </div>
-            <span className="text-xl font-bold text-[#0F172A] dark:text-white tracking-tight">
-              {config.product_name}
-            </span>
+    <div className="min-h-screen bg-[#060b18] text-white font-sans overflow-x-hidden">
+      {/* ══ NAVBAR ══ */}
+      <nav className="sticky top-0 z-50 bg-[#060b18]/90 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+          <Logo url={config.platform_logo_url} />
+          <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-300">
+            <Link href="#top" className="text-white hover:text-blue-400 transition-colors">Home</Link>
+            <Link href="#solutions" className="hover:text-blue-400 transition-colors flex items-center gap-1">Solutions <ChevronDown className="w-3 h-3" /></Link>
+            <Link href="#ecosystem" className="hover:text-blue-400 transition-colors">Ecosystem</Link>
+            <Link href="#features" className="hover:text-blue-400 transition-colors">Features</Link>
+            <Link href="#partners" className="hover:text-blue-400 transition-colors">Pricing</Link>
+            <Link href="#challenges" className="hover:text-blue-400 transition-colors flex items-center gap-1">Resources <ChevronDown className="w-3 h-3" /></Link>
+            <Link href="#contact" className="hover:text-blue-400 transition-colors">About Us</Link>
           </div>
-
-          {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600 dark:text-gray-300">
-            <Link href="#features" className="hover:text-[#3B82F6] transition-colors">
-              {c.nav.features}
-            </Link>
-            <Link href="#how-it-works" className="hover:text-[#3B82F6] transition-colors">
-              {c.nav.how}
-            </Link>
-            <Link href="#schools" className="hover:text-[#3B82F6] transition-colors">
-              {c.nav.schools}
-            </Link>
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="w-9 h-9 flex items-center justify-center rounded-full text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
-              title="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="w-4.5 h-4.5 w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
-            </button>
-            <LandingInstallButton />
-            <Link
-              href="/login"
-              className="bg-[#3B82F6] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-blue-600 transition-colors shadow shadow-blue-400/20"
-            >
-              {c.nav.signIn}
-            </Link>
-          </div>
-
-          {/* Mobile: install + hamburger */}
-          <div className="md:hidden flex items-center gap-1.5">
-            <LandingInstallButton />
-            <button
-              className="p-2 rounded-lg text-gray-600 hover:text-[#0F172A] hover:bg-gray-50 transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+          <div className="flex items-center gap-2">
+            <Link href="/login" className="hidden sm:inline-flex px-4 py-2 rounded-lg border border-white/20 text-sm font-semibold hover:bg-white/10 transition-colors">Login</Link>
+            <Link href="/login" className="px-4 py-2 rounded-lg bg-[#f97316] hover:bg-[#ea6a0c] text-white text-sm font-bold transition-colors shadow-lg shadow-orange-500/20">Book a Demo</Link>
+            <button onClick={() => setMenuOpen(v => !v)} className="lg:hidden p-2 text-slate-300">{menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}</button>
           </div>
         </div>
-
-        {/* Mobile dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-6 py-4 space-y-3">
-            {['#features', '#how-it-works', '#schools'].map((href) => (
-              <Link
-                key={href}
-                href={href}
-                className="block text-sm font-medium text-gray-600 py-2 hover:text-[#3B82F6] transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {href === '#features'
-                  ? c.nav.features
-                  : href === '#how-it-works'
-                  ? c.nav.how
-                  : c.nav.schools}
-              </Link>
+        {menuOpen && (
+          <div className="lg:hidden border-t border-white/10 px-4 py-3 flex flex-col gap-2 text-sm text-slate-300">
+            {navLinks.map((l, i) => (
+              <a key={l} href={['#top', '#solutions', '#ecosystem', '#features', '#partners', '#challenges', '#contact'][i]} onClick={() => setMenuOpen(false)} className="py-1.5 hover:text-blue-400">{l}</a>
             ))}
-            <Link
-              href="/login"
-              className="block w-full text-center bg-[#3B82F6] text-white py-2.5 rounded-full text-sm font-semibold hover:bg-blue-600 transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {c.nav.signIn}
-            </Link>
           </div>
         )}
       </nav>
 
-      {/* ── HERO ────────────────────────────────────────────────────────── */}
-      <section className="bg-white pt-16 pb-20 px-6 md:px-10">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-
-          {/* Left — copy */}
-          <div className="space-y-8">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-200 bg-blue-50">
-              <span className="w-2 h-2 rounded-full bg-[#3B82F6]" />
-              <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">
-                {config.landing_badge}
-              </span>
-            </div>
-
-            {/* Title */}
-            <h1 className="text-5xl md:text-6xl font-bold text-[#0F172A] leading-[1.08] tracking-tight">
-              {config.landing_title}
+      {/* ══ HERO ══ */}
+      <section id="top" className="relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a1631] via-[#070d1e] to-[#060b18]" />
+        <div className="absolute inset-0 opacity-[0.15]" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, #1d4ed8 0, transparent 40%), radial-gradient(circle at 80% 30%, #f97316 0, transparent 35%)' }} />
+        <div className="relative max-w-7xl mx-auto px-4 md:px-8 pt-12 pb-8 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          {/* Left */}
+          <div>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-[11px] font-bold text-blue-300 uppercase tracking-wider">
+              <Cpu className="w-3.5 h-3.5" /> {c.hero.badge}
+            </span>
+            <h1 className="mt-4 text-4xl md:text-6xl font-black tracking-tight leading-[1.05]">
+              {c.hero.title}<br /><span className="text-[#f97316]">{c.hero.titleAccent}</span>
             </h1>
+            <p className="mt-3 text-slate-300 text-base md:text-lg font-medium">{c.hero.subtitle}</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {HERO_CHIPS.map((c) => (
+                <span key={c.label} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-sm font-semibold">
+                  <c.icon className={`w-4 h-4 ${c.color}`} /> {c.label}
+                </span>
+              ))}
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#f97316] hover:bg-[#ea6a0c] font-bold shadow-lg shadow-orange-500/25 transition-colors">
+                {c.hero.primaryCta} <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link href="#ecosystem" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/20 font-semibold hover:bg-white/10 transition-colors">
+                {c.hero.secondaryCta} <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="mt-6 flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {[0, 1, 2, 3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-[#060b18] bg-gradient-to-br from-blue-500 to-purple-600" />)}
+              </div>
+              <div className="text-xs text-slate-300">
+                <p className="font-semibold">{c.hero.trustLine}</p>
+                <p className="flex items-center gap-0.5 text-amber-400">{[0, 1, 2, 3, 4].map(i => <Star key={i} className="w-3 h-3 fill-amber-400" />)}</p>
+              </div>
+            </div>
+          </div>
 
-            {/* Subtitle */}
-            <p className="text-lg text-gray-500 leading-relaxed max-w-lg">
-              {config.landing_subtitle}
-            </p>
-
-            {/* Real stats row */}
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 py-2 border-t border-b border-gray-100">
-              {statItems.map(({ value, label }) => (
-                <div key={label} className="text-center sm:text-left">
-                  <p className="text-2xl font-bold text-[#0F172A]">{value.toLocaleString()}</p>
-                  <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide leading-tight mt-0.5">
-                    {label}
-                  </p>
+          {/* Right — phone + floating panel */}
+          <div className="relative flex justify-center">
+            <div className="relative w-[280px] h-[420px] rounded-[2.5rem] border-4 border-white/15 bg-gradient-to-b from-[#0b1a3a] to-[#0a1024] shadow-2xl shadow-blue-900/40 overflow-hidden">
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-5 bg-black/60 rounded-full z-10" />
+              {/* The whole image fills the phone screen edge-to-edge. Priority: super-admin's
+                  uploaded hero image → a dropped-in /hero-phone.png → the app icon. */}
+              <img
+                src={c.hero.image_url || '/hero-phone.png'}
+                alt="OnLIVE app"
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={(e) => {
+                  const img = e.currentTarget as HTMLImageElement;
+                  if (!img.src.endsWith('/onlive-icon.png')) img.src = '/onlive-icon.png';
+                }}
+              />
+            </div>
+            <div className="hidden md:block absolute right-0 top-4 w-56 space-y-2">
+              {HERO_PANEL.map((p) => (
+                <div key={p.title} className="flex items-center gap-2.5 rounded-xl bg-[#0d162b]/90 border border-white/10 px-3 py-2 backdrop-blur-sm shadow-lg">
+                  <div className={`w-8 h-8 rounded-lg ${p.color} flex items-center justify-center shrink-0`}><p.icon className="w-4 h-4 text-white" /></div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold leading-tight truncate">{p.title}</p>
+                    {p.sub && <p className="text-[10px] text-slate-400 truncate">{p.sub}</p>}
+                  </div>
                 </div>
               ))}
             </div>
-
-            {/* CTA buttons */}
-            <div className="flex flex-wrap gap-4">
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#3B82F6] text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition-colors"
-              >
-                {config.landing_cta_text}
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href="#how-it-works"
-                className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-[#0F172A] border-2 border-gray-200 rounded-2xl font-bold hover:border-[#3B82F6] hover:text-[#3B82F6] transition-colors"
-              >
-                {c.hero.secondaryCta}
-              </Link>
-            </div>
-          </div>
-
-          {/* Right — dashboard mockup card */}
-          <div className="relative flex items-center justify-center">
-            {/* Main card */}
-            <div className="w-full max-w-sm bg-[#0F172A] rounded-2xl shadow-2xl shadow-slate-900/40 p-6 space-y-5">
-              {/* Card header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                    LIVE
-                  </span>
-                  <span className="text-white font-semibold text-sm">Route A</span>
-                </div>
-                <Navigation className="w-4 h-4 text-orange-400" />
-              </div>
-
-              {/* Student count */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-slate-400" />
-                </div>
-                <div>
-                  <p className="text-white font-bold text-lg leading-none">28 Students</p>
-                  <p className="text-slate-400 text-xs mt-0.5">on board</p>
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-slate-700" />
-
-              {/* Stop info */}
-              <div className="flex items-center justify-between text-sm">
-                <div>
-                  <p className="text-slate-400 text-xs uppercase tracking-wider">Stop</p>
-                  <p className="text-white font-semibold mt-0.5">3 of 8</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-slate-400 text-xs uppercase tracking-wider">ETA</p>
-                  <p className="text-orange-400 font-semibold mt-0.5">4 min away</p>
-                </div>
-              </div>
-
-              {/* Progress bar */}
-              <div className="relative h-2 bg-slate-700 rounded-full">
-                <div
-                  className="absolute left-0 top-0 h-full bg-[#3B82F6] rounded-full"
-                  style={{ width: '37.5%' }}
-                />
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-[#3B82F6] rounded-full border-2 border-[#0F172A] shadow"
-                  style={{ left: 'calc(37.5% - 8px)' }}
-                />
-              </div>
-
-              {/* Driver + Bus row */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-800 rounded-xl px-3 py-2.5">
-                  <p className="text-slate-400 text-[10px] uppercase tracking-wider">Driver</p>
-                  <p className="text-white text-sm font-medium mt-0.5">Ravi Kumar</p>
-                </div>
-                <div className="bg-slate-800 rounded-xl px-3 py-2.5">
-                  <p className="text-slate-400 text-[10px] uppercase tracking-wider">Bus No.</p>
-                  <p className="text-white text-sm font-medium mt-0.5">TN-01 AB-1234</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Floating attendance badge */}
-            <div className="absolute -bottom-4 -right-4 md:bottom-4 md:-right-8 bg-white rounded-xl shadow-lg border border-gray-100 px-4 py-3 flex items-center gap-2.5">
-              <CheckCircle2 className="w-5 h-5 text-[#3B82F6] flex-shrink-0" />
-              <div>
-                <p className="text-xs font-bold text-[#0F172A]">Attendance</p>
-                <p className="text-[11px] text-gray-500">26 / 28 marked</p>
-              </div>
-            </div>
           </div>
         </div>
-      </section>
 
-      {/* ── SCHOOLS ─────────────────────────────────────────────────────── */}
-      {schools.length > 0 && (
-        <section id="schools" className="py-16 bg-gray-50 overflow-hidden">
-          <div className="max-w-7xl mx-auto px-6 md:px-10">
-            <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-10">
-              {c.schoolsHeading}
-            </p>
-          </div>
-          {/* Marquee row */}
-          <div className="flex gap-10 overflow-x-auto no-scrollbar px-6 md:px-10 pb-2">
-            {schools.map((school) => (
-              <div
-                key={school.id}
-                className="flex-shrink-0 flex flex-col items-center gap-3 min-w-[100px]"
-              >
-                {school.logo_url ? (
-                  <img
-                    src={school.logo_url}
-                    alt={school.name}
-                    className="w-16 h-16 rounded-full object-contain bg-white border border-gray-200 shadow-sm"
-                  />
-                ) : (
-                  <InitialsAvatar name={school.name} size="md" />
-                )}
-                <p className="text-xs font-medium text-gray-600 text-center leading-tight max-w-[90px]">
-                  {school.name}
-                </p>
+        {/* Stat band */}
+        <div className="relative max-w-6xl mx-auto px-4 md:px-8 pb-10">
+          <Panel className="grid grid-cols-2 md:grid-cols-5 divide-x divide-white/10">
+            {HERO_STATS.map((s) => (
+              <div key={s.label} className="flex flex-col items-center justify-center gap-1 py-5 px-2 text-center">
+                <s.icon className="w-5 h-5 text-blue-400" />
+                <p className="text-xl md:text-2xl font-black">{s.value}</p>
+                <p className="text-[11px] text-slate-400 font-medium">{s.label}</p>
               </div>
             ))}
-          </div>
-        </section>
-      )}
+          </Panel>
+        </div>
+      </section>
 
-      {/* ── FEATURES ────────────────────────────────────────────────────── */}
-      <section id="features" className="py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 md:px-10">
-          {/* Section heading */}
-          <div className="text-center mb-16 space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-200">
-              <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
-                {c.features.badge}
-              </span>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-[#0F172A] tracking-tight">
-              {c.features.title}
+      {/* ══ CHALLENGES WITHOUT ONLIVE (image 1) ══ */}
+      <section id="challenges" className="py-16 bg-[#f4f6fb] text-slate-900">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight">
+              <span className="text-[#0b1f4d]">{chFirst} </span><span className="text-red-600">{chRest}</span>
             </h2>
-            <p className="text-gray-500 max-w-xl mx-auto text-lg">
-              {c.features.subtitle}
-            </p>
+            <p className="text-slate-500 font-semibold mt-2">{c.challenges.subtitle}</p>
           </div>
-
-          {/* 3 main cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {c.features.cards.map((card, i) => {
-              const Icon = iconFor(card.icon);
-              const col = colorFor(card.color);
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {c.challenges.groups.map((g) => {
+              const GIcon = iconFor(g.icon);
+              const tone = g.color === 'blue'
+                ? { head: 'bg-[#1e56c8]', ring: 'border-blue-200', chip: 'bg-[#1e56c8]', soft: 'bg-blue-50' }
+                : g.color === 'orange'
+                  ? { head: 'bg-[#f97316]', ring: 'border-orange-200', chip: 'bg-[#f97316]', soft: 'bg-orange-50' }
+                  : { head: 'bg-[#6d28d9]', ring: 'border-purple-200', chip: 'bg-[#6d28d9]', soft: 'bg-purple-50' };
               return (
-                <div key={i} className="bg-white rounded-2xl p-8 border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-                  <div className={`w-12 h-12 ${col.bg} rounded-xl flex items-center justify-center mb-5`}>
-                    <Icon className={`w-6 h-6 ${col.text}`} />
+                <div key={g.role} className={`rounded-2xl bg-white border ${tone.ring} shadow-sm overflow-hidden`}>
+                  <div className="flex items-center gap-3 p-4">
+                    <div className={`w-11 h-11 rounded-full ${tone.chip} flex items-center justify-center shrink-0`}><GIcon className="w-6 h-6 text-white" /></div>
+                    <div className={`px-4 py-1.5 rounded-md ${tone.head} text-white font-black tracking-wide`}>{g.role.toUpperCase()}</div>
+                    <span className="text-sm font-bold text-slate-600 hidden sm:block">{g.tagline}</span>
                   </div>
-                  {card.badge && (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-50 border border-gray-100 mb-3">
-                      <span className={`w-1.5 h-1.5 rounded-full ${col.text.replace('text-', 'bg-')}`} />
-                      <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">{card.badge}</span>
-                    </div>
-                  )}
-                  <h3 className="text-lg font-bold text-[#0F172A] mb-2">{card.title}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed">{card.desc}</p>
+                  <div className="px-4 pb-4 space-y-2.5">
+                    {g.items.map((it) => (
+                      <div key={it.title} className={`flex items-start gap-3 rounded-xl ${tone.soft} p-3`}>
+                        <div className={`w-8 h-8 rounded-full ${tone.chip} flex items-center justify-center shrink-0`}><X className="w-4 h-4 text-white" /></div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-800 leading-tight">{it.title}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{it.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
             })}
           </div>
-
-          {/* 4 secondary pills */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
-            {c.features.pills.map((pill, i) => {
-              const Icon = iconFor(pill.icon);
-              const col = colorFor(pill.color);
-              return (
-                <div key={i} className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-shadow">
-                  <div className={`w-9 h-9 ${col.bg} rounded-lg flex items-center justify-center mb-3`}>
-                    <Icon className={`w-5 h-5 ${col.text}`} />
-                  </div>
-                  <p className="text-sm font-bold text-[#0F172A] mb-1">{pill.label}</p>
-                  <p className="text-xs text-gray-400">{pill.sub}</p>
-                </div>
-              );
-            })}
-          </div>
+          <p className="text-center mt-8 text-slate-700 font-semibold">
+            These challenges impact <span className="text-blue-600">safety</span>, <span className="text-[#f97316]">efficiency</span>, and <span className="text-purple-600">peace of mind</span>.
+            <span className="block text-lg font-black text-slate-900 mt-1">It&apos;s time for a <span className="text-red-600">smarter solution</span>.</span>
+          </p>
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ────────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6 md:px-10">
-          {/* Section heading */}
-          <div className="text-center mb-16 space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-100">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                {c.how.badge}
-              </span>
+      {/* ══ ECOSYSTEM + SOLUTIONS ══ */}
+      <section id="ecosystem" className="py-14">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Ecosystem hub */}
+          <Panel className="p-6">
+            <SectionTitle>{c.ecosystemHeading}</SectionTitle>
+            <div className="flex flex-col items-center">
+              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-500 to-indigo-700 flex flex-col items-center justify-center shadow-lg shadow-blue-900/40 mb-6">
+                <Cpu className="w-8 h-8 text-white" />
+                <span className="text-xs font-black mt-1">OnLIVE</span>
+                <span className="text-[8px] text-blue-100">CLOUD PLATFORM</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                {ECOSYSTEM_NODES.map((n) => (
+                  <div key={n.title} className="flex items-start gap-3 rounded-xl bg-white/5 border border-white/10 p-3">
+                    <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0"><n.icon className="w-5 h-5 text-blue-400" /></div>
+                    <div><p className="text-sm font-bold">{n.title}</p><p className="text-[11px] text-slate-400 leading-tight">{n.sub}</p></div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap justify-center gap-2 mt-5">
+                {ECOSYSTEM_PILLS.map((p) => (
+                  <span key={p.label} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[11px] font-semibold text-slate-300">
+                    <p.icon className="w-3.5 h-3.5 text-blue-400" /> {p.label}
+                  </span>
+                ))}
+              </div>
             </div>
-            <h2 className="text-4xl font-bold text-[#0F172A]">{c.how.title}</h2>
-            <p className="text-gray-500 max-w-xl mx-auto">
-              {c.how.subtitle}
-            </p>
-          </div>
+          </Panel>
 
-          {/* Steps */}
-          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-10">
-            {/* Connector line (desktop only) */}
-            <div className="hidden md:block absolute top-8 left-[22%] right-[22%] h-px bg-gradient-to-r from-blue-200 via-blue-200 to-orange-200 z-0" />
-
-            {c.how.steps.map((s, i) => {
-              const Icon = iconFor(s.icon);
-              const col = colorFor(s.color);
-              return (
-                <div key={i} className="relative z-10 flex flex-col items-center text-center">
-                  <div className={`w-14 h-14 ${col.bg} rounded-2xl flex items-center justify-center mb-5 shadow-sm`}>
-                    <Icon className={`w-7 h-7 ${col.text}`} />
+          {/* Solutions grid */}
+          <div>
+            <SectionTitle>{c.solutions.heading}</SectionTitle>
+            <div id="solutions" className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {c.solutions.cards.map((s, i) => {
+                const SIcon = iconFor(s.icon);
+                return (
+                  <div key={i} className={`rounded-xl bg-gradient-to-br ${SOLUTION_GRADIENTS[i % SOLUTION_GRADIENTS.length]} p-4 shadow-lg`}>
+                    <SIcon className="w-6 h-6 text-white mb-3" />
+                    <p className="text-sm font-black leading-tight">{s.title}</p>
+                    <p className="text-[11px] text-white/80 mt-1 leading-tight">{s.sub}</p>
                   </div>
-                  <p className={`text-xs font-black ${col.text} mb-2 tracking-widest`}>
-                    STEP {String(i + 1).padStart(2, '0')}
-                  </p>
-                  <h3 className="text-lg font-bold text-[#0F172A] mb-2">{s.title}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed max-w-xs">{s.desc}</p>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── PARTNERS ────────────────────────────────────────────────────── */}
-      {partners.length > 0 && (
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-6 md:px-10">
-            <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-12">
-              {c.partnersHeading}
-            </p>
-            <div className="flex flex-wrap justify-center gap-8">
-              {partners.map((partner) => (
-                <div
-                  key={partner.id}
-                  className="flex flex-col items-center gap-3"
-                >
-                  {partner.logo_url ? (
-                    <img
-                      src={partner.logo_url}
-                      alt={partner.name}
-                      className="h-12 w-auto object-contain grayscale hover:grayscale-0 transition-all"
-                    />
-                  ) : (
-                    <span className="text-base font-semibold text-gray-500">{partner.name}</span>
-                  )}
+      {/* ══ SMART FEATURES + SUPER APP ══ */}
+      <section id="features" className="py-14">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Panel className="p-6">
+            <SectionTitle>{c.smartFeatures.heading}</SectionTitle>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {c.smartFeatures.items.map((f, i) => {
+                const FIcon = iconFor(f.icon);
+                return (
+                  <div key={i} className="flex flex-col items-center gap-2 rounded-xl bg-white/5 border border-white/10 p-3 text-center">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/15 flex items-center justify-center"><FIcon className="w-5 h-5 text-blue-400" /></div>
+                    <p className="text-[10px] font-semibold text-slate-300 leading-tight">{f.label}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </Panel>
+
+          <div>
+            <SectionTitle>{c.superAppHeading}</SectionTitle>
+            <div className="grid grid-cols-2 gap-3">
+              {APP_PREVIEWS.map((a) => (
+                <Panel key={a.name} className="p-3">
+                  <p className={`text-[10px] font-black tracking-widest ${a.accent} mb-2`}>{a.name}</p>
+                  <div className="rounded-lg bg-black/30 border border-white/10 p-3 space-y-1.5">
+                    {a.lines.map((l, i) => (
+                      <p key={i} className={`text-[11px] ${i === 0 ? 'font-bold text-white' : 'text-slate-400'}`}>{l}</p>
+                    ))}
+                  </div>
+                </Panel>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ ANALYTICS + GO GREEN + PARTNERS ══ */}
+      <section id="partners" className="py-14">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Analytics */}
+          <Panel className="p-5">
+            <SectionTitle>{c.analyticsHeading}</SectionTitle>
+            <div className="grid grid-cols-2 gap-3">
+              {ANALYTICS.map((a) => (
+                <div key={a.label} className="rounded-xl bg-white/5 border border-white/10 p-3">
+                  <p className="text-xl font-black">{a.value}</p>
+                  <p className="text-[10px] text-slate-400">{a.label}</p>
+                  <p className="text-[10px] text-emerald-400 font-semibold">{a.delta}</p>
+                </div>
+              ))}
+              <div className="col-span-2 rounded-xl bg-white/5 border border-white/10 p-3 flex items-center justify-between">
+                <div><p className="text-[10px] text-slate-400">Attendance Overview</p><p className="text-lg font-black text-emerald-400">92% Present</p></div>
+                <div className="text-right"><p className="text-[10px] text-slate-400">On Time %</p><p className="text-lg font-black text-blue-400">96.7%</p></div>
+              </div>
+            </div>
+          </Panel>
+
+          {/* Go Green */}
+          <Panel className="p-5 bg-gradient-to-b from-emerald-900/40 to-[#0d162b]/80">
+            <SectionTitle>{c.goGreenHeading}</SectionTitle>
+            <div className="grid grid-cols-2 gap-3">
+              {GO_GREEN.map((g) => (
+                <div key={g.label} className="rounded-xl bg-white/5 border border-white/10 p-3 text-center">
+                  <g.icon className="w-6 h-6 text-emerald-400 mx-auto mb-1.5" />
+                  <p className="text-base font-black">{g.value}</p>
+                  <p className="text-[10px] text-slate-400 leading-tight">{g.label}</p>
                 </div>
               ))}
             </div>
+            <p className="text-center text-emerald-300 font-bold text-sm mt-4">Together, Let&apos;s Build a Sustainable Tomorrow</p>
+          </Panel>
+
+          {/* Partner programs */}
+          <Panel className="p-5">
+            <SectionTitle>Partner & Growth Programs</SectionTitle>
+            <div className="grid grid-cols-2 gap-2.5">
+              {PARTNER_PROGRAMS.map((p) => (
+                <div key={p.label} className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 p-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center shrink-0"><p.icon className="w-4 h-4 text-blue-400" /></div>
+                  <p className="text-[11px] font-semibold text-slate-300 leading-tight">{p.label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              {PARTNER_BADGES.map((b) => (
+                <span key={b.label} className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-300"><b.icon className="w-3.5 h-3.5 text-emerald-400" /> {b.label}</span>
+              ))}
+            </div>
+          </Panel>
+        </div>
+      </section>
+
+      {/* ══ TRUSTED SCHOOLS (data-driven, website links) ══ */}
+      {schools.length > 0 && (
+        <section className="py-10 border-y border-white/10 bg-[#080e1e]">
+          <p className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Trusted by Schools</p>
+          <div className="flex gap-8 overflow-x-auto no-scrollbar px-4 md:px-8">
+            {schools.map((s) => {
+              const href = s.website ? (/^https?:\/\//i.test(s.website) ? s.website : `https://${s.website}`) : null;
+              const inner = (
+                <>
+                  {s.logo_url
+                    ? <img src={s.logo_url} alt={s.name} className="w-14 h-14 rounded-full object-contain bg-white border border-white/10" />
+                    : <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center font-bold text-slate-200">{s.name.slice(0, 2).toUpperCase()}</div>}
+                  <p className="text-[11px] text-slate-300 text-center max-w-[90px] leading-tight">{s.name}</p>
+                </>
+              );
+              return href ? (
+                <a key={s.id} href={href} target="_blank" rel="noopener noreferrer" title={s.name} className="flex-shrink-0 flex flex-col items-center gap-2 min-w-[90px] hover:-translate-y-1 transition-transform">{inner}</a>
+              ) : (
+                <div key={s.id} className="flex-shrink-0 flex flex-col items-center gap-2 min-w-[90px]">{inner}</div>
+              );
+            })}
           </div>
         </section>
       )}
 
-      {/* ── FOUNDERS / TEAM ─────────────────────────────────────────────── */}
-      {founders.length > 0 && (
-        <section className="py-24 bg-white">
-          <div className="max-w-7xl mx-auto px-6 md:px-10">
-            <div className="text-center mb-14 space-y-3">
-              <h2 className="text-4xl font-bold text-[#0F172A]">{c.teamHeading}</h2>
-              <p className="text-gray-500 max-w-md mx-auto">
-                {c.teamSubtitle.replace('{product}', config.product_name)}
-              </p>
+      {/* ══ CONTACT / DEMO / SOCIAL ══ */}
+      <section id="contact" className="py-14">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Panel className="p-6">
+            <h3 className="text-2xl font-black text-blue-400 mb-1">{c.contact.contactHeading}</h3>
+            <p className="text-sm text-slate-400 mb-5">{c.contact.contactSub}</p>
+            <div className="space-y-3 text-sm">
+              {config.landing_footer_phone && <a href={`tel:${config.landing_footer_phone}`} className="flex items-center gap-3"><span className="w-9 h-9 rounded-full bg-[#f97316] flex items-center justify-center"><Phone className="w-4 h-4" /></span>{config.landing_footer_phone}</a>}
+              {config.landing_footer_email && <a href={`mailto:${config.landing_footer_email}`} className="flex items-center gap-3"><span className="w-9 h-9 rounded-full bg-[#f97316] flex items-center justify-center"><Mail className="w-4 h-4" /></span>{config.landing_footer_email}</a>}
+              {config.landing_footer_address && <span className="flex items-center gap-3"><span className="w-9 h-9 rounded-full bg-[#f97316] flex items-center justify-center"><Globe className="w-4 h-4" /></span>{config.landing_footer_address}</span>}
             </div>
-            <div className="flex flex-wrap justify-center gap-8">
-              {founders.map((founder) => (
-                <div
-                  key={founder.id}
-                  className="flex flex-col items-center text-center w-44 space-y-3"
-                >
-                  {founder.photo_url ? (
-                    <img
-                      src={founder.photo_url}
-                      alt={founder.name}
-                      className="w-20 h-20 rounded-full object-cover border-2 border-gray-100 shadow"
-                    />
-                  ) : (
-                    <InitialsAvatar name={founder.name} size="lg" />
-                  )}
-                  <div>
-                    <p className="text-sm font-bold text-[#0F172A]">{founder.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{founder.title}</p>
-                  </div>
-                  {founder.linkedin && (
-                    <a
-                      href={founder.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"
-                    >
-                      <Linkedin className="w-3.5 h-3.5" />
-                      LinkedIn
+          </Panel>
+
+          <Panel className="p-6 flex flex-col items-center justify-center text-center bg-gradient-to-br from-[#0d162b] to-[#101a34]">
+            <h3 className="text-2xl font-black text-blue-300 mb-2">{c.contact.demoHeading}</h3>
+            <p className="text-sm text-slate-400 mb-5">{c.contact.demoBody}</p>
+            <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#f97316] hover:bg-[#ea6a0c] font-bold transition-colors">{c.contact.demoCta} <ArrowRight className="w-4 h-4" /></Link>
+          </Panel>
+
+          <Panel className="p-6">
+            <h3 className="text-xl font-black mb-1">{c.contact.followHeading}</h3>
+            <p className="text-sm text-slate-400 mb-5">Stay updated with our latest innovations and product launches.</p>
+            {(() => {
+              const filled = SOCIAL_META.filter((s) => ((c.socials as any)[s.key] || '').trim());
+              if (filled.length === 0) return <p className="text-sm text-slate-500">Social links coming soon.</p>;
+              return (
+                <div className="grid grid-cols-4 gap-3">
+                  {filled.map((s) => (
+                    <a key={s.key} href={normUrl((c.socials as any)[s.key])} target="_blank" rel="noopener noreferrer" title={s.label} className={`aspect-square rounded-xl ${s.color} flex items-center justify-center hover:opacity-90 transition-opacity`}>
+                      <s.icon className="w-5 h-5 text-white" />
                     </a>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── CTA BANNER ──────────────────────────────────────────────────── */}
-      <section className="bg-[#0F172A] py-24 px-6 md:px-10">
-        <div className="max-w-3xl mx-auto text-center space-y-6">
-          <p className="text-orange-400 font-bold text-xs uppercase tracking-widest">
-            {c.cta.eyebrow}
-          </p>
-          <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
-            {c.cta.title}
-          </h2>
-          <p className="text-slate-400 text-lg max-w-xl mx-auto">
-            {c.cta.body.replace('{product}', config.product_name)}
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 pt-2">
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 px-10 py-4 bg-[#3B82F6] text-white rounded-2xl font-bold shadow-xl shadow-blue-500/20 hover:bg-blue-600 transition-colors"
-            >
-              {c.cta.primary}
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="#features"
-              className="px-10 py-4 bg-white/10 text-white border border-white/20 rounded-2xl font-bold hover:bg-white/15 transition-colors"
-            >
-              {c.cta.secondary}
-            </Link>
-          </div>
+              );
+            })()}
+          </Panel>
         </div>
       </section>
 
-      {/* ── FOOTER ──────────────────────────────────────────────────────── */}
-      <footer className="bg-[#020617] text-white py-16 px-6 md:px-10">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
-          {/* Brand column */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={config.platform_logo_url || '/icons/onlive-logo.png'}
-                alt={config.product_name}
-                className="w-11 h-11 rounded-xl object-contain bg-[#0a0f1e] flex-shrink-0 shadow"
-              />
-              <span className="text-xl font-bold">{config.product_name}</span>
-            </div>
-            <p className="text-slate-400 max-w-xs leading-relaxed text-sm">
-              {config.landing_footer_tagline}
-            </p>
-          </div>
-
-          {/* Portal links */}
+      {/* ══ FOOTER ══ */}
+      <footer className="border-t border-white/10 bg-[#050a15]">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h4 className="font-bold mb-5 text-[#3B82F6] uppercase tracking-widest text-xs">
-              {c.footer.portalHeading}
-            </h4>
-            <ul className="space-y-3 text-slate-400 text-sm">
-              <li>
-                <Link href="/login" className="hover:text-white transition-colors">
-                  {c.footer.schoolAdmin}
-                </Link>
-              </li>
-              <li>
-                <Link href="/login" className="hover:text-white transition-colors">
-                  {c.footer.driverApp}
-                </Link>
-              </li>
-              <li>
-                <Link href="/login" className="hover:text-white transition-colors">
-                  {c.footer.parentApp}
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Contact */}
-          <div>
-            <h4 className="font-bold mb-5 text-[#3B82F6] uppercase tracking-widest text-xs">
-              {c.footer.contactHeading}
-            </h4>
-            <ul className="space-y-3 text-slate-400 text-sm">
-              {config.landing_footer_email && (
-                <li className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 flex-shrink-0 text-slate-500" />
-                  <a
-                    href={`mailto:${config.landing_footer_email}`}
-                    className="hover:text-white transition-colors"
-                  >
-                    {config.landing_footer_email}
-                  </a>
-                </li>
-              )}
+            <Logo url={config.platform_logo_url} />
+            <p className="text-sm text-slate-400 mt-4 leading-relaxed">{config.landing_footer_tagline}</p>
+            <div className="mt-4 space-y-1.5 text-sm">
               {config.landing_footer_phone && (
-                <li className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 flex-shrink-0 text-slate-500" />
-                  <a
-                    href={`tel:${config.landing_footer_phone}`}
-                    className="hover:text-white transition-colors"
-                  >
-                    {config.landing_footer_phone}
-                  </a>
-                </li>
+                <a href={`tel:${config.landing_footer_phone}`} className="flex items-center gap-2 text-slate-300 hover:text-blue-400 transition-colors">
+                  <Phone className="w-4 h-4 text-[#f97316]" /> <span className="font-semibold">{config.landing_footer_phone}</span>
+                </a>
               )}
-              {config.landing_footer_address && (
-                <li className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 flex-shrink-0 text-slate-500 mt-0.5" />
-                  <span>{config.landing_footer_address}</span>
-                </li>
+              {config.landing_footer_email && (
+                <a href={`mailto:${config.landing_footer_email}`} className="flex items-center gap-2 text-slate-300 hover:text-blue-400 transition-colors">
+                  <Mail className="w-4 h-4 text-[#f97316]" /> {config.landing_footer_email}
+                </a>
               )}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Quick Links</p>
+            <ul className="space-y-2 text-sm text-slate-400">
+              {['Home', 'Solutions', 'Ecosystem', 'Features', 'Pricing'].map(l => <li key={l}><a href="#top" className="hover:text-blue-400">{l}</a></li>)}
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Resources</p>
+            <ul className="space-y-2 text-sm text-slate-400">
+              {['Blog', 'Case Studies', 'Help Center', 'FAQs', 'Privacy Policy'].map(l => <li key={l}><span className="hover:text-blue-400 cursor-pointer">{l}</span></li>)}
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Support</p>
+            <ul className="space-y-2 text-sm text-slate-400">
+              <li><Link href="/login" className="hover:text-blue-400">Login</Link></li>
+              {config.landing_footer_phone && <li className="flex items-center gap-2"><Phone className="w-3.5 h-3.5" /> {config.landing_footer_phone}</li>}
+              {config.landing_footer_email && <li className="flex items-center gap-2"><Mail className="w-3.5 h-3.5" /> {config.landing_footer_email}</li>}
+              {config.landing_footer_address && <li className="flex items-center gap-2"><Globe className="w-3.5 h-3.5" /> {config.landing_footer_address}</li>}
             </ul>
           </div>
         </div>
-
-        {/* Bottom bar */}
-        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-white/10 text-center text-slate-600 text-xs">
-          &copy; {new Date().getFullYear()} {config.landing_footer_copyright}
+        <div className="border-t border-white/10 py-5 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between max-w-7xl mx-auto px-4 md:px-8 gap-2">
+          <span>© {config.landing_footer_copyright}</span>
+          <span className="flex items-center gap-1">Designed with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> for Smart Schools</span>
         </div>
+        <div className="pb-6 flex justify-center"><LandingInstallButton /></div>
       </footer>
     </div>
   );

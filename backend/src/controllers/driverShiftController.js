@@ -188,6 +188,45 @@ const myShifts = async (req, res) => {
   }
 };
 
+// GET /api/v1/shifts/mine/summary  (driver) — lifetime + this-month distance totals
+const myShiftSummary = async (req, res) => {
+  try {
+    const driver = await prisma.driver.findUnique({ where: { user_id: req.user.id } });
+    if (!driver) return res.status(404).json({ error: 'Driver profile not found' });
+
+    const shifts = await prisma.driverShift.findMany({
+      where: { driver_id: driver.id },
+      select: { id: true, date: true, kmEntries: { select: { km_reading: true } } },
+    });
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let total_km = 0;
+    let month_km = 0;
+    let shifts_with_distance = 0;
+    for (const s of shifts) {
+      const readings = (s.kmEntries || []).map(e => e.km_reading).filter(n => typeof n === 'number');
+      if (readings.length < 2) continue;
+      const dist = Math.max(0, Math.max(...readings) - Math.min(...readings));
+      if (dist <= 0) continue;
+      total_km += dist;
+      shifts_with_distance += 1;
+      if (s.date && new Date(s.date) >= monthStart) month_km += dist;
+    }
+
+    res.json({
+      total_km: Math.round(total_km * 10) / 10,
+      month_km: Math.round(month_km * 10) / 10,
+      total_shifts: shifts.length,
+      shifts_with_distance,
+    });
+  } catch (error) {
+    console.error('myShiftSummary error:', error.message);
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
+};
+
 // GET /api/v1/shifts/:id/entries  (admin)
 const getShiftEntries = async (req, res) => {
   try {
@@ -206,4 +245,4 @@ const getShiftEntries = async (req, res) => {
   }
 };
 
-module.exports = { startShift, addKmEntry, endShift, getActiveShift, listShifts, myShifts, getShiftEntries };
+module.exports = { startShift, addKmEntry, endShift, getActiveShift, listShifts, myShifts, myShiftSummary, getShiftEntries };

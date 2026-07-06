@@ -22,6 +22,7 @@ const {
   getBillingConfig,
   getRevenueDashboard,
   assignPlan,
+  getMySubscription,
   getMyInvoices,
   getMyStudentInvoices,
   updatePlatformRazorpay,
@@ -78,6 +79,9 @@ router.post('/students/:id/generate',        requireRole('super_admin'), generat
 router.get('/student-invoices',             requireRole('super_admin'), listStudentInvoices);
 router.post('/student-invoices/:id/pay-cash',   requireRole('super_admin'), payStudentInvoiceCash);
 router.post('/student-invoices/:id/pay-online', requireRole('super_admin'), createStudentInvoiceOrder);
+
+// Admin + parent — current subscription plan & included features
+router.get('/my-subscription', requireRole('admin', 'parent'), getMySubscription);
 
 // School admin — own invoices
 router.get('/my-invoices', requireRole('admin'), getMyInvoices);

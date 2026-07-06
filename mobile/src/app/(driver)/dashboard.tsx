@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
 
-import { getDriverMe, getActiveTrips, startTrip } from '@/lib/api';
+import { getDriverMe, getActiveTrips, startTrip, getMyShiftSummary } from '@/lib/api';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useT } from '@/lib/i18n';
 import { setPref } from '@/lib/secureStore';
@@ -20,6 +20,7 @@ export default function DriverDashboard() {
 
     const me = useQuery({ queryKey: ['driver-me'], queryFn: getDriverMe });
     const trips = useQuery({ queryKey: ['active-trips'], queryFn: getActiveTrips, refetchInterval: 10000 });
+    const distance = useQuery({ queryKey: ['shift-summary'], queryFn: getMyShiftSummary });
 
     if (me.isLoading) return <Loader />;
 
@@ -44,7 +45,7 @@ export default function DriverDashboard() {
     };
 
     return (
-        <Screen scroll refreshing={me.isRefetching} onRefresh={() => { me.refetch(); trips.refetch(); }}>
+        <Screen scroll refreshing={me.isRefetching} onRefresh={() => { me.refetch(); trips.refetch(); distance.refetch(); }}>
             <View style={{ gap: 2 }}>
                 <AppText muted size="sm">{tr('Welcome back', 'மீண்டும் வரவேற்கிறோம்')},</AppText>
                 <AppText size="xl" weight="800">{me.data?.user?.name?.split(' ')[0] || tr('Driver', 'ஓட்டுநர்')} 🚌</AppText>
@@ -58,6 +59,23 @@ export default function DriverDashboard() {
                 <View style={{ flex: 1 }}>
                     <AppText weight="800" size="lg">{bus?.bus_number || tr('No bus assigned', 'பேருந்து ஒதுக்கப்படவில்லை')}</AppText>
                     <AppText muted size="sm">{routes.length} {tr('route(s)', 'வழி(கள்)')}</AppText>
+                </View>
+            </Card>
+
+            {/* Total distance covered card */}
+            <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: t.color.brand + '22', alignItems: 'center', justifyContent: 'center' }}>
+                    <Feather name="activity" size={22} color={t.color.brand} />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <AppText muted size="sm" weight="700">{tr('Total Distance Covered', 'மொத்த தூரம்')}</AppText>
+                    <AppText weight="800" size="xl">
+                        {distance.data ? distance.data.total_km.toLocaleString('en-IN') : '—'} <AppText muted size="sm">km</AppText>
+                    </AppText>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                    <AppText muted size="sm">{tr('This month', 'இந்த மாதம்')}</AppText>
+                    <AppText weight="700">{distance.data ? distance.data.month_km.toLocaleString('en-IN') : '—'} km</AppText>
                 </View>
             </Card>
 

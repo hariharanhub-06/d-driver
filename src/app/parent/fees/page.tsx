@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CreditCard, CheckCircle2, AlertCircle, Clock, IndianRupee, Calendar, X } from 'lucide-react';
+import { CreditCard, CheckCircle2, AlertCircle, Clock, IndianRupee, Calendar, X, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
@@ -16,6 +16,7 @@ interface Fee {
     description?: string;
     order_id?: string;
     source?: 'school' | 'individual';
+    pdf_url?: string;
 }
 
 interface SchoolConfig {
@@ -82,6 +83,7 @@ export default function ParentFees() {
                     status: (inv.status === 'paid' ? 'paid' : inv.status === 'overdue' ? 'overdue' : 'pending') as Fee['status'],
                     description: 'Super Admin Charge',
                     source: 'individual' as const,
+                    pdf_url: inv.pdf_url,
                 }))
                 : [];
             // Only block on the school-fee 403 if there are no individual charges to show.
@@ -270,9 +272,21 @@ export default function ParentFees() {
                                             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{fee.student_name}</p>
                                         )}
                                     </div>
-                                    <span className="text-xl font-bold text-slate-900 dark:text-white">
-                                        ₹{fee.amount.toLocaleString('en-IN')}
-                                    </span>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className="text-xl font-bold text-slate-900 dark:text-white">
+                                            ₹{fee.amount.toLocaleString('en-IN')}
+                                        </span>
+                                        {fee.pdf_url && (
+                                            <a
+                                                href={fee.pdf_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1 text-[11px] font-semibold text-[var(--brand)] hover:underline"
+                                            >
+                                                <Download className="w-3 h-3" /> {t('Invoice PDF', 'விலைப்பட்டியல்')}
+                                            </a>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {isPaid ? (

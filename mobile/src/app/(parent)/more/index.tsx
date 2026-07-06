@@ -11,6 +11,7 @@ export default function ParentMoreHub() {
         { route: '/(parent)/more/notifications', title: tr('Notifications', 'அறிவிப்புகள்'), subtitle: tr('Alerts & messages', 'அறிவிப்புகள்'), icon: 'bell' },
         { route: '/(parent)/more/nearby-stops', title: tr('Nearby Stops', 'அருகிலுள்ள நிறுத்தங்கள்'), subtitle: tr('Find stops near you', 'நிறுத்தங்களைக் கண்டறி'), icon: 'map-pin' },
         { route: '/(parent)/more/requests', title: tr('Requests', 'கோரிக்கைகள்'), subtitle: tr('Stop change, leave & more', 'கோரிக்கைகள்'), icon: 'send' },
+        { route: '/(parent)/more/subscription', title: tr('My Subscription', 'எனது சந்தா'), subtitle: tr('Plan & features', 'திட்டம் & அம்சங்கள்'), icon: 'award' },
     ];
     return (
         <>
