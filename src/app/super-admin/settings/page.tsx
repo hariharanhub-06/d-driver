@@ -562,8 +562,9 @@ function LandingPageTab() {
                 </div>
                 <LField label="Subtitle" textarea value={content.hero.subtitle} onChange={v => editC(d => { d.hero.subtitle = v; })} />
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Hero image (optional — replaces the demo card)</label>
-                  <ImageUpload value={content.hero.image_url || ''} onChange={url => editC(d => { d.hero.image_url = url || null; })} folder="landing" />
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Hero background image (wide banner — crop free-form so the rectangle fits exactly)</label>
+                  {/* aspect={undefined} = free-form crop (no forced square) for the wide hero banner */}
+                  <ImageUpload value={content.hero.image_url || ''} onChange={url => editC(d => { d.hero.image_url = url || null; })} folder="landing" aspect={undefined} cropTitle="Crop Hero Banner — drag to any size" />
                 </div>
               </div>
 

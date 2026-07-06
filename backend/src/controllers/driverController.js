@@ -10,7 +10,7 @@ const getAllDrivers = async (req, res) => {
             where: getSchoolFilter(req),
             include: {
                 user: { select: { id: true, name: true, phone: true, email: true, is_active: true } },
-                bus: { select: { id: true, bus_number: true, registration_no: true, fuel_liters: true, mileage: true } },
+                bus: { select: { id: true, bus_number: true, registration_no: true, fuel_liters: true, mileage: true, routes: { select: { id: true, name: true } } } },
                 school: { select: { id: true, name: true } },
             },
         });
@@ -28,7 +28,7 @@ const getDriverById = async (req, res) => {
             where: { id },
             include: {
                 user: { select: { id: true, name: true, phone: true, email: true, is_active: true } },
-                bus: { select: { id: true, bus_number: true, registration_no: true, fuel_liters: true, mileage: true } },
+                bus: { select: { id: true, bus_number: true, registration_no: true, fuel_liters: true, mileage: true, routes: { select: { id: true, name: true } } } },
                 school: { select: { id: true, name: true } },
             },
         });

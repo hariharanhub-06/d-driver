@@ -14,12 +14,13 @@ interface Driver {
     is_active?: boolean;
     assigned_bus_id?: string | null;
     user?: { id?: string; name: string; email: string; phone?: string; is_active?: boolean };
-    bus?: { id: string; bus_number: string };
+    bus?: { id: string; bus_number: string; routes?: { id: string; name: string }[] };
 }
 
 interface Bus {
     id: string;
     bus_number: string;
+    routes?: { id: string; name: string }[];
 }
 
 const EMPTY_FORM = {
@@ -337,6 +338,7 @@ export default function DriversPage() {
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Phone', 'தொலைபேசி')}</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('License No.', 'உரிம எண்.')}</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Assigned Bus', 'ஒதுக்கப்பட்ட பேருந்து')}</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Assigned Route', 'ஒதுக்கப்பட்ட வழி')}</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Status', 'நிலை')}</th>
                                 <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Actions', 'செயல்கள்')}</th>
                             </tr>
@@ -344,7 +346,7 @@ export default function DriversPage() {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-3">
+                                    <td colSpan={7} className="px-4 py-3">
                                         <div className="flex justify-center py-16">
                                             <div className="w-8 h-8 border-4 border-[var(--brand)] border-t-transparent rounded-full animate-spin"></div>
                                         </div>
@@ -352,7 +354,7 @@ export default function DriversPage() {
                                 </tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
+                                    <td colSpan={7} className="text-center py-16 text-slate-400 dark:text-slate-500 text-sm">
                                         <UserCheck className="w-10 h-10 mx-auto mb-3 opacity-30" />
                                         <p className="font-medium">{t('No drivers found.', 'ஓட்டுநர்கள் இல்லை.')}</p>
                                     </td>
@@ -402,6 +404,21 @@ export default function DriversPage() {
                                                         <option key={bus.id} value={bus.id}>{bus.bus_number}</option>
                                                     ))}
                                                 </select>
+                                            </td>
+
+                                            {/* Assigned Route (from the driver's bus) */}
+                                            <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                                {driver.bus?.routes && driver.bus.routes.length > 0 ? (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {driver.bus.routes.map(r => (
+                                                            <span key={r.id} className="inline-flex items-center rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 text-xs font-medium">
+                                                                {r.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400 text-xs">—</span>
+                                                )}
                                             </td>
 
                                             {/* Status */}
