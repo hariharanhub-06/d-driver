@@ -240,23 +240,32 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* ══ HERO ══ */}
-      <section id="top" className="relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a1631] via-[#070d1e] to-[#060b18]" />
-        <div className="absolute inset-0 opacity-[0.15]" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, #1d4ed8 0, transparent 40%), radial-gradient(circle at 80% 30%, #f97316 0, transparent 35%)' }} />
-        <div className="relative max-w-7xl mx-auto px-4 md:px-8 pt-12 pb-8 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          {/* Left */}
-          <div>
+      {/* ══ HERO ══ (full-bleed background image with ALL content overlaid on top) */}
+      <section id="top" className="relative overflow-hidden">
+        {/* Full-bleed hero background image */}
+        <img
+          src={c.hero.image_url || '/hero-phone.png'}
+          alt="OnLIVE — smart bus tracking"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        />
+        {/* Legibility overlays: darken overall, weighted to the left for the text, and fade top/bottom into the page */}
+        <div className="absolute inset-0 bg-[#060b18]/45" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#060b18] via-[#060b18]/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#060b18] via-transparent to-[#060b18]/40" />
+
+        {/* Content — sits ON the image */}
+        <div className="relative max-w-7xl mx-auto w-full px-4 md:px-8 pt-16 pb-8">
+          <div className="max-w-2xl">
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-[11px] font-bold text-blue-300 uppercase tracking-wider">
               <Cpu className="w-3.5 h-3.5" /> {c.hero.badge}
             </span>
-            <h1 className="mt-4 text-4xl md:text-6xl font-black tracking-tight leading-[1.05]">
+            <h1 className="mt-4 text-4xl md:text-6xl font-black tracking-tight leading-[1.05] drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)]">
               {c.hero.title}<br /><span className="text-[#f97316]">{c.hero.titleAccent}</span>
             </h1>
-            <p className="mt-3 text-slate-300 text-base md:text-lg font-medium">{c.hero.subtitle}</p>
+            <p className="mt-3 text-slate-200 text-base md:text-lg font-medium drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]">{c.hero.subtitle}</p>
             <div className="mt-5 flex flex-wrap gap-3">
               {HERO_CHIPS.map((c) => (
-                <span key={c.label} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/40 hover:bg-white/[0.08] hover:shadow-lg hover:shadow-blue-900/20 text-sm font-semibold">
+                <span key={c.label} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/40 hover:bg-white/[0.16] hover:shadow-lg hover:shadow-blue-900/20 text-sm font-semibold">
                   <c.icon className={`w-4 h-4 ${c.color}`} /> {c.label}
                 </span>
               ))}
@@ -265,7 +274,7 @@ export default function LandingPage() {
               <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#f97316] hover:bg-[#ea6a0c] font-bold shadow-lg shadow-orange-500/25 transition-all duration-200 hover:scale-[1.04] active:scale-95">
                 {c.hero.primaryCta} <ArrowRight className="w-4 h-4" />
               </Link>
-              <Link href="#ecosystem" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/20 font-semibold hover:bg-white/10 hover:border-white/40 transition-all duration-200 hover:scale-[1.03]">
+              <Link href="#ecosystem" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/25 bg-white/5 backdrop-blur-sm font-semibold hover:bg-white/15 hover:border-white/40 transition-all duration-200 hover:scale-[1.03]">
                 {c.hero.secondaryCta} <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -273,54 +282,25 @@ export default function LandingPage() {
               <div className="flex -space-x-2">
                 {[0, 1, 2, 3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-[#060b18] bg-gradient-to-br from-blue-500 to-purple-600" />)}
               </div>
-              <div className="text-xs text-slate-300">
-                <p className="font-semibold">{c.hero.trustLine}</p>
+              <div className="text-xs text-slate-200">
+                <p className="font-semibold drop-shadow">{c.hero.trustLine}</p>
                 <p className="flex items-center gap-0.5 text-amber-400">{[0, 1, 2, 3, 4].map(i => <Star key={i} className="w-3 h-3 fill-amber-400" />)}</p>
               </div>
             </div>
           </div>
-
-          {/* Right — hero visual (bus breaking out of the phone) + feature tabs */}
-          <div className="relative min-h-[440px] flex items-center justify-center">
-            {/* Hero artwork — ALWAYS shown as the blended background (uploaded image, else the
-                bundled Hero). Its dark background melts into the page via a soft edge-fade. */}
-            <img
-              src={c.hero.image_url || '/hero-phone.png'}
-              alt="OnLIVE — smart bus tracking"
-              className="w-full max-w-[720px] object-contain lg:scale-110 lg:-mr-6"
-              style={{
-                WebkitMaskImage: 'radial-gradient(120% 100% at 55% 50%, #000 60%, transparent 100%)',
-                maskImage: 'radial-gradient(120% 100% at 55% 50%, #000 60%, transparent 100%)',
-              }}
-            />
-
-            {/* Feature tabs — overlaid on the right edge, floating over the artwork (matches
-                the reference). Shown for both the real image and the CSS fallback. */}
-            <div className="hidden lg:flex flex-col gap-2.5 absolute right-0 top-1/2 -translate-y-1/2 w-56 z-10">
-              {HERO_PANEL.map((p) => (
-                <div key={p.title} className="flex items-center gap-3 rounded-xl bg-[#0b1220]/85 border border-white/10 px-3 py-2.5 backdrop-blur-md shadow-xl shadow-black/40 transition-all duration-300 hover:-translate-x-1.5 hover:border-blue-400/40">
-                  <div className={`w-9 h-9 rounded-lg ${p.color} flex items-center justify-center shrink-0`}><p.icon className="w-4 h-4 text-white" /></div>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-bold leading-tight">{p.title}</p>
-                    {p.sub && <p className="text-[11px] text-slate-400 leading-tight">{p.sub}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
-        {/* Stat band */}
-        <div className="relative max-w-6xl mx-auto px-4 md:px-8 pb-10">
-          <Panel className="grid grid-cols-2 md:grid-cols-5 divide-x divide-white/10">
+        {/* Stat band — also over the image */}
+        <div className="relative max-w-6xl mx-auto w-full px-4 md:px-8 pb-10">
+          <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-white/10 rounded-2xl bg-[#0b1220]/80 border border-white/10 backdrop-blur-md">
             {HERO_STATS.map((s) => (
               <div key={s.label} className="flex flex-col items-center justify-center gap-1 py-5 px-2 text-center transition-colors hover:bg-white/[0.06]">
                 <s.icon className="w-5 h-5 text-blue-400" />
                 <p className="text-xl md:text-2xl font-black">{s.value}</p>
-                <p className="text-[11px] text-slate-400 font-medium">{s.label}</p>
+                <p className="text-[11px] text-slate-300 font-medium">{s.label}</p>
               </div>
             ))}
-          </Panel>
+          </div>
         </div>
       </section>
 
