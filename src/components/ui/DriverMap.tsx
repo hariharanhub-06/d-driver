@@ -12,22 +12,9 @@ interface StopMarker {
     lng: number;
 }
 
-const ROT_TRANSITION = 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)';
-
-// Rotate to `target` bearing and let the GPU animate it: leaflet-rotate applies the rotation
-// as a CSS transform on `map._rotatePane`, so a transition on that pane tweens it smoothly
-// WITHOUT the per-frame relayout that made setBearing() feel laggy on mobile.
-function setBearingSmooth(map: any, target: number) {
-    if (!map || typeof map.setBearing !== 'function') return;
-    const rp = map._rotatePane;
-    if (rp) rp.style.transition = ROT_TRANSITION;
-    map.setBearing(target);
-}
-
-// Turn the transition OFF so a two-finger rotate follows the fingers 1:1 (no lag).
-function setBearingInstantMode(map: any) {
-    const rp = map?._rotatePane;
-    if (rp) rp.style.transition = 'none';
+// Rotate the map to `target` bearing (leaflet-rotate handles this natively).
+function setBearing(map: any, target: number) {
+    if (map && typeof map.setBearing === 'function') map.setBearing(target);
 }
 
 interface Props {
@@ -69,8 +56,6 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     const [mapReady, setMapReady] = useState(false);
     // Keeps the newest "redraw driver arrow" fn so the map's 'rotate' event can call it.
     const updateArrowRef = useRef<(() => void) | null>(null);
-    // Auto-resume following a few seconds after the user stops panning/rotating.
-    const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const resumeFollowRef = useRef<(() => void) | null>(null);
 
     useEffect(() => { currentPosRef.current = userPosition; });
@@ -99,8 +84,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 maxZoom: 20, minZoom: 3, subdomains: 'abcd', keepBuffer: 8,
             }).addTo(map);
 
-            // Resume heading-up following + recenter on the driver (called on Recenter tap and
-            // automatically a few seconds after the user stops interacting).
+            // Google-Maps recenter: tap the button → fly back to the driver + heading-up.
             const resumeFollow = () => {
                 userDraggedRef.current = false;
                 if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#2563EB';
@@ -109,30 +93,20 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 const [lat, lng] = currentPosRef.current;
                 m.flyTo([lat, lng], Math.max(m.getZoom(), 16), { animate: true, duration: 0.6 });
                 lastAppliedHeadingRef.current = null;
-                setBearingSmooth(m, -accHeadingRef.current); // heading-up, GPU-animated
+                setBearing(m, -accHeadingRef.current); // heading-up (0 = north-up if no heading)
                 lastAppliedHeadingRef.current = accHeadingRef.current;
                 updateArrowRef.current?.();
             };
             resumeFollowRef.current = resumeFollow;
 
-            // Any manual gesture (pan or two-finger rotate) stops auto-follow; a 5s idle timer
-            // then re-engages heading-up following so the driver doesn't have to tap Recenter.
-            const onManualStart = () => {
+            // Manual pan / two-finger rotate stops following and shows the Recenter button
+            // (Google-Maps style — the driver taps Recenter to resume).
+            const onManual = () => {
                 userDraggedRef.current = true;
                 if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#94a3b8';
-                if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
-                setBearingInstantMode(map); // two-finger rotate should track the fingers 1:1
             };
-            const onManualEnd = () => {
-                if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
-                resumeTimerRef.current = setTimeout(resumeFollow, 3000);
-            };
-            map.on('dragstart', onManualStart);
-            map.on('rotatestart', onManualStart);
-            map.on('zoomstart', onManualStart);
-            map.on('dragend', onManualEnd);
-            map.on('rotateend', onManualEnd);
-            map.on('zoomend', onManualEnd);
+            map.on('dragstart', onManual);
+            map.on('rotatestart', onManual);
             // Keep the driver arrow pointing along travel direction as the bearing changes.
             map.on('rotate', () => updateArrowRef.current?.());
 
@@ -142,7 +116,6 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         });
 
         return () => {
-            if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
             if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -193,9 +166,9 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
             };
             updateArrowRef.current = renderArrow;
 
-            // Heading-up rotation while FOLLOWING — GPU-animated via the rotate pane transition.
+            // Heading-up rotation while FOLLOWING (native rotation). Manual pan/rotate opts out.
             if (headingMoved && !userDraggedRef.current && userHeading != null) {
-                setBearingSmooth(map, -rawHeading);
+                setBearing(map, -rawHeading);
             }
 
             if (!userMarkerRef.current) {
@@ -374,7 +347,6 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     }, [userPosition, stops, nextStopIndex, mapReady]);
 
     const handleRecenter = () => {
-        if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
         resumeFollowRef.current?.();
     };
 
