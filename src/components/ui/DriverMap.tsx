@@ -51,6 +51,9 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     const [mapReady, setMapReady] = useState(false);
     // Keeps the newest "redraw driver arrow" fn so the map's 'rotate' event can call it.
     const updateArrowRef = useRef<(() => void) | null>(null);
+    // Auto-resume following a few seconds after the user stops panning/rotating.
+    const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const resumeFollowRef = useRef<(() => void) | null>(null);
 
     useEffect(() => { currentPosRef.current = userPosition; });
 
@@ -78,13 +81,41 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
                 maxZoom: 20, minZoom: 3, subdomains: 'abcd', keepBuffer: 8,
             }).addTo(map);
 
-            // Any manual gesture (pan or two-finger rotate) stops auto-follow / heading-up.
-            const onManual = () => {
+            // Resume heading-up following + recenter on the driver (called on Recenter tap and
+            // automatically a few seconds after the user stops interacting).
+            const resumeFollow = () => {
+                userDraggedRef.current = false;
+                if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#2563EB';
+                const m = mapRef.current;
+                if (!m) return;
+                const [lat, lng] = currentPosRef.current;
+                m.flyTo([lat, lng], Math.max(m.getZoom(), 16), { animate: true, duration: 0.6 });
+                lastAppliedHeadingRef.current = null;
+                if (typeof (m as any).setBearing === 'function') {
+                    (m as any).setBearing(-accHeadingRef.current); // heading-up (0 = north-up if no heading)
+                    lastAppliedHeadingRef.current = accHeadingRef.current;
+                }
+                updateArrowRef.current?.();
+            };
+            resumeFollowRef.current = resumeFollow;
+
+            // Any manual gesture (pan or two-finger rotate) stops auto-follow; a 5s idle timer
+            // then re-engages heading-up following so the driver doesn't have to tap Recenter.
+            const onManualStart = () => {
                 userDraggedRef.current = true;
                 if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#94a3b8';
+                if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
             };
-            map.on('dragstart', onManual);
-            map.on('rotatestart', onManual);
+            const onManualEnd = () => {
+                if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+                resumeTimerRef.current = setTimeout(resumeFollow, 5000);
+            };
+            map.on('dragstart', onManualStart);
+            map.on('rotatestart', onManualStart);
+            map.on('zoomstart', onManualStart);
+            map.on('dragend', onManualEnd);
+            map.on('rotateend', onManualEnd);
+            map.on('zoomend', onManualEnd);
             // Keep the driver arrow pointing along travel direction as the bearing changes.
             map.on('rotate', () => updateArrowRef.current?.());
 
@@ -94,6 +125,7 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
         });
 
         return () => {
+            if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
             if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -325,19 +357,8 @@ export default function DriverMap({ userPosition, userHeading, userAccuracy, sto
     }, [userPosition, stops, nextStopIndex, mapReady]);
 
     const handleRecenter = () => {
-        userDraggedRef.current = false;
-        if (recentreBtnRef.current) recentreBtnRef.current.style.color = '#2563EB';
-        const map = mapRef.current;
-        if (!map) return;
-        const [lat, lng] = currentPosRef.current;
-        map.flyTo([lat, lng], Math.max(map.getZoom(), 16), { animate: true, duration: 0.6 });
-        // Resume heading-up orientation immediately (native rotation).
-        lastAppliedHeadingRef.current = null;
-        if (userHeading != null && typeof (map as any).setBearing === 'function') {
-            (map as any).setBearing(-accHeadingRef.current);
-            lastAppliedHeadingRef.current = accHeadingRef.current;
-        }
-        updateArrowRef.current?.();
+        if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+        resumeFollowRef.current?.();
     };
 
     return (
