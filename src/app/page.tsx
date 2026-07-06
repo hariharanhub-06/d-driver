@@ -303,10 +303,16 @@ export default function LandingPage() {
                 and verified to load, otherwise a CSS-built phone-with-bus that mirrors the
                 reference. Drop artwork at public/hero-phone.png or upload in Settings. */}
             {heroSrc ? (
+              // Blended into the page (the artwork's dark background matches the hero), with a
+              // soft edge-fade so it reads as a seamless background rather than a boxed image.
               <img
                 src={heroSrc}
                 alt="OnLIVE — smart bus tracking"
-                className="w-full max-w-[640px] object-contain drop-shadow-[0_20px_50px_rgba(249,115,22,0.25)]"
+                className="w-full max-w-[720px] object-contain lg:scale-110 lg:-mr-6"
+                style={{
+                  WebkitMaskImage: 'radial-gradient(120% 100% at 55% 50%, #000 62%, transparent 100%)',
+                  maskImage: 'radial-gradient(120% 100% at 55% 50%, #000 62%, transparent 100%)',
+                }}
                 onError={() => setHeroSrc(null)}
               />
             ) : (
@@ -330,12 +336,11 @@ export default function LandingPage() {
               </div>
             )}
 
-            {/* Feature tabs — only for the CSS fallback; the uploaded hero image already
-                includes them, so we don't overlay duplicates on top of the artwork. */}
-            {!heroSrc && (
-            <div className="hidden lg:flex flex-col gap-2.5 absolute right-0 top-1/2 -translate-y-1/2 w-60 z-10">
+            {/* Feature tabs — overlaid on the right edge, floating over the artwork (matches
+                the reference). Shown for both the real image and the CSS fallback. */}
+            <div className="hidden lg:flex flex-col gap-2.5 absolute right-0 top-1/2 -translate-y-1/2 w-56 z-10">
               {HERO_PANEL.map((p) => (
-                <div key={p.title} className="flex items-center gap-3 rounded-xl bg-[#0d162b]/95 border border-white/10 px-3 py-2.5 backdrop-blur-sm shadow-lg">
+                <div key={p.title} className="flex items-center gap-3 rounded-xl bg-[#0b1220]/85 border border-white/10 px-3 py-2.5 backdrop-blur-md shadow-xl shadow-black/40">
                   <div className={`w-9 h-9 rounded-lg ${p.color} flex items-center justify-center shrink-0`}><p.icon className="w-4 h-4 text-white" /></div>
                   <div className="min-w-0">
                     <p className="text-[13px] font-bold leading-tight">{p.title}</p>
@@ -344,7 +349,6 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
-            )}
           </div>
         </div>
 
