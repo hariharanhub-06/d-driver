@@ -306,7 +306,7 @@ export default function LandingPage() {
               <img
                 src={heroSrc}
                 alt="OnLIVE — smart bus tracking"
-                className="w-full max-w-[560px] object-contain drop-shadow-[0_20px_50px_rgba(249,115,22,0.25)]"
+                className="w-full max-w-[640px] object-contain drop-shadow-[0_20px_50px_rgba(249,115,22,0.25)]"
                 onError={() => setHeroSrc(null)}
               />
             ) : (
@@ -330,7 +330,9 @@ export default function LandingPage() {
               </div>
             )}
 
-            {/* Feature tabs — clean vertical stack on the right (wraps, never truncated) */}
+            {/* Feature tabs — only for the CSS fallback; the uploaded hero image already
+                includes them, so we don't overlay duplicates on top of the artwork. */}
+            {!heroSrc && (
             <div className="hidden lg:flex flex-col gap-2.5 absolute right-0 top-1/2 -translate-y-1/2 w-60 z-10">
               {HERO_PANEL.map((p) => (
                 <div key={p.title} className="flex items-center gap-3 rounded-xl bg-[#0d162b]/95 border border-white/10 px-3 py-2.5 backdrop-blur-sm shadow-lg">
@@ -342,6 +344,7 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
+            )}
           </div>
         </div>
 
