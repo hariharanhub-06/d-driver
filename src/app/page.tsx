@@ -170,8 +170,6 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function LandingPage() {
   const [data, setData] = useState<LandingData | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  // Resolved hero artwork URL, or null to show the CSS bus. Never renders a broken <img>.
-  const [heroSrc, setHeroSrc] = useState<string | null>(null);
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -185,21 +183,6 @@ export default function LandingPage() {
       }))
       .catch(() => setData({ config: DEFAULT_CONFIG, stats: DEFAULT_STATS, schools: [] }));
   }, []);
-
-  // Resolve the hero artwork without ever showing a broken image: prefer the super-admin's
-  // uploaded hero image; otherwise probe for a dropped-in /hero-phone.png and only use it
-  // if it actually loads. Falls back to the CSS bus composition (heroSrc = null).
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const uploaded = data ? mergeLandingContent(data.config?.landing_content).hero.image_url : null;
-    if (uploaded) { setHeroSrc(uploaded); return; }
-    let alive = true;
-    const probe = new window.Image();
-    probe.onload = () => { if (alive) setHeroSrc('/hero-phone.png'); };
-    probe.onerror = () => { if (alive) setHeroSrc(null); };
-    probe.src = '/hero-phone.png';
-    return () => { alive = false; };
-  }, [data]);
 
   // "Speed" reveal — each section rushes into place when it enters the viewport (on scroll
   // and when a nav tab jumps to it). Runs once sections exist (after data loads).
@@ -273,16 +256,16 @@ export default function LandingPage() {
             <p className="mt-3 text-slate-300 text-base md:text-lg font-medium">{c.hero.subtitle}</p>
             <div className="mt-5 flex flex-wrap gap-3">
               {HERO_CHIPS.map((c) => (
-                <span key={c.label} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-sm font-semibold">
+                <span key={c.label} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/40 hover:bg-white/[0.08] hover:shadow-lg hover:shadow-blue-900/20 text-sm font-semibold">
                   <c.icon className={`w-4 h-4 ${c.color}`} /> {c.label}
                 </span>
               ))}
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#f97316] hover:bg-[#ea6a0c] font-bold shadow-lg shadow-orange-500/25 transition-colors">
+              <Link href="/login" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#f97316] hover:bg-[#ea6a0c] font-bold shadow-lg shadow-orange-500/25 transition-all duration-200 hover:scale-[1.04] active:scale-95">
                 {c.hero.primaryCta} <ArrowRight className="w-4 h-4" />
               </Link>
-              <Link href="#ecosystem" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/20 font-semibold hover:bg-white/10 transition-colors">
+              <Link href="#ecosystem" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-white/20 font-semibold hover:bg-white/10 hover:border-white/40 transition-all duration-200 hover:scale-[1.03]">
                 {c.hero.secondaryCta} <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -299,48 +282,23 @@ export default function LandingPage() {
 
           {/* Right — hero visual (bus breaking out of the phone) + feature tabs */}
           <div className="relative min-h-[440px] flex items-center justify-center">
-            {/* Main visual: the composite hero image (phone + glowing bus) if one is available
-                and verified to load, otherwise a CSS-built phone-with-bus that mirrors the
-                reference. Drop artwork at public/hero-phone.png or upload in Settings. */}
-            {heroSrc ? (
-              // Blended into the page (the artwork's dark background matches the hero), with a
-              // soft edge-fade so it reads as a seamless background rather than a boxed image.
-              <img
-                src={heroSrc}
-                alt="OnLIVE — smart bus tracking"
-                className="w-full max-w-[720px] object-contain lg:scale-110 lg:-mr-6"
-                style={{
-                  WebkitMaskImage: 'radial-gradient(120% 100% at 55% 50%, #000 62%, transparent 100%)',
-                  maskImage: 'radial-gradient(120% 100% at 55% 50%, #000 62%, transparent 100%)',
-                }}
-                onError={() => setHeroSrc(null)}
-              />
-            ) : (
-              <div className="relative w-[260px] h-[420px]">
-                {/* Phone */}
-                <div className="absolute inset-0 rounded-[2.5rem] border-4 border-white/15 bg-gradient-to-b from-[#0b1a3a] to-[#0a1024] shadow-2xl shadow-blue-900/40 overflow-hidden">
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-5 bg-black/60 rounded-full" />
-                  <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 70% 40%, rgba(37,99,235,0.35), transparent 55%)' }} />
-                </div>
-                {/* Glow + curved light trail */}
-                <div className="absolute -right-16 top-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-[#f97316]/25 blur-3xl" />
-                <div className="absolute right-[-70px] bottom-16 w-56 h-1.5 rounded-full bg-gradient-to-r from-transparent via-[#f97316] to-blue-500 rotate-[-18deg]" />
-                {/* Bus breaking out of the phone (right side) */}
-                <div className="absolute right-[-60px] top-1/2 -translate-y-1/2 w-52 h-32 rounded-2xl bg-gradient-to-br from-[#facc15] to-[#f97316] flex items-center justify-center shadow-2xl shadow-orange-500/40 border border-orange-300/40">
-                  <Bus className="w-24 h-24 text-[#3a2400]" strokeWidth={1.5} />
-                </div>
-                {/* Location pin */}
-                <div className="absolute right-2 top-24 w-16 h-16 rounded-full bg-[#f97316] flex items-center justify-center border-4 border-[#0a1024] shadow-xl">
-                  <MapPin className="w-7 h-7 text-white" />
-                </div>
-              </div>
-            )}
+            {/* Hero artwork — ALWAYS shown as the blended background (uploaded image, else the
+                bundled Hero). Its dark background melts into the page via a soft edge-fade. */}
+            <img
+              src={c.hero.image_url || '/hero-phone.png'}
+              alt="OnLIVE — smart bus tracking"
+              className="w-full max-w-[720px] object-contain lg:scale-110 lg:-mr-6"
+              style={{
+                WebkitMaskImage: 'radial-gradient(120% 100% at 55% 50%, #000 60%, transparent 100%)',
+                maskImage: 'radial-gradient(120% 100% at 55% 50%, #000 60%, transparent 100%)',
+              }}
+            />
 
             {/* Feature tabs — overlaid on the right edge, floating over the artwork (matches
                 the reference). Shown for both the real image and the CSS fallback. */}
             <div className="hidden lg:flex flex-col gap-2.5 absolute right-0 top-1/2 -translate-y-1/2 w-56 z-10">
               {HERO_PANEL.map((p) => (
-                <div key={p.title} className="flex items-center gap-3 rounded-xl bg-[#0b1220]/85 border border-white/10 px-3 py-2.5 backdrop-blur-md shadow-xl shadow-black/40">
+                <div key={p.title} className="flex items-center gap-3 rounded-xl bg-[#0b1220]/85 border border-white/10 px-3 py-2.5 backdrop-blur-md shadow-xl shadow-black/40 transition-all duration-300 hover:-translate-x-1.5 hover:border-blue-400/40">
                   <div className={`w-9 h-9 rounded-lg ${p.color} flex items-center justify-center shrink-0`}><p.icon className="w-4 h-4 text-white" /></div>
                   <div className="min-w-0">
                     <p className="text-[13px] font-bold leading-tight">{p.title}</p>
@@ -356,7 +314,7 @@ export default function LandingPage() {
         <div className="relative max-w-6xl mx-auto px-4 md:px-8 pb-10">
           <Panel className="grid grid-cols-2 md:grid-cols-5 divide-x divide-white/10">
             {HERO_STATS.map((s) => (
-              <div key={s.label} className="flex flex-col items-center justify-center gap-1 py-5 px-2 text-center">
+              <div key={s.label} className="flex flex-col items-center justify-center gap-1 py-5 px-2 text-center transition-colors hover:bg-white/[0.06]">
                 <s.icon className="w-5 h-5 text-blue-400" />
                 <p className="text-xl md:text-2xl font-black">{s.value}</p>
                 <p className="text-[11px] text-slate-400 font-medium">{s.label}</p>
@@ -384,7 +342,7 @@ export default function LandingPage() {
                   ? { head: 'bg-[#f97316]', ring: 'border-orange-200', chip: 'bg-[#f97316]', soft: 'bg-orange-50' }
                   : { head: 'bg-[#6d28d9]', ring: 'border-purple-200', chip: 'bg-[#6d28d9]', soft: 'bg-purple-50' };
               return (
-                <div key={g.role} className={`rounded-2xl bg-white border ${tone.ring} shadow-sm overflow-hidden`}>
+                <div key={g.role} className={`rounded-2xl bg-white border ${tone.ring} shadow-sm overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl`}>
                   <div className="flex items-center gap-3 p-4">
                     <div className={`w-11 h-11 rounded-full ${tone.chip} flex items-center justify-center shrink-0`}><GIcon className="w-6 h-6 text-white" /></div>
                     <div className={`px-4 py-1.5 rounded-md ${tone.head} text-white font-black tracking-wide`}>{g.role.toUpperCase()}</div>
@@ -392,7 +350,7 @@ export default function LandingPage() {
                   </div>
                   <div className="px-4 pb-4 space-y-2.5">
                     {g.items.map((it) => (
-                      <div key={it.title} className={`flex items-start gap-3 rounded-xl ${tone.soft} p-3`}>
+                      <div key={it.title} className={`flex items-start gap-3 rounded-xl ${tone.soft} p-3 transition-transform duration-200 hover:translate-x-1`}>
                         <div className={`w-8 h-8 rounded-full ${tone.chip} flex items-center justify-center shrink-0`}><X className="w-4 h-4 text-white" /></div>
                         <div>
                           <p className="text-sm font-bold text-slate-800 leading-tight">{it.title}</p>
@@ -426,7 +384,7 @@ export default function LandingPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                 {ECOSYSTEM_NODES.map((n) => (
-                  <div key={n.title} className="flex items-start gap-3 rounded-xl bg-white/5 border border-white/10 p-3">
+                  <div key={n.title} className="flex items-start gap-3 rounded-xl bg-white/5 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/40 hover:bg-white/[0.08] hover:shadow-lg hover:shadow-blue-900/20 p-3">
                     <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0"><n.icon className="w-5 h-5 text-blue-400" /></div>
                     <div><p className="text-sm font-bold">{n.title}</p><p className="text-[11px] text-slate-400 leading-tight">{n.sub}</p></div>
                   </div>
@@ -434,7 +392,7 @@ export default function LandingPage() {
               </div>
               <div className="flex flex-wrap justify-center gap-2 mt-5">
                 {ECOSYSTEM_PILLS.map((p) => (
-                  <span key={p.label} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-[11px] font-semibold text-slate-300">
+                  <span key={p.label} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/40 hover:bg-white/[0.08] hover:shadow-lg hover:shadow-blue-900/20 text-[11px] font-semibold text-slate-300">
                     <p.icon className="w-3.5 h-3.5 text-blue-400" /> {p.label}
                   </span>
                 ))}
@@ -449,7 +407,7 @@ export default function LandingPage() {
               {c.solutions.cards.map((s, i) => {
                 const SIcon = iconFor(s.icon);
                 return (
-                  <div key={i} className={`rounded-xl bg-gradient-to-br ${SOLUTION_GRADIENTS[i % SOLUTION_GRADIENTS.length]} p-4 shadow-lg`}>
+                  <div key={i} className={`rounded-xl bg-gradient-to-br ${SOLUTION_GRADIENTS[i % SOLUTION_GRADIENTS.length]} p-4 shadow-lg transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.03] hover:shadow-2xl hover:shadow-black/40 cursor-pointer`}>
                     <SIcon className="w-6 h-6 text-white mb-3" />
                     <p className="text-sm font-black leading-tight">{s.title}</p>
                     <p className="text-[11px] text-white/80 mt-1 leading-tight">{s.sub}</p>
@@ -470,7 +428,7 @@ export default function LandingPage() {
               {c.smartFeatures.items.map((f, i) => {
                 const FIcon = iconFor(f.icon);
                 return (
-                  <div key={i} className="flex flex-col items-center gap-2 rounded-xl bg-white/5 border border-white/10 p-3 text-center">
+                  <div key={i} className="flex flex-col items-center gap-2 rounded-xl bg-white/5 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/40 hover:bg-white/[0.08] hover:shadow-lg hover:shadow-blue-900/20 p-3 text-center">
                     <div className="w-10 h-10 rounded-full bg-blue-500/15 flex items-center justify-center"><FIcon className="w-5 h-5 text-blue-400" /></div>
                     <p className="text-[10px] font-semibold text-slate-300 leading-tight">{f.label}</p>
                   </div>
@@ -505,13 +463,13 @@ export default function LandingPage() {
             <SectionTitle>{c.analyticsHeading}</SectionTitle>
             <div className="grid grid-cols-2 gap-3">
               {ANALYTICS.map((a) => (
-                <div key={a.label} className="rounded-xl bg-white/5 border border-white/10 p-3">
+                <div key={a.label} className="rounded-xl bg-white/5 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/40 hover:bg-white/[0.08] hover:shadow-lg hover:shadow-blue-900/20 p-3">
                   <p className="text-xl font-black">{a.value}</p>
                   <p className="text-[10px] text-slate-400">{a.label}</p>
                   <p className="text-[10px] text-emerald-400 font-semibold">{a.delta}</p>
                 </div>
               ))}
-              <div className="col-span-2 rounded-xl bg-white/5 border border-white/10 p-3 flex items-center justify-between">
+              <div className="col-span-2 rounded-xl bg-white/5 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/40 hover:bg-white/[0.08] hover:shadow-lg hover:shadow-blue-900/20 p-3 flex items-center justify-between">
                 <div><p className="text-[10px] text-slate-400">Attendance Overview</p><p className="text-lg font-black text-emerald-400">92% Present</p></div>
                 <div className="text-right"><p className="text-[10px] text-slate-400">On Time %</p><p className="text-lg font-black text-blue-400">96.7%</p></div>
               </div>
@@ -523,7 +481,7 @@ export default function LandingPage() {
             <SectionTitle>{c.goGreenHeading}</SectionTitle>
             <div className="grid grid-cols-2 gap-3">
               {GO_GREEN.map((g) => (
-                <div key={g.label} className="rounded-xl bg-white/5 border border-white/10 p-3 text-center">
+                <div key={g.label} className="rounded-xl bg-white/5 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/40 hover:bg-white/[0.08] hover:shadow-lg hover:shadow-blue-900/20 p-3 text-center">
                   <g.icon className="w-6 h-6 text-emerald-400 mx-auto mb-1.5" />
                   <p className="text-base font-black">{g.value}</p>
                   <p className="text-[10px] text-slate-400 leading-tight">{g.label}</p>
@@ -538,7 +496,7 @@ export default function LandingPage() {
             <SectionTitle>Partner & Growth Programs</SectionTitle>
             <div className="grid grid-cols-2 gap-2.5">
               {PARTNER_PROGRAMS.map((p) => (
-                <div key={p.label} className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 p-2.5">
+                <div key={p.label} className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-blue-400/40 hover:bg-white/[0.08] hover:shadow-lg hover:shadow-blue-900/20 p-2.5">
                   <div className="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center shrink-0"><p.icon className="w-4 h-4 text-blue-400" /></div>
                   <p className="text-[11px] font-semibold text-slate-300 leading-tight">{p.label}</p>
                 </div>
@@ -606,7 +564,7 @@ export default function LandingPage() {
               return (
                 <div className="grid grid-cols-4 gap-3">
                   {filled.map((s) => (
-                    <a key={s.key} href={normUrl((c.socials as any)[s.key])} target="_blank" rel="noopener noreferrer" title={s.label} className={`aspect-square rounded-xl ${s.color} flex items-center justify-center hover:opacity-90 transition-opacity`}>
+                    <a key={s.key} href={normUrl((c.socials as any)[s.key])} target="_blank" rel="noopener noreferrer" title={s.label} className={`aspect-square rounded-xl ${s.color} flex items-center justify-center hover:opacity-90 hover:scale-110 transition-all duration-200`}>
                       <s.icon className="w-5 h-5 text-white" />
                     </a>
                   ))}
