@@ -170,7 +170,8 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function LandingPage() {
   const [data, setData] = useState<LandingData | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [heroImgFailed, setHeroImgFailed] = useState(false);
+  // Resolved hero artwork URL, or null to show the CSS bus. Never renders a broken <img>.
+  const [heroSrc, setHeroSrc] = useState<string | null>(null);
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -184,6 +185,21 @@ export default function LandingPage() {
       }))
       .catch(() => setData({ config: DEFAULT_CONFIG, stats: DEFAULT_STATS, schools: [] }));
   }, []);
+
+  // Resolve the hero artwork without ever showing a broken image: prefer the super-admin's
+  // uploaded hero image; otherwise probe for a dropped-in /hero-phone.png and only use it
+  // if it actually loads. Falls back to the CSS bus composition (heroSrc = null).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const uploaded = data ? mergeLandingContent(data.config?.landing_content).hero.image_url : null;
+    if (uploaded) { setHeroSrc(uploaded); return; }
+    let alive = true;
+    const probe = new window.Image();
+    probe.onload = () => { if (alive) setHeroSrc('/hero-phone.png'); };
+    probe.onerror = () => { if (alive) setHeroSrc(null); };
+    probe.src = '/hero-phone.png';
+    return () => { alive = false; };
+  }, [data]);
 
   // "Speed" reveal — each section rushes into place when it enters the viewport (on scroll
   // and when a nav tab jumps to it). Runs once sections exist (after data loads).
@@ -283,15 +299,15 @@ export default function LandingPage() {
 
           {/* Right — hero visual (bus breaking out of the phone) + feature tabs */}
           <div className="relative min-h-[440px] flex items-center justify-center">
-            {/* Main visual: the composite hero image (phone + glowing bus) when available,
-                otherwise a CSS-built phone-with-bus that mirrors the reference. Drop the
-                artwork at public/hero-phone.png (or upload in Settings → Landing → Hero image). */}
-            {!heroImgFailed ? (
+            {/* Main visual: the composite hero image (phone + glowing bus) if one is available
+                and verified to load, otherwise a CSS-built phone-with-bus that mirrors the
+                reference. Drop artwork at public/hero-phone.png or upload in Settings. */}
+            {heroSrc ? (
               <img
-                src={c.hero.image_url || '/hero-phone.png'}
+                src={heroSrc}
                 alt="OnLIVE — smart bus tracking"
                 className="w-full max-w-[560px] object-contain drop-shadow-[0_20px_50px_rgba(249,115,22,0.25)]"
-                onError={() => setHeroImgFailed(true)}
+                onError={() => setHeroSrc(null)}
               />
             ) : (
               <div className="relative w-[260px] h-[420px]">
