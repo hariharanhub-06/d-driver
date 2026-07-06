@@ -49,6 +49,8 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
     const [draftName, setDraftName] = useState('');
     const [draftSeq, setDraftSeq] = useState('');
     const [draftTime, setDraftTime] = useState('');
+    const [draftLat, setDraftLat] = useState('');
+    const [draftLng, setDraftLng] = useState('');
     const [draftError, setDraftError] = useState('');
 
     // ── Init map once ──────────────────────────────────────────────────────────
@@ -78,6 +80,9 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
             map.on('click', (e: any) => {
                 const cp = e.containerPoint; // pixel coords inside map container
                 setDraft({ lat: e.latlng.lat, lng: e.latlng.lng, x: cp.x, y: cp.y });
+                // Pre-fill the editable lat/lng fields from the clicked point.
+                setDraftLat(e.latlng.lat.toFixed(6));
+                setDraftLng(e.latlng.lng.toFixed(6));
             });
 
             LRef.current = L;
@@ -208,10 +213,13 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
         if (!draft) return;
         if (!draftName.trim()) { setDraftError('Stop name is required.'); return; }
         setDraftError('');
+        // Prefer the (editable) lat/lng fields; fall back to the clicked point.
+        const lat = draftLat.trim() ? parseFloat(draftLat) : draft.lat;
+        const lng = draftLng.trim() ? parseFloat(draftLng) : draft.lng;
         await onAddStop({
             name: draftName.trim(),
-            lat: draft.lat,
-            lng: draft.lng,
+            lat: Number.isFinite(lat) ? lat : draft.lat,
+            lng: Number.isFinite(lng) ? lng : draft.lng,
             sequence: draftSeq ? parseInt(draftSeq) : stops.length + 1,
             pickup_time: draftTime,
         });
@@ -219,6 +227,8 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
         setDraftName('');
         setDraftSeq('');
         setDraftTime('');
+        setDraftLat('');
+        setDraftLng('');
     };
 
     const cancelDraft = () => {
@@ -232,36 +242,23 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
         setDraftName('');
         setDraftSeq('');
         setDraftTime('');
+        setDraftLat('');
+        setDraftLng('');
         setDraftError('');
     };
 
-    // ── Position the floating form near the click, with edge detection ─────────
+    // The form is a bottom-anchored sheet (centered, side-margined) so it is NEVER cut off
+    // no matter where on the map you click — including the corners.
     const getFormStyle = (): React.CSSProperties => {
-        if (!draft || !containerRef.current) return { display: 'none' };
-        const W = containerRef.current.offsetWidth;
-        const H = containerRef.current.offsetHeight;
-        const formW = 300;
-        const formH = 200;
-        const offset = 18;
-
-        let left: number | undefined = draft.x + offset;
-        let right: number | undefined;
-        let top: number | undefined = draft.y - formH / 2;
-
-        // Flip horizontal if form would overflow right edge
-        if (left + formW > W - 8) {
-            left = undefined;
-            right = W - draft.x + offset;
-        }
-        // Clamp vertical
-        if (top < 8) top = 8;
-        if (top + formH > H - 8) top = H - formH - 8;
-
+        if (!draft) return { display: 'none' };
         return {
             position: 'absolute',
-            top,
-            ...(left !== undefined ? { left } : { right }),
-            width: formW,
+            left: 8,
+            right: 8,
+            bottom: 8,
+            maxWidth: 360,
+            marginLeft: 'auto',
+            marginRight: 'auto',
             zIndex: 1000,
         };
     };
@@ -334,6 +331,31 @@ export default function StopMap({ stops, saving, onAddStop, onDeleteStop }: Prop
                                     value={draftTime}
                                     onChange={e => setDraftTime(e.target.value)}
                                 />
+                            </div>
+                            {/* Latitude / Longitude — auto-filled from the map click, editable */}
+                            <div className="flex gap-2">
+                                <div className="flex-1">
+                                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">{t('Latitude', 'அட்சரேகை')}</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        className={inputCls}
+                                        placeholder="13.0827"
+                                        value={draftLat}
+                                        onChange={e => setDraftLat(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">{t('Longitude', 'தீர்க்கரேகை')}</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        className={inputCls}
+                                        placeholder="80.2707"
+                                        value={draftLng}
+                                        onChange={e => setDraftLng(e.target.value)}
+                                    />
+                                </div>
                             </div>
                             <div className="flex gap-2 pt-1">
                                 <button

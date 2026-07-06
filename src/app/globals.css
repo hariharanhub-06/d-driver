@@ -117,6 +117,24 @@
   to { opacity: 1; }
 }
 
+/* ── Landing "speed" reveal ──────────────────────────────────────────────────
+   Sections start hidden and rush into place with an accelerated easing — like a
+   vehicle speeding in and settling. Triggered on scroll and on nav-tab selection. */
+@media (prefers-reduced-motion: no-preference) {
+  .speed-reveal {
+    opacity: 0;
+    transform: translateY(60px) scale(0.96);
+    will-change: transform, opacity;
+  }
+  .speed-reveal.in-view {
+    opacity: 1;
+    transform: none;
+    /* easeOutExpo — very fast launch, quick settle (reads as speed) */
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 10px; }

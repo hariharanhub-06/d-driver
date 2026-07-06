@@ -170,6 +170,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function LandingPage() {
   const [data, setData] = useState<LandingData | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [heroImgFailed, setHeroImgFailed] = useState(false);
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -183,6 +184,23 @@ export default function LandingPage() {
       }))
       .catch(() => setData({ config: DEFAULT_CONFIG, stats: DEFAULT_STATS, schools: [] }));
   }, []);
+
+  // "Speed" reveal — each section rushes into place when it enters the viewport (on scroll
+  // and when a nav tab jumps to it). Runs once sections exist (after data loads).
+  useEffect(() => {
+    if (typeof window === 'undefined' || !data) return;
+    const els = Array.from(document.querySelectorAll('.speed-reveal'));
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) { e.target.classList.add('in-view'); io.unobserve(e.target); }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' },
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [data]);
 
   const config = data?.config ?? DEFAULT_CONFIG;
   const schools = data?.schools ?? [];
@@ -263,29 +281,47 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right — phone + floating panel */}
-          <div className="relative flex justify-center">
-            <div className="relative w-[280px] h-[420px] rounded-[2.5rem] border-4 border-white/15 bg-gradient-to-b from-[#0b1a3a] to-[#0a1024] shadow-2xl shadow-blue-900/40 overflow-hidden">
-              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-5 bg-black/60 rounded-full z-10" />
-              {/* The whole image fills the phone screen edge-to-edge. Priority: super-admin's
-                  uploaded hero image → a dropped-in /hero-phone.png → the app icon. */}
+          {/* Right — hero visual (bus breaking out of the phone) + feature tabs */}
+          <div className="relative min-h-[440px] flex items-center justify-center">
+            {/* Main visual: the composite hero image (phone + glowing bus) when available,
+                otherwise a CSS-built phone-with-bus that mirrors the reference. Drop the
+                artwork at public/hero-phone.png (or upload in Settings → Landing → Hero image). */}
+            {!heroImgFailed ? (
               <img
                 src={c.hero.image_url || '/hero-phone.png'}
-                alt="OnLIVE app"
-                className="absolute inset-0 w-full h-full object-cover"
-                onError={(e) => {
-                  const img = e.currentTarget as HTMLImageElement;
-                  if (!img.src.endsWith('/onlive-icon.png')) img.src = '/onlive-icon.png';
-                }}
+                alt="OnLIVE — smart bus tracking"
+                className="w-full max-w-[560px] object-contain drop-shadow-[0_20px_50px_rgba(249,115,22,0.25)]"
+                onError={() => setHeroImgFailed(true)}
               />
-            </div>
-            <div className="hidden md:block absolute right-0 top-4 w-56 space-y-2">
+            ) : (
+              <div className="relative w-[260px] h-[420px]">
+                {/* Phone */}
+                <div className="absolute inset-0 rounded-[2.5rem] border-4 border-white/15 bg-gradient-to-b from-[#0b1a3a] to-[#0a1024] shadow-2xl shadow-blue-900/40 overflow-hidden">
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-5 bg-black/60 rounded-full" />
+                  <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 70% 40%, rgba(37,99,235,0.35), transparent 55%)' }} />
+                </div>
+                {/* Glow + curved light trail */}
+                <div className="absolute -right-16 top-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-[#f97316]/25 blur-3xl" />
+                <div className="absolute right-[-70px] bottom-16 w-56 h-1.5 rounded-full bg-gradient-to-r from-transparent via-[#f97316] to-blue-500 rotate-[-18deg]" />
+                {/* Bus breaking out of the phone (right side) */}
+                <div className="absolute right-[-60px] top-1/2 -translate-y-1/2 w-52 h-32 rounded-2xl bg-gradient-to-br from-[#facc15] to-[#f97316] flex items-center justify-center shadow-2xl shadow-orange-500/40 border border-orange-300/40">
+                  <Bus className="w-24 h-24 text-[#3a2400]" strokeWidth={1.5} />
+                </div>
+                {/* Location pin */}
+                <div className="absolute right-2 top-24 w-16 h-16 rounded-full bg-[#f97316] flex items-center justify-center border-4 border-[#0a1024] shadow-xl">
+                  <MapPin className="w-7 h-7 text-white" />
+                </div>
+              </div>
+            )}
+
+            {/* Feature tabs — clean vertical stack on the right (wraps, never truncated) */}
+            <div className="hidden lg:flex flex-col gap-2.5 absolute right-0 top-1/2 -translate-y-1/2 w-60 z-10">
               {HERO_PANEL.map((p) => (
-                <div key={p.title} className="flex items-center gap-2.5 rounded-xl bg-[#0d162b]/90 border border-white/10 px-3 py-2 backdrop-blur-sm shadow-lg">
-                  <div className={`w-8 h-8 rounded-lg ${p.color} flex items-center justify-center shrink-0`}><p.icon className="w-4 h-4 text-white" /></div>
+                <div key={p.title} className="flex items-center gap-3 rounded-xl bg-[#0d162b]/95 border border-white/10 px-3 py-2.5 backdrop-blur-sm shadow-lg">
+                  <div className={`w-9 h-9 rounded-lg ${p.color} flex items-center justify-center shrink-0`}><p.icon className="w-4 h-4 text-white" /></div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold leading-tight truncate">{p.title}</p>
-                    {p.sub && <p className="text-[10px] text-slate-400 truncate">{p.sub}</p>}
+                    <p className="text-[13px] font-bold leading-tight">{p.title}</p>
+                    {p.sub && <p className="text-[11px] text-slate-400 leading-tight">{p.sub}</p>}
                   </div>
                 </div>
               ))}
@@ -308,7 +344,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══ CHALLENGES WITHOUT ONLIVE (image 1) ══ */}
-      <section id="challenges" className="py-16 bg-[#f4f6fb] text-slate-900">
+      <section id="challenges" className="speed-reveal py-16 bg-[#f4f6fb] text-slate-900">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-5xl font-black tracking-tight">
@@ -354,7 +390,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══ ECOSYSTEM + SOLUTIONS ══ */}
-      <section id="ecosystem" className="py-14">
+      <section id="ecosystem" className="speed-reveal py-14">
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Ecosystem hub */}
           <Panel className="p-6">
@@ -403,7 +439,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══ SMART FEATURES + SUPER APP ══ */}
-      <section id="features" className="py-14">
+      <section id="features" className="speed-reveal py-14">
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Panel className="p-6">
             <SectionTitle>{c.smartFeatures.heading}</SectionTitle>
@@ -439,7 +475,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══ ANALYTICS + GO GREEN + PARTNERS ══ */}
-      <section id="partners" className="py-14">
+      <section id="partners" className="speed-reveal py-14">
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Analytics */}
           <Panel className="p-5">
@@ -496,7 +532,7 @@ export default function LandingPage() {
 
       {/* ══ TRUSTED SCHOOLS (data-driven, website links) ══ */}
       {schools.length > 0 && (
-        <section className="py-10 border-y border-white/10 bg-[#080e1e]">
+        <section className="speed-reveal py-10 border-y border-white/10 bg-[#080e1e]">
           <p className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Trusted by Schools</p>
           <div className="flex gap-8 overflow-x-auto no-scrollbar px-4 md:px-8">
             {schools.map((s) => {
@@ -520,7 +556,7 @@ export default function LandingPage() {
       )}
 
       {/* ══ CONTACT / DEMO / SOCIAL ══ */}
-      <section id="contact" className="py-14">
+      <section id="contact" className="speed-reveal py-14">
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Panel className="p-6">
             <h3 className="text-2xl font-black text-blue-400 mb-1">{c.contact.contactHeading}</h3>
