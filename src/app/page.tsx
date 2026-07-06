@@ -249,10 +249,10 @@ export default function LandingPage() {
           alt="OnLIVE — smart bus tracking"
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
-        {/* Legibility overlays: darken overall, weighted to the left for the text, and fade top/bottom into the page */}
-        <div className="absolute inset-0 bg-[#060b18]/45" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#060b18] via-[#060b18]/80 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#060b18] via-transparent to-[#060b18]/40" />
+        {/* Legibility overlay — ONLY a left-weighted gradient so the text stays readable while
+            the bus/artwork on the right shows clearly (no full-screen darkening). */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#060b18] via-[#060b18]/70 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#060b18]/60 via-transparent to-transparent" />
 
         {/* Content — sits ON the image */}
         <div className="relative max-w-7xl mx-auto w-full px-4 md:px-8 pt-16 pb-8">
