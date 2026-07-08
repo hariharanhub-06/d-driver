@@ -1,4 +1,5 @@
 const prisma = require('../prisma');
+const { sendWebPush } = require('./webPush');
 
 let _io = null;
 const setIo = (io) => { _io = io; };
@@ -48,6 +49,10 @@ const notifyUser = async (userId, message, type = 'info', schoolId = null) => {
         // Best-effort native push (won't block / throw).
         prisma.user.findUnique({ where: { id: userId }, select: { expo_push_token: true } })
             .then(u => { if (u?.expo_push_token) sendExpoPush(u.expo_push_token, 'Onlive', message); })
+            .catch(() => {});
+        // Best-effort browser/PWA web push (won't block / throw). Deep-link to the
+        // in-app notifications view; SOS alerts open on whatever page is focused.
+        sendWebPush(userId, 'Onlive', message, { url: '/', tag: type === 'alert' ? 'sos' : undefined })
             .catch(() => {});
         return notification;
     } catch (err) {

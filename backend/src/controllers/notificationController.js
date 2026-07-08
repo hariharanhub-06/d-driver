@@ -90,4 +90,52 @@ const savePushToken = async (req, res) => {
     }
 };
 
-module.exports = { getNotifications, markRead, markAllRead, getUnreadCount, savePushToken };
+// GET /notifications/vapid-public-key — the browser needs this to subscribe.
+const getVapidPublicKey = async (req, res) => {
+    const { getPublicKey } = require('../utils/webPush');
+    res.json({ publicKey: getPublicKey() });
+};
+
+// POST /notifications/web-push/subscribe — browser/PWA registers a push subscription.
+const saveWebPushSubscription = async (req, res) => {
+    try {
+        const { endpoint, keys } = req.body || {};
+        if (!endpoint || !keys?.p256dh || !keys?.auth) {
+            return res.status(400).json({ error: 'A valid push subscription is required.' });
+        }
+        // endpoint is globally unique; upsert so re-subscribing (or a device that
+        // switched users) just re-points the existing row instead of duplicating.
+        await prisma.pushSubscription.upsert({
+            where: { endpoint },
+            create: {
+                user_id: req.user.id, endpoint,
+                p256dh: keys.p256dh, auth: keys.auth,
+                user_agent: req.headers['user-agent'] || null,
+            },
+            update: { user_id: req.user.id, p256dh: keys.p256dh, auth: keys.auth },
+        });
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('saveWebPushSubscription error:', error.message);
+        res.status(500).json({ error: 'Error saving push subscription' });
+    }
+};
+
+// POST /notifications/web-push/unsubscribe — remove a subscription (e.g. on logout).
+const deleteWebPushSubscription = async (req, res) => {
+    try {
+        const { endpoint } = req.body || {};
+        if (endpoint) {
+            await prisma.pushSubscription.deleteMany({ where: { endpoint, user_id: req.user.id } });
+        }
+        res.json({ ok: true });
+    } catch (error) {
+        console.error('deleteWebPushSubscription error:', error.message);
+        res.status(500).json({ error: 'Error removing push subscription' });
+    }
+};
+
+module.exports = {
+    getNotifications, markRead, markAllRead, getUnreadCount, savePushToken,
+    getVapidPublicKey, saveWebPushSubscription, deleteWebPushSubscription,
+};

@@ -258,12 +258,12 @@ const getActiveTrips = async (req, res) => {
               orderBy: { sequence: 'asc' },
               include: {
                 students: {
-                  select: { id: true, name: true, photo_url: true, grade: true },
+                  select: { id: true, name: true, photo_url: true, grade: true, parent: { select: { name: true, phone: true } } },
                 },
               },
             },
             students: {
-              select: { id: true, name: true, photo_url: true, grade: true, stop_id: true },
+              select: { id: true, name: true, photo_url: true, grade: true, stop_id: true, parent: { select: { name: true, phone: true } } },
             },
           },
         },
@@ -292,7 +292,7 @@ const getActiveTrips = async (req, res) => {
       const schoolId = where.school_id || req.user.school_id;
       const routeStudents = await prisma.student.findMany({
         where: { route_id: { in: allRouteIds }, ...(schoolId ? { school_id: schoolId } : {}) },
-        select: { id: true, name: true, photo_url: true, grade: true, stop_id: true },
+        select: { id: true, name: true, photo_url: true, grade: true, stop_id: true, parent: { select: { name: true, phone: true } } },
       });
 
       // Apply approved temporary stop-change overrides for today

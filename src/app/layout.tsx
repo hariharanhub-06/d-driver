@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/context/LanguageContext";
 import { getSiteEnabled } from "@/lib/site-status";
 import AccessDenied403 from "@/components/AccessDenied403";
 import PWARegister from "@/components/PWARegister";
+import WebPushManager from "@/components/WebPushManager";
 import InstallPrompt from "@/components/InstallPrompt";
 import { PWAInstallProvider } from "@/context/PWAInstallContext";
 import dynamic from 'next/dynamic';
@@ -75,6 +76,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <NotificationToast />
                   <KeepAlive />
                   <PWARegister />
+                  <WebPushManager />
                   <InstallPrompt />
                   {children}
                 </PWAInstallProvider>

@@ -1,8 +1,48 @@
 /* Onlive service worker — minimal, safe app-shell cache.
    Deliberately conservative: it NEVER caches API or auth traffic, only
    same-origin static assets and a navigation fallback. */
-const CACHE = 'ddriver-shell-v3';
+const CACHE = 'ddriver-shell-v4';
 const SHELL = ['/', '/offline.html', '/icons/icon.svg', '/manifest.webmanifest'];
+
+// ── Web Push: show OS-level notifications (SOS + alerts) even when the app is closed ──
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { title: 'Onlive', body: event.data ? event.data.text() : '' };
+  }
+  const title = payload.title || 'Onlive';
+  const options = {
+    body: payload.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    data: { url: payload.url || '/' },
+    vibrate: [200, 100, 200],
+    // Tagged alerts (e.g. SOS) replace the previous one instead of stacking.
+    tag: payload.tag || undefined,
+    renotify: Boolean(payload.tag),
+    requireInteraction: payload.tag === 'sos',
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Focus an existing tab (or open one) when a notification is tapped.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          if ('navigate' in client) client.navigate(targetUrl).catch(() => {});
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+    })
+  );
+});
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef } from 'react';
-import { Check, X, Search, MapPin, Lock } from 'lucide-react';
+import { Check, X, Search, MapPin, Lock, Phone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
@@ -19,6 +19,7 @@ interface Student {
     photo_url?: string;
     grade?: string;
     stop_id?: string;
+    parent?: { name?: string; phone?: string } | null;
 }
 
 interface TripStop {
@@ -284,6 +285,18 @@ export default function BusStaffAttendancePage() {
                         <p className="font-semibold text-slate-900 dark:text-white text-sm truncate">{student.name}</p>
                         <p className="text-xs text-slate-400">{student.grade || t('Student', 'மாணவர்')}</p>
                     </div>
+                    {/* Call the parent — only when a phone number is on file. */}
+                    {student.parent?.phone && (
+                        <a
+                            href={`tel:${student.parent.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={student.parent.name ? t(`Call ${student.parent.name}`, `${student.parent.name} ஐ அழைக்கவும்`) : t('Call parent', 'பெற்றோரை அழைக்கவும்')}
+                            title={student.parent.name ? `Call ${student.parent.name}` : t('Call parent', 'பெற்றோரை அழைக்கவும்')}
+                            className="w-9 h-9 rounded-full bg-[var(--brand)]/10 text-[var(--brand)] flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+                        >
+                            <Phone className="w-4 h-4" />
+                        </a>
+                    )}
                     {/* Morning: single Present control inline. */}
                     {!isEvening && renderPhase(student, 'pickup', t('Present', 'வந்தனர்'))}
                 </div>

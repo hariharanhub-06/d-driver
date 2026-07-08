@@ -86,6 +86,24 @@ model User {
   children            Student[]            @relation("ParentStudents")
   passwordResetTokens PasswordResetToken[]
   assignedSchools     School[]             @relation("AssignedSA")
+  pushSubscriptions   PushSubscription[]
+}
+
+// Web Push (browser / installed PWA) subscriptions. One user can have several —
+// one per browser/device. Populated when the client calls PushManager.subscribe()
+// and posts the result to /notifications/web-push/subscribe.
+model PushSubscription {
+  id         String   @id @default(uuid())
+  user_id    String
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  user_agent String?
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
 }
 
 // ─── FLEET ───────────────────────────────────────────────────────────────────
