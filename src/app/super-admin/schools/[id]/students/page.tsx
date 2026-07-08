@@ -38,6 +38,8 @@ const emptyAddForm = {
     grade: '',
     section: '',
     gr_no: '',
+    parent_mode: 'new' as 'new' | 'existing',
+    parent_id: '',
     parent_name: '',
     parent_email: '',
     parent_phone: '',
@@ -62,10 +64,17 @@ export default function SchoolStudentsPage() {
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [editForm, setEditForm] = useState({
         name: '', grade: '', section: '', gr_no: '',
+        parent_mode: 'new' as 'new' | 'existing', parent_id: '',
         parent_name: '', parent_email: '', parent_phone: '', parent_password: '',
         route_id: '', stop_id: '', photo_url: '',
         fee_amount: '', fee_frequency: 'monthly', fee_due_day: '5', academic_year: String(new Date().getFullYear()),
     });
+    // Existing-parent search (mirrors the admin students form). Lets a super-admin link a
+    // student to an already-registered parent instead of creating a duplicate account.
+    const [addParentQuery, setAddParentQuery] = useState('');
+    const [addParentResults, setAddParentResults] = useState<any[]>([]);
+    const [editParentQuery, setEditParentQuery] = useState('');
+    const [editParentResults, setEditParentResults] = useState<any[]>([]);
     const [saving, setSaving] = useState(false);
     const [editError, setEditError] = useState('');
     const [uploadingEditPhoto, setUploadingEditPhoto] = useState(false);
@@ -109,6 +118,15 @@ export default function SchoolStudentsPage() {
         }
     };
 
+    // Cross-school parent lookup (GET /students/parent-search). Requires >= 3 chars.
+    const searchParentAccounts = async (q: string, setResults: (r: any[]) => void) => {
+        if (q.trim().length < 3) { setResults([]); return; }
+        try {
+            const { data } = await api.get('/students/parent-search', { params: { q } });
+            setResults(Array.isArray(data) ? data : []);
+        } catch { setResults([]); }
+    };
+
     const fetchStopsForRoute = async (routeId: string) => {
         if (!routeId) { setStops([]); return; }
         try {
@@ -147,6 +165,8 @@ export default function SchoolStudentsPage() {
             grade: student.grade || '',
             section: student.section || '',
             gr_no: student.gr_no || '',
+            parent_mode: 'new',
+            parent_id: '',
             parent_name: student.parent?.name || '',
             parent_email: student.parent?.email || '',
             parent_phone: student.parent?.phone || '',
@@ -162,6 +182,8 @@ export default function SchoolStudentsPage() {
         setEditError('');
         setNewParentPassword('');
         setPasswordMsg('');
+        setEditParentQuery('');
+        setEditParentResults([]);
         if (routeId) fetchStopsForRoute(routeId);
     };
 
@@ -198,10 +220,14 @@ export default function SchoolStudentsPage() {
                 grade: editForm.grade || undefined,
                 section: editForm.section || undefined,
                 gr_no: editForm.gr_no || undefined,
-                parent_name: editForm.parent_name || undefined,
-                parent_email: editForm.parent_email || undefined,
-                parent_phone: editForm.parent_phone || undefined,
-                parent_password: editForm.parent_password || undefined,
+                ...(!editingStudent.parent?.id && editForm.parent_mode === 'existing'
+                    ? { parent_id: editForm.parent_id || undefined }
+                    : {
+                        parent_name: editForm.parent_name || undefined,
+                        parent_email: editForm.parent_email || undefined,
+                        parent_phone: editForm.parent_phone || undefined,
+                        parent_password: editForm.parent_password || undefined,
+                    }),
                 route_id: editForm.route_id || null,
                 stop_id: editForm.stop_id || null,
                 photo_url: editForm.photo_url || undefined,
@@ -262,12 +288,18 @@ export default function SchoolStudentsPage() {
         setTempPassword('');
         setCopied(false);
         setAddPhotoUrl('');
+        setAddParentQuery('');
+        setAddParentResults([]);
         setAddModalOpen(true);
     };
 
     const handleAddStudent = async () => {
         if (!addForm.name.trim()) { setAddError('Student name is required.'); return; }
-        if (!addForm.parent_email.trim()) { setAddError('Parent email is required.'); return; }
+        if (addForm.parent_mode === 'existing') {
+            if (!addForm.parent_id) { setAddError('Please select an existing parent, or switch to "Create New".'); return; }
+        } else if (!addForm.parent_email.trim()) {
+            setAddError('Parent email is required.'); return;
+        }
         if (!addForm.fee_amount.trim()) { setAddError('Fee amount is required to enroll the student.'); return; }
         setAddSaving(true);
         setAddError('');
@@ -277,10 +309,14 @@ export default function SchoolStudentsPage() {
                 grade: addForm.grade || undefined,
                 section: addForm.section || undefined,
                 gr_no: addForm.gr_no || undefined,
-                parent_name: addForm.parent_name || undefined,
-                parent_email: addForm.parent_email.trim(),
-                parent_phone: addForm.parent_phone || undefined,
-                parent_password: addForm.parent_password || undefined,
+                ...(addForm.parent_mode === 'existing'
+                    ? { parent_id: addForm.parent_id }
+                    : {
+                        parent_name: addForm.parent_name || undefined,
+                        parent_email: addForm.parent_email.trim(),
+                        parent_phone: addForm.parent_phone || undefined,
+                        parent_password: addForm.parent_password || undefined,
+                    }),
                 route_id: addForm.route_id || undefined,
                 stop_id: addForm.stop_id || undefined,
                 school_id: id,
@@ -502,22 +538,54 @@ export default function SchoolStudentsPage() {
                                     </div>
 
                                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Parent / Guardian</p>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Name</label>
-                                        <input className={inputCls} placeholder="Full name" value={addForm.parent_name} onChange={e => setAddForm(f => ({ ...f, parent_name: e.target.value }))} />
+                                    <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-700 rounded-xl">
+                                        {(['new', 'existing'] as const).map(mode => (
+                                            <button key={mode} type="button" onClick={() => setAddForm(f => ({ ...f, parent_mode: mode }))}
+                                                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${addForm.parent_mode === mode ? 'bg-white dark:bg-slate-600 text-[var(--brand)] shadow-sm' : 'text-slate-400'}`}>
+                                                {mode === 'new' ? 'Create New' : 'Existing Parent'}
+                                            </button>
+                                        ))}
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Email <span className="text-red-500">*</span></label>
-                                        <input type="email" className={inputCls} placeholder="parent@email.com" value={addForm.parent_email} onChange={e => setAddForm(f => ({ ...f, parent_email: e.target.value }))} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Phone</label>
-                                        <input type="tel" className={inputCls} placeholder="+91 9876543210" value={addForm.parent_phone} onChange={e => setAddForm(f => ({ ...f, parent_phone: e.target.value }))} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Password <span className="text-slate-400 font-normal">(leave blank to auto-generate)</span></label>
-                                        <input type="text" className={inputCls} placeholder="Set a password (min 8 chars)" value={addForm.parent_password} onChange={e => setAddForm(f => ({ ...f, parent_password: e.target.value }))} autoComplete="off" />
-                                    </div>
+                                    {addForm.parent_mode === 'existing' ? (
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Search Parent</label>
+                                            <input type="text" className={inputCls} placeholder="Type name, email or mobile (min 3 chars)..."
+                                                value={addParentQuery}
+                                                onChange={e => { setAddParentQuery(e.target.value); setAddForm(f => ({ ...f, parent_id: '' })); searchParentAccounts(e.target.value, setAddParentResults); }} />
+                                            {addParentResults.length > 0 && (
+                                                <div className="mt-2 border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden max-h-52 overflow-y-auto">
+                                                    {addParentResults.map(p => (
+                                                        <button key={p.id} type="button"
+                                                            onClick={() => { setAddForm(f => ({ ...f, parent_id: p.id, parent_name: p.name, parent_email: p.email })); setAddParentQuery(p.name); setAddParentResults([]); }}
+                                                            className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--brand)]/5 transition-all ${addForm.parent_id === p.id ? 'bg-[var(--brand)]/10 text-[var(--brand)]' : ''}`}>
+                                                            <p className="font-semibold">{p.name}</p>
+                                                            <p className="text-xs text-slate-400">{p.email}{p.phone ? ` · ${p.phone}` : ''}{p.school?.name ? ` · ${p.school.name}` : ''}</p>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {addForm.parent_id && <p className="text-xs text-emerald-600 font-medium mt-1">Selected: {addForm.parent_name}</p>}
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Name</label>
+                                                <input className={inputCls} placeholder="Full name" value={addForm.parent_name} onChange={e => setAddForm(f => ({ ...f, parent_name: e.target.value }))} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Email <span className="text-red-500">*</span></label>
+                                                <input type="email" className={inputCls} placeholder="parent@email.com" value={addForm.parent_email} onChange={e => setAddForm(f => ({ ...f, parent_email: e.target.value }))} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Phone</label>
+                                                <input type="tel" className={inputCls} placeholder="+91 9876543210" value={addForm.parent_phone} onChange={e => setAddForm(f => ({ ...f, parent_phone: e.target.value }))} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Password <span className="text-slate-400 font-normal">(leave blank to auto-generate)</span></label>
+                                                <input type="text" className={inputCls} placeholder="Set a password (min 8 chars)" value={addForm.parent_password} onChange={e => setAddForm(f => ({ ...f, parent_password: e.target.value }))} autoComplete="off" />
+                                            </div>
+                                        </>
+                                    )}
 
                                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Transport Assignment</p>
                                     <div>
@@ -665,26 +733,60 @@ export default function SchoolStudentsPage() {
                             </div>
 
                             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Parent / Guardian</p>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Name</label>
-                                <input className={inputCls} placeholder="Full name" value={editForm.parent_name} onChange={e => setEditForm(f => ({ ...f, parent_name: e.target.value }))} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Email (Login ID)</label>
-                                <input type="email" className={inputCls} placeholder="parent@email.com" value={editForm.parent_email} onChange={e => setEditForm(f => ({ ...f, parent_email: e.target.value }))} />
-                                {!editingStudent?.parent?.id && editForm.parent_email && (
-                                    <p className="text-xs text-blue-500 mt-1">A parent login will be created with this email on save.</p>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Phone</label>
-                                <input type="tel" className={inputCls} placeholder="+91 9876543210" value={editForm.parent_phone} onChange={e => setEditForm(f => ({ ...f, parent_phone: e.target.value }))} />
-                            </div>
-                            {!editingStudent?.parent?.id && editForm.parent_email && (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Password <span className="text-slate-400 font-normal">(leave blank to auto-generate)</span></label>
-                                    <input type="text" className={inputCls} placeholder="Set a password (min 8 chars)" value={editForm.parent_password} onChange={e => setEditForm(f => ({ ...f, parent_password: e.target.value }))} autoComplete="off" />
+                            {!editingStudent?.parent?.id && (
+                                <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-700 rounded-xl">
+                                    {(['new', 'existing'] as const).map(mode => (
+                                        <button key={mode} type="button" onClick={() => setEditForm(f => ({ ...f, parent_mode: mode }))}
+                                            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${editForm.parent_mode === mode ? 'bg-white dark:bg-slate-600 text-[var(--brand)] shadow-sm' : 'text-slate-400'}`}>
+                                            {mode === 'new' ? 'Create New' : 'Existing Parent'}
+                                        </button>
+                                    ))}
                                 </div>
+                            )}
+                            {!editingStudent?.parent?.id && editForm.parent_mode === 'existing' ? (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Search Parent</label>
+                                    <input type="text" className={inputCls} placeholder="Type name, email or mobile (min 3 chars)..."
+                                        value={editParentQuery}
+                                        onChange={e => { setEditParentQuery(e.target.value); setEditForm(f => ({ ...f, parent_id: '' })); searchParentAccounts(e.target.value, setEditParentResults); }} />
+                                    {editParentResults.length > 0 && (
+                                        <div className="mt-2 border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden max-h-52 overflow-y-auto">
+                                            {editParentResults.map(p => (
+                                                <button key={p.id} type="button"
+                                                    onClick={() => { setEditForm(f => ({ ...f, parent_id: p.id, parent_name: p.name, parent_email: p.email, parent_phone: p.phone || f.parent_phone })); setEditParentQuery(p.name); setEditParentResults([]); }}
+                                                    className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--brand)]/5 transition-all ${editForm.parent_id === p.id ? 'bg-[var(--brand)]/10 text-[var(--brand)]' : ''}`}>
+                                                    <p className="font-semibold">{p.name}</p>
+                                                    <p className="text-xs text-slate-400">{p.email}{p.phone ? ` · ${p.phone}` : ''}{p.school?.name ? ` · ${p.school.name}` : ''}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {editForm.parent_id && <p className="text-xs text-emerald-600 font-medium mt-1">Selected: {editForm.parent_name}</p>}
+                                </div>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Name</label>
+                                        <input className={inputCls} placeholder="Full name" value={editForm.parent_name} onChange={e => setEditForm(f => ({ ...f, parent_name: e.target.value }))} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Email (Login ID)</label>
+                                        <input type="email" className={inputCls} placeholder="parent@email.com" value={editForm.parent_email} onChange={e => setEditForm(f => ({ ...f, parent_email: e.target.value }))} />
+                                        {!editingStudent?.parent?.id && editForm.parent_email && (
+                                            <p className="text-xs text-blue-500 mt-1">A parent login will be created with this email on save.</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Parent Phone</label>
+                                        <input type="tel" className={inputCls} placeholder="+91 9876543210" value={editForm.parent_phone} onChange={e => setEditForm(f => ({ ...f, parent_phone: e.target.value }))} />
+                                    </div>
+                                    {!editingStudent?.parent?.id && editForm.parent_email && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Password <span className="text-slate-400 font-normal">(leave blank to auto-generate)</span></label>
+                                            <input type="text" className={inputCls} placeholder="Set a password (min 8 chars)" value={editForm.parent_password} onChange={e => setEditForm(f => ({ ...f, parent_password: e.target.value }))} autoComplete="off" />
+                                        </div>
+                                    )}
+                                </>
                             )}
                             {editingStudent?.parent?.id && (
                                 <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 space-y-3">

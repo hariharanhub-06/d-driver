@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import api from '@/lib/api';
@@ -9,6 +8,9 @@ import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/lib/authStorage';
 import PasswordRules from '@/components/ui/PasswordRules';
 import { usePlatformLogo } from '@/lib/usePlatformLogo';
+import Modal from '@/components/ui/Modal';
+import PolicyBody from '@/app/legal/PolicyBody';
+import { POLICIES } from '@/app/legal/legalData';
 
 export default function ChangePasswordPage() {
   const platformLogo = usePlatformLogo();
@@ -19,6 +21,10 @@ export default function ChangePasswordPage() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  // Which policy is shown in the modal (null = closed). Opening a policy must NOT
+  // navigate away, or the half-filled password form would be lost (especially in the
+  // installed PWA / mobile webview where there is no browser back button).
+  const [openPolicy, setOpenPolicy] = useState<keyof typeof POLICIES | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { user, login } = useAuth();
@@ -114,9 +120,12 @@ export default function ChangePasswordPage() {
             </div>
           ))}
 
-          {/* Legal consent — required before a first-login user can proceed. */}
-          <label className="flex items-start gap-3 cursor-pointer select-none">
+          {/* Legal consent — required before a first-login user can proceed. The row is a
+              div (not a label) so tapping a policy button opens the modal without also
+              toggling the checkbox. */}
+          <div className="flex items-start gap-3">
             <input
+              id="accept-terms"
               type="checkbox"
               checked={agreed}
               onChange={(e) => setAgreed(e.target.checked)}
@@ -124,12 +133,12 @@ export default function ChangePasswordPage() {
             />
             <span className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">
               I have read and agree to the{' '}
-              <Link href="/legal/terms" target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Terms &amp; Conditions</Link>,{' '}
-              <Link href="/legal/privacy" target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Privacy Policy</Link>,{' '}
-              <Link href="/legal/data-policy" target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Data Policy</Link>, and{' '}
-              <Link href="/legal/cookie-policy" target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Cookie Policy</Link>.
+              <button type="button" onClick={() => setOpenPolicy('terms')} className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Terms &amp; Conditions</button>,{' '}
+              <button type="button" onClick={() => setOpenPolicy('privacy')} className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Privacy Policy</button>,{' '}
+              <button type="button" onClick={() => setOpenPolicy('data-policy')} className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Data Policy</button>, and{' '}
+              <button type="button" onClick={() => setOpenPolicy('cookie-policy')} className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Cookie Policy</button>.
             </span>
-          </label>
+          </div>
 
           <button
             type="submit"
@@ -148,6 +157,15 @@ export default function ChangePasswordPage() {
           </button>
         </form>
       </div>
+
+      {/* Policy viewer — shown in-place so the password form is never lost. */}
+      <Modal
+        isOpen={openPolicy !== null}
+        onClose={() => setOpenPolicy(null)}
+        title={openPolicy ? POLICIES[openPolicy].title : ''}
+      >
+        {openPolicy && <PolicyBody policy={POLICIES[openPolicy]} />}
+      </Modal>
     </div>
   );
 }

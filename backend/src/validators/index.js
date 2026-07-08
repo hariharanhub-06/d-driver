@@ -59,9 +59,15 @@ const studentSchema = z.object({
   gr_no: z.string().optional(),
   route_id: z.string().uuid().optional(),
   stop_id: z.string().uuid().optional(),
+  // parent_id links the student to an EXISTING parent account; parent_password sets the
+  // temp password when creating a NEW parent. Both must be declared here or the validate()
+  // middleware strips them from req.body (Zod drops unknown keys), which silently breaks
+  // existing-parent linking and forces an auto-generated password on create.
+  parent_id: z.string().uuid().optional(),
   parent_email: z.string().email().optional(),
   parent_phone: phoneNumber,
   parent_name: z.string().optional(),
+  parent_password: z.string().min(1).optional(),
   school_id: z.string().optional(),
   // Fee structure
   fee_amount: z.number().positive().optional(),
