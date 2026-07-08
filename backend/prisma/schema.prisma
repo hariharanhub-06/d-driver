@@ -76,6 +76,8 @@ model User {
   notification_prefs Json?
   profile_photo_url  String?
   expo_push_token    String?
+  terms_accepted_at  DateTime?
+  terms_version      String?
   created_at         DateTime @default(now())
 
   school              School?              @relation(fields: [school_id], references: [id], onDelete: SetNull)

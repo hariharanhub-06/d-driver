@@ -13,6 +13,11 @@ const REFRESH_TTL        = '7d';
 const DEV_SA_REFRESH_TTL = '365d';
 const REFRESH_TTL_MS     = 7 * 24 * 60 * 60 * 1000;
 
+// Version of the legal policies (Terms, Privacy, Data, Cookie) currently in force.
+// Matches the "Effective Date" printed on the policy documents. Bump this when the
+// policies materially change so we can tell who accepted which version.
+const CURRENT_TERMS_VERSION = '2026-07-07';
+
 // ─── TOKEN HELPERS ───────────────────────────────────────────────────────────
 
 const signAccess = (user) =>
@@ -168,7 +173,7 @@ const logout = async (req, res) => {
 
 const changePassword = async (req, res) => {
   try {
-    const { current_password, new_password } = req.body;
+    const { current_password, new_password, accept_terms, terms_version } = req.body;
     const userId = req.user.id;
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -179,10 +184,24 @@ const changePassword = async (req, res) => {
     if (!currentMatches) return res.status(400).json({ error: 'Current password is incorrect' });
 
     const hashed = await bcrypt.hash(new_password, 12);
+    // The first-login screen ticks a consent checkbox and sends accept_terms. Record when
+    // and which policy version was accepted (only the first time, to preserve the original
+    // acceptance timestamp on later password changes).
+    const recordConsent = accept_terms && !user.terms_accepted_at;
     await prisma.user.update({
       where: { id: userId },
-      data: { password: hashed, is_first_login: false },
+      data: {
+        password: hashed,
+        is_first_login: false,
+        ...(recordConsent
+          ? { terms_accepted_at: new Date(), terms_version: terms_version || CURRENT_TERMS_VERSION }
+          : {}),
+      },
     });
+
+    if (recordConsent) {
+      await logAction({ req, action: 'accept_terms', targetType: 'user', targetId: userId });
+    }
 
     res.json({ message: 'Password changed successfully' });
   } catch (error) {

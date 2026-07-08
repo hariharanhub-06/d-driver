@@ -22,6 +22,11 @@ const loginSchema = z
 const changePasswordSchema = z.object({
   current_password: z.string().min(1),
   new_password: password,
+  // Consent to the legal policies is captured on the first-login "Set New Password"
+  // screen, which posts to this same endpoint. Both fields are optional so ordinary
+  // password changes (not first-login) still validate.
+  accept_terms: z.boolean().optional(),
+  terms_version: z.string().optional(),
 });
 
 const forgotPasswordSchema = z.object({

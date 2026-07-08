@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import api from '@/lib/api';
@@ -17,6 +18,7 @@ export default function ChangePasswordPage() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { user, login } = useAuth();
@@ -27,10 +29,16 @@ export default function ChangePasswordPage() {
     setError('');
     if (newPassword !== confirmPassword) { setError('New passwords do not match.'); return; }
     if (newPassword.length < 8) { setError('New password must be at least 8 characters.'); return; }
+    if (!agreed) { setError('You must read and accept the policies to continue.'); return; }
 
     setIsLoading(true);
     try {
-      await api.post('/auth/change-password', { current_password: currentPassword, new_password: newPassword });
+      await api.post('/auth/change-password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+        accept_terms: true,
+        terms_version: '2026-07-07',
+      });
       const token = authStorage.get('access_token') || '';
       const refreshToken = authStorage.get('refresh_token') || undefined;
       const storedUser = JSON.parse(authStorage.get('user') || 'null');
@@ -106,9 +114,26 @@ export default function ChangePasswordPage() {
             </div>
           ))}
 
+          {/* Legal consent — required before a first-login user can proceed. */}
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 dark:border-slate-600 text-blue-500 focus:ring-blue-500 accent-blue-500 cursor-pointer"
+            />
+            <span className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+              I have read and agree to the{' '}
+              <Link href="/legal/terms" target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Terms &amp; Conditions</Link>,{' '}
+              <Link href="/legal/privacy" target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Privacy Policy</Link>,{' '}
+              <Link href="/legal/data-policy" target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Data Policy</Link>, and{' '}
+              <Link href="/legal/cookie-policy" target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Cookie Policy</Link>.
+            </span>
+          </label>
+
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !agreed}
             className="w-full py-3.5 text-white font-bold rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg bg-blue-500"
             style={{ boxShadow: '0 8px 24px #3B82F633' }}
             onMouseEnter={e => !isLoading && (e.currentTarget.style.filter = 'brightness(0.9)')}
