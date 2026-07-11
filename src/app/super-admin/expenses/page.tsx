@@ -62,10 +62,11 @@ const UPGRADE_THRESHOLDS = [
   // Not a bandwidth trigger: Vercel's Hobby plan forbids commercial use, and we bill
   // schools through Razorpay. Pro is required by their terms from the first paying school.
   { service: 'Vercel', upgradeAt: 1, nextUsd: 20, reason: 'Hobby plan prohibits commercial use — we bill schools, so Pro is required from school #1', nextPlan: 'Pro ($20/mo)' },
-  // The binding cap is 512 MB of storage, not compute hours. Location grows ~18.5 MB per
-  // bus per month (20 rows/min at a 3 s throttle) and nothing purges it, so a single
-  // 10-bus school fills the free tier in under three months on its own.
-  { service: 'Neon DB', upgradeAt: 2, nextUsd: 19, reason: 'Location table grows ~185 MB/month per 10-bus school and is never purged — 512 MB free cap is hit in <3 months', nextPlan: 'Launch ($19/mo)' },
+  // The binding cap is 512 MB of storage, not compute hours. Location holds ~18.5 MB per
+  // bus per month of live tracking; at the 90-day retention we promise schools, one
+  // 10-bus school settles at ~690 MB (incl. index overhead) and exceeds the free tier by
+  // itself. Free tier is not viable at any paying scale — budget Launch from school #1.
+  { service: 'Neon DB', upgradeAt: 1, nextUsd: 19, reason: 'One 10-bus school settles at ~690 MB of location history at 90-day retention — over the 512 MB free cap on its own', nextPlan: 'Launch ($19/mo)' },
   // Render bundles 100 GB/month. Post-optimisation each school pushes ~5.3 GB of socket
   // traffic; without the per-bus-room fix it is ~158 GB and a single school blows the cap.
   { service: 'Render bandwidth', upgradeAt: 18, nextUsd: 25, reason: '~5.3 GB/month of socket egress per school against 100 GB included', nextPlan: 'Standard ($25/mo)' },
@@ -349,7 +350,9 @@ export default function SAExpensesPage() {
             {usage?.neon.location_rows != null && (
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                 {usage.neon.location_rows.toLocaleString()} {t('location rows', 'இருப்பிட வரிசைகள்')}
-                {usage.neon.retention_days == null && ' — never purged'}
+                {usage.neon.retention_days
+                  ? ` — ${usage.neon.retention_days}d retention`
+                  : ' — never purged'}
               </p>
             )}
           </div>

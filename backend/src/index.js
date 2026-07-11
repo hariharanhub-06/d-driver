@@ -120,14 +120,25 @@ io.on('connection', (socket) => {
   socket.on('join-admin-room',   (schoolId) => socket.join(`admin-${schoolId}`));
   socket.on('join-user-room',    (userId)   => socket.join(`user-${userId}`));
 
-  // Relay driver location to the school room — driver emits 'update-location',
-  // parents and admin listen for 'location-updated'
+  // Per-bus rooms. A parent watching one bus used to receive `location-updated` for
+  // EVERY bus in the school and discard the rest client-side, so with 10 buses and
+  // 300 viewers ~90% of the fan-out was thrown away on arrival. Parents now subscribe
+  // to just the bus they are tracking.
+  socket.on('join-bus-room',  (busId) => { if (busId) socket.join(`bus-${busId}`); });
+  socket.on('leave-bus-room', (busId) => { if (busId) socket.leave(`bus-${busId}`); });
+
+  // Relay driver location — driver emits 'update-location', parents and admin
+  // listen for 'location-updated'.
   socket.on('update-location', async ({ busId, lat, lng, heading }) => {
     const schoolId = socket.user?.school_id;
     if (!schoolId || !busId) return;
 
-    // Broadcast immediately for real-time tracking
-    io.to(`school-${schoolId}`).emit('location-updated', {
+    // Broadcast immediately for real-time tracking. Two targets:
+    //   bus-<id>    — parents tracking this specific bus
+    //   admin-<id>  — admins/super-admins, who legitimately need every bus in the school
+    // (admins are few, so the school-wide fan-out is cheap for them). Emitting to both
+    // in one call de-duplicates sockets that are in both rooms.
+    io.to([`bus-${busId}`, `admin-${schoolId}`]).emit('location-updated', {
       busId,
       latitude: lat,
       longitude: lng,
@@ -200,7 +211,12 @@ const cron = require('node-cron');
 const { startFeeAlertJob } = require('./jobs/feeAlertJob');
 const { startAutoBillingJob } = require('./jobs/autoBillingJob');
 const { startExpiryAlertJob } = require('./jobs/expiryAlertJob');
+const { startLocationRetentionJob } = require('./jobs/locationRetentionJob');
 startFeeAlertJob();
+// Nightly purge of Location rows past the retention window. Without this the table is
+// append-only forever: ~18.5 MB per bus per month, and it fills Neon's 512 MB free tier
+// on a single 10-bus school in under three months.
+startLocationRetentionJob();
 // Daily reminder to school admins when a bus insurance/RC or a driver licence is within
 // 5 days of expiry (or already expired). Fires once per day per record.
 startExpiryAlertJob();

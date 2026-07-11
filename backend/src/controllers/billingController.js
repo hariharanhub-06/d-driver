@@ -769,10 +769,9 @@ const getPlatformUsage = async (req, res) => {
       neon: {
         estimated_mb: neon_estimated_mb, unit: 'MB', limit_mb: 512,
         location_rows: locationRows,
-        // Location is append-only and nothing purges it (the sole deleteMany is on
-        // school deletion), so this figure only ever climbs. Surfaced so the expenses
-        // page can warn rather than sit on a green badge until the cap is hit.
-        retention_days: null,
+        // Location is append-only; locationRetentionJob purges past this window nightly.
+        // Surfaced so the card can say whether the figure is a steady state or still climbing.
+        retention_days: parseInt(process.env.LOCATION_RETENTION_DAYS || '90', 10),
       },
       schools_usage,
     });

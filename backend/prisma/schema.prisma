@@ -311,6 +311,15 @@ model Location {
 
   bus    Bus    @relation(fields: [bus_id], references: [id])
   school School @relation(fields: [school_id], references: [id])
+
+  // "Latest fix for this bus" is the hottest query in the system: every parent poll,
+  // every admin poll and the socket write path all run
+  //   findFirst({ where: { bus_id }, orderBy: { timestamp: 'desc' } })
+  // Without this index that is a sequential scan + sort over an append-only table, so
+  // its cost grows with total history. With it, it is a single index seek.
+  @@index([bus_id, timestamp(sort: Desc)])
+  // Supports the retention purge, which deletes by age across all buses.
+  @@index([timestamp])
 }
 
 model ActiveTrip {
