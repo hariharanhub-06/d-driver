@@ -58,8 +58,14 @@ export function useBusLocation(busId: string | null): BusLocationState {
         };
         const onCompleted = () => { if (active) { setTimestamp(null); } };
         let s = getSocket();
+        // The server fans `location-updated` out per bus rather than school-wide, so the
+        // bus room must be joined explicitly — and re-joined on reconnect, since rooms are
+        // per-socket and do not survive a dropped connection.
+        const joinBusRoom = () => getSocket()?.emit('join-bus-room', busId);
         const bind = () => {
             s = getSocket();
+            joinBusRoom();
+            s?.on('connect', joinBusRoom);
             s?.on('location-updated', onUpdate);
             s?.on('trip-completed', onCompleted);
         };
@@ -68,6 +74,9 @@ export function useBusLocation(busId: string | null): BusLocationState {
         return () => {
             active = false;
             const sock = getSocket();
+            // No `leave-bus-room` — leaving on cleanup races with the next screen's mount
+            // for the same bus. Membership is bounded by the parent's own children.
+            sock?.off('connect', joinBusRoom);
             sock?.off('location-updated', onUpdate);
             sock?.off('trip-completed', onCompleted);
         };

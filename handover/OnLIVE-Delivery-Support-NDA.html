@@ -1,0 +1,219 @@
+<title>OnLIVE — Delivery, Support & NDA</title>
+<style>
+  :root{
+    --paper:#ffffff; --ink:#14213a; --muted:#5b6b86; --accent:#1d4ed8; --accent-deep:#0f2c78;
+    --orange:#f97316; --rule:#dbe3f0; --rule-soft:#eef2f9; --card:#f8faff; --fill:#eef4ff;
+    --sans:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    --serif:Georgia,Cambria,"Times New Roman",serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --paper:#0b1220; --ink:#e7edfa; --muted:#93a4c4; --accent:#60a5fa; --accent-deep:#93c5fd;
+      --rule:#22314f; --rule-soft:#182338; --card:#111a2e; --fill:#152036; }
+  }
+  :root[data-theme="dark"]{ --paper:#0b1220; --ink:#e7edfa; --muted:#93a4c4; --accent:#60a5fa; --accent-deep:#93c5fd;
+    --rule:#22314f; --rule-soft:#182338; --card:#111a2e; --fill:#152036; }
+  :root[data-theme="light"]{ --paper:#ffffff; --ink:#14213a; --muted:#5b6b86; --accent:#1d4ed8; --accent-deep:#0f2c78;
+    --rule:#dbe3f0; --rule-soft:#eef2f9; --card:#f8faff; --fill:#eef4ff; }
+
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--rule-soft); color:var(--ink); font-family:var(--serif);
+    font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .sheet{ max-width:820px; margin:28px auto; background:var(--paper); padding:56px 60px 64px;
+    box-shadow:0 10px 40px rgba(15,44,120,.10); border-radius:4px; }
+
+  /* Letterhead */
+  .head{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px;
+    padding-bottom:16px; border-bottom:2px solid var(--accent); }
+  .brand{ font-family:var(--sans); font-weight:800; letter-spacing:-.5px; font-size:30px; line-height:1; color:var(--ink); }
+  .brand .live{ color:var(--accent); }
+  .brand small{ display:block; font-size:9.5px; font-weight:700; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--muted); margin-top:6px; }
+  .head .doc-meta{ font-family:var(--sans); font-size:11px; color:var(--muted); text-align:right; letter-spacing:.02em; }
+  .title{ font-family:var(--sans); font-weight:800; font-size:19px; letter-spacing:.01em; color:var(--ink);
+    text-transform:uppercase; margin:22px 0 4px; text-wrap:balance; }
+  .subtitle{ font-family:var(--sans); font-size:12.5px; color:var(--accent-deep); font-weight:600; margin:0 0 8px; }
+
+  h2{ font-family:var(--sans); font-size:14.5px; font-weight:700; color:var(--accent-deep);
+    margin:26px 0 8px; letter-spacing:.01em; }
+  h2.schedule{ font-size:16px; color:var(--ink); margin-top:34px; padding-top:14px; border-top:1px solid var(--rule); }
+  p{ margin:0 0 10px; }
+  .lead{ color:var(--ink); }
+  .note{ color:var(--muted); font-family:var(--sans); font-size:12px; font-style:italic; }
+
+  /* Numbered clauses — hanging indent */
+  .clause{ display:grid; grid-template-columns:34px 1fr; gap:4px 10px; margin:0 0 9px; break-inside:avoid; }
+  .clause .n{ font-family:var(--sans); font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums; font-size:13.5px; padding-top:1px; }
+  .clause p{ margin:0; }
+  strong{ color:var(--ink); }
+  .hl{ background:var(--fill); padding:1px 5px; border-radius:3px; font-family:var(--sans); font-size:13px; color:var(--accent-deep); font-style:normal; }
+
+  /* Parties block */
+  .parties{ background:var(--card); border:1px solid var(--rule); border-radius:6px; padding:16px 20px; margin:16px 0 6px; }
+  .parties .role{ font-family:var(--sans); font-weight:700; color:var(--ink); font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
+  .blank{ display:inline-block; min-width:180px; border-bottom:1.4px solid var(--accent); margin:0 3px; height:1.1em; vertical-align:baseline; }
+  .blank.sm{ min-width:120px; } .blank.lg{ min-width:280px; }
+
+  /* Schedule A feature rows */
+  .feat{ border:1px solid var(--rule); border-left:3px solid var(--accent); border-radius:6px;
+    background:var(--card); padding:11px 15px; margin:0 0 9px; break-inside:avoid; }
+  .feat h3{ font-family:var(--sans); font-size:13px; font-weight:700; color:var(--ink); margin:0 0 3px; }
+  .feat p{ margin:0; font-size:13.5px; color:var(--muted); line-height:1.55; }
+  ul.mat{ margin:6px 0 0; padding-left:20px; } ul.mat li{ margin:0 0 5px; }
+
+  /* Signatures */
+  .sign{ display:grid; grid-template-columns:1fr 1fr; gap:28px 40px; margin-top:14px; break-inside:avoid; }
+  .sign .who{ font-family:var(--sans); font-weight:700; color:var(--ink); font-size:12.5px; letter-spacing:.03em;
+    text-transform:uppercase; margin-bottom:18px; }
+  .field{ display:grid; grid-template-columns:70px 1fr; align-items:end; gap:8px; margin-bottom:14px; }
+  .field span{ font-family:var(--sans); font-size:12px; color:var(--muted); }
+  .field i{ border-bottom:1.4px solid var(--rule); height:1.4em; display:block; }
+  .witness{ margin-top:10px; font-family:var(--sans); font-size:12px; color:var(--muted); }
+  .witness .blank{ min-width:150px; border-bottom-color:var(--rule); }
+
+  .foot{ margin-top:34px; padding-top:12px; border-top:1px solid var(--rule); font-family:var(--sans);
+    font-size:10.5px; color:var(--muted); display:flex; justify-content:space-between; gap:12px; }
+
+  @media print{
+    @page{ size:A4; margin:16mm 15mm; }
+    body{ background:#fff; color:#14213a; font-size:10.7pt; }
+    :root{ --paper:#fff; --ink:#14213a; --muted:#4a5a78; --accent:#1d4ed8; --accent-deep:#0f2c78;
+      --rule:#c9d4e8; --card:#fff; --fill:#eef4ff; }
+    .sheet{ box-shadow:none; margin:0; max-width:none; padding:0; border-radius:0; }
+    .feat,.parties{ background:#fff; }
+    h2.schedule{ page-break-before:auto; }
+  }
+  @media (max-width:640px){
+    .sheet{ padding:32px 22px 40px; margin:0; }
+    .head{ flex-direction:column; align-items:flex-start; gap:8px; }
+    .head .doc-meta{ text-align:left; }
+    .sign{ grid-template-columns:1fr; }
+  }
+</style>
+
+<div class="sheet">
+  <header class="head">
+    <div class="brand">On<span class="live">LIVE</span><small>Smart Transport Ecosystem</small></div>
+    <div class="doc-meta">Product Handover<br>Delivery · Support · Confidentiality</div>
+  </header>
+
+  <div class="title">Software Delivery, Support &amp; Non-Disclosure Agreement</div>
+  <div class="subtitle">Product: OnLIVE — Smart Transport Ecosystem</div>
+
+  <p class="lead">This Software Delivery, Support &amp; Non-Disclosure Agreement (the <strong>“Agreement”</strong>)
+  is made and entered into on <span class="blank sm"></span> (the <strong>“Effective Date”</strong>, also the
+  <strong>“NDA Sign Date”</strong>).</p>
+
+  <div class="parties">
+    <p><span class="role">Between</span></p>
+    <p><span class="blank lg"></span> (<strong>“the Developer”</strong>) — the party that designed, developed,
+    tested and delivered the Software, of <span class="blank"></span> (address).</p>
+    <p style="margin-top:12px"><span class="role">And</span></p>
+    <p><span class="blank lg"></span> (<strong>“the Vendor”</strong>) — the party receiving, owning and operating
+    the Software, of <span class="blank"></span> (address).</p>
+    <p style="margin:10px 0 0" class="note">The Developer and the Vendor are each a “Party” and together the “Parties”.</p>
+  </div>
+
+  <h2>Recitals</h2>
+  <div class="clause"><span class="n">A</span><p>The Developer has designed and developed the software product known as <strong>“OnLIVE — Smart Transport Ecosystem”</strong> (the <strong>“Software”</strong>), comprising a Backend API, a Web Application (Progressive Web App) and a Native Mobile Application.</p></div>
+  <div class="clause"><span class="n">B</span><p>The Software has been fully built and tested by the Developer’s team and independently reviewed and tested by the Vendor. All queries, defects and issues identified during this period have, as of the Effective Date, been addressed and resolved.</p></div>
+  <div class="clause"><span class="n">C</span><p>The Parties now wish to record the formal delivery (handover / “surrender”) of the Software to the Vendor, the post-delivery support terms, ownership, and confidentiality obligations.</p></div>
+
+  <h2>1 · Definitions</h2>
+  <div class="clause"><span class="n">1.1</span><p><strong>“Software”</strong> — the OnLIVE platform and the features listed in Schedule A.</p></div>
+  <div class="clause"><span class="n">1.2</span><p><strong>“Effective Date” / “NDA Sign Date”</strong> — the date this Agreement is signed.</p></div>
+  <div class="clause"><span class="n">1.3</span><p><strong>“Support Period”</strong> — the <strong>six (6) months</strong> beginning on the Effective Date.</p></div>
+  <div class="clause"><span class="n">1.4</span><p><strong>“Bug / Defect”</strong> — a failure of the Software to perform materially in accordance with the features described in Schedule A.</p></div>
+  <div class="clause"><span class="n">1.5</span><p><strong>“Change Request”</strong> — any redesign, restyle, new feature or enhancement not in Schedule A.</p></div>
+  <div class="clause"><span class="n">1.6</span><p><strong>“Confidential Information”</strong> — as defined in Clause 7.</p></div>
+
+  <h2>2 · Delivery &amp; Acceptance</h2>
+  <div class="clause"><span class="n">2.1</span><p>The Developer hereby delivers the Software to the Vendor as described in <strong>Schedule A (Features Delivered)</strong>.</p></div>
+  <div class="clause"><span class="n">2.2</span><p>The Software has been developed and tested by the Developer and reviewed/tested by the Vendor. <strong>As of the Effective Date, all issues and queries raised have been identified and resolved, and every item in Schedule A is present and operational at the point of delivery.</strong></p></div>
+  <div class="clause"><span class="n">2.3</span><p>The Vendor acknowledges receipt and acceptance of the Software in working condition. The handover materials in Schedule B are provided to the Vendor.</p></div>
+
+  <h2>3 · Post-Delivery Support — 6 Months, No Cost</h2>
+  <div class="clause"><span class="n">3.1</span><p>During the <strong>Support Period (6 months from the Effective Date)</strong>, the Developer’s team will support the Vendor for any <strong>Bugs, defects or issues</strong> in the delivered Software <strong>at no additional cost</strong>, rectifying and re-delivering fixes within a reasonable time.</p></div>
+  <div class="clause"><span class="n">3.2</span><p>Free support covers correction of defects in the delivered features (Schedule A) only.</p></div>
+  <div class="clause"><span class="n">3.3</span><p><strong>Excluded</strong> from free support and quoted/charged separately: (a)&nbsp;redesign or restyling; (b)&nbsp;new features or enhancements outside Schedule A; (c)&nbsp;changes to scope, integrations or third-party services; (d)&nbsp;issues caused by Vendor modifications, misuse, third-party outages, or changes to servers/hosting/keys outside the Developer’s control; (e)&nbsp;data entry, content or day-to-day operational tasks.</p></div>
+  <div class="clause"><span class="n">3.4</span><p>After the Support Period, all support, maintenance or changes are by separate paid engagement.</p></div>
+
+  <h2>4 · Change Requests (Chargeable)</h2>
+  <div class="clause"><span class="n">4.1</span><p>Any <strong>redesign or new feature</strong> requested by the Vendor — during or after the Support Period — is a Change Request, <strong>quoted and charged separately</strong>, and begins only after the Parties agree scope and fees in writing.</p></div>
+
+  <h2>5 · Intellectual Property &amp; Ownership</h2>
+  <div class="clause"><span class="n">5.1</span><p><span class="hl">Upon delivery [and full payment of all agreed fees], all right, title and interest in the delivered Software and its source code transfer to the Vendor.</span> <span class="note">(Alternative: the Developer grants the Vendor a perpetual licence to use the Software.)</span></p></div>
+  <div class="clause"><span class="n">5.2</span><p>Pre-existing frameworks, open-source libraries and third-party components remain under their respective licences. The Developer retains general know-how, techniques and non-Vendor-specific components for reuse.</p></div>
+
+  <h2>6 · Third-Party Services &amp; Credentials</h2>
+  <div class="clause"><span class="n">6.1</span><p>The Software integrates third-party services — <strong>Razorpay</strong> (payments), <strong>Resend</strong> (email), <strong>ImageKit</strong> (media/uploads), and map/tile providers. After delivery the Vendor is responsible for maintaining its own accounts, API keys, subscriptions and fees for these services.</p></div>
+
+  <h2>7 · Confidentiality (Non-Disclosure)</h2>
+  <div class="clause"><span class="n">7.1</span><p><strong>“Confidential Information”</strong> means all non-public information of either Party, including the Software source code and architecture, credentials/keys, business and pricing information, personal data of schools/parents/students/drivers, and this Agreement.</p></div>
+  <div class="clause"><span class="n">7.2</span><p>Each Party shall keep the other’s Confidential Information strictly confidential, use it only for the purposes of this Agreement, and not disclose it to any third party without prior written consent.</p></div>
+  <div class="clause"><span class="n">7.3</span><p>These obligations survive termination and continue for <span class="hl">three (3) years</span>, and <strong>indefinitely</strong> for source code and personal data.</p></div>
+  <div class="clause"><span class="n">7.4</span><p>Exclusions: information that is or becomes public (other than by breach), is independently developed, or must be disclosed by law.</p></div>
+  <div class="clause"><span class="n">7.5</span><p><strong>Data protection:</strong> both Parties will handle personal data in accordance with applicable data-protection laws.</p></div>
+
+  <h2>8 · Warranties &amp; Liability</h2>
+  <div class="clause"><span class="n">8.1</span><p>The Developer warrants the Software materially performs per Schedule A at delivery and will remedy Bugs during the Support Period per Clause 3.</p></div>
+  <div class="clause"><span class="n">8.2</span><p>Save as expressly stated, the Software is provided “as is” for matters outside Schedule A. To the maximum extent permitted by law, the Developer’s total liability is limited to the fees paid under this engagement, and neither Party is liable for indirect or consequential loss.</p></div>
+
+  <h2>9 · Term &amp; Termination</h2>
+  <div class="clause"><span class="n">9.1</span><p>This Agreement takes effect on the Effective Date. Support obligations end on expiry of the Support Period; the confidentiality obligations survive per Clause 7.</p></div>
+
+  <h2>10 · General</h2>
+  <div class="clause"><span class="n">10.1</span><p>This Agreement is the entire agreement between the Parties on its subject matter and supersedes prior discussions.</p></div>
+  <div class="clause"><span class="n">10.2</span><p>Amendments must be in writing and signed by both Parties.</p></div>
+  <div class="clause"><span class="n">10.3</span><p>Governing law: <span class="blank sm"></span>; courts of <span class="blank sm"></span> have jurisdiction.</p></div>
+  <div class="clause"><span class="n">10.4</span><p>Neither Party may assign this Agreement without the other’s written consent.</p></div>
+  <div class="clause"><span class="n">10.5</span><p>If any clause is unenforceable, the remainder stays in effect.</p></div>
+
+  <h2 class="schedule">Schedule A — Features Delivered</h2>
+  <p class="note">All present and operational at the point of delivery.</p>
+  <div class="feat"><h3>Platform &amp; Roles</h3><p>Five roles (Super-admin, School Admin, Driver, Parent, Bus-staff), each with its own dashboard; multi-tenant per-school data isolation; per-school feature subscription toggles (403-gated); white-label branding per school (logo, colour, contact, website) + public school microsite.</p></div>
+  <div class="feat"><h3>Live Tracking &amp; Safety</h3><p>Real-time GPS bus tracking (Socket.io) for parents/admin/super-admin; SOS emergency alerts (driver- and parent-triggered) with realtime admin resolution; bus-switch handling.</p></div>
+  <div class="feat"><h3>Attendance &amp; Trips</h3><p>Student attendance (pickup/drop) by driver &amp; bus-staff; trip start/track/end; parent absence reporting with admin review; attendance reports/exports.</p></div>
+  <div class="feat"><h3>Students, Routes &amp; Stops</h3><p>Student CRUD with photos &amp; plan assignment; route management &amp; routing/optimization; stop management, map-based stop placement (lat/long), nearby-stops for parents; parent stop-change requests with admin approval; student “passport” transport view.</p></div>
+  <div class="feat"><h3>Fleet — Bus / Driver / Fuel / Maintenance / Shifts</h3><p>Bus management with RC &amp; insurance expiry; driver management with licence expiry; fuel requests &amp; GPS-based consumption; maintenance logging/requests; driver shift tracking &amp; logs; bus-staff assignment.</p></div>
+  <div class="feat"><h3>Billing, Subscriptions &amp; Payments</h3><p>Super-admin pricing plans with feature permissions; per-school and per-student (individual) invoices; branded PDF invoices; Razorpay online payments (platform + per-school) with webhooks; school fee management (structures, cash recording, reminders, fee-delay requests); super-admin revenue dashboard, expenses &amp; reports; automated billing &amp; fee cron jobs.</p></div>
+  <div class="feat"><h3>Communication &amp; Notifications</h3><p>In-app notifications (realtime) for all roles; Resend branded email; push/realtime alerts for location, SOS, maintenance, billing and expiries.</p></div>
+  <div class="feat"><h3>Automated Reminders</h3><p>Daily jobs: insurance/RC &amp; driver-licence expiry reminders to admins (from 5 days before / while expired), auto-billing &amp; overdue reminders, fee generation.</p></div>
+  <div class="feat"><h3>Authentication &amp; Security</h3><p>Login by email or mobile number; forgot/reset password (via email or mobile); forced first-login change-password; JWT access+refresh with logout blocklist; multi-account switching; rate limiting, Helmet, CORS allow-list, field encryption, audit logging; password policy.</p></div>
+  <div class="feat"><h3>Landing / Marketing Site</h3><p>Public OnLIVE landing page with super-admin-editable content (hero, solutions, features, challenges, partners, founders, socials, contact), installable PWA; public per-school microsite.</p></div>
+  <div class="feat"><h3>Apps &amp; Platforms</h3><p>Web PWA (installable, offline shell) + Native Mobile App (Expo, all 5 roles) + Capacitor shell; bilingual English / Tamil; media uploads via ImageKit.</p></div>
+  <div class="feat"><h3>Admin / Super-admin Management</h3><p>Full school-admin console (buses, drivers, staff, routes, stops, students, parents, users, attendance, tracking, fuel, maintenance, shifts, leave / stop-change / bus-switch requests, fees, reports, subscriptions, notifications, settings) and super-admin console (schools + drill-down, users, plans, billing/individual, revenue, expenses, permissions, reports, activity, audit, logs, tracking, settings), with mobile parity.</p></div>
+
+  <h2 class="schedule">Schedule B — Handover Materials</h2>
+  <ul class="mat">
+    <li>Source-code repositories (Backend API, Web App, Mobile App).</li>
+    <li>Deployment / configuration files.</li>
+    <li>Super-admin &amp; platform credentials / keys setup.</li>
+    <li>Third-party integration notes (Razorpay, Resend, ImageKit).</li>
+    <li>User / role documentation.</li>
+  </ul>
+
+  <h2 class="schedule">Signatures</h2>
+  <p>The Parties confirm the delivery, support, ownership and confidentiality terms above as of the Effective Date.</p>
+  <div class="sign">
+    <div>
+      <div class="who">For the Developer / Agency</div>
+      <div class="field"><span>Name</span><i></i></div>
+      <div class="field"><span>Title</span><i></i></div>
+      <div class="field"><span>Signature</span><i></i></div>
+      <div class="field"><span>Date</span><i></i></div>
+    </div>
+    <div>
+      <div class="who">For the Vendor</div>
+      <div class="field"><span>Name</span><i></i></div>
+      <div class="field"><span>Title</span><i></i></div>
+      <div class="field"><span>Signature</span><i></i></div>
+      <div class="field"><span>Date</span><i></i></div>
+    </div>
+  </div>
+  <p class="witness">Witness (optional): Name <span class="blank"></span> Signature <span class="blank sm"></span> Date <span class="blank sm"></span></p>
+
+  <div class="foot">
+    <span>OnLIVE — Smart Transport Ecosystem · Product Handover Agreement</span>
+    <span>Confidential</span>
+  </div>
+</div>

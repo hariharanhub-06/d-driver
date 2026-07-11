@@ -121,9 +121,20 @@ export default function LiveTrackingMap({ child, heightClass = 'h-72', tripActiv
         };
         const onCompleted = () => { setBusTimestamp(null); setEta(null); };
         const s = getSocket();
+        // Per-bus fan-out: subscribe explicitly, and re-subscribe on reconnect since
+        // socket rooms do not survive a dropped connection.
+        const joinBusRoom = () => s.emit('join-bus-room', busId);
+        joinBusRoom();
+        s.on('connect', joinBusRoom);
         s.on('location-updated', onUpdate);
         s.on('trip-completed', onCompleted);
-        return () => { s.off('location-updated', onUpdate); s.off('trip-completed', onCompleted); };
+        return () => {
+            // No `leave-bus-room` — see the note in app/parent/tracking/page.tsx. Leaving
+            // on cleanup races with the next subscriber's mount for the same bus.
+            s.off('connect', joinBusRoom);
+            s.off('location-updated', onUpdate);
+            s.off('trip-completed', onCompleted);
+        };
     }, [busId]);
 
     // Also require a running trip — otherwise the bus lingers after the driver ends the

@@ -124,9 +124,21 @@ export default function ParentTracking() {
         };
         const handleTripCompleted = () => { setBusTimestamp(null); setEta(null); };
         const s = getSocket();
+        // The server now fans `location-updated` out per bus rather than school-wide, so
+        // we must subscribe to this bus explicitly. Rooms are per-socket and are lost when
+        // the connection drops, so re-join on every reconnect.
+        const joinBusRoom = () => s.emit('join-bus-room', busId);
+        joinBusRoom();
+        s.on('connect', joinBusRoom);
         s.on('location-updated', handleLocationUpdate);
         s.on('trip-completed', handleTripCompleted);
         return () => {
+            // Deliberately no `leave-bus-room` here. React can mount the next subscriber
+            // before unmounting this one (dashboard -> tracking, same bus), so leaving on
+            // cleanup would evict the room the new component just joined and freeze its
+            // map. Membership is bounded by the parent's own children, which is exactly
+            // the set they should receive, so there is nothing worth reclaiming.
+            s.off('connect', joinBusRoom);
             s.off('location-updated', handleLocationUpdate);
             s.off('trip-completed', handleTripCompleted);
         };

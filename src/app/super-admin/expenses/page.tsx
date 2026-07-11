@@ -18,13 +18,14 @@ interface SchoolUsageRow {
   imagekit_storage_gb: number;
   imagekit_bandwidth_gb: number;
   razorpay_fees: number;
+  location_rows: number;
   neon_mb: number;
 }
 interface PlatformUsage {
-  resend: { used: number; limit: number; unit: string };
+  resend: { used: number; limit: number; unit: string; used_today?: number; daily_limit?: number };
   imagekit: { used_gb: number; limit_gb: number };
   razorpay: { fees_this_month: number };
-  neon: { estimated_mb: number };
+  neon: { estimated_mb: number; limit_mb?: number; location_rows?: number; retention_days?: number | null };
   schools_usage?: SchoolUsageRow[];
 }
 
@@ -54,13 +55,24 @@ const CATEGORY_LABEL: Record<string, string> = {
   misc: 'Miscellaneous',
 };
 
-// Hardcoded upgrade thresholds — only shown to DEV SA
+// Upgrade thresholds — DEV SA only. Figures assume an average school of 10 buses /
+// 400 students, 2 trips a day of ~1.75 h, 22 school days a month.
 const UPGRADE_THRESHOLDS = [
-  { service: 'Render', upgradeAt: 1,  nextUsd: 7,  reason: 'Free tier spins down — WebSocket connections drop on idle',   nextPlan: 'Starter ($7/mo)' },
-  { service: 'Vercel', upgradeAt: 5,  nextUsd: 20, reason: 'Fast Origin Transfer hits 10 GB free ceiling at ~5 schools', nextPlan: 'Pro ($20/mo)' },
-  { service: 'Neon DB', upgradeAt: 7, nextUsd: 20, reason: 'Compute hours exceed 100 hr/month free cap at ~7 schools',  nextPlan: 'Launch (~$20/mo)' },
-  { service: 'ImageKit', upgradeAt: 30, nextUsd: 9, reason: 'Bandwidth approaches 20 GB/month limit at ~30 schools',    nextPlan: 'Lite ($9/mo)' },
-  { service: 'Resend', upgradeAt: 60,  nextUsd: 20, reason: 'Email volume approaches 3,000/month limit at ~60 schools',  nextPlan: 'Pro ($20/mo)' },
+  { service: 'Render', upgradeAt: 1, nextUsd: 7, reason: 'Free tier spins down — WebSocket connections drop on idle', nextPlan: 'Starter ($7/mo)' },
+  // Not a bandwidth trigger: Vercel's Hobby plan forbids commercial use, and we bill
+  // schools through Razorpay. Pro is required by their terms from the first paying school.
+  { service: 'Vercel', upgradeAt: 1, nextUsd: 20, reason: 'Hobby plan prohibits commercial use — we bill schools, so Pro is required from school #1', nextPlan: 'Pro ($20/mo)' },
+  // The binding cap is 512 MB of storage, not compute hours. Location holds ~18.5 MB per
+  // bus per month of live tracking; at the 90-day retention we promise schools, one
+  // 10-bus school settles at ~690 MB (incl. index overhead) and exceeds the free tier by
+  // itself. Free tier is not viable at any paying scale — budget Launch from school #1.
+  { service: 'Neon DB', upgradeAt: 1, nextUsd: 19, reason: 'One 10-bus school settles at ~690 MB of location history at 90-day retention — over the 512 MB free cap on its own', nextPlan: 'Launch ($19/mo)' },
+  // Render bundles 100 GB/month. Post-optimisation each school pushes ~5.3 GB of socket
+  // traffic; without the per-bus-room fix it is ~158 GB and a single school blows the cap.
+  { service: 'Render bandwidth', upgradeAt: 18, nextUsd: 25, reason: '~5.3 GB/month of socket egress per school against 100 GB included', nextPlan: 'Standard ($25/mo)' },
+  // Resend's free tier is 100/day as well as 3,000/month. The daily cap binds first.
+  { service: 'Resend', upgradeAt: 5, nextUsd: 20, reason: 'Free tier caps at 100 emails/DAY (not just 3,000/month) — fee reminders trip it early', nextPlan: 'Pro ($20/mo)' },
+  { service: 'ImageKit', upgradeAt: 40, nextUsd: 9, reason: 'Bandwidth approaches the 20 GB/month limit at ~40 schools', nextPlan: 'Lite ($9/mo)' },
 ];
 
 function upgradeStatus(upgradeAt: number, schoolCount: number): 'urgent' | 'soon' | 'safe' {
@@ -195,9 +207,17 @@ export default function SAExpensesPage() {
     );
   }
 
-  const resendPct = usage ? (usage.resend.used / usage.resend.limit) * 100 : 0;
+  // Resend bills against a daily cap (100) as well as a monthly one (3,000). Show
+  // whichever is closer to blowing, otherwise the daily limit is hit while the
+  // monthly gauge still reads comfortably green.
+  const resendMonthlyPct = usage ? (usage.resend.used / usage.resend.limit) * 100 : 0;
+  const resendDailyPct =
+    usage?.resend.used_today != null && usage?.resend.daily_limit
+      ? (usage.resend.used_today / usage.resend.daily_limit) * 100
+      : 0;
+  const resendPct = Math.max(resendMonthlyPct, resendDailyPct);
   const imagekitPct = usage ? (usage.imagekit.used_gb / usage.imagekit.limit_gb) * 100 : 0;
-  const neonPct = Math.min(100, ((usage?.neon.estimated_mb ?? 0) / 512) * 100);
+  const neonPct = Math.min(100, ((usage?.neon.estimated_mb ?? 0) / (usage?.neon.limit_mb ?? 512)) * 100);
   const activeSchools = revenue?.active_schools ?? 0;
 
   return (
@@ -254,6 +274,15 @@ export default function SAExpensesPage() {
             <p className={cn('text-xs font-semibold mt-1.5', resendPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400')}>
               {resendPct.toFixed(0)}% used
             </p>
+            {usage?.resend.used_today != null && usage?.resend.daily_limit && (
+              <p className={cn(
+                'text-xs mt-1',
+                resendDailyPct > 80 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-slate-400 dark:text-slate-500'
+              )}>
+                {usage.resend.used_today}/{usage.resend.daily_limit} {t('today', 'இன்று')}
+                {resendDailyPct > 80 && ' — daily cap'}
+              </p>
+            )}
           </div>
 
           {/* ImageKit */}
@@ -311,11 +340,21 @@ export default function SAExpensesPage() {
             <p className={cn('text-2xl font-bold', neonPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white')}>
               {usage?.neon.estimated_mb ?? 0} MB
             </p>
-            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{t('Estimated usage', 'மதிப்பிடப்பட்ட பயன்பாடு')}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+              {t('of', 'இல்')} {usage?.neon.limit_mb ?? 512} MB {t('free tier', 'இலவசம்')}
+            </p>
             <ProgressBar pct={neonPct} />
             <p className={cn('text-xs font-semibold mt-1.5', neonPct > 80 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400')}>
               {neonPct.toFixed(0)}% {t('used', 'பயன்படுத்தப்பட்டது')}
             </p>
+            {usage?.neon.location_rows != null && (
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                {usage.neon.location_rows.toLocaleString()} {t('location rows', 'இருப்பிட வரிசைகள்')}
+                {usage.neon.retention_days
+                  ? ` — ${usage.neon.retention_days}d retention`
+                  : ' — never purged'}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -337,7 +376,7 @@ export default function SAExpensesPage() {
                   <th className="px-4 py-3 font-semibold text-slate-500 dark:text-slate-400">Resend ({t('Sent / Failed', 'அனுப்பியது / தோல்வி')})</th>
                   <th className="px-4 py-3 font-semibold text-slate-500 dark:text-slate-400">ImageKit ({t('Store / Bandwidth', 'சேமிப்பு / பேண்ட்விட்த்')})</th>
                   <th className="px-4 py-3 font-semibold text-slate-500 dark:text-slate-400">Razorpay</th>
-                  <th className="px-4 py-3 font-semibold text-slate-500 dark:text-slate-400">Neon</th>
+                  <th className="px-4 py-3 font-semibold text-slate-500 dark:text-slate-400">Neon ({t('Rows / Size', 'வரிசைகள் / அளவு')})</th>
                 </tr>
               </thead>
               <tbody>
@@ -351,7 +390,11 @@ export default function SAExpensesPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{s.imagekit_storage_gb} / {s.imagekit_bandwidth_gb} GB</td>
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-300">₹{s.razorpay_fees.toLocaleString('en-IN')}</td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{s.neon_mb} MB</td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                      <span className="text-slate-400">{(s.location_rows ?? 0).toLocaleString('en-IN')}</span>
+                      <span className="text-slate-300 dark:text-slate-600"> / </span>
+                      <span className="font-semibold">{s.neon_mb} MB</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -591,12 +634,12 @@ export default function SAExpensesPage() {
                 <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Cost Projection by Scale</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                   {[
-                    { label: '1–4 schools', usd: 7,  note: 'Render only' },
-                    { label: '5–7 schools', usd: 47, note: '+ Vercel + Neon' },
-                    { label: '8–15 schools', usd: 47, note: 'No new upgrades' },
-                    { label: '16–30 schools', usd: 65, note: '+ Render upgrade' },
-                    { label: '31–50 schools', usd: 74, note: '+ ImageKit Lite' },
-                    { label: '51–80 schools', usd: 94, note: '+ Resend Pro' },
+                    { label: '1 school',      usd: 27,  note: 'Render Starter + Vercel Pro' },
+                    { label: '2–7 schools',   usd: 46,  note: '+ Neon Launch' },
+                    { label: '8–17 schools',  usd: 66,  note: '+ Resend Pro' },
+                    { label: '18–39 schools', usd: 91,  note: '+ Render Standard' },
+                    { label: '40–70 schools', usd: 123, note: '+ ImageKit Lite + egress' },
+                    { label: '71–100 schools', usd: 273, note: '+ Render Pro + Neon Scale' },
                   ].map(row => (
                     <div key={row.label} className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-600">
                       <p className="font-semibold text-slate-800 dark:text-white">{row.label}</p>

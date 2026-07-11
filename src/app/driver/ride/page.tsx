@@ -230,6 +230,13 @@ export default function ActiveRide() {
         } catch { /* ignore */ }
 
         let gotPreciseFix = false;
+        // watchPosition fires at the GPS chip's native rate (~1 Hz). The server only
+        // persists one row per bus per 3 s, and broadcasts every emit, so emitting on
+        // every callback tripled the socket fan-out for no extra fidelity. Throttle the
+        // emit to match the server's write cadence — the local map still redraws at the
+        // full sample rate. Mirrors mobile/src/hooks/useRideTracking.ts.
+        const EMIT_INTERVAL_MS = 3000;
+        let lastEmit = 0;
         const startTracking = () => {
             // Fast coarse fix first (network-based, returns in ~1s and at most 2 min old) so
             // the map + route appear quickly on the driver's real location; watchPosition then
@@ -272,7 +279,9 @@ export default function ActiveRide() {
                     setLocationDenied(false);
                     try { localStorage.setItem('driver_last_pos', JSON.stringify([latitude, longitude])); } catch { /* ignore */ }
                     const currentBusId = busIdRef.current;
-                    if (currentBusId) {
+                    const now = Date.now();
+                    if (currentBusId && now - lastEmit >= EMIT_INTERVAL_MS) {
+                        lastEmit = now;
                         try {
                             getSocket().emit('update-location', {
                                 busId: currentBusId,

@@ -53,7 +53,9 @@ const updateLocation = async (req, res) => {
         });
 
         const io = req.app.get('io');
-        io.to(`school-${schoolId}`).emit('location-updated', {
+        // Same per-bus fan-out as the socket path in index.js: parents subscribe to
+        // `bus-<id>`, admins get the school-wide feed via `admin-<id>`.
+        io.to([`bus-${busId}`, `admin-${schoolId}`]).emit('location-updated', {
             busId,
             latitude: location.latitude,
             longitude: location.longitude,
