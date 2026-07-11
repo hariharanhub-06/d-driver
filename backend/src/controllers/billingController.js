@@ -673,7 +673,10 @@ const getPlatformUsage = async (req, res) => {
     // Each query is independent — a missing table won't crash the whole response.
     // NOTE: EmailLog timestamps the send in `sent_at` (not `created_at`); filtering the
     // wrong column silently returned 0 here, so emails appeared untracked.
-    const [emailBySchoolStatus, paidBySchool, schools] = await Promise.all([
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // Each query is independent — a missing table won't crash the whole response.
+    const [emailBySchoolStatus, paidBySchool, schools, locationsBySchool, emailsToday] = await Promise.all([
       prisma.emailLog.groupBy({
         by: ['school_id', 'status'],
         where: { sent_at: { gte: monthStart, lt: monthEnd } },
@@ -687,6 +690,15 @@ const getPlatformUsage = async (req, res) => {
       prisma.school.findMany({
         select: { id: true, name: true, _count: { select: { buses: true, students: true } } },
       }).catch(() => []),
+      // Neon usage is dominated by the append-only Location table, so count it for
+      // real rather than inferring it from bus/student counts. The previous estimate
+      // (busCount * 0.1 MB) had no time dimension at all: it reported a flat ~53 MB
+      // for a 10-bus school that in fact accumulates ~185 MB every month and never
+      // purges, so the gauge read "Safe" right up to the point Neon's 512 MB cap blew.
+      prisma.location.groupBy({ by: ['school_id'], _count: { _all: true } }).catch(() => []),
+      // Resend's free tier caps at 100/day as well as 3,000/month. The daily limit
+      // binds first and was not surfaced anywhere.
+      prisma.emailLog.count({ where: { sent_at: { gte: dayStart } } }).catch(() => 0),
     ]);
 
     const studentCount = schools.reduce((s, sc) => s + (sc._count?.students || 0), 0);
@@ -705,7 +717,18 @@ const getPlatformUsage = async (req, res) => {
     const paidMap = new Map(paidBySchool.map(r => [r.school_id, r._sum.total_amount || 0]));
 
     const razorpay_fees = paidBySchool.reduce((sum, r) => sum + (r._sum.total_amount || 0) * 0.02, 0);
-    const neon_estimated_mb = Math.round(busCount * 0.1 + studentCount * 0.005 + 50);
+
+    // ~200 B per Location row all-in: 2 UUIDs as text, 3 float8, 1 timestamptz,
+    // tuple header, and the primary-key btree entry.
+    const BYTES_PER_LOCATION_ROW = 200;
+    const BASE_SCHEMA_MB = 50; // every other table combined
+    const locationRowMap = new Map(locationsBySchool.map(r => [r.school_id, r._count._all]));
+    const locationRows = locationsBySchool.reduce((s, r) => s + r._count._all, 0);
+    const toMb = (rows) => (rows * BYTES_PER_LOCATION_ROW) / (1024 * 1024);
+
+    const neon_estimated_mb = Math.round(
+      BASE_SCHEMA_MB + toMb(locationRows) + studentCount * 0.005
+    );
     const imagekit_used_gb = parseFloat((busCount * 0.002 + studentCount * 0.0005 + 0.5).toFixed(2));
 
     // Per-school usage table: one row per school with every integration as a column.
@@ -720,7 +743,8 @@ const getPlatformUsage = async (req, res) => {
         imagekit_storage_gb: parseFloat(((s._count.buses * 0.002) + (s._count.students * 0.0005)).toFixed(3)),
         imagekit_bandwidth_gb: parseFloat(((s._count.buses * 0.004) + (s._count.students * 0.001)).toFixed(3)),
         razorpay_fees: Math.round((paidMap.get(s.id) || 0) * 0.02),
-        neon_mb: Math.round((s._count.buses * 0.1) + (s._count.students * 0.005)),
+        location_rows: locationRowMap.get(s.id) || 0,
+        neon_mb: Math.round(toMb(locationRowMap.get(s.id) || 0) + s._count.students * 0.005),
       };
     });
     schools_usage.sort((a, b) =>
@@ -730,15 +754,26 @@ const getPlatformUsage = async (req, res) => {
       schools_usage.unshift({
         school_id: null, name: 'Platform / System',
         resend_sent: platformEmail.sent, resend_failed: platformEmail.failed,
-        imagekit_storage_gb: 0, imagekit_bandwidth_gb: 0, razorpay_fees: 0, neon_mb: 0,
+        imagekit_storage_gb: 0, imagekit_bandwidth_gb: 0, razorpay_fees: 0,
+        location_rows: 0, neon_mb: 0,
       });
     }
 
     res.json({
-      resend: { used: totalEmails, limit: 3000, unit: 'emails' },
+      resend: {
+        used: totalEmails, limit: 3000, unit: 'emails',
+        used_today: emailsToday, daily_limit: 100,
+      },
       imagekit: { used_gb: imagekit_used_gb, limit_gb: 20, unit: 'GB' },
       razorpay: { fees_this_month: Math.round(razorpay_fees), unit: '₹' },
-      neon: { estimated_mb: neon_estimated_mb, unit: 'MB' },
+      neon: {
+        estimated_mb: neon_estimated_mb, unit: 'MB', limit_mb: 512,
+        location_rows: locationRows,
+        // Location is append-only and nothing purges it (the sole deleteMany is on
+        // school deletion), so this figure only ever climbs. Surfaced so the expenses
+        // page can warn rather than sit on a green badge until the cap is hit.
+        retention_days: null,
+      },
       schools_usage,
     });
   } catch (err) {

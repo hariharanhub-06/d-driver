@@ -37,3 +37,8 @@ next-env.d.ts
 
 # Claude Code local config
 .claude/
+
+# Generated tariff documents — rebuild with `node scripts/generate-tariff-pdf.js`.
+# The _INTERNAL one carries infra costs and margins; this repo's history is shared
+# with the onlive/ handover remote, so it must not be committed.
+Onlive_Tariff_*.pdf
