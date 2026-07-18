@@ -2,13 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Smartphone } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import api from '@/lib/api';
 import { usePlatformLogo } from '@/lib/usePlatformLogo';
 
 export default function ForgotPasswordPage() {
   const platformLogo = usePlatformLogo();
-  const [method, setMethod] = useState<'email' | 'mobile'>('email');
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -17,9 +16,9 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Backend expects { value, method }. For 'mobile' it looks the user up by phone and
-      // still emails the reset link to that account's registered email address.
-      await api.post('/auth/forgot-password', { value: email.trim(), method });
+      // Backend expects { value, method }. Email-only: the reset link is always sent to
+      // the account's registered email address.
+      await api.post('/auth/forgot-password', { value: email.trim(), method: 'email' });
     } catch {
       // Silently swallow to prevent user enumeration
     } finally {
@@ -52,7 +51,7 @@ export default function ForgotPasswordPage() {
           <p className="text-xs text-slate-400 mt-1 text-center">
             {submitted
               ? 'A reset link has been sent if the account exists.'
-              : 'Enter your email or mobile number — we’ll email a reset link to your registered address.'}
+              : 'Enter your email — we’ll send a reset link to your registered address.'}
           </p>
         </div>
 
@@ -74,37 +73,20 @@ export default function ForgotPasswordPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Method toggle */}
-            <div className="grid grid-cols-2 gap-2">
-              {([['email', 'Email', Mail], ['mobile', 'Mobile', Smartphone]] as const).map(([key, label, Icon]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => { setMethod(key); setEmail(''); }}
-                  className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border transition-all ${method === key
-                    ? 'border-blue-500 bg-blue-500/10 text-blue-500'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
-                    }`}
-                >
-                  <Icon className="w-4 h-4" /> {label}
-                </button>
-              ))}
-            </div>
-
             <div>
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                {method === 'mobile' ? 'Mobile Number' : 'Email Address'}
+                Email Address
               </label>
               <input
-                type={method === 'mobile' ? 'tel' : 'email'}
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full border-0 border-b-2 border-slate-200 dark:border-slate-700 focus:border-blue-500 bg-transparent py-3 text-slate-900 dark:text-white text-sm outline-none transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600"
                 onFocus={e => (e.currentTarget.style.borderBottomColor = '#3B82F6')}
                 onBlur={e => (e.currentTarget.style.borderBottomColor = '')}
-                placeholder={method === 'mobile' ? '9876543210' : 'you@school.com'}
+                placeholder="you@school.com"
                 required
-                autoComplete={method === 'mobile' ? 'tel' : 'email'}
+                autoComplete="email"
               />
             </div>
 

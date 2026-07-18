@@ -189,6 +189,14 @@ io.on('connection', (socket) => {
       } catch (err) {
         console.error('[socket] location/fuel error:', err.message);
       }
+
+      // Notify parents when the bus nears (1 km) or reaches (100 m) their child's stop.
+      // Lives here — inside the 3 s throttle — so it runs at most once per bus per 3 s, and
+      // in its own call (self-contained, never throws) so it can't affect the broadcast above.
+      // This is the LIVE path; the equivalent block in locationController.js is a dead REST
+      // handler no client calls, which is why these alerts never fired before.
+      const { checkProximityAlerts } = require('./utils/proximityAlerts');
+      checkProximityAlerts(io, { busId, schoolId, lat, lng });
     }
   });
 

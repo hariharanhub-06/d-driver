@@ -417,6 +417,7 @@ export default function ParentTracking() {
                             myStopId={myStop?.id}
                             status={progress?.status || 'idle'}
                             direction={progress?.status === 'running' ? progress?.trip_type : null}
+                            busPosition={tripStarted ? busPosition : null}
                             onStopClick={handleStopClick}
                         />
                     </div>

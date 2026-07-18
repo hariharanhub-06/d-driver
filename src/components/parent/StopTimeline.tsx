@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Hand } from 'lucide-react';
+import { Check, Hand, Bus } from 'lucide-react';
 import { useT } from '@/lib/i18n';
 
 export interface TimelineStop {
@@ -9,6 +9,8 @@ export interface TimelineStop {
     sequence?: number;
     stop_number?: number;
     pickup_time?: string;
+    latitude?: number;
+    longitude?: number;
 }
 
 interface StopTimelineProps {
@@ -17,15 +19,51 @@ interface StopTimelineProps {
     myStopId?: string;
     status: string; // running | idle | completed | paused
     direction?: string | null; // morning | evening — shown as a badge
+    busPosition?: [number, number] | null; // live [lat, lng] — drives the moving bus icon
     onStopClick?: (id: string, name: string) => void;
+}
+
+// Metres between two lat/lng points (haversine). Local + tiny so the timeline stays
+// self-contained; used only to place the bus icon along the active segment.
+function metresBetween(aLat: number, aLng: number, bLat: number, bLng: number): number {
+    const R = 6371000;
+    const dLat = ((bLat - aLat) * Math.PI) / 180;
+    const dLng = ((bLng - aLng) * Math.PI) / 180;
+    const s =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
 
 // Vertical bus-stops timeline for the parent Track sheet.
 // Passed stops get a green tick, the current stop pulses, upcoming stops are grey,
 // and the parent's own stop is highlighted in orange regardless of progress.
-export default function StopTimeline({ stops, currentStopIndex, myStopId, status, direction, onStopClick }: StopTimelineProps) {
+export default function StopTimeline({ stops, currentStopIndex, myStopId, status, direction, busPosition, onStopClick }: StopTimelineProps) {
     const t = useT();
     const live = status === 'running';
+
+    // The bus travels along the connector leading INTO the current stop, i.e. the segment from
+    // stop[currentStopIndex-1] to stop[currentStopIndex]. Place the icon on that row's rail
+    // (busRowIdx) at a fraction derived from live GPS. fraction = d(prev→bus)/(d(prev→bus)+d(bus→cur))
+    // — 0 at the previous stop, 1 at the current, and always in [0,1] even when the bus is slightly
+    // off the straight line. Falls back to the top of the first segment when there's no prior stop.
+    const busRowIdx = live && currentStopIndex > 0 ? currentStopIndex - 1 : (live ? 0 : -1);
+    let busFraction = 0;
+    if (busRowIdx >= 0 && busPosition) {
+        const prev = stops[busRowIdx];
+        const cur = stops[busRowIdx + 1] ?? stops[busRowIdx];
+        const [bLat, bLng] = busPosition;
+        if (prev?.latitude != null && prev?.longitude != null && cur?.latitude != null && cur?.longitude != null) {
+            if (currentStopIndex === 0) {
+                busFraction = 0;
+            } else {
+                const dPrev = metresBetween(prev.latitude, prev.longitude, bLat, bLng);
+                const dCur = metresBetween(bLat, bLng, cur.latitude, cur.longitude);
+                busFraction = dPrev + dCur > 1 ? Math.min(1, Math.max(0, dPrev / (dPrev + dCur))) : 0;
+            }
+        }
+    }
+    const showBusIcon = busRowIdx >= 0 && !!busPosition && stops.length > 0;
 
     if (!stops.length) {
         return (
@@ -77,6 +115,16 @@ export default function StopTimeline({ stops, currentStopIndex, myStopId, status
                             <div className="relative flex flex-col items-center shrink-0 w-6">
                                 {!isLast && (
                                     <span className={`absolute top-6 left-1/2 -translate-x-1/2 w-0.5 h-full ${lineColor}`} />
+                                )}
+                                {/* Live bus icon — glides along the segment leading into the current stop */}
+                                {showBusIcon && idx === busRowIdx && (
+                                    <span
+                                        className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-6 h-6 rounded-full bg-[var(--brand)] shadow-md flex items-center justify-center transition-all duration-1000 ease-linear"
+                                        style={{ top: `${busFraction * 100}%` }}
+                                        aria-label={t('Bus location', 'பேருந்து இருப்பிடம்')}
+                                    >
+                                        <Bus className="w-3.5 h-3.5 text-white" />
+                                    </span>
                                 )}
                                 <span className={`relative z-10 w-6 h-6 rounded-full border-2 ${dot} shrink-0 mt-0.5 flex items-center justify-center text-[10px] font-bold ${isMyStop || passed || isCurrent ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>
                                     {stopNumber}

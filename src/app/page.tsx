@@ -55,14 +55,6 @@ const HERO_PANEL = [
   { icon: Users, title: 'Parent-Student Engagement', sub: 'Platform', color: 'bg-purple-500' },
 ];
 
-const HERO_STATS = [
-  { icon: Users, value: '10 Lakh+', label: 'Students' },
-  { icon: Building2, value: '5000+', label: 'Schools' },
-  { icon: Bus, value: '20,000+', label: 'Buses' },
-  { icon: MapPin, value: '50+', label: 'Cities' },
-  { icon: TrendingUp, value: '99.9%', label: 'Uptime' },
-];
-
 const ECOSYSTEM_NODES = [
   { icon: Users, title: 'Parent App', sub: 'Live Tracking, Alerts, Payments & more' },
   { icon: GraduationCap, title: 'Student App', sub: 'ID Card, Attendance, Alerts, SOS & more' },
@@ -299,13 +291,16 @@ export default function LandingPage() {
         {/* Stat band — also over the image */}
         <div className="relative max-w-6xl mx-auto w-full px-4 md:px-8 pb-10">
           <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-white/10 rounded-2xl bg-[#0b1220]/80 border border-white/10 backdrop-blur-md">
-            {HERO_STATS.map((s) => (
-              <div key={s.label} className="flex flex-col items-center justify-center gap-1 py-5 px-2 text-center transition-colors hover:bg-white/[0.06]">
-                <s.icon className="w-5 h-5 text-blue-400" />
-                <p className="text-xl md:text-2xl font-black">{s.value}</p>
-                <p className="text-[11px] text-slate-300 font-medium">{s.label}</p>
-              </div>
-            ))}
+            {c.heroStats.map((s, i) => {
+              const SIcon = iconFor(s.icon);
+              return (
+                <div key={`${s.label}-${i}`} className="flex flex-col items-center justify-center gap-1 py-5 px-2 text-center transition-colors hover:bg-white/[0.06]">
+                  <SIcon className="w-5 h-5 text-blue-400" />
+                  <p className="text-xl md:text-2xl font-black">{s.value}</p>
+                  <p className="text-[11px] text-slate-300 font-medium">{s.label}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

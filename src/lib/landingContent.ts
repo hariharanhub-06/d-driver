@@ -6,7 +6,8 @@
 import {
     Locate, CheckCircle2, CreditCard, Bell, BarChart3, MapPin, Users, Navigation, Bus,
     ShieldCheck, Clock, Smartphone, Zap, Route, UserCheck, Phone, Mail, Camera, Fuel,
-    FileText, Calendar, Star, Heart, Map, Wallet, Send, Gauge, type LucideIcon,
+    FileText, Calendar, Star, Heart, Map, Wallet, Send, Gauge, Building2, TrendingUp,
+    type LucideIcon,
 } from 'lucide-react';
 
 export interface FeatureCard { icon: string; color: string; badge: string; title: string; desc: string }
@@ -17,6 +18,7 @@ export interface ChallengeGroup { role: string; tagline: string; icon: string; c
 
 export interface SolutionCardC { icon: string; title: string; sub: string }
 export interface SmartFeatureC { icon: string; label: string }
+export interface HeroStat { icon: string; value: string; label: string }
 
 export interface LandingContent {
     nav: { features: string; how: string; schools: string; signIn: string };
@@ -26,6 +28,8 @@ export interface LandingContent {
         badge: string; title: string; titleAccent: string; subtitle: string;
         primaryCta: string; trustLine: string;
     };
+    // Hero stats strip (the "10 Lakh+ Students / 5000+ Schools / …" band under the hero).
+    heroStats: HeroStat[];
     // New OnLIVE-design editable marketing sections.
     ecosystemHeading: string;
     solutions: { heading: string; cards: SolutionCardC[] };
@@ -52,7 +56,7 @@ export interface LandingContent {
 export const ICON_MAP: Record<string, LucideIcon> = {
     Locate, CheckCircle2, CreditCard, Bell, BarChart3, MapPin, Users, Navigation, Bus,
     ShieldCheck, Clock, Smartphone, Zap, Route, UserCheck, Phone, Mail, Camera, Fuel,
-    FileText, Calendar, Star, Heart, Map, Wallet, Send, Gauge,
+    FileText, Calendar, Star, Heart, Map, Wallet, Send, Gauge, Building2, TrendingUp,
 };
 export const ICON_OPTIONS = Object.keys(ICON_MAP);
 
@@ -82,6 +86,13 @@ export const DEFAULT_LANDING_CONTENT: LandingContent = {
         primaryCta: 'Book a Demo',
         trustLine: 'Trusted by 5000+ Schools & 10 Lakh+ Parents',
     },
+    heroStats: [
+        { icon: 'Users', value: '10 Lakh+', label: 'Students' },
+        { icon: 'Building2', value: '5000+', label: 'Schools' },
+        { icon: 'Bus', value: '20,000+', label: 'Buses' },
+        { icon: 'MapPin', value: '50+', label: 'Cities' },
+        { icon: 'TrendingUp', value: '99.9%', label: 'Uptime' },
+    ],
     ecosystemHeading: 'OnLIVE Transport Ecosystem',
     solutions: {
         heading: 'Powerful Solutions for Everyone',
@@ -209,6 +220,7 @@ export function mergeLandingContent(saved: any): LandingContent {
     return {
         nav: { ...d.nav, ...s.nav },
         hero: { ...d.hero, ...s.hero },
+        heroStats: Array.isArray(s.heroStats) && s.heroStats.length ? s.heroStats : d.heroStats,
         ecosystemHeading: s.ecosystemHeading ?? d.ecosystemHeading,
         solutions: {
             ...d.solutions, ...s.solutions,

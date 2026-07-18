@@ -568,6 +568,18 @@ function LandingPageTab() {
                 </div>
               </div>
 
+              {/* Hero stats strip — the "10 Lakh+ Students / 5000+ Schools / …" band under the hero */}
+              <div className="space-y-2">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Hero stats strip</p>
+                {content.heroStats.map((s, i) => (
+                  <div key={i} className="bg-slate-50 dark:bg-slate-700/40 rounded-xl p-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <IconSelect value={s.icon} onChange={v => editC(d => { d.heroStats[i].icon = v; })} />
+                    <LField label="Value" value={s.value} onChange={v => editC(d => { d.heroStats[i].value = v; })} />
+                    <LField label="Label" value={s.label} onChange={v => editC(d => { d.heroStats[i].label = v; })} />
+                  </div>
+                ))}
+              </div>
+
               {/* Stat labels */}
               <div className="space-y-2">
                 <p className="text-sm font-bold text-slate-800 dark:text-white">Stat labels</p>
