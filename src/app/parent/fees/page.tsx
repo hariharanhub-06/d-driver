@@ -9,6 +9,8 @@ import { loadRazorpay, confirmLivePayment } from '@/lib/razorpay';
 
 interface Fee {
     id: string;
+    /** Real StudentInvoice id for individual charges (id above is prefixed to avoid collisions). */
+    invoice_id?: string;
     amount: number;
     student_name?: string;
     due_date?: string;
@@ -66,7 +68,10 @@ export default function ParentFees() {
                 : [];
             const individual: Fee[] = indivRes.status === 'fulfilled' && Array.isArray(indivRes.value.data)
                 ? indivRes.value.data.map((inv: any) => ({
+                    // `id` is prefixed so it can't collide with a school Fee id in the merged
+                    // list; invoice_id keeps the real StudentInvoice id for the payment API.
                     id: `si_${inv.id}`,
+                    invoice_id: inv.id,
                     amount: inv.total_amount,
                     student_name: inv.student?.name,
                     due_date: inv.due_date,
@@ -157,8 +162,10 @@ export default function ParentFees() {
      * Passing several ids opens a single Checkout for the combined amount — one click for a
      * parent with multiple children.
      */
-    const handlePayIndividual = async (invoiceIds: string[], amountRupees: number) => {
-        const busyKey = invoiceIds.length === 1 ? invoiceIds[0] : 'ALL';
+    const handlePayIndividual = async (invoiceIds: string[], amountRupees: number, busyId?: string) => {
+        // invoiceIds are real StudentInvoice ids; busyId is the (prefixed) list-row id used only
+        // to drive the row spinner.
+        const busyKey = busyId || (invoiceIds.length === 1 ? invoiceIds[0] : 'ALL');
         setPayingId(busyKey);
         try {
             const loaded = await loadRazorpay();
@@ -288,7 +295,9 @@ export default function ParentFees() {
                         </p>
                     </div>
                     <button
-                        onClick={() => handlePayIndividual(unpaidIndividual.map(f => f.id), individualTotal)}
+                        onClick={() => handlePayIndividual(
+                            unpaidIndividual.map(f => f.invoice_id || f.id), individualTotal, 'ALL'
+                        )}
                         disabled={payingId === 'ALL'}
                         className="shrink-0 flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60"
                     >
@@ -392,7 +401,7 @@ export default function ParentFees() {
                                             {/* Platform charge — paid online into the OnLIVE account, not the school's. */}
                                             {fee.source === 'individual' && (
                                                 <button
-                                                    onClick={() => handlePayIndividual([fee.id], fee.amount)}
+                                                    onClick={() => handlePayIndividual([fee.invoice_id || fee.id], fee.amount, fee.id)}
                                                     disabled={payingId === fee.id}
                                                     className="flex-1 flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 justify-center disabled:opacity-60"
                                                 >

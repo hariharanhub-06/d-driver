@@ -50,13 +50,17 @@ type ExpenseItem = { label: string; unit_rate: string };
 
 const REVENUE_METRICS = ['per_bus', 'per_student', 'per_driver', 'per_route', 'flat_fee'];
 
-const METRIC_QTY = (metric: string, buses: number, students: number, routes: number): number => {
+// Quantities used by the margin simulator. Must mirror the backend switch, otherwise the
+// projected revenue here disagrees with what is actually invoiced.
+const METRIC_QTY = (metric: string, buses: number, students: number, routes: number, drivers: number): number => {
     switch (metric) {
         case 'per_bus': return buses;
         case 'per_student': return students;
-        case 'per_driver': return buses;
+        // Was proxied with the bus count, so any per_driver plan previewed the wrong revenue.
+        case 'per_driver': return drivers;
         case 'per_route': return routes;
         case 'flat_fee': return 1;
+        case 'fixed': return 1;
         default: return 0;
     }
 };
@@ -299,9 +303,12 @@ export default function BillingPage() {
     const students = parseInt(sample.students) || 0;
     const routes = parseInt(sample.routes) || 0;
     const totalSchools = parseInt(sample.schools) || 1;
+    // Drivers default to one per bus when not specified — a realistic assumption, and far closer
+    // than the previous behaviour of silently reusing the bus count for per_driver pricing.
+    const drivers = parseInt((sample as any).drivers) || buses;
 
     const sampleRevenue = revenueItems.reduce((sum, li) => {
-        const qty = METRIC_QTY(li.metric, buses, students, routes);
+        const qty = METRIC_QTY(li.metric, buses, students, routes, drivers);
         return sum + ((parseFloat(li.unit_rate) || 0) * qty);
     }, 0);
 

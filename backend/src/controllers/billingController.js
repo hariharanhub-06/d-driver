@@ -42,13 +42,15 @@ async function computeInvoiceForSchool(school_id, billing_month) {
   });
   if (!plan) throw new Error('Pricing plan not found');
 
-  const [bus_count, student_count, route_count, shift_count] = await Promise.all([
+  const [bus_count, student_count, route_count, shift_count, driver_count] = await Promise.all([
     prisma.bus.count({ where: { school_id } }),
     prisma.student.count({ where: { school_id } }),
     prisma.route.count({ where: { school_id } }),
     prisma.driverShift.count({
       where: { school_id, date: { gte: monthStart, lt: monthEnd } },
     }),
+    // Needed by the per_driver metric, which the plan editor offers.
+    prisma.driver.count({ where: { school_id } }),
   ]);
 
   const completedTrips = await prisma.activeTrip.findMany({
@@ -84,7 +86,7 @@ async function computeInvoiceForSchool(school_id, billing_month) {
     }
   }
 
-  const usage = { bus_count, student_count, route_count, gps_hours, total_km, shift_count };
+  const usage = { bus_count, student_count, route_count, gps_hours, total_km, shift_count, driver_count };
 
   // expense / profit rows are never their own line — the profit target is folded into the
   // billable rates below so the school sees one inclusive price.
@@ -101,6 +103,10 @@ async function computeInvoiceForSchool(school_id, billing_month) {
       case 'per_gps_hour': quantity = gps_hours; break;
       case 'per_km':       quantity = total_km; break;
       case 'per_shift':    quantity = shift_count; break;
+      // Offered by the plan editor; without these they fell to the default and billed ONCE
+      // instead of per driver.
+      case 'per_driver':   quantity = driver_count; break;
+      case 'flat_fee':     quantity = 1; break; // synonym of 'fixed'
       case 'custom':       quantity = 1; break;
       default:             quantity = 1;
     }
@@ -1499,7 +1505,18 @@ const createParentStudentInvoiceOrder = async (req, res) => {
     if (Array.isArray(invoice_ids) && invoice_ids.length > 0) where.id = { in: invoice_ids };
 
     const invoices = await prisma.studentInvoice.findMany({ where });
-    if (invoices.length === 0) return res.status(404).json({ error: 'No unpaid invoices found' });
+    if (invoices.length === 0) {
+      // Distinguish "nothing owed" from "the ids sent didn't match", which otherwise looks
+      // identical to the parent and hides a client-side bug.
+      const anyUnpaid = await prisma.studentInvoice.count({
+        where: { student_id: { in: studentIds }, status: { not: 'paid' } },
+      });
+      return res.status(404).json({
+        error: anyUnpaid > 0
+          ? 'Those charges could not be matched. Please refresh and try again.'
+          : 'No unpaid charges found.',
+      });
+    }
 
     const amount = invoices.reduce((s, i) => s + (Number(i.total_amount) || 0), 0);
     if (amount <= 0) return res.status(400).json({ error: 'Nothing to pay' });

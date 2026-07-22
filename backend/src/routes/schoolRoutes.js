@@ -8,7 +8,7 @@ const {
 } = require('../controllers/schoolController');
 const { authenticateToken, requireRole, requirePasswordChanged } = require('../middleware/authMiddleware');
 const { validate } = require('../validators');
-const { createSchoolSchema, updateSchoolSchema, updatePermissionsSchema } = require('../validators/school');
+const { createSchoolSchema, updateSchoolSchema, updatePermissionsSchema, updateRazorpaySchema } = require('../validators/school');
 
 const router = Router();
 
@@ -20,7 +20,8 @@ router.get('/branding', authenticateToken, requirePasswordChanged, getSchoolBran
 
 // Admin — own school
 router.get('/my', authenticateToken, requirePasswordChanged, requireRole('admin'), getMySchool);
-router.put('/my/razorpay', authenticateToken, requirePasswordChanged, requireRole('admin'), updateSchoolRazorpay);
+// Validated: without this a missing key_secret reached encrypt(undefined) and 500'd.
+router.put('/my/razorpay', authenticateToken, requirePasswordChanged, requireRole('admin'), validate(updateRazorpaySchema), updateSchoolRazorpay);
 router.post('/my/dismiss-onboarding', authenticateToken, requirePasswordChanged, requireRole('admin'), dismissOnboarding);
 
 // SA only

@@ -36,8 +36,9 @@ const fmtMonth = (m) => {
   return new Date(y, (mo || 1) - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 };
 const metricLabel = (metric) => ({
-  fixed: 'Fixed', per_bus: 'Per bus', per_student: 'Per student', per_route: 'Per route',
-  per_gps_hour: 'Per GPS hour', per_km: 'Per km', per_shift: 'Per shift', custom: 'Custom',
+  fixed: 'Fixed', flat_fee: 'Fixed', per_bus: 'Per bus', per_student: 'Per student',
+  per_driver: 'Per driver', per_route: 'Per route', per_gps_hour: 'Per GPS hour',
+  per_km: 'Per km', per_shift: 'Per shift', custom: 'Custom',
 }[metric] || (metric ? String(metric).replace(/_/g, ' ') : ''));
 
 /**

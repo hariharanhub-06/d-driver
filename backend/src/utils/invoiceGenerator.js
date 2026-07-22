@@ -63,13 +63,15 @@ async function generateInvoiceForSchool(schoolId, billingMonth, { force = false 
   if (!plan) throw new Error('Pricing plan not found');
 
   // ── Usage metrics ─────────────────────────────────────────────────────────
-  const [bus_count, student_count, route_count, shift_count] = await Promise.all([
+  const [bus_count, student_count, route_count, shift_count, driver_count] = await Promise.all([
     prisma.bus.count({ where: { school_id: schoolId } }),
     prisma.student.count({ where: { school_id: schoolId } }),
     prisma.route.count({ where: { school_id: schoolId } }),
     prisma.driverShift.count({
       where: { school_id: schoolId, date: { gte: monthStart, lt: monthEnd } },
     }),
+    // Needed by the per_driver metric, which the plan editor offers.
+    prisma.driver.count({ where: { school_id: schoolId } }),
   ]);
 
   const completedTrips = await prisma.activeTrip.findMany({
@@ -105,7 +107,7 @@ async function generateInvoiceForSchool(schoolId, billingMonth, { force = false 
     }
   }
 
-  const usage = { bus_count, student_count, route_count, gps_hours, total_km, shift_count };
+  const usage = { bus_count, student_count, route_count, gps_hours, total_km, shift_count, driver_count };
 
   // ── Line item calculation ──────────────────────────────────────────────────
   // 'expense' and 'profit' rows are internal planning inputs and are never shown as their own
@@ -124,6 +126,10 @@ async function generateInvoiceForSchool(schoolId, billingMonth, { force = false 
       case 'per_gps_hour': quantity = gps_hours; break;
       case 'per_km':       quantity = total_km; break;
       case 'per_shift':    quantity = shift_count; break;
+      // The plan editor offers these two; without them they fell to the default and billed
+      // ONCE instead of per driver, silently undercharging every per_driver plan.
+      case 'per_driver':   quantity = driver_count; break;
+      case 'flat_fee':     quantity = 1; break; // synonym of 'fixed'
       case 'custom':       quantity = 1; break;
       default:             quantity = 1;
     }

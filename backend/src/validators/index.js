@@ -132,7 +132,13 @@ const pricingPlanSchema = z.object({
   line_items: z.array(z.object({
     label: z.string().min(1),
     description: z.string().optional(),
-    metric: z.enum(['fixed', 'per_bus', 'per_student', 'per_route', 'per_gps_hour', 'per_km', 'per_shift', 'custom']),
+    // Must stay in sync with the switch in invoiceGenerator/computeInvoiceForSchool and the
+    // options offered by the super-admin plan editor. 'expense'/'profit' are internal planning
+    // rows (never billed); 'flat_fee' is a synonym of 'fixed'.
+    metric: z.enum([
+      'fixed', 'flat_fee', 'per_bus', 'per_student', 'per_driver', 'per_route',
+      'per_gps_hour', 'per_km', 'per_shift', 'custom', 'expense', 'profit',
+    ]),
     unit_rate: z.number().nonnegative(),
     is_mandatory: z.boolean().default(true),
     min_value: z.number().nonnegative().optional(),
