@@ -7,15 +7,28 @@ const fs = require('fs');
 // Brand palette (matches the OnLIVE web/app theme).
 const BRAND = '#2563EB';
 const DARK = '#0F172A';
+const BODY = '#334155';
 const MUTED = '#64748B';
 const LINE = '#E2E8F0';
+const ZEBRA = '#F1F6FE';
 const LOGO_PATH = path.join(__dirname, '..', '..', 'assets', 'onlive-logo.png');
 
+// Issuer details printed in the "from" block.
+const ISSUER = {
+  name: 'OnLIVE — Smart Transport Ecosystem',
+  lines: [
+    'Coimbatore, Tamil Nadu, India',
+    'Mobile: +91 91509 50444',
+    'Email: onliveecosystem@gmail.com',
+    'Web: www.onlive.co.in',
+  ],
+};
+
+// Helvetica is WinAnsi-encoded and has no rupee glyph, so amounts are prefixed "INR".
 const inr = (n) => `INR ${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtDate = (d) => {
   if (!d) return '-';
-  const dt = new Date(d);
-  return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 const fmtMonth = (m) => {
   if (!m) return '-';
@@ -30,6 +43,9 @@ const metricLabel = (metric) => ({
 /**
  * Render a professional OnLIVE invoice to a PDF Buffer.
  *
+ * Layout: issuer block + logo, Bill-To against invoice meta, a numbered line-item table,
+ * totals with paid/balance, payment instructions and a signatory block.
+ *
  * @param {{
  *   invoice: object,          // SchoolInvoice | StudentInvoice row (with line_items_snapshot)
  *   school?: object,          // { name, address, phone, email_contact, website, logo_url }
@@ -42,7 +58,8 @@ const metricLabel = (metric) => ({
 function generateInvoicePdf({ invoice, school = {}, kind = 'school', billToName, billToSub } = {}) {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: 'A4', margin: 48 });
+      // bufferPages so the footer can be stamped onto every page after layout completes.
+      const doc = new PDFDocument({ size: 'A4', margin: 44, bufferPages: true });
       const chunks = [];
       doc.on('data', (c) => chunks.push(c));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -54,116 +71,218 @@ function generateInvoicePdf({ invoice, school = {}, kind = 'school', billToName,
       const contentW = right - left;
 
       const snap = invoice.line_items_snapshot || {};
-      const lineItems = Array.isArray(snap.line_items) ? snap.line_items : [];
+      // Defensive: 'expense'/'profit' rows are internal planning aids. invoiceGenerator now
+      // filters them, but older invoices have them frozen into line_items_snapshot — strip
+      // them here too so a reprint of an old invoice never discloses internal margins.
+      const lineItems = (Array.isArray(snap.line_items) ? snap.line_items : [])
+        .filter(it => !['expense', 'profit'].includes(it.metric));
       const planName = snap.plan_name || '';
 
-      // ── Header band ──────────────────────────────────────────────────────
-      doc.rect(0, 0, pageW, 120).fill(DARK);
-      try {
-        if (fs.existsSync(LOGO_PATH)) doc.image(LOGO_PATH, left, 34, { height: 44 });
-      } catch (_) { /* logo optional */ }
-      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(22).text('INVOICE', right - 200, 38, { width: 200, align: 'right' });
-      doc.font('Helvetica').fontSize(9).fillColor('#CBD5E1')
-        .text('OnLIVE — Smart Transport Ecosystem', right - 240, 66, { width: 240, align: 'right' })
-        .text('www.onlive.co.in  ·  onliveecosystem@gmail.com', right - 240, 80, { width: 240, align: 'right' });
+      const isPaid = String(invoice.status || '').toLowerCase() === 'paid';
+      const total = Number(invoice.total_amount) || 0;
+      const paidAmount = isPaid ? total : 0;
+      const balanceDue = total - paidAmount;
 
-      // ── Invoice meta + Bill-to ───────────────────────────────────────────
-      let y = 150;
-      const invNo = `INV-${String(invoice.id || '').slice(0, 8).toUpperCase()}`;
-      doc.fillColor(MUTED).font('Helvetica-Bold').fontSize(8).text('BILL TO', left, y);
-      doc.fillColor(DARK).font('Helvetica-Bold').fontSize(13)
-        .text(billToName || school.name || 'Customer', left, y + 12, { width: contentW / 2 });
-      doc.font('Helvetica').fontSize(9).fillColor(MUTED);
-      let byY = y + 30;
+      // ── Header: title + logo ─────────────────────────────────────────────
+      let y = 40;
+      doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(30).text('INVOICE', left, y, { characterSpacing: 1 });
+      try {
+        if (fs.existsSync(LOGO_PATH)) doc.image(LOGO_PATH, right - 96, y - 6, { fit: [96, 52], align: 'right' });
+      } catch (_) { /* logo optional */ }
+
+      // ── Issuer ("from") block ────────────────────────────────────────────
+      y += 42;
+      doc.fillColor(DARK).font('Helvetica-Bold').fontSize(11).text(ISSUER.name, left, y, { width: contentW * 0.6 });
+      y += 16;
+      doc.font('Helvetica').fontSize(8.5).fillColor(MUTED);
+      for (const l of ISSUER.lines) { doc.text(l, left, y, { width: contentW * 0.6 }); y += 11.5; }
+
+      // Divider under the issuer block
+      y += 6;
+      doc.strokeColor(BRAND).lineWidth(1.5).moveTo(left, y).lineTo(right, y).stroke();
+      y += 16;
+
+      // ── Bill-to (left) vs invoice meta (right) ───────────────────────────
+      const colW = contentW / 2 - 10;
+      const metaX = left + contentW / 2 + 10;
+      const blockTop = y;
+
+      doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(10).text('Bill To', left, y);
+      doc.fillColor(DARK).font('Helvetica-Bold').fontSize(12)
+        .text(billToName || school.name || 'Customer', left, y + 15, { width: colW });
+      let byY = y + 32;
+      doc.font('Helvetica').fontSize(9).fillColor(BODY);
       const billLines = [
         billToSub || (kind === 'student' ? school.name : null),
         school.address,
-        school.phone ? `Phone: ${school.phone}` : null,
+        school.phone ? `Mobile: ${school.phone}` : null,
         school.email_contact,
-        school.website,
       ].filter(Boolean);
-      for (const l of billLines) { doc.text(l, left, byY, { width: contentW / 2 - 12 }); byY += 13; }
+      for (const l of billLines) {
+        const h = doc.heightOfString(l, { width: colW });
+        doc.text(l, left, byY, { width: colW });
+        byY += h + 2;
+      }
 
-      // Right column — invoice details
-      const metaX = left + contentW / 2 + 12;
-      const metaW = contentW / 2 - 12;
+      // Right column — invoice details, label left / value right
+      const invNo = `INV-${String(invoice.id || '').slice(0, 8).toUpperCase()}`;
       const meta = [
-        ['Invoice No.', invNo],
+        ['Invoice No', invNo],
         ['Billing Period', fmtMonth(invoice.billing_month)],
-        ['Issue Date', fmtDate(invoice.created_at || new Date())],
+        ['Invoice Date', fmtDate(invoice.created_at || new Date())],
         ['Due Date', fmtDate(invoice.due_date)],
-        ['Plan', planName || '-'],
-        ['Status', String(invoice.status || 'pending').toUpperCase()],
       ];
-      let mY = y;
+      if (planName) meta.push(['Plan', planName]);
+      meta.push(['Status', String(invoice.status || 'pending').toUpperCase()]);
+
+      let mY = blockTop;
       for (const [k, v] of meta) {
-        doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(k, metaX, mY, { width: metaW * 0.45 });
-        doc.font('Helvetica-Bold').fontSize(9).fillColor(DARK).text(v, metaX + metaW * 0.45, mY, { width: metaW * 0.55, align: 'right' });
+        doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(k, metaX, mY, { width: colW * 0.45 });
+        doc.font('Helvetica-Bold').fontSize(9).fillColor(isPaid && k === 'Status' ? '#059669' : DARK)
+          .text(v, metaX + colW * 0.45, mY, { width: colW * 0.55, align: 'right' });
         mY += 15;
       }
 
-      y = Math.max(byY, mY) + 24;
+      y = Math.max(byY, mY) + 20;
 
-      // ── Line items table ─────────────────────────────────────────────────
-      const cols = { desc: left + 8, qty: left + contentW * 0.58, rate: left + contentW * 0.72, amt: right - 8 };
-      doc.rect(left, y, contentW, 24).fill(BRAND);
-      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(9);
-      doc.text('DESCRIPTION', cols.desc, y + 8, { width: contentW * 0.52 });
-      doc.text('QTY', cols.qty - 8, y + 8, { width: contentW * 0.1, align: 'right' });
-      doc.text('RATE', cols.rate - 8, y + 8, { width: contentW * 0.14, align: 'right' });
-      doc.text('AMOUNT', left, y + 8, { width: contentW - 12, align: 'right' });
-      y += 24;
+      // ── Line items ───────────────────────────────────────────────────────
+      // Column x-positions; each cell is drawn with an explicit width so nothing collides.
+      const cSl = left + 6;
+      const wSl = 26;
+      const cDesc = cSl + wSl;
+      const wDesc = contentW * 0.46;
+      const cQty = cDesc + wDesc;
+      const wQty = contentW * 0.10;
+      const cRate = cQty + wQty;
+      const wRate = contentW * 0.19;
+      const cAmt = cRate + wRate;
+      const wAmt = right - cAmt - 6;
 
-      doc.font('Helvetica').fontSize(9);
+      const drawHead = () => {
+        doc.rect(left, y, contentW, 22).fill(BRAND);
+        doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8.5);
+        doc.text('SL.', cSl, y + 7, { width: wSl, lineBreak: false });
+        doc.text('DESCRIPTION', cDesc, y + 7, { width: wDesc, lineBreak: false });
+        doc.text('QTY', cQty, y + 7, { width: wQty, align: 'right', lineBreak: false });
+        doc.text('RATE', cRate, y + 7, { width: wRate, align: 'right', lineBreak: false });
+        doc.text('AMOUNT', cAmt, y + 7, { width: wAmt, align: 'right', lineBreak: false });
+        y += 22;
+      };
+      drawHead();
+
       if (lineItems.length === 0) {
-        doc.fillColor(MUTED).text('No line items', cols.desc, y + 8);
-        y += 26;
+        doc.font('Helvetica').fontSize(9).fillColor(MUTED).text('No line items', cDesc, y + 8, { width: wDesc });
+        y += 28;
       }
+
       lineItems.forEach((it, i) => {
-        const rowH = it.description ? 34 : 24;
-        if (i % 2 === 1) doc.rect(left, y, contentW, rowH).fill('#F8FAFC');
-        doc.fillColor(DARK).font('Helvetica-Bold').fontSize(9).text(it.label || 'Item', cols.desc, y + 7, { width: contentW * 0.5 });
-        if (it.description) doc.font('Helvetica').fontSize(8).fillColor(MUTED).text(it.description, cols.desc, y + 20, { width: contentW * 0.5 });
-        else if (it.metric) doc.font('Helvetica').fontSize(8).fillColor(MUTED).text(metricLabel(it.metric), cols.desc, y + 20, { width: contentW * 0.5 });
-        doc.font('Helvetica').fontSize(9).fillColor(DARK);
-        doc.text(String(it.quantity ?? 1), cols.qty - 8, y + 7, { width: contentW * 0.1, align: 'right' });
-        doc.text(inr(it.unit_rate), cols.rate - 8, y + 7, { width: contentW * 0.14, align: 'right' });
-        doc.font('Helvetica-Bold').text(inr(it.charge), left, y + 7, { width: contentW - 12, align: 'right' });
+        const label = it.label || 'Item';
+        const sub = it.description || metricLabel(it.metric);
+        // Measure before drawing so a long description never overlaps the next row.
+        const labelH = doc.font('Helvetica-Bold').fontSize(9).heightOfString(label, { width: wDesc });
+        const subH = sub ? doc.font('Helvetica').fontSize(8).heightOfString(sub, { width: wDesc }) : 0;
+        const rowH = Math.max(labelH + subH + 12, 26);
+
+        // Start a new page (with a repeated header) rather than spilling past the footer.
+        if (y + rowH > doc.page.height - 210) {
+          doc.addPage();
+          y = doc.page.margins.top;
+          drawHead();
+        }
+
+        if (i % 2 === 1) doc.rect(left, y, contentW, rowH).fill(ZEBRA);
+
+        doc.fillColor(MUTED).font('Helvetica').fontSize(9).text(String(i + 1), cSl, y + 7, { width: wSl });
+        doc.fillColor(DARK).font('Helvetica-Bold').fontSize(9).text(label, cDesc, y + 7, { width: wDesc });
+        if (sub) doc.font('Helvetica').fontSize(8).fillColor(MUTED).text(sub, cDesc, y + 7 + labelH + 1, { width: wDesc });
+
+        doc.font('Helvetica').fontSize(9).fillColor(BODY);
+        doc.text(String(it.quantity ?? 1), cQty, y + 7, { width: wQty, align: 'right' });
+        doc.text(inr(it.unit_rate), cRate, y + 7, { width: wRate, align: 'right' });
+        doc.font('Helvetica-Bold').fillColor(DARK).text(inr(it.charge), cAmt, y + 7, { width: wAmt, align: 'right' });
+
         y += rowH;
         doc.strokeColor(LINE).lineWidth(0.5).moveTo(left, y).lineTo(right, y).stroke();
       });
 
-      // ── Totals ───────────────────────────────────────────────────────────
-      y += 12;
-      const totX = left + contentW * 0.58;
-      const totW = contentW * 0.42;
+      // ── Payment instructions (left) + totals (right) ─────────────────────
+      y += 18;
+      const totalsX = left + contentW * 0.55;
+      const totalsW = right - totalsX;
+      const payX = left;
+      const payW = contentW * 0.5 - 12;
+      const sectionTop = y;
+
+      doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(10).text('Payment Instructions', payX, y);
+      doc.font('Helvetica').fontSize(8.5).fillColor(BODY).text(
+        isPaid
+          ? 'Payment received in full. Thank you.'
+          : 'Pay securely online from your OnLIVE portal (Billing → Pay Online), or by bank transfer/UPI using the invoice number as reference.',
+        payX, y + 15, { width: payW, lineGap: 1.5 }
+      );
+      // Reference the Razorpay payment so the PDF reconciles against the gateway.
+      if (invoice.razorpay_payment_id) {
+        doc.font('Helvetica').fontSize(8).fillColor(MUTED)
+          .text(`Payment ID: ${invoice.razorpay_payment_id}`, payX, doc.y + 6, { width: payW });
+      }
+      if (isPaid && invoice.paid_at) {
+        doc.font('Helvetica').fontSize(8).fillColor(MUTED)
+          .text(`Paid on: ${fmtDate(invoice.paid_at)}`, payX, doc.y + 2, { width: payW });
+      }
+      const payBottom = doc.y;
+
+      // Totals stack
+      let tY = sectionTop;
       const totRow = (label, value, opts = {}) => {
-        doc.font(opts.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(opts.big ? 12 : 9)
-          .fillColor(opts.bold ? DARK : MUTED).text(label, totX, y, { width: totW * 0.5 });
-        doc.font('Helvetica-Bold').fontSize(opts.big ? 12 : 9).fillColor(opts.big ? BRAND : DARK)
-          .text(value, totX + totW * 0.5, y, { width: totW * 0.5, align: 'right' });
-        y += opts.big ? 22 : 16;
+        doc.font(opts.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(opts.big ? 11.5 : 9.5)
+          .fillColor(opts.bold ? DARK : MUTED)
+          .text(label, totalsX, tY, { width: totalsW * 0.52 });
+        doc.font('Helvetica-Bold').fontSize(opts.big ? 11.5 : 9.5)
+          .fillColor(opts.accent ? BRAND : DARK)
+          .text(value, totalsX + totalsW * 0.52, tY, { width: totalsW * 0.48, align: 'right' });
+        tY += opts.big ? 20 : 16;
       };
-      totRow('Subtotal', inr(invoice.subtotal));
+
+      totRow('Subtotal', inr(invoice.subtotal ?? total));
       if (Number(invoice.overdue_amount) > 0) totRow('Late fee', inr(invoice.overdue_amount));
-      doc.strokeColor(LINE).lineWidth(1).moveTo(totX, y + 2).lineTo(right, y + 2).stroke();
-      y += 8;
-      totRow('Total Due', inr(invoice.total_amount), { bold: true, big: true });
+      doc.strokeColor(LINE).lineWidth(0.8).moveTo(totalsX, tY + 1).lineTo(right, tY + 1).stroke();
+      tY += 7;
+      totRow('Total', inr(total), { bold: true });
+      if (paidAmount > 0) totRow(`Paid (${fmtDate(invoice.paid_at)})`, inr(paidAmount));
+      doc.strokeColor(LINE).lineWidth(0.8).moveTo(totalsX, tY + 1).lineTo(right, tY + 1).stroke();
+      tY += 7;
+      totRow(balanceDue > 0 ? 'Balance Due' : 'Balance', inr(balanceDue), { bold: true, big: true, accent: true });
 
-      // ── Footer ───────────────────────────────────────────────────────────
-      const footY = doc.page.height - 96;
-      doc.strokeColor(LINE).lineWidth(0.5).moveTo(left, footY).lineTo(right, footY).stroke();
-      doc.font('Helvetica-Bold').fontSize(9).fillColor(DARK).text('Payment & Support', left, footY + 10);
-      doc.font('Helvetica').fontSize(8).fillColor(MUTED).text(
-        'Pay securely from your OnLIVE portal. For billing queries contact onliveecosystem@gmail.com or +91 91509 50444.',
-        left, footY + 24, { width: contentW * 0.62 }
-      );
-      doc.font('Helvetica-Oblique').fontSize(8).fillColor(MUTED).text(
-        'This is a computer-generated invoice and does not require a signature.',
-        left, footY + 24, { width: contentW, align: 'right' }
-      );
-      doc.font('Helvetica-Bold').fontSize(9).fillColor(BRAND).text('OnLIVE Ecosystem', left, footY + 52, { width: contentW, align: 'center' });
+      y = Math.max(payBottom, tY) + 30;
 
+      // ── Signatory ────────────────────────────────────────────────────────
+      // Keep it above the footer; if the page is nearly full, push to a new one.
+      if (y > doc.page.height - 150) { doc.addPage(); y = doc.page.margins.top + 20; }
+      const sigW = 170;
+      const sigX = right - sigW;
+      doc.strokeColor(MUTED).lineWidth(0.7).moveTo(sigX, y + 26).lineTo(right, y + 26).stroke();
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(DARK)
+        .text('Authorized Signatory', sigX, y + 32, { width: sigW, align: 'center' });
+      doc.font('Helvetica').fontSize(8).fillColor(MUTED)
+        .text('OnLIVE Ecosystem', sigX, y + 45, { width: sigW, align: 'center' });
+
+      // ── Footer on every page ─────────────────────────────────────────────
+      const range = doc.bufferedPageRange ? doc.bufferedPageRange() : { start: 0, count: 1 };
+      for (let i = 0; i < range.count; i++) {
+        try { doc.switchToPage(range.start + i); } catch (_) { break; }
+        // Text drawn below the bottom margin makes PDFKit append a blank page — zero it first.
+        doc.page.margins.bottom = 0;
+        const fY = doc.page.height - 58;
+        doc.strokeColor(LINE).lineWidth(0.5).moveTo(left, fY).lineTo(right, fY).stroke();
+        doc.font('Helvetica').fontSize(7.5).fillColor(MUTED).text(
+          'This is a computer-generated invoice and does not require a physical signature.  ·  Billing queries: onliveecosystem@gmail.com  ·  +91 91509 50444',
+          left, fY + 8, { width: contentW, align: 'center', lineBreak: false }
+        );
+        doc.font('Helvetica-Bold').fontSize(8).fillColor(BRAND)
+          .text('www.onlive.co.in', left, fY + 22, { width: contentW, align: 'center', lineBreak: false });
+      }
+
+      doc.flushPages();
       doc.end();
     } catch (err) {
       reject(err);
