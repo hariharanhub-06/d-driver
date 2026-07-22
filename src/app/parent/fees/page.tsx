@@ -5,6 +5,7 @@ import { CreditCard, CheckCircle2, AlertCircle, Clock, IndianRupee, Calendar, X,
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
+import { loadRazorpay, confirmLivePayment } from '@/lib/razorpay';
 
 interface Fee {
     id: string;
@@ -30,16 +31,6 @@ const todayStr = () => new Date().toLocaleDateString('en-CA');
 function addDays(n: number) {
     const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA');
 }
-
-const loadRazorpay = (): Promise<boolean> =>
-    new Promise(resolve => {
-        if ((window as any).Razorpay) { resolve(true); return; }
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.onload = () => resolve(true);
-        script.onerror = () => resolve(false);
-        document.body.appendChild(script);
-    });
 
 export default function ParentFees() {
     const t = useT();
@@ -114,7 +105,7 @@ export default function ParentFees() {
     };
 
     const handlePayOnline = async (fee: Fee) => {
-        if (!schoolConfig.razorpay_key_id) {
+        if (!schoolConfig.razorpay_configured) {
             alert('Online payment is not configured for your school.');
             return;
         }
@@ -124,11 +115,16 @@ export default function ParentFees() {
             if (!loaded) { alert('Failed to load payment gateway.'); return; }
 
             const orderRes = await api.post('/finance/payment/create-order', { fee_id: fee.id });
-            const { order_id, amount, currency = 'INR' } = orderRes.data || {};
-            if (!order_id) { alert('Failed to create payment order. Please try again.'); return; }
+            // key_id is the school's PUBLISHABLE Razorpay key, returned with the order — no other
+            // endpoint exposes it, and Checkout cannot open without it.
+            const { order_id, amount, currency = 'INR', key_id } = orderRes.data || {};
+            if (!order_id || !key_id) { alert('Failed to create payment order. Please try again.'); return; }
+
+            // Live keys move real money — confirm before opening Checkout.
+            if (!confirmLivePayment(key_id, (amount || 0) / 100)) return;
 
             const options = {
-                key: schoolConfig.razorpay_key_id,
+                key: key_id,
                 amount,
                 currency,
                 order_id,
@@ -136,19 +132,20 @@ export default function ParentFees() {
                 description: fee.description || `Fee payment`,
                 handler: async (response: any) => {
                     try {
+                        // Server re-computes the HMAC — never trust the client's word that it paid.
                         await api.post('/finance/payment/verify', response);
                         alert('Payment successful!');
                         fetchFees();
                     } catch {
-                        alert('Payment verification failed. Please contact support.');
+                        alert('Payment received but verification failed. Do not pay again — please contact support with your payment ID.');
                     }
                 },
                 prefill: {},
-                theme: { color: 'var(--brand)' },
+                theme: { color: '#2563eb' },
             };
             new (window as any).Razorpay(options).open();
         } catch (e: any) {
-            alert(e.response?.data?.message || 'Failed to initiate payment');
+            alert(e.response?.data?.error || e.response?.data?.message || 'Failed to initiate payment');
         } finally {
             setPayingId(null);
         }

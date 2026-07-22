@@ -325,7 +325,12 @@ const getSchoolBranding = async (req, res) => {
     if (!req.user.school_id) return res.json({});
     const school = await prisma.school.findUnique({
       where: { id: req.user.school_id },
-      select: { name: true, logo_url: true, primary_color: true, slug: true, permissions: true },
+      // razorpay_configured drives the parent "Pay Now" button — it was omitted here, so the
+      // button never rendered. The key SECRET is never selected; only the configured flag leaves.
+      select: {
+        name: true, logo_url: true, primary_color: true, slug: true, permissions: true,
+        razorpay_configured: true,
+      },
     });
     if (!school) return res.json({});
 

@@ -274,7 +274,14 @@ cron.schedule('0 6 * * *', async () => {
 // ─── SECURITY MIDDLEWARE ──────────────────────────────────────────────────────
 app.use(helmet());
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '10mb' }));
+// Keep the raw request bytes alongside the parsed body. Razorpay signs the EXACT payload it
+// sends, so webhook HMACs must be computed over those bytes — re-serialising with
+// JSON.stringify(req.body) can differ in key order, whitespace or unicode escaping and makes
+// every signature check fail.
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, _res, buf) => { req.rawBody = buf; },
+}));
 
 // Strict rate limit on login — 10 attempts per 15 minutes
 app.use('/api/v1/auth/login', rateLimit({

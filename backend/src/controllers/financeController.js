@@ -195,7 +195,18 @@ const createOrder = async (req, res) => {
             data: { razorpay_order_id: order.id },
         });
 
-        res.json({ order_id: order.id, amount: order.amount, currency: order.currency });
+        // key_id is Razorpay's PUBLISHABLE key — Checkout cannot open without it, and no other
+        // endpoint exposes it to the browser. The secret is never sent.
+        const school = await prisma.school.findUnique({
+            where: { id: fee.school_id },
+            select: { razorpay_key_id: true },
+        });
+        res.json({
+            order_id: order.id,
+            amount: order.amount,
+            currency: order.currency,
+            key_id: school?.razorpay_key_id ? decrypt(school.razorpay_key_id) : null,
+        });
     } catch (error) {
         console.error('createOrder error:', error);
         res.status(500).json({ error: error.message || 'Error creating order' });
@@ -220,16 +231,29 @@ const handleWebhook = async (req, res) => {
 
         const keySecret = decrypt(school.razorpay_key_secret);
         const signature = req.headers['x-razorpay-signature'];
+        // Verify against the RAW bytes Razorpay signed — re-serialising the parsed body can
+        // differ in key order/escaping and break the check.
+        const payload = req.rawBody || Buffer.from(JSON.stringify(req.body));
         const expectedSig = crypto
             .createHmac('sha256', keySecret)
-            .update(JSON.stringify(req.body))
+            .update(payload)
             .digest('hex');
 
-        if (signature !== expectedSig) {
+        const a = Buffer.from(expectedSig, 'utf8');
+        const b = Buffer.from(String(signature || ''), 'utf8');
+        if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
             return res.status(400).json({ error: 'Invalid signature' });
         }
 
         if (event === 'payment.captured') {
+            // Idempotency: Razorpay retries deliveries, and the checkout callback (verifyPayment)
+            // may already have recorded this payment. Without this guard every retry created
+            // another Payment row and the fee looked paid several times over.
+            const existing = await prisma.payment.findFirst({
+                where: { fee_id: fee.id, status: 'paid' },
+            });
+            if (existing) return res.json({ ok: true, duplicate: true });
+
             await prisma.$transaction([
                 prisma.payment.create({
                     data: {
@@ -425,9 +449,18 @@ const verifyPayment = async (req, res) => {
             .update(razorpay_order_id + '|' + razorpay_payment_id)
             .digest('hex');
 
-        if (expectedSig !== razorpay_signature) {
+        const a = Buffer.from(expectedSig, 'utf8');
+        const b = Buffer.from(String(razorpay_signature), 'utf8');
+        if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
             return res.status(400).json({ error: 'Invalid payment signature' });
         }
+
+        // Idempotent: the webhook may have recorded this payment first (or the parent may
+        // double-submit). Without this the fee gets two Payment rows for one charge.
+        const alreadyRecorded = await prisma.payment.findFirst({
+            where: { fee_id: fee.id, status: 'paid' },
+        });
+        if (alreadyRecorded) return res.json({ success: true, already_paid: true });
 
         await prisma.$transaction([
             prisma.payment.create({

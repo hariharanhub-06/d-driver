@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Search, Loader2, GraduationCap, IndianRupee, Check, FileText } from 'lucide-react';
+import { ArrowLeft, Search, Loader2, GraduationCap, IndianRupee, Check, FileText, CreditCard } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
+import { loadRazorpay, confirmLivePayment } from '@/lib/razorpay';
 
 interface Plan { id: string; name: string; plan_type?: string; }
 interface StudentResult {
@@ -116,6 +117,43 @@ export default function IndividualBillingPage() {
             refreshInvoices();
         } catch { /* ignore */ }
         finally { setPayingId(null); }
+    };
+
+    // Collect an individual invoice online via Razorpay Checkout (platform account).
+    // The backend endpoint existed but had no UI, so this flow was unreachable.
+    const payOnline = async (inv: StudentInvoice) => {
+        setPayingId(inv.id);
+        try {
+            const loaded = await loadRazorpay();
+            if (!loaded) { alert('Failed to load payment gateway.'); return; }
+
+            const { data } = await api.post(`/billing/student-invoices/${inv.id}/pay-online`, {});
+            const { order, key_id } = data || {};
+            if (!order?.id || !key_id) { alert('Failed to create payment order.'); return; }
+
+            if (!confirmLivePayment(key_id, inv.total_amount)) return;
+
+            new (window as any).Razorpay({
+                key: key_id,
+                amount: order.amount,
+                currency: order.currency,
+                name: 'Onlive Platform',
+                description: `Invoice ${inv.billing_month} — ${inv.student?.name || ''}`,
+                order_id: order.id,
+                theme: { color: '#2563eb' },
+                handler: async (response: any) => {
+                    try {
+                        await api.post(`/billing/student-invoices/${inv.id}/verify`, response);
+                        alert('Payment successful!');
+                    } catch {
+                        alert('Payment received but verification failed. Do not pay again — contact support with the payment ID.');
+                    }
+                    refreshInvoices();
+                },
+            }).open();
+        } catch (e: any) {
+            alert(e?.response?.data?.error || 'Failed to initiate payment');
+        } finally { setPayingId(null); }
     };
 
     // Prefer individual-type plans in the picker, but keep all as a fallback.
@@ -251,14 +289,24 @@ export default function IndividualBillingPage() {
                                 </span>
                                 <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold uppercase", statusCls(inv.status))}>{inv.status}</span>
                                 {inv.status !== 'paid' && (
-                                    <button
-                                        onClick={() => markPaid(inv.id)}
-                                        disabled={payingId === inv.id}
-                                        className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 flex items-center gap-1 disabled:opacity-60"
-                                    >
-                                        {payingId === inv.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                                        {t('Mark Paid', 'செலுத்தப்பட்டது')}
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={() => payOnline(inv)}
+                                            disabled={payingId === inv.id}
+                                            className="bg-[var(--brand)] hover:opacity-90 text-white rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 flex items-center gap-1 disabled:opacity-60"
+                                        >
+                                            {payingId === inv.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
+                                            {t('Pay Online', 'ஆன்லைனில் செலுத்து')}
+                                        </button>
+                                        <button
+                                            onClick={() => markPaid(inv.id)}
+                                            disabled={payingId === inv.id}
+                                            className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 flex items-center gap-1 disabled:opacity-60"
+                                        >
+                                            {payingId === inv.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                            {t('Mark Paid', 'செலுத்தப்பட்டது')}
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         ))}

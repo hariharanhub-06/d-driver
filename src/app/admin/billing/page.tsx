@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { loadRazorpay, confirmLivePayment, isLiveKey } from '@/lib/razorpay';
 
 interface LineItem {
   label: string;
@@ -74,23 +75,37 @@ export default function AdminBillingPage() {
   const handlePayOnline = async (invoice: Invoice) => {
     setPaying(invoice.id);
     try {
-      const { data } = await api.post(`/billing/invoices/${invoice.id}/pay-online`, {});
-      const { order } = data;
+      // The Checkout SDK is loaded on demand — nothing on this page ever loaded it before, so
+      // the "SDK not loaded" alert fired every time and payment was impossible.
+      const loaded = await loadRazorpay();
+      if (!loaded) { alert('Failed to load payment gateway. Please try again.'); return; }
 
-      if (typeof window === 'undefined' || !(window as any).Razorpay) {
-        alert('Razorpay SDK not loaded. Please refresh and try again.');
-        return;
-      }
+      const { data } = await api.post(`/billing/invoices/${invoice.id}/pay-online`, {});
+      // key_id comes back with the order (the platform's publishable key). It used to be read
+      // off `order.key_id`, which Razorpay never sets, then fell back to an env var defined nowhere.
+      const { order, key_id } = data || {};
+      if (!order?.id || !key_id) { alert('Failed to create payment order. Please try again.'); return; }
+
+      // Live keys move real money — make that explicit before opening Checkout.
+      if (!confirmLivePayment(key_id, invoice.total_amount)) return;
 
       const rzp = new (window as any).Razorpay({
-        key: order.key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: key_id,
         amount: order.amount,
         currency: order.currency,
         name: 'Onlive Platform',
         description: `Invoice ${invoice.billing_month}`,
         order_id: order.id,
-        theme: { color: 'var(--brand)' },
-        handler: () => {
+        theme: { color: '#2563eb' },
+        handler: async (response: any) => {
+          // Confirm server-side. Previously this just refetched and trusted the webhook — which
+          // could never fire — so a paid invoice stayed "pending" forever.
+          try {
+            await api.post(`/billing/invoices/${invoice.id}/verify`, response);
+            alert('Payment successful!');
+          } catch {
+            alert('Payment received but verification failed. Do not pay again — please contact support with your payment ID.');
+          }
           fetchInvoices();
         },
       });

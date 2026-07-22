@@ -17,6 +17,8 @@ const {
   getInvoice,
   payInvoiceCash,
   createInvoiceOrder,
+  verifyInvoicePayment,
+  verifyStudentInvoicePayment,
   handleInvoiceWebhook,
   updateBillingConfig,
   getBillingConfig,
@@ -40,6 +42,13 @@ const {
 
 const router = Router();
 
+// ── PUBLIC: Razorpay webhook ─────────────────────────────────────────────────
+// MUST be registered before the router-wide authenticateToken below. Razorpay sends no JWT,
+// so when this sat after the auth middleware every webhook delivery got a 401 and school
+// invoices paid online were never marked paid. Authenticity comes from the HMAC signature
+// check inside the handler, not from a token.
+router.post('/webhook', handleInvoiceWebhook);
+
 router.use(authenticateToken, requirePasswordChanged);
 
 // SA — pricing plans
@@ -56,10 +65,10 @@ router.post('/generate-all', requireRole('super_admin'), generateAllInvoices);
 router.get('/invoices',               requireRole('super_admin'), listInvoices);
 router.get('/invoices/:id',           requireRole('super_admin'), getInvoice);
 router.post('/invoices/:id/pay-cash', requireRole('super_admin'), payInvoiceCash);
-router.post('/invoices/:id/pay-online', requireRole('super_admin'), createInvoiceOrder);
-
-// Razorpay webhook — no role check
-router.post('/webhook', handleInvoiceWebhook);
+// School admins pay their OWN school's invoice; the controller scopes by req.user.school_id.
+// (Was super_admin-only, so the "Pay Online" button on the admin billing page always 403'd.)
+router.post('/invoices/:id/pay-online', requireRole('admin', 'super_admin'), createInvoiceOrder);
+router.post('/invoices/:id/verify',     requireRole('admin', 'super_admin'), verifyInvoicePayment);
 
 // SA — billing config
 router.get('/config', requireRole('super_admin'), getBillingConfig);
@@ -79,6 +88,7 @@ router.post('/students/:id/generate',        requireRole('super_admin'), generat
 router.get('/student-invoices',             requireRole('super_admin'), listStudentInvoices);
 router.post('/student-invoices/:id/pay-cash',   requireRole('super_admin'), payStudentInvoiceCash);
 router.post('/student-invoices/:id/pay-online', requireRole('super_admin'), createStudentInvoiceOrder);
+router.post('/student-invoices/:id/verify',     requireRole('super_admin'), verifyStudentInvoicePayment);
 
 // Admin + parent — current subscription plan & included features
 router.get('/my-subscription', requireRole('admin', 'parent'), getMySubscription);

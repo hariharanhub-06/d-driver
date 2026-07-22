@@ -356,14 +356,56 @@ const payInvoiceCash = async (req, res) => {
   }
 };
 
+// Resolve the platform Razorpay key_id (publishable — safe to hand to the browser, it is what
+// Razorpay Checkout needs to open). Returns null when the platform account isn't configured.
+const getPlatformKeyId = async () => {
+  const config = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
+  if (config?.razorpay_configured && config.razorpay_key_id) {
+    try { return decrypt(config.razorpay_key_id); } catch { /* fall through to env */ }
+  }
+  return process.env.RAZORPAY_KEY_ID || null;
+};
+
+// The platform key_secret, used to verify the checkout callback signature.
+const getPlatformKeySecret = async () => {
+  const config = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
+  if (config?.razorpay_configured && config.razorpay_key_secret) {
+    try { return decrypt(config.razorpay_key_secret); } catch { /* fall through to env */ }
+  }
+  return process.env.RAZORPAY_KEY_SECRET || null;
+};
+
+/**
+ * Razorpay returns a signature as HMAC_SHA256(order_id + "|" + payment_id, key_secret).
+ * timingSafeEqual avoids leaking information through comparison timing.
+ */
+const isValidPaymentSignature = (orderId, paymentId, signature, keySecret) => {
+  if (!orderId || !paymentId || !signature || !keySecret) return false;
+  const expected = crypto
+    .createHmac('sha256', keySecret)
+    .update(`${orderId}|${paymentId}`)
+    .digest('hex');
+  const a = Buffer.from(expected, 'utf8');
+  const b = Buffer.from(String(signature), 'utf8');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+};
+
 const createInvoiceOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const invoice = await prisma.schoolInvoice.findUnique({ where: { id } });
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
 
-    const razorpay = await getRazorpayInstance();
+    // A school admin may only pay their own school's invoice; super admins may pay any.
+    if (req.user.role !== 'super_admin' && invoice.school_id !== req.user.school_id) {
+      return res.status(403).json({ error: 'Not allowed to pay this invoice' });
+    }
+    if (invoice.status === 'paid') return res.status(400).json({ error: 'Invoice already paid' });
 
+    const key_id = await getPlatformKeyId();
+    if (!key_id) return res.status(400).json({ error: 'Platform Razorpay is not configured' });
+
+    const razorpay = await getRazorpayInstance();
     const order = await razorpay.orders.create({
       amount: Math.round(invoice.total_amount * 100),
       currency: 'INR',
@@ -376,23 +418,133 @@ const createInvoiceOrder = async (req, res) => {
       data: { razorpay_order_id: order.id },
     });
 
-    res.json({ order, invoice_id: invoice.id });
+    // key_id must be returned — Checkout can't open without it, and there is no other API
+    // that exposes it to the browser.
+    res.json({ order, invoice_id: invoice.id, key_id });
   } catch (err) {
-    console.error(err);
+    console.error('createInvoiceOrder error:', err);
     res.status(500).json({ error: 'Error creating Razorpay order' });
+  }
+};
+
+/**
+ * Confirm a school invoice payment from the Checkout callback.
+ * This is the PRIMARY confirmation path — previously these orders had no verification
+ * endpoint at all and relied solely on a webhook that could never fire, so schools could pay
+ * and the invoice would stay unpaid. Idempotent: re-verifying an already-paid invoice is a no-op.
+ */
+const verifyInvoicePayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+
+    const invoice = await prisma.schoolInvoice.findUnique({ where: { id } });
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+    if (req.user.role !== 'super_admin' && invoice.school_id !== req.user.school_id) {
+      return res.status(403).json({ error: 'Not allowed' });
+    }
+    if (invoice.status === 'paid') return res.json({ ok: true, already_paid: true });
+
+    // The order must be the one we created for THIS invoice.
+    if (!razorpay_order_id || razorpay_order_id !== invoice.razorpay_order_id) {
+      return res.status(400).json({ error: 'Order does not match this invoice' });
+    }
+
+    const keySecret = await getPlatformKeySecret();
+    if (!isValidPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature, keySecret)) {
+      return res.status(400).json({ error: 'Invalid payment signature' });
+    }
+
+    await markSchoolInvoicePaid(invoice, razorpay_payment_id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('verifyInvoicePayment error:', err);
+    res.status(500).json({ error: 'Error verifying payment' });
+  }
+};
+
+/** Same, for an individual (per-student) invoice. */
+const verifyStudentInvoicePayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+
+    const invoice = await prisma.studentInvoice.findUnique({ where: { id } });
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+    if (invoice.status === 'paid') return res.json({ ok: true, already_paid: true });
+
+    if (!razorpay_order_id || razorpay_order_id !== invoice.razorpay_order_id) {
+      return res.status(400).json({ error: 'Order does not match this invoice' });
+    }
+
+    const keySecret = await getPlatformKeySecret();
+    if (!isValidPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature, keySecret)) {
+      return res.status(400).json({ error: 'Invalid payment signature' });
+    }
+
+    await prisma.studentInvoice.update({
+      where: { id: invoice.id },
+      data: {
+        status: 'paid',
+        payment_method: 'razorpay',
+        razorpay_payment_id,
+        paid_at: new Date(),
+      },
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('verifyStudentInvoicePayment error:', err);
+    res.status(500).json({ error: 'Error verifying payment' });
+  }
+};
+
+/**
+ * Mark a school invoice paid and record any overdue penalty. Shared by the checkout-callback
+ * verify path and the webhook so both stay consistent; guarded so a duplicate delivery is a no-op.
+ */
+const markSchoolInvoicePaid = async (invoice, paymentId) => {
+  if (!invoice || invoice.status === 'paid') return;
+  await prisma.schoolInvoice.update({
+    where: { id: invoice.id },
+    data: {
+      status: 'paid',
+      payment_method: 'razorpay',
+      razorpay_payment_id: paymentId,
+      paid_at: new Date(),
+    },
+  });
+
+  if (invoice.overdue_amount > 0) {
+    const billingConfig = await prisma.billingConfig.findUnique({ where: { id: 'singleton' } });
+    const months_overdue = Math.floor(
+      (Date.now() - new Date(invoice.due_date)) / (30 * 24 * 3600 * 1000)
+    );
+    await prisma.overdueRecord.create({
+      data: {
+        invoice_id: invoice.id,
+        school_id: invoice.school_id,
+        months_overdue,
+        penalty_rate: billingConfig ? billingConfig.overdue_rate : 2,
+        penalty_amount: invoice.overdue_amount,
+      },
+    });
   }
 };
 
 const handleInvoiceWebhook = async (req, res) => {
   try {
     const signature = req.headers['x-razorpay-signature'];
-    const config = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
 
-    let webhookSecret;
-    if (config && config.razorpay_configured && config.razorpay_key_secret) {
-      webhookSecret = decrypt(config.razorpay_key_secret);
-    } else {
-      webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+    // Razorpay's webhook secret is configured per-webhook in their dashboard and is NOT the
+    // API key secret. Prefer the dedicated env var; fall back to the key secret for setups
+    // where the same value was used.
+    let webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      const config = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
+      if (config?.razorpay_configured && config.razorpay_key_secret) {
+        try { webhookSecret = decrypt(config.razorpay_key_secret); } catch { /* ignore */ }
+      }
+      webhookSecret = webhookSecret || process.env.RAZORPAY_KEY_SECRET;
     }
 
     // Without a secret, HMAC verification is meaningless — reject rather than risk accepting
@@ -402,58 +554,47 @@ const handleInvoiceWebhook = async (req, res) => {
       return res.status(400).json({ error: 'Webhook secret not configured' });
     }
 
-    const body = JSON.stringify(req.body);
-    const expectedSignature = crypto
-      .createHmac('sha256', webhookSecret)
-      .update(body)
-      .digest('hex');
-
-    if (signature !== expectedSignature) {
+    // Verify against the RAW bytes Razorpay signed, not a re-serialised copy of the parsed body.
+    const payload = req.rawBody || Buffer.from(JSON.stringify(req.body));
+    const expected = crypto.createHmac('sha256', webhookSecret).update(payload).digest('hex');
+    const a = Buffer.from(expected, 'utf8');
+    const b = Buffer.from(String(signature || ''), 'utf8');
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
       return res.status(400).json({ error: 'Invalid webhook signature' });
     }
 
-    const event = req.body.event;
-    if (event === 'payment.captured') {
-      const payment = req.body.payload.payment.entity;
-      const order_id = payment.order_id;
-      const payment_id = payment.id;
+    if (req.body.event === 'payment.captured') {
+      const payment = req.body.payload?.payment?.entity;
+      const order_id = payment?.order_id;
+      const payment_id = payment?.id;
 
-      const invoice = await prisma.schoolInvoice.findFirst({
-        where: { razorpay_order_id: order_id },
-      });
-
-      if (invoice && invoice.status !== 'paid') {
-        await prisma.schoolInvoice.update({
-          where: { id: invoice.id },
-          data: {
-            status: 'paid',
-            payment_method: 'razorpay',
-            razorpay_payment_id: payment_id,
-            paid_at: new Date(),
-          },
-        });
-
-        if (invoice.overdue_amount > 0) {
-          const billingConfig = await prisma.billingConfig.findUnique({ where: { id: 'singleton' } });
-          const months_overdue = Math.floor(
-            (Date.now() - new Date(invoice.due_date)) / (30 * 24 * 3600 * 1000)
-          );
-          await prisma.overdueRecord.create({
-            data: {
-              invoice_id: invoice.id,
-              school_id: invoice.school_id,
-              months_overdue,
-              penalty_rate: billingConfig ? billingConfig.overdue_rate : 2,
-              penalty_amount: invoice.overdue_amount,
-            },
-          });
+      if (order_id) {
+        // The same webhook serves school invoices and individual student invoices — look in both.
+        // (Student invoices were previously ignored entirely, so an online student payment could
+        // never be recorded.) Both paths are idempotent, so Razorpay's retries are harmless.
+        const invoice = await prisma.schoolInvoice.findFirst({ where: { razorpay_order_id: order_id } });
+        if (invoice) {
+          await markSchoolInvoicePaid(invoice, payment_id);
+        } else {
+          const studentInvoice = await prisma.studentInvoice.findFirst({ where: { razorpay_order_id: order_id } });
+          if (studentInvoice && studentInvoice.status !== 'paid') {
+            await prisma.studentInvoice.update({
+              where: { id: studentInvoice.id },
+              data: {
+                status: 'paid',
+                payment_method: 'razorpay',
+                razorpay_payment_id: payment_id,
+                paid_at: new Date(),
+              },
+            });
+          }
         }
       }
     }
 
     res.json({ received: true });
   } catch (err) {
-    console.error(err);
+    console.error('handleInvoiceWebhook error:', err);
     res.status(500).json({ error: 'Webhook processing error' });
   }
 };
@@ -656,7 +797,13 @@ const updatePlatformRazorpay = async (req, res) => {
 const getPlatformRazorpayStatus = async (req, res) => {
   try {
     const config = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
-    res.json({ configured: config?.razorpay_configured ?? false });
+    // Report which Razorpay environment the saved key belongs to so the UI can warn that real
+    // money moves. Only the mode and the key's prefix leave the server — never the secret.
+    let mode = 'unknown';
+    const keyId = await getPlatformKeyId();
+    if (keyId?.startsWith('rzp_live_')) mode = 'live';
+    else if (keyId?.startsWith('rzp_test_')) mode = 'test';
+    res.json({ configured: config?.razorpay_configured ?? false, mode });
   } catch (err) {
     res.status(500).json({ error: 'Error fetching config' });
   }
@@ -1135,6 +1282,11 @@ const createStudentInvoiceOrder = async (req, res) => {
     const { id } = req.params;
     const invoice = await prisma.studentInvoice.findUnique({ where: { id } });
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+    if (invoice.status === 'paid') return res.status(400).json({ error: 'Invoice already paid' });
+
+    const key_id = await getPlatformKeyId();
+    if (!key_id) return res.status(400).json({ error: 'Platform Razorpay is not configured' });
+
     const razorpay = await getRazorpayInstance();
     const order = await razorpay.orders.create({
       amount: Math.round(invoice.total_amount * 100),
@@ -1145,7 +1297,7 @@ const createStudentInvoiceOrder = async (req, res) => {
     await prisma.studentInvoice.update({
       where: { id }, data: { razorpay_order_id: order.id },
     });
-    res.json({ order, invoice_id: invoice.id });
+    res.json({ order, invoice_id: invoice.id, key_id });
   } catch (err) {
     console.error('createStudentInvoiceOrder error:', err.message);
     res.status(500).json({ error: 'Error creating Razorpay order' });
@@ -1247,6 +1399,8 @@ module.exports = {
   getInvoice,
   payInvoiceCash,
   createInvoiceOrder,
+  verifyInvoicePayment,
+  verifyStudentInvoicePayment,
   handleInvoiceWebhook,
   updateBillingConfig,
   getBillingConfig,
