@@ -83,9 +83,20 @@ function generateInvoicePdf({ invoice, school = {}, kind = 'school', billToName,
       const paidAmount = isPaid ? total : 0;
       const balanceDue = total - paidAmount;
 
+      // GST is charged on platform invoices only; pre-GST invoices have no tax_amount and
+      // must keep printing exactly as they did.
+      const taxAmount = Number(invoice.tax_amount) || 0;
+      const taxRate = Number(invoice.tax_rate) || 0;
+      const hasGst = taxAmount > 0;
+      const { splitGst, DEFAULT_GSTIN } = require('./gst');
+      const gstParts = hasGst ? splitGst(taxAmount) : null;
+      // Callers attach the configured GSTIN; fall back to the registered default.
+      const gstin = invoice.gstin || DEFAULT_GSTIN;
+
       // ── Header: title + logo ─────────────────────────────────────────────
       let y = 40;
-      doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(30).text('INVOICE', left, y, { characterSpacing: 1 });
+      doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(30)
+        .text(hasGst ? 'TAX INVOICE' : 'INVOICE', left, y, { characterSpacing: 1 });
       try {
         if (fs.existsSync(LOGO_PATH)) doc.image(LOGO_PATH, right - 96, y - 6, { fit: [96, 52], align: 'right' });
       } catch (_) { /* logo optional */ }
@@ -96,6 +107,12 @@ function generateInvoicePdf({ invoice, school = {}, kind = 'school', billToName,
       y += 16;
       doc.font('Helvetica').fontSize(8.5).fillColor(MUTED);
       for (const l of ISSUER.lines) { doc.text(l, left, y, { width: contentW * 0.6 }); y += 11.5; }
+      // GSTIN must appear on a tax invoice.
+      if (hasGst && gstin) {
+        doc.font('Helvetica-Bold').fontSize(8.5).fillColor(DARK)
+          .text(`GSTIN: ${gstin}`, left, y, { width: contentW * 0.6 });
+        y += 12;
+      }
 
       // Divider under the issuer block
       y += 6;
@@ -243,7 +260,13 @@ function generateInvoicePdf({ invoice, school = {}, kind = 'school', billToName,
         tY += opts.big ? 20 : 16;
       };
 
-      totRow('Subtotal', inr(invoice.subtotal ?? total));
+      totRow(hasGst ? 'Taxable Value' : 'Subtotal', inr(invoice.subtotal ?? total));
+      if (hasGst) {
+        // Intra-state supply (supplier registered in Tamil Nadu) — split into equal halves.
+        const half = taxRate ? taxRate / 2 : 9;
+        totRow(`CGST @ ${half}%`, inr(gstParts.cgst));
+        totRow(`SGST @ ${half}%`, inr(gstParts.sgst));
+      }
       if (Number(invoice.overdue_amount) > 0) totRow('Late fee', inr(invoice.overdue_amount));
       doc.strokeColor(LINE).lineWidth(0.8).moveTo(totalsX, tY + 1).lineTo(right, tY + 1).stroke();
       tY += 7;
@@ -334,6 +357,9 @@ async function renderAndUploadInvoicePdf(opts) {
 async function refreshInvoicePdf(invoiceId, kind = 'school') {
   try {
     const prisma = require('../prisma');
+    // Attach the configured GSTIN so the re-rendered tax invoice carries it.
+    const { getGstConfig } = require('./gst');
+    const { gstin } = await getGstConfig(prisma);
 
     if (kind === 'student') {
       const invoice = await prisma.studentInvoice.findUnique({
@@ -348,7 +374,7 @@ async function refreshInvoicePdf(invoiceId, kind = 'school') {
           })
         : null;
       const { url } = await renderAndUploadInvoicePdf({
-        invoice,
+        invoice: { ...invoice, gstin },
         school: school || {},
         kind: 'student',
         billToName: invoice.student?.name,
@@ -368,7 +394,7 @@ async function refreshInvoicePdf(invoiceId, kind = 'school') {
     });
     if (!invoice) return null;
     const { url } = await renderAndUploadInvoicePdf({
-      invoice, school: invoice.school || {}, kind: 'school',
+      invoice: { ...invoice, gstin }, school: invoice.school || {}, kind: 'school',
     });
     if (url) await prisma.schoolInvoice.update({ where: { id: invoiceId }, data: { pdf_url: url } });
     return url;

@@ -27,6 +27,8 @@ const {
   getMySubscription,
   getMyInvoices,
   getMyStudentInvoices,
+  createParentStudentInvoiceOrder,
+  verifyParentStudentInvoicePayment,
   updatePlatformRazorpay,
   getPlatformRazorpayStatus,
   getPlatformUsage,
@@ -96,8 +98,13 @@ router.get('/my-subscription', requireRole('admin', 'parent'), getMySubscription
 // School admin — own invoices
 router.get('/my-invoices', requireRole('admin'), getMyInvoices);
 
-// Parent — their children's individual (super-admin) invoices
+// Parent — their children's individual (super-admin) invoices.
+// pay-online settles into the PLATFORM Razorpay account (these are platform charges, not the
+// school's revenue) and supports paying one invoice, several, or all children at once.
+// Both handlers scope strictly to invoices belonging to req.user's own children.
 router.get('/my-student-invoices', requireRole('parent'), getMyStudentInvoices);
+router.post('/my-student-invoices/pay-online', requireRole('parent'), createParentStudentInvoiceOrder);
+router.post('/my-student-invoices/verify',     requireRole('parent'), verifyParentStudentInvoicePayment);
 
 // SA — platform Razorpay keys
 router.get('/platform-razorpay', requireRole('super_admin'), getPlatformRazorpayStatus);

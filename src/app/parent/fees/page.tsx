@@ -151,6 +151,53 @@ export default function ParentFees() {
         }
     };
 
+    /**
+     * Pay one or more individual (platform) charges. These settle into the OnLIVE platform
+     * Razorpay account, so unlike transport fees they don't depend on the school's keys.
+     * Passing several ids opens a single Checkout for the combined amount — one click for a
+     * parent with multiple children.
+     */
+    const handlePayIndividual = async (invoiceIds: string[], amountRupees: number) => {
+        const busyKey = invoiceIds.length === 1 ? invoiceIds[0] : 'ALL';
+        setPayingId(busyKey);
+        try {
+            const loaded = await loadRazorpay();
+            if (!loaded) { alert('Failed to load payment gateway.'); return; }
+
+            const { data } = await api.post('/billing/my-student-invoices/pay-online', { invoice_ids: invoiceIds });
+            const { order, key_id } = data || {};
+            if (!order?.id || !key_id) { alert('Failed to create payment order. Please try again.'); return; }
+
+            if (!confirmLivePayment(key_id, amountRupees)) return;
+
+            new (window as any).Razorpay({
+                key: key_id,
+                amount: order.amount,
+                currency: order.currency,
+                order_id: order.id,
+                name: 'OnLIVE',
+                description: invoiceIds.length > 1
+                    ? `${invoiceIds.length} charges`
+                    : 'Platform charge',
+                theme: { color: '#2563eb' },
+                handler: async (response: any) => {
+                    try {
+                        await api.post('/billing/my-student-invoices/verify', response);
+                        alert('Payment successful!');
+                    } catch {
+                        alert('Payment received but verification failed. Do not pay again — please contact support with your payment ID.');
+                    }
+                    fetchFees();
+                },
+                prefill: {},
+            }).open();
+        } catch (e: any) {
+            alert(e?.response?.data?.error || 'Failed to initiate payment');
+        } finally {
+            setPayingId(null);
+        }
+    };
+
     const openDelayModal = (fee: Fee) => {
         setDelayModal(fee);
         setDelayDate(addDays(7));
@@ -177,6 +224,12 @@ export default function ParentFees() {
     const filtered = fees.filter(f =>
         activeTab === 'pending' ? f.status === 'pending' || f.status === 'overdue' : f.status === 'paid'
     );
+
+    // Unpaid platform (individual) charges across every child — drives the "Pay All" shortcut.
+    const unpaidIndividual = fees.filter(f =>
+        f.source === 'individual' && (f.status === 'pending' || f.status === 'overdue')
+    );
+    const individualTotal = unpaidIndividual.reduce((s, f) => s + (Number(f.amount) || 0), 0);
 
     const pendingTotal = fees
         .filter(f => f.status === 'pending' || f.status === 'overdue')
@@ -221,6 +274,32 @@ export default function ParentFees() {
                     </button>
                 ))}
             </div>
+
+            {/* Pay-all shortcut — a parent with several children can settle every platform
+                charge in a single Checkout instead of one at a time. */}
+            {activeTab === 'pending' && unpaidIndividual.length > 1 && (
+                <div className="flex items-center justify-between gap-3 bg-[var(--brand)]/10 border border-[var(--brand)]/25 rounded-2xl px-4 py-3">
+                    <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                            {unpaidIndividual.length} {t('platform charges pending', 'தள கட்டணங்கள் நிலுவையில்')}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {t('Pay for all your children together', 'உங்கள் அனைத்து பிள்ளைகளுக்கும் ஒரே முறை செலுத்துங்கள்')}
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => handlePayIndividual(unpaidIndividual.map(f => f.id), individualTotal)}
+                        disabled={payingId === 'ALL'}
+                        className="shrink-0 flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 disabled:opacity-60"
+                    >
+                        {payingId === 'ALL' ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                            <><CreditCard className="w-4 h-4" /> {t('Pay All', 'அனைத்தும் செலுத்து')} ₹{individualTotal.toLocaleString('en-IN')}</>
+                        )}
+                    </button>
+                </div>
+            )}
 
             {/* Content */}
             {loading ? (
@@ -310,10 +389,19 @@ export default function ParentFees() {
                                             </div>
                                         )}
                                         <div className="flex gap-2">
+                                            {/* Platform charge — paid online into the OnLIVE account, not the school's. */}
                                             {fee.source === 'individual' && (
-                                                <div className="flex-1 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700/40 rounded-xl px-3 py-2.5">
-                                                    {t('Payable to the platform — your school admin will collect this.', 'தளத்திற்கு செலுத்த வேண்டியது — உங்கள் பள்ளி நிர்வாகி வசூலிப்பார்.')}
-                                                </div>
+                                                <button
+                                                    onClick={() => handlePayIndividual([fee.id], fee.amount)}
+                                                    disabled={payingId === fee.id}
+                                                    className="flex-1 flex items-center gap-2 bg-[var(--brand)] hover:opacity-90 text-white rounded-xl px-4 py-2.5 font-semibold text-sm transition-all active:scale-95 justify-center disabled:opacity-60"
+                                                >
+                                                    {payingId === fee.id ? (
+                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                    ) : (
+                                                        <><CreditCard className="w-4 h-4" /> {t('Pay Now', 'இப்போது செலுத்து')}</>
+                                                    )}
+                                                </button>
                                             )}
                                             {schoolConfig.razorpay_configured && fee.source !== 'individual' && (
                                                 <button

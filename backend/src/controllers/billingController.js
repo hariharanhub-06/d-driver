@@ -144,7 +144,11 @@ async function computeInvoiceForSchool(school_id, billing_month) {
     }
   }
 
-  const total_amount = subtotal + overdue_amount;
+  // GST on the service value only — a late-payment penalty is not a supply of service.
+  const { getGstConfig, computeGst } = require('../utils/gst');
+  const gstCfg = await getGstConfig(prisma);
+  const gst = computeGst(subtotal, gstCfg.rate);
+  const total_amount = subtotal + gst.amount + overdue_amount;
 
   const billingCycleDay = billingConfig ? billingConfig.billing_cycle_day : 1;
   const [year, month] = billing_month.split('-').map(Number);
@@ -154,7 +158,11 @@ async function computeInvoiceForSchool(school_id, billing_month) {
 
   const snapshot = { usage, line_items: lineItemsCalc, plan_name: plan.name };
 
-  return { school, plan, subtotal, overdue_amount, total_amount, due_date, snapshot };
+  return {
+    school, plan, subtotal, overdue_amount,
+    tax_rate: gst.rate, tax_amount: gst.amount,
+    total_amount, due_date, snapshot,
+  };
 }
 
 // ─── SA PRICING PLANS ─────────────────────────────────────────────────────────
@@ -1125,13 +1133,22 @@ async function computeInvoiceForStudent(student_id, billing_month) {
     }
   }
 
-  const total_amount = subtotal + overdue_amount;
+  // GST on the service value only — a late-payment penalty is not a supply of service.
+  const { getGstConfig: getGstCfgS, computeGst: computeGstS } = require('../utils/gst');
+  const gstCfgS = await getGstCfgS(prisma);
+  const gstS = computeGstS(subtotal, gstCfgS.rate);
+  const total_amount = subtotal + gstS.amount + overdue_amount;
+
   const [year, month] = billing_month.split('-').map(Number);
   const billingCycleDay = billingConfig?.billing_cycle_day ?? 1;
   const due_date = new Date(year, month - 1 + 1, billingCycleDay);
   const snapshot = { student_name: student.name, line_items: lineItemsCalc, plan_name: plan.name };
 
-  return { student, plan, subtotal, overdue_amount, total_amount, due_date, snapshot };
+  return {
+    student, plan, subtotal, overdue_amount,
+    tax_rate: gstS.rate, tax_amount: gstS.amount,
+    total_amount, due_date, snapshot,
+  };
 }
 
 // Render a branded PDF for a student invoice, store its URL, and email the parent.
@@ -1194,6 +1211,8 @@ const generateStudentInvoice = async (req, res) => {
         due_date: c.due_date,
         subtotal: c.subtotal,
         overdue_amount: c.overdue_amount,
+        tax_rate: c.tax_rate,
+        tax_amount: c.tax_amount,
         total_amount: c.total_amount,
         status: 'pending',
         line_items_snapshot: c.snapshot,
@@ -1248,7 +1267,9 @@ const generateAllStudentInvoices = async (req, res) => {
           data: {
             student_id: c.student.id, school_id: c.student.school_id, plan_id: c.plan.id,
             billing_month, due_date: c.due_date, subtotal: c.subtotal,
-            overdue_amount: c.overdue_amount, total_amount: c.total_amount,
+            overdue_amount: c.overdue_amount,
+            tax_rate: c.tax_rate, tax_amount: c.tax_amount,
+            total_amount: c.total_amount,
             status: 'pending', line_items_snapshot: c.snapshot,
           },
         });
@@ -1339,6 +1360,103 @@ const createStudentInvoiceOrder = async (req, res) => {
 
 // GET /billing/my-student-invoices (parent) — the super-admin "individual" charges raised
 // against this parent's children, so the parent Fees page can show them alongside school fees.
+/**
+ * Parent pays their own children's individual (platform) invoices — one, several, or all.
+ *
+ * These are OnLIVE platform charges, so they settle into the PLATFORM Razorpay account, not the
+ * school's. Previously a parent had no way to pay them at all: the endpoint was super-admin only
+ * and the UI told them their school admin would collect it.
+ *
+ * POST /billing/my-student-invoices/pay-online   body: { invoice_ids?: string[] }
+ * Omitting invoice_ids pays every unpaid invoice across all of the parent's children.
+ */
+const createParentStudentInvoiceOrder = async (req, res) => {
+  try {
+    const { invoice_ids } = req.body || {};
+
+    // Scope strictly to this parent's children — never trust ids from the client.
+    const students = await prisma.student.findMany({
+      where: { parent_id: req.user.id }, select: { id: true },
+    });
+    const studentIds = students.map(s => s.id);
+    if (studentIds.length === 0) return res.status(404).json({ error: 'No students found' });
+
+    const where = { student_id: { in: studentIds }, status: { not: 'paid' } };
+    if (Array.isArray(invoice_ids) && invoice_ids.length > 0) where.id = { in: invoice_ids };
+
+    const invoices = await prisma.studentInvoice.findMany({ where });
+    if (invoices.length === 0) return res.status(404).json({ error: 'No unpaid invoices found' });
+
+    const amount = invoices.reduce((s, i) => s + (Number(i.total_amount) || 0), 0);
+    if (amount <= 0) return res.status(400).json({ error: 'Nothing to pay' });
+
+    const key_id = await getPlatformKeyId();
+    if (!key_id) return res.status(400).json({ error: 'Online payment is not available right now' });
+
+    const razorpay = await getRazorpayInstance();
+    const order = await razorpay.orders.create({
+      amount: Math.round(amount * 100),
+      currency: 'INR',
+      receipt: `psi_${String(req.user.id).slice(0, 8)}_${Date.now()}`,
+      notes: { parent_id: req.user.id, invoice_count: String(invoices.length) },
+    });
+
+    // Tag every invoice in the batch with the order so verification can settle them together.
+    await prisma.studentInvoice.updateMany({
+      where: { id: { in: invoices.map(i => i.id) } },
+      data: { razorpay_order_id: order.id },
+    });
+
+    res.json({ order, key_id, invoice_ids: invoices.map(i => i.id), amount });
+  } catch (err) {
+    console.error('createParentStudentInvoiceOrder error:', err.message);
+    res.status(500).json({ error: 'Error creating payment order' });
+  }
+};
+
+/** POST /billing/my-student-invoices/verify — confirm a parent's payment and settle the batch. */
+const verifyParentStudentInvoicePayment = async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+
+    const students = await prisma.student.findMany({
+      where: { parent_id: req.user.id }, select: { id: true },
+    });
+    const studentIds = students.map(s => s.id);
+
+    // Only invoices belonging to this parent AND carrying this order id can be settled.
+    const invoices = await prisma.studentInvoice.findMany({
+      where: { student_id: { in: studentIds }, razorpay_order_id },
+    });
+    if (invoices.length === 0) return res.status(404).json({ error: 'No invoices found for this order' });
+
+    const keySecret = await getPlatformKeySecret();
+    if (!isValidPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature, keySecret)) {
+      return res.status(400).json({ error: 'Invalid payment signature' });
+    }
+
+    const unpaid = invoices.filter(i => i.status !== 'paid');
+    await prisma.studentInvoice.updateMany({
+      where: { id: { in: unpaid.map(i => i.id) } },
+      data: {
+        status: 'paid',
+        payment_method: 'razorpay',
+        razorpay_payment_id,
+        paid_at: new Date(),
+      },
+    });
+
+    // Re-render each PDF so it reads PAID (best-effort).
+    const { refreshInvoicePdf } = require('../utils/invoicePdf');
+    for (const inv of unpaid) await refreshInvoicePdf(inv.id, 'student');
+
+    res.json({ ok: true, paid: unpaid.length });
+  } catch (err) {
+    console.error('verifyParentStudentInvoicePayment error:', err.message);
+    res.status(500).json({ error: 'Error verifying payment' });
+  }
+};
+
 const getMyStudentInvoices = async (req, res) => {
   try {
     const students = await prisma.student.findMany({
@@ -1426,6 +1544,8 @@ module.exports = {
   payStudentInvoiceCash,
   createStudentInvoiceOrder,
   getMyStudentInvoices,
+  createParentStudentInvoiceOrder,
+  verifyParentStudentInvoicePayment,
   generateInvoice,
   generateAllInvoices,
   listInvoices,

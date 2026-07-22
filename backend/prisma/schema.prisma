@@ -519,6 +519,10 @@ model PlatformConfig {
   // Full landing-page content (every section's text, icon names, colours, images).
   // Stored as one JSON blob so any line can be made editable without a migration per field.
   landing_content          Json?
+  // GST applied to PLATFORM charges only (school platform invoices + individual/SA charges).
+  // School transport fees are the school's own revenue under their own GSTIN, not taxed here.
+  gstin                    String?
+  gst_rate                 Float? // percent, e.g. 18
   created_at               DateTime @default(now())
   updated_at               DateTime @updatedAt
 }
@@ -592,6 +596,10 @@ model SchoolInvoice {
   due_date            DateTime
   subtotal            Float
   overdue_amount      Float     @default(0)
+  // GST on the service value (subtotal). Nullable so invoices raised before GST was
+  // introduced keep their original totals. Split CGST/SGST at render time.
+  tax_rate            Float? // e.g. 18
+  tax_amount          Float?
   total_amount        Float
   status              String    @default("pending") // pending | paid | overdue | partial
   payment_method      String? // razorpay | cash
@@ -615,6 +623,9 @@ model StudentInvoice {
   due_date            DateTime
   subtotal            Float
   overdue_amount      Float     @default(0)
+  // GST on the service value (subtotal). Nullable so pre-GST invoices keep their totals.
+  tax_rate            Float?
+  tax_amount          Float?
   total_amount        Float
   status              String    @default("pending") // pending | paid | overdue | partial
   payment_method      String? // razorpay | cash

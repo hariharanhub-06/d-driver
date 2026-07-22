@@ -35,6 +35,8 @@ interface Invoice {
     paid_at?: string;
     payment_method?: string;
     razorpay_payment_id?: string;
+    tax_rate?: number;
+    tax_amount?: number;
     pdf_url?: string;
 }
 
@@ -520,6 +522,13 @@ export default function BillingPage() {
                             {/* Totals */}
                             <div className="space-y-1.5 text-sm">
                                 <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">{t('Subtotal', 'கூட்டுத்தொகை')}</span><span className="text-slate-800 dark:text-slate-200">₹{(viewInvoice.subtotal ?? 0).toLocaleString('en-IN')}</span></div>
+                                {/* GST — split into equal CGST/SGST halves for intra-state supply. */}
+                                {(viewInvoice.tax_amount ?? 0) > 0 && (
+                                    <>
+                                        <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">CGST @ {((viewInvoice.tax_rate ?? 18) / 2)}%</span><span className="text-slate-800 dark:text-slate-200">₹{((viewInvoice.tax_amount ?? 0) / 2).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
+                                        <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">SGST @ {((viewInvoice.tax_rate ?? 18) / 2)}%</span><span className="text-slate-800 dark:text-slate-200">₹{((viewInvoice.tax_amount ?? 0) / 2).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
+                                    </>
+                                )}
                                 {(viewInvoice.overdue_amount ?? 0) > 0 && (
                                     <div className="flex justify-between"><span className="text-red-500">{t('Overdue penalty', 'தாமத அபராதம்')}</span><span className="text-red-500">₹{(viewInvoice.overdue_amount ?? 0).toLocaleString('en-IN')}</span></div>
                                 )}

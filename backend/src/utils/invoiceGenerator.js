@@ -144,7 +144,11 @@ async function generateInvoiceForSchool(schoolId, billingMonth) {
     }
   }
 
-  const total_amount = subtotal + overdue_amount;
+  // GST on the service value only — a late-payment penalty is not a supply of service.
+  const { getGstConfig, computeGst } = require('./gst');
+  const gstCfg = await getGstConfig(prisma);
+  const gst = computeGst(subtotal, gstCfg.rate);
+  const total_amount = subtotal + gst.amount + overdue_amount;
 
   const billingCycleDay = billingConfig?.billing_cycle_day ?? 1;
   // Honour the school's configured billing due day within the billing month. Fall back to the
@@ -163,6 +167,8 @@ async function generateInvoiceForSchool(schoolId, billingMonth) {
       due_date,
       subtotal,
       overdue_amount,
+      tax_rate: gst.rate,
+      tax_amount: gst.amount,
       total_amount,
       status: 'pending',
       line_items_snapshot: snapshot,
