@@ -86,12 +86,12 @@ async function computeInvoiceForSchool(school_id, billing_month) {
 
   const usage = { bus_count, student_count, route_count, gps_hours, total_km, shift_count };
 
-  // expense / profit rows are planning aids — never billed to schools
-  const billableLineItems = plan.lineItems.filter(
-    item => !['expense', 'profit'].includes(item.metric)
-  );
+  // expense / profit rows are never their own line — the profit target is folded into the
+  // billable rates below so the school sees one inclusive price.
+  const { splitPlanItems, applyProfitTarget } = require('../utils/planPricing');
+  const { billableItems, profitTarget } = splitPlanItems(plan.lineItems);
 
-  const lineItemsCalc = billableLineItems.map(item => {
+  const rawLineItems = billableItems.map(item => {
     let quantity = 0;
     switch (item.metric) {
       case 'fixed':        quantity = 1; break;
@@ -120,6 +120,7 @@ async function computeInvoiceForSchool(school_id, billing_month) {
     };
   });
 
+  const lineItemsCalc = applyProfitTarget(rawLineItems, profitTarget);
   const subtotal = lineItemsCalc.reduce((sum, i) => sum + i.charge, 0);
 
   const billingConfig = await prisma.billingConfig.findUnique({ where: { id: 'singleton' } });
@@ -1086,10 +1087,9 @@ async function computeInvoiceForStudent(student_id, billing_month) {
   if (!plan) throw new Error('Pricing plan not found');
 
   // Individual billing = one student → each billable line item is charged once.
-  const billableLineItems = plan.lineItems.filter(
-    item => !['expense', 'profit'].includes(item.metric)
-  );
-  const lineItemsCalc = billableLineItems.map(item => {
+  const { splitPlanItems: splitStudentPlan, applyProfitTarget: applyStudentProfit } = require('../utils/planPricing');
+  const { billableItems: studentBillable, profitTarget: studentProfit } = splitStudentPlan(plan.lineItems);
+  const rawStudentItems = studentBillable.map(item => {
     const quantity = 1;
     let charge = quantity * item.unit_rate;
     if (item.min_value !== null && item.min_value !== undefined && charge < item.min_value) {
@@ -1101,6 +1101,7 @@ async function computeInvoiceForStudent(student_id, billing_month) {
       is_mandatory: item.is_mandatory, min_value: item.min_value,
     };
   });
+  const lineItemsCalc = applyStudentProfit(rawStudentItems, studentProfit);
   const subtotal = lineItemsCalc.reduce((sum, i) => sum + i.charge, 0);
 
   const billingConfig = await prisma.billingConfig.findUnique({ where: { id: 'singleton' } });

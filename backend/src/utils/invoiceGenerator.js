@@ -78,15 +78,13 @@ async function generateInvoiceForSchool(schoolId, billingMonth) {
   const usage = { bus_count, student_count, route_count, gps_hours, total_km, shift_count };
 
   // ── Line item calculation ──────────────────────────────────────────────────
-  // 'expense' and 'profit' rows are internal planning aids used by the margin simulator in the
-  // super-admin plan editor — they must NEVER reach a school. Without this filter they were
-  // billed AND printed on the customer's PDF (a "Profit Target" line disclosing our margin).
-  // Mirrors the same guard in billingController.computeInvoiceForSchool.
-  const billableLineItems = plan.lineItems.filter(
-    item => !['expense', 'profit'].includes(item.metric)
-  );
+  // 'expense' and 'profit' rows are internal planning inputs and are never shown as their own
+  // line — the profit target is folded into the billable rates below instead, so the school sees
+  // one inclusive price and not our margin.
+  const { splitPlanItems, applyProfitTarget } = require('./planPricing');
+  const { billableItems, profitTarget } = splitPlanItems(plan.lineItems);
 
-  const lineItemsCalc = billableLineItems.map(item => {
+  const rawLineItems = billableItems.map(item => {
     let quantity = 0;
     switch (item.metric) {
       case 'fixed':        quantity = 1; break;
@@ -114,6 +112,10 @@ async function generateInvoiceForSchool(schoolId, billingMonth) {
       min_value: item.min_value,
     };
   });
+
+  // Spread the profit target across the billable rates (1 profit over 2 buses at 1/bus makes
+  // each bus 1.50). Nothing on the invoice reveals it.
+  const lineItemsCalc = applyProfitTarget(rawLineItems, profitTarget);
 
   const subtotal = lineItemsCalc.reduce((sum, i) => sum + i.charge, 0);
 
