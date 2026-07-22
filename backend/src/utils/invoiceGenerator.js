@@ -8,7 +8,37 @@ const prisma = require('../prisma');
  * @param {string} billingMonth  e.g. "2026-05"
  * @returns {Promise<object>}  the created SchoolInvoice record
  */
-async function generateInvoiceForSchool(schoolId, billingMonth) {
+/**
+ * @param {string} schoolId
+ * @param {string} billingMonth  YYYY-MM
+ * @param {{force?: boolean}} opts  force replaces an existing UNPAID invoice for that month
+ */
+async function generateInvoiceForSchool(schoolId, billingMonth, { force = false } = {}) {
+  // One invoice per school per month. The guard lives here rather than in each caller because
+  // generateAllInvoices had none — clicking "Generate All" twice produced duplicate invoices for
+  // the same month. Errors carry a code so callers can skip vs fail.
+  const existing = await prisma.schoolInvoice.findFirst({
+    where: { school_id: schoolId, billing_month: billingMonth },
+    select: { id: true, status: true },
+  });
+  if (existing) {
+    if (!force) {
+      throw Object.assign(
+        new Error(`An invoice for ${billingMonth} already exists for this school.`),
+        { code: 'INVOICE_EXISTS' },
+      );
+    }
+    if (existing.status === 'paid') {
+      // Never destroy a paid invoice — it is the record of a real payment.
+      throw Object.assign(
+        new Error('This invoice is already paid and cannot be regenerated.'),
+        { code: 'INVOICE_PAID' },
+      );
+    }
+    // Regenerating recomputes from current usage, so the superseded row is removed.
+    await prisma.schoolInvoice.delete({ where: { id: existing.id } });
+  }
+
   const [year, month] = billingMonth.split('-').map(Number);
   const monthStart = new Date(year, month - 1, 1);
   const monthEnd = new Date(year, month, 1);

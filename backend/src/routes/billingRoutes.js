@@ -67,6 +67,8 @@ router.post('/generate-all', requireRole('super_admin'), generateAllInvoices);
 router.get('/invoices',               requireRole('super_admin'), listInvoices);
 router.get('/invoices/:id',           requireRole('super_admin'), getInvoice);
 router.post('/invoices/:id/pay-cash', requireRole('super_admin'), payInvoiceCash);
+// Remove an invoice generated in error. Paid invoices are refused by the controller.
+router.delete('/invoices/:id',        requireRole('super_admin'), deleteInvoice);
 // School admins pay their OWN school's invoice; the controller scopes by req.user.school_id.
 // (Was super_admin-only, so the "Pay Online" button on the admin billing page always 403'd.)
 router.post('/invoices/:id/pay-online', requireRole('admin', 'super_admin'), createInvoiceOrder);

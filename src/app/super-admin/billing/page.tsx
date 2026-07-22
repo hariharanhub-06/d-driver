@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee, Pencil, Trash2, GraduationCap, Eye, Download } from 'lucide-react';
+import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee, Pencil, Trash2, GraduationCap, Eye, Download, RefreshCw } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
@@ -93,6 +93,8 @@ export default function BillingPage() {
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [invoiceForm, setInvoiceForm] = useState({ school_id: '', billing_month: new Date().toISOString().slice(0, 7) });
     const [generatingAll, setGeneratingAll] = useState(false);
+    // Invoice id currently being regenerated/deleted, so its row buttons show a spinner.
+    const [rowBusy, setRowBusy] = useState<string | null>(null);
     const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
 
     // Filters
@@ -193,19 +195,76 @@ export default function BillingPage() {
             setInvoiceForm({ school_id: '', billing_month: new Date().toISOString().slice(0, 7) });
             fetchAll();
         } catch (e: any) {
+            // 409 = an invoice already exists for that school+month. Offer to replace it rather
+            // than silently creating a duplicate.
+            if (e.response?.status === 409) {
+                const ok = confirm(
+                    `${e.response?.data?.error}\n\n${t('Regenerate it with current figures?', 'தற்போதைய கணக்குடன் மீண்டும் உருவாக்கவா?')}`
+                );
+                if (ok) {
+                    try {
+                        await api.post('/billing/generate', { ...invoiceForm, force: true });
+                        setShowInvoiceModal(false);
+                        setInvoiceForm({ school_id: '', billing_month: new Date().toISOString().slice(0, 7) });
+                        fetchAll();
+                        return;
+                    } catch (e2: any) {
+                        alert(e2.response?.data?.error || 'Failed to regenerate invoice');
+                        return;
+                    }
+                }
+                return;
+            }
             alert(e.response?.data?.error || e.response?.data?.message || 'Failed to generate invoice');
         } finally {
             setSubmitting(false);
         }
     };
 
+    // Replace an existing UNPAID invoice for the same month with freshly computed figures.
+    const handleRegenerate = async (inv: Invoice) => {
+        if (!inv.school?.id) return;
+        if (!confirm(t(
+            `Regenerate the ${inv.billing_month} invoice? The current one will be replaced with fresh figures.`,
+            `${inv.billing_month} விலைப்பட்டியலை மீண்டும் உருவாக்கவா? தற்போதையது மாற்றப்படும்.`
+        ))) return;
+        setRowBusy(inv.id);
+        try {
+            await api.post('/billing/generate', {
+                school_id: inv.school.id, billing_month: inv.billing_month, force: true,
+            });
+            fetchAll();
+        } catch (e: any) {
+            alert(e.response?.data?.error || 'Failed to regenerate invoice');
+        } finally { setRowBusy(null); }
+    };
+
+    const handleDeleteInvoice = async (inv: Invoice) => {
+        if (!confirm(t(
+            `Delete the ${inv.billing_month} invoice? This cannot be undone.`,
+            `${inv.billing_month} விலைப்பட்டியலை நீக்கவா? இதை மீட்க முடியாது.`
+        ))) return;
+        setRowBusy(inv.id);
+        try {
+            await api.delete(`/billing/invoices/${inv.id}`);
+            fetchAll();
+        } catch (e: any) {
+            alert(e.response?.data?.error || 'Failed to delete invoice');
+        } finally { setRowBusy(null); }
+    };
+
     const handleGenerateAll = async () => {
         if (!confirm(t('Generate invoices for all active schools this month?', 'இந்த மாதம் அனைத்து பள்ளிகளுக்கும் விலைப்பட்டியல் உருவாக்கவா?'))) return;
         setGeneratingAll(true);
         try {
-            await api.post('/billing/generate-all', { billing_month: new Date().toISOString().slice(0, 7) });
+            const { data } = await api.post('/billing/generate-all', { billing_month: new Date().toISOString().slice(0, 7) });
             fetchAll();
-            alert('Invoices generated for all schools.');
+            // Schools already invoiced this month are skipped, not duplicated — say so explicitly.
+            const skipped = data?.skipped ?? 0;
+            alert(
+                `${data?.generated ?? 0} invoice(s) generated.` +
+                (skipped ? `\n${skipped} school(s) already had an invoice for this month and were skipped.` : '')
+            );
         } catch (e: any) {
             alert(e.response?.data?.error || e.response?.data?.message || 'Failed to generate all invoices');
         } finally {
@@ -462,11 +521,27 @@ export default function BillingPage() {
                                                         <Download className="w-4 h-4" />
                                                     </a>
                                                 )}
+                                                {/* Regenerate / delete are unpaid-only — a paid invoice records a real
+                                                    payment and the server refuses to touch it. */}
                                                 {inv.status !== 'paid' && (
-                                                    <button onClick={(e) => { e.stopPropagation(); handleRecordPayment(inv.id); }}
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-200 dark:border-emerald-800 transition-all active:scale-95">
-                                                        <Check className="w-3 h-3" /> {t('Mark as Paid', 'செலுத்தியதாக குறி')}
-                                                    </button>
+                                                    <>
+                                                        <button onClick={(e) => { e.stopPropagation(); handleRegenerate(inv); }}
+                                                            disabled={rowBusy === inv.id}
+                                                            title={t('Regenerate with current figures', 'மீண்டும் உருவாக்கு')}
+                                                            className="p-1.5 rounded-lg text-slate-400 hover:text-[var(--brand)] hover:bg-[var(--brand)]/10 transition-all disabled:opacity-50">
+                                                            {rowBusy === inv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                                                        </button>
+                                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteInvoice(inv); }}
+                                                            disabled={rowBusy === inv.id}
+                                                            title={t('Delete invoice', 'விலைப்பட்டியலை நீக்கு')}
+                                                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={(e) => { e.stopPropagation(); handleRecordPayment(inv.id); }}
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold border border-emerald-200 dark:border-emerald-800 transition-all active:scale-95">
+                                                            <Check className="w-3 h-3" /> {t('Mark as Paid', 'செலுத்தியதாக குறி')}
+                                                        </button>
+                                                    </>
                                                 )}
                                             </div>
                                         </td>

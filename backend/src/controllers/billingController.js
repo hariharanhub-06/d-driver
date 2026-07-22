@@ -266,21 +266,40 @@ const deletePlan = async (req, res) => {
 
 const generateInvoice = async (req, res) => {
   try {
-    const { school_id, billing_month } = req.body;
-    // Guard against generating a duplicate invoice for the same school + month.
-    const existing = await prisma.schoolInvoice.findFirst({
-      where: { school_id, billing_month }, select: { id: true },
-    });
-    if (existing) return res.status(400).json({ error: `An invoice for ${billing_month} already exists for this school.` });
+    // force = regenerate: replaces an existing UNPAID invoice for that month with fresh figures.
+    // The duplicate guard itself now lives in generateInvoiceForSchool so every caller shares it.
+    const { school_id, billing_month, force } = req.body;
     const { generateInvoiceForSchool } = require('../utils/invoiceGenerator');
-    const invoice = await generateInvoiceForSchool(school_id, billing_month).catch(err => {
-      throw Object.assign(err, { isClientError: true });
-    });
+    const invoice = await generateInvoiceForSchool(school_id, billing_month, { force: !!force })
+      .catch(err => { throw Object.assign(err, { isClientError: true }); });
     res.status(201).json(invoice);
   } catch (err) {
+    // 409 lets the UI offer "regenerate" instead of showing a generic failure.
+    if (err.code === 'INVOICE_EXISTS') return res.status(409).json({ error: err.message, code: err.code });
+    if (err.code === 'INVOICE_PAID') return res.status(400).json({ error: err.message, code: err.code });
     if (err.isClientError) return res.status(400).json({ error: err.message });
     console.error(err);
     res.status(500).json({ error: 'Error generating invoice' });
+  }
+};
+
+// DELETE /billing/invoices/:id — remove an unpaid invoice (e.g. generated in error).
+const deleteInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = await prisma.schoolInvoice.findUnique({
+      where: { id }, select: { id: true, status: true },
+    });
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+    if (invoice.status === 'paid') {
+      // A paid invoice is the record of a real payment — never delete it.
+      return res.status(400).json({ error: 'Paid invoices cannot be deleted.' });
+    }
+    await prisma.schoolInvoice.delete({ where: { id } });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('deleteInvoice error:', err.message);
+    res.status(500).json({ error: 'Error deleting invoice' });
   }
 };
 
@@ -296,6 +315,7 @@ const generateAllInvoices = async (req, res) => {
 
     const { generateInvoiceForSchool } = require('../utils/invoiceGenerator');
     let generated = 0;
+    let skipped = 0;
     const errors = [];
 
     for (const school of schools) {
@@ -303,11 +323,13 @@ const generateAllInvoices = async (req, res) => {
         await generateInvoiceForSchool(school.id, billing_month);
         generated++;
       } catch (err) {
-        errors.push({ school_id: school.id, error: err.message });
+        // A school already invoiced for this month is expected on a re-run, not a failure.
+        if (err.code === 'INVOICE_EXISTS') skipped++;
+        else errors.push({ school_id: school.id, error: err.message });
       }
     }
 
-    res.json({ generated, errors });
+    res.json({ generated, skipped, errors });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error generating invoices' });
