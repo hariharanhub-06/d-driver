@@ -1266,8 +1266,13 @@ async function finalizeStudentInvoicePdf(invoice, studentName) {
       },
     });
     const { renderAndUploadInvoicePdf } = require('../utils/invoicePdf');
+    // Attach the configured GSTIN. Without it the renderer falls back to the built-in default,
+    // so a GSTIN changed in platform config would not reach a freshly generated student invoice.
+    const { getGstConfig } = require('../utils/gst');
+    const { gstin } = await getGstConfig(prisma);
     const { url, buffer } = await renderAndUploadInvoicePdf({
-      invoice, school, kind: 'student', billToName: studentName, billToSub: school?.name,
+      invoice: { ...invoice, gstin }, school, kind: 'student',
+      billToName: studentName, billToSub: school?.name,
     });
     if (url) {
       await prisma.studentInvoice.update({ where: { id: invoice.id }, data: { pdf_url: url } });
