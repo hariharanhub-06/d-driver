@@ -316,4 +316,66 @@ async function renderAndUploadInvoicePdf(opts) {
   }
 }
 
-module.exports = { generateInvoicePdf, renderAndUploadInvoicePdf };
+/**
+ * Re-render an invoice's PDF from its CURRENT database state and update pdf_url.
+ *
+ * The PDF is produced once when the invoice is created, with status "pending" baked into the
+ * document. Paying the invoice only updates the database row, so without this the stored/emailed
+ * file still reads PENDING (and shows no payment reference) forever. Call this after any
+ * transition that changes what the PDF should say.
+ *
+ * Best-effort by design: a rendering or upload failure is logged and swallowed so a payment is
+ * never rejected because of a PDF.
+ *
+ * @param {string} invoiceId
+ * @param {'school'|'student'} kind
+ * @returns {Promise<string|null>} the new pdf_url, or null
+ */
+async function refreshInvoicePdf(invoiceId, kind = 'school') {
+  try {
+    const prisma = require('../prisma');
+
+    if (kind === 'student') {
+      const invoice = await prisma.studentInvoice.findUnique({
+        where: { id: invoiceId },
+        include: { student: { select: { name: true } } },
+      });
+      if (!invoice) return null;
+      const school = invoice.school_id
+        ? await prisma.school.findUnique({
+            where: { id: invoice.school_id },
+            select: { name: true, address: true, phone: true, email_contact: true, website: true, logo_url: true },
+          })
+        : null;
+      const { url } = await renderAndUploadInvoicePdf({
+        invoice,
+        school: school || {},
+        kind: 'student',
+        billToName: invoice.student?.name,
+        billToSub: school?.name,
+      });
+      if (url) await prisma.studentInvoice.update({ where: { id: invoiceId }, data: { pdf_url: url } });
+      return url;
+    }
+
+    const invoice = await prisma.schoolInvoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        school: {
+          select: { name: true, address: true, phone: true, email_contact: true, website: true, logo_url: true },
+        },
+      },
+    });
+    if (!invoice) return null;
+    const { url } = await renderAndUploadInvoicePdf({
+      invoice, school: invoice.school || {}, kind: 'school',
+    });
+    if (url) await prisma.schoolInvoice.update({ where: { id: invoiceId }, data: { pdf_url: url } });
+    return url;
+  } catch (err) {
+    console.error('refreshInvoicePdf error:', err.message);
+    return null;
+  }
+}
+
+module.exports = { generateInvoicePdf, renderAndUploadInvoicePdf, refreshInvoicePdf };

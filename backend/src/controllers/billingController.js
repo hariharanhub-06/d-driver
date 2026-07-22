@@ -350,6 +350,9 @@ const payInvoiceCash = async (req, res) => {
         paid_at: new Date(),
       },
     });
+    // Re-render so the stored PDF no longer says PENDING.
+    const { refreshInvoicePdf } = require('../utils/invoicePdf');
+    invoice.pdf_url = (await refreshInvoicePdf(id, 'school')) || invoice.pdf_url;
     res.json(invoice);
   } catch (err) {
     res.status(500).json({ error: 'Error processing cash payment' });
@@ -491,6 +494,9 @@ const verifyStudentInvoicePayment = async (req, res) => {
         paid_at: new Date(),
       },
     });
+    // Re-render so the stored PDF reflects the payment instead of still saying PENDING.
+    const { refreshInvoicePdf } = require('../utils/invoicePdf');
+    await refreshInvoicePdf(invoice.id, 'student');
     res.json({ ok: true });
   } catch (err) {
     console.error('verifyStudentInvoicePayment error:', err);
@@ -513,6 +519,11 @@ const markSchoolInvoicePaid = async (invoice, paymentId) => {
       paid_at: new Date(),
     },
   });
+
+  // The stored PDF was rendered at creation time with "PENDING" baked in — re-render it so the
+  // downloaded/emailed copy reflects the payment. Best-effort; never blocks the payment.
+  const { refreshInvoicePdf } = require('../utils/invoicePdf');
+  await refreshInvoicePdf(invoice.id, 'school');
 
   if (invoice.overdue_amount > 0) {
     const billingConfig = await prisma.billingConfig.findUnique({ where: { id: 'singleton' } });
@@ -587,6 +598,8 @@ const handleInvoiceWebhook = async (req, res) => {
                 paid_at: new Date(),
               },
             });
+            const { refreshInvoicePdf } = require('../utils/invoicePdf');
+            await refreshInvoicePdf(studentInvoice.id, 'student');
           }
         }
       }
@@ -1286,6 +1299,9 @@ const payStudentInvoiceCash = async (req, res) => {
       where: { id },
       data: { status: 'paid', payment_method: 'cash', paid_at: new Date() },
     });
+    // Re-render so the stored PDF no longer says PENDING.
+    const { refreshInvoicePdf } = require('../utils/invoicePdf');
+    invoice.pdf_url = (await refreshInvoicePdf(id, 'student')) || invoice.pdf_url;
     res.json(invoice);
   } catch (err) {
     console.error('payStudentInvoiceCash error:', err.message);
