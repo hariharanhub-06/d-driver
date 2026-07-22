@@ -36,12 +36,18 @@ const nextConfig = {
                         key: 'Content-Security-Policy',
                         value: [
                             "default-src 'self'",
-                            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+                            // checkout.razorpay.com serves the Checkout SDK. Without it the script
+                            // is blocked and every payment fails with "Failed to load payment gateway".
+                            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com",
                             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                             "img-src 'self' data: blob: https: http:",
                             "font-src 'self' data: https://fonts.gstatic.com",
                             "connect-src 'self' https: wss:",
                             "media-src 'self' https: blob:",
+                            // Razorpay Checkout renders inside an iframe. There was no frame-src, so it
+                            // fell back to default-src 'self' and the payment window would be blocked
+                            // even once the script loaded.
+                            "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com",
                             "frame-ancestors 'self' https://hariharanhub.com",
                             "object-src 'none'",
                         ].join('; '),
