@@ -797,13 +797,29 @@ const updatePlatformRazorpay = async (req, res) => {
 const getPlatformRazorpayStatus = async (req, res) => {
   try {
     const config = await prisma.platformConfig.findUnique({ where: { id: 'singleton' } });
-    // Report which Razorpay environment the saved key belongs to so the UI can warn that real
-    // money moves. Only the mode and the key's prefix leave the server — never the secret.
+
+    // Keys can come from EITHER the saved (encrypted) config row OR the environment —
+    // getRazorpayInstance falls back to env, so env-only setups are fully functional.
+    // Reporting only the DB flag made a working env-based setup read "Not configured".
+    const savedInDb = !!(config?.razorpay_configured && config.razorpay_key_id && config.razorpay_key_secret);
+    const inEnv = !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+
+    // Which Razorpay environment the active key belongs to, so the UI can warn that real money
+    // moves. Only the mode leaves the server — never the key or secret.
     let mode = 'unknown';
     const keyId = await getPlatformKeyId();
     if (keyId?.startsWith('rzp_live_')) mode = 'live';
     else if (keyId?.startsWith('rzp_test_')) mode = 'test';
-    res.json({ configured: config?.razorpay_configured ?? false, mode });
+
+    res.json({
+      configured: savedInDb || inEnv,
+      // 'saved' = entered here and encrypted; 'env' = from the host's environment variables.
+      source: savedInDb ? 'saved' : inEnv ? 'env' : 'none',
+      mode,
+      // Surfaced so a missing webhook secret is visible here instead of only showing up as
+      // failed deliveries in the Razorpay dashboard.
+      webhook_secret_set: !!process.env.RAZORPAY_WEBHOOK_SECRET,
+    });
   } catch (err) {
     res.status(500).json({ error: 'Error fetching config' });
   }

@@ -1140,8 +1140,11 @@ export default function SASettingsPage() {
   const [rzKeyId, setRzKeyId] = useState('');
   const [rzKeySecret, setRzKeySecret] = useState('');
   const [rzConfigured, setRzConfigured] = useState(false);
-  // 'live' | 'test' | 'unknown' — derived server-side from the saved key's prefix.
+  // 'live' | 'test' | 'unknown' — derived server-side from the active key's prefix.
   const [rzMode, setRzMode] = useState<'live' | 'test' | 'unknown'>('unknown');
+  // Where the active keys came from: 'saved' (encrypted here) | 'env' (host env vars) | 'none'.
+  const [rzSource, setRzSource] = useState<'saved' | 'env' | 'none'>('none');
+  const [rzWebhookSet, setRzWebhookSet] = useState(false);
   const [rzSaving, setRzSaving] = useState(false);
   const [rzMsg, setRzMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -1177,6 +1180,8 @@ export default function SASettingsPage() {
       if (rzRes.status === 'fulfilled') {
         setRzConfigured(rzRes.value.data?.configured ?? false);
         setRzMode(rzRes.value.data?.mode ?? 'unknown');
+        setRzSource(rzRes.value.data?.source ?? 'none');
+        setRzWebhookSet(rzRes.value.data?.webhook_secret_set ?? false);
       }
       if (cfgRes.status === 'fulfilled' && cfgRes.value.data) {
         setConfig(prev => ({ ...prev, ...cfgRes.value.data }));
@@ -1396,6 +1401,21 @@ export default function SASettingsPage() {
               {rzMode === 'live' && rzConfigured && (
                 <p className="text-xs font-semibold text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
                   Live mode — every payment made through the platform is a real charge.
+                </p>
+              )}
+              {/* Make the active key source explicit: env-based setups are fully working and
+                  don't need anything entered below. */}
+              {rzConfigured && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700/40 rounded-lg px-3 py-2">
+                  {rzSource === 'env'
+                    ? 'Using keys from the server environment (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET). Payments work — you only need the fields below if you want to override them.'
+                    : 'Using keys saved here (encrypted). These take precedence over the server environment variables.'}
+                </p>
+              )}
+              {rzConfigured && !rzWebhookSet && (
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+                  RAZORPAY_WEBHOOK_SECRET is not set on the server. Payments still confirm via the
+                  checkout callback, but Razorpay&apos;s webhook retries will be rejected.
                 </p>
               )}
               <p className="text-slate-500 dark:text-slate-400 text-xs">
