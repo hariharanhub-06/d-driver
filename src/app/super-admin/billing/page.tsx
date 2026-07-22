@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee, Pencil, Trash2, GraduationCap, Eye, Download, RefreshCw } from 'lucide-react';
+import { CreditCard, Plus, Loader2, X, Check, Building2, TrendingDown, IndianRupee, Pencil, Trash2, GraduationCap, Eye, Download, RefreshCw, Undo2 } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
@@ -236,6 +236,18 @@ export default function BillingPage() {
             fetchAll();
         } catch (e: any) {
             alert(e.response?.data?.error || 'Failed to regenerate invoice');
+        } finally { setRowBusy(null); }
+    };
+
+    // Revert a manual cash marking so the invoice can be corrected/regenerated.
+    const handleUndoPayment = async (inv: Invoice) => {
+        if (!confirm(t('Undo this cash payment and mark the invoice pending again?', 'இந்த ரொக்கக் கட்டணத்தை மீட்டமைக்கவா?'))) return;
+        setRowBusy(inv.id);
+        try {
+            await api.post(`/billing/invoices/${inv.id}/undo-payment`, {});
+            fetchAll();
+        } catch (e: any) {
+            alert(e.response?.data?.error || 'Failed to undo payment');
         } finally { setRowBusy(null); }
     };
 
@@ -520,6 +532,17 @@ export default function BillingPage() {
                                                         className="p-1.5 rounded-lg text-slate-400 hover:text-[var(--brand)] hover:bg-[var(--brand)]/10 transition-all">
                                                         <Download className="w-4 h-4" />
                                                     </a>
+                                                )}
+                                                {/* Cash is a manual marking and can simply be wrong, so it can be
+                                                    reverted; a Razorpay payment moved real money and is refused
+                                                    server-side (refund it in the Razorpay dashboard instead). */}
+                                                {inv.status === 'paid' && !inv.razorpay_payment_id && (
+                                                    <button onClick={(e) => { e.stopPropagation(); handleUndoPayment(inv); }}
+                                                        disabled={rowBusy === inv.id}
+                                                        title={t('Undo cash payment', 'ரொக்கக் கட்டணத்தை மீட்டமை')}
+                                                        className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all disabled:opacity-50">
+                                                        {rowBusy === inv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Undo2 className="w-4 h-4" />}
+                                                    </button>
                                                 )}
                                                 {/* Regenerate / delete are unpaid-only — a paid invoice records a real
                                                     payment and the server refuses to touch it. */}

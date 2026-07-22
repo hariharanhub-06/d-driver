@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Search, Loader2, GraduationCap, IndianRupee, Check, FileText, CreditCard } from 'lucide-react';
+import { ArrowLeft, Search, Loader2, GraduationCap, IndianRupee, Check, FileText, CreditCard, RefreshCw, Trash2, Undo2 } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
@@ -111,6 +111,51 @@ export default function IndividualBillingPage() {
         } catch (e: any) {
             alert(e?.response?.data?.error || 'Failed to generate invoices');
         } finally { setGenAll(false); }
+    };
+
+    // Replace an existing UNPAID invoice for the same month with freshly computed figures.
+    const regenerate = async (inv: StudentInvoice) => {
+        if (!inv.student?.id) return;
+        if (!confirm(t(
+            `Regenerate the ${inv.billing_month} invoice? The current one will be replaced.`,
+            `${inv.billing_month} விலைப்பட்டியலை மீண்டும் உருவாக்கவா?`
+        ))) return;
+        setPayingId(inv.id);
+        try {
+            await api.post(`/billing/students/${inv.student.id}/generate`, {
+                billing_month: inv.billing_month, force: true,
+            });
+            refreshInvoices();
+        } catch (e: any) {
+            alert(e?.response?.data?.error || 'Failed to regenerate invoice');
+        } finally { setPayingId(null); }
+    };
+
+    const removeInvoice = async (inv: StudentInvoice) => {
+        if (!confirm(t(
+            `Delete the ${inv.billing_month} invoice? This cannot be undone.`,
+            `${inv.billing_month} விலைப்பட்டியலை நீக்கவா?`
+        ))) return;
+        setPayingId(inv.id);
+        try {
+            await api.delete(`/billing/student-invoices/${inv.id}`);
+            refreshInvoices();
+        } catch (e: any) {
+            alert(e?.response?.data?.error || 'Failed to delete invoice');
+        } finally { setPayingId(null); }
+    };
+
+    // Reverts a manual cash marking so the invoice can be corrected. Razorpay-paid invoices
+    // are refused server-side — those must be refunded in the Razorpay dashboard.
+    const undoPayment = async (inv: StudentInvoice) => {
+        if (!confirm(t('Undo this cash payment and mark the invoice pending again?', 'இந்த ரொக்கக் கட்டணத்தை மீட்டமைக்கவா?'))) return;
+        setPayingId(inv.id);
+        try {
+            await api.post(`/billing/student-invoices/${inv.id}/undo-payment`, {});
+            refreshInvoices();
+        } catch (e: any) {
+            alert(e?.response?.data?.error || 'Failed to undo payment');
+        } finally { setPayingId(null); }
     };
 
     const markPaid = async (invoiceId: string) => {
@@ -315,8 +360,36 @@ export default function IndividualBillingPage() {
                                         </span>
                                     </div>
                                 )}
+                                {/* Paid via cash = a manual assertion, so it can be reverted.
+                                    Razorpay-paid rows have a real payment id and are refused. */}
+                                {inv.status === 'paid' && !inv.razorpay_payment_id && (
+                                    <button
+                                        onClick={() => undoPayment(inv)}
+                                        disabled={payingId === inv.id}
+                                        title={t('Undo cash payment', 'ரொக்கக் கட்டணத்தை மீட்டமை')}
+                                        className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all disabled:opacity-50"
+                                    >
+                                        {payingId === inv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Undo2 className="w-4 h-4" />}
+                                    </button>
+                                )}
                                 {inv.status !== 'paid' && (
                                     <>
+                                        <button
+                                            onClick={() => regenerate(inv)}
+                                            disabled={payingId === inv.id}
+                                            title={t('Regenerate with current figures', 'மீண்டும் உருவாக்கு')}
+                                            className="p-1.5 rounded-lg text-slate-400 hover:text-[var(--brand)] hover:bg-[var(--brand)]/10 transition-all disabled:opacity-50"
+                                        >
+                                            {payingId === inv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                                        </button>
+                                        <button
+                                            onClick={() => removeInvoice(inv)}
+                                            disabled={payingId === inv.id}
+                                            title={t('Delete invoice', 'நீக்கு')}
+                                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                         <button
                                             onClick={() => payOnline(inv)}
                                             disabled={payingId === inv.id}

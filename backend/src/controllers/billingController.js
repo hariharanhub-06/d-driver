@@ -283,6 +283,81 @@ const generateInvoice = async (req, res) => {
   }
 };
 
+/**
+ * Revert a CASH-marked invoice back to pending.
+ *
+ * Marking cash is a manual assertion by a super admin and can simply be wrong, so it must be
+ * undoable. A Razorpay-paid invoice is refused: real money moved and the payment id is the record
+ * of it — reverse that in the Razorpay dashboard, not here.
+ */
+const undoInvoicePayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = await prisma.schoolInvoice.findUnique({ where: { id } });
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+    if (invoice.status !== 'paid') return res.status(400).json({ error: 'This invoice is not marked paid.' });
+    if (invoice.razorpay_payment_id || invoice.payment_method === 'razorpay') {
+      return res.status(400).json({
+        error: 'This was paid online through Razorpay. Refund it from the Razorpay dashboard instead.',
+      });
+    }
+    await prisma.schoolInvoice.update({
+      where: { id },
+      data: { status: 'pending', payment_method: null, paid_at: null },
+    });
+    const { refreshInvoicePdf } = require('../utils/invoicePdf');
+    await refreshInvoicePdf(id, 'school');
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('undoInvoicePayment error:', err.message);
+    res.status(500).json({ error: 'Error reverting payment' });
+  }
+};
+
+/** Same for an individual (per-student) invoice. */
+const undoStudentInvoicePayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = await prisma.studentInvoice.findUnique({ where: { id } });
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+    if (invoice.status !== 'paid') return res.status(400).json({ error: 'This invoice is not marked paid.' });
+    if (invoice.razorpay_payment_id || invoice.payment_method === 'razorpay') {
+      return res.status(400).json({
+        error: 'This was paid online through Razorpay. Refund it from the Razorpay dashboard instead.',
+      });
+    }
+    await prisma.studentInvoice.update({
+      where: { id },
+      data: { status: 'pending', payment_method: null, paid_at: null },
+    });
+    const { refreshInvoicePdf } = require('../utils/invoicePdf');
+    await refreshInvoicePdf(id, 'student');
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('undoStudentInvoicePayment error:', err.message);
+    res.status(500).json({ error: 'Error reverting payment' });
+  }
+};
+
+// DELETE /billing/student-invoices/:id — remove an unpaid individual invoice.
+const deleteStudentInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = await prisma.studentInvoice.findUnique({
+      where: { id }, select: { id: true, status: true },
+    });
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+    if (invoice.status === 'paid') {
+      return res.status(400).json({ error: 'Paid invoices cannot be deleted.' });
+    }
+    await prisma.studentInvoice.delete({ where: { id } });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('deleteStudentInvoice error:', err.message);
+    res.status(500).json({ error: 'Error deleting invoice' });
+  }
+};
+
 // DELETE /billing/invoices/:id — remove an unpaid invoice (e.g. generated in error).
 const deleteInvoice = async (req, res) => {
   try {
@@ -1219,10 +1294,27 @@ const generateStudentInvoice = async (req, res) => {
     const now = new Date();
     const billing_month = req.body.billing_month ||
       `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    // force = regenerate: replace an existing UNPAID invoice for this month with fresh figures.
+    const force = !!req.body.force;
     const dup = await prisma.studentInvoice.findFirst({
-      where: { student_id: id, billing_month }, select: { id: true },
+      where: { student_id: id, billing_month }, select: { id: true, status: true },
     });
-    if (dup) return res.status(400).json({ error: `An invoice for ${billing_month} already exists for this student.` });
+    if (dup) {
+      if (!force) {
+        // 409 lets the UI offer "regenerate" instead of a dead end.
+        return res.status(409).json({
+          error: `An invoice for ${billing_month} already exists for this student.`,
+          code: 'INVOICE_EXISTS',
+        });
+      }
+      if (dup.status === 'paid') {
+        return res.status(400).json({
+          error: 'This invoice is already paid and cannot be regenerated.',
+          code: 'INVOICE_PAID',
+        });
+      }
+      await prisma.studentInvoice.delete({ where: { id: dup.id } });
+    }
     const c = await computeInvoiceForStudent(id, billing_month);
     const invoice = await prisma.studentInvoice.create({
       data: {
@@ -1573,6 +1665,10 @@ module.exports = {
   listInvoices,
   getInvoice,
   payInvoiceCash,
+  deleteInvoice,
+  deleteStudentInvoice,
+  undoInvoicePayment,
+  undoStudentInvoicePayment,
   createInvoiceOrder,
   verifyInvoicePayment,
   verifyStudentInvoicePayment,

@@ -16,6 +16,10 @@ const {
   listInvoices,
   getInvoice,
   payInvoiceCash,
+  deleteInvoice,
+  deleteStudentInvoice,
+  undoInvoicePayment,
+  undoStudentInvoicePayment,
   createInvoiceOrder,
   verifyInvoicePayment,
   verifyStudentInvoicePayment,
@@ -69,6 +73,8 @@ router.get('/invoices/:id',           requireRole('super_admin'), getInvoice);
 router.post('/invoices/:id/pay-cash', requireRole('super_admin'), payInvoiceCash);
 // Remove an invoice generated in error. Paid invoices are refused by the controller.
 router.delete('/invoices/:id',        requireRole('super_admin'), deleteInvoice);
+// Undo a CASH marking (a manual assertion). Razorpay-paid invoices are refused.
+router.post('/invoices/:id/undo-payment', requireRole('super_admin'), undoInvoicePayment);
 // School admins pay their OWN school's invoice; the controller scopes by req.user.school_id.
 // (Was super_admin-only, so the "Pay Online" button on the admin billing page always 403'd.)
 router.post('/invoices/:id/pay-online', requireRole('admin', 'super_admin'), createInvoiceOrder);
@@ -93,6 +99,8 @@ router.get('/student-invoices',             requireRole('super_admin'), listStud
 router.post('/student-invoices/:id/pay-cash',   requireRole('super_admin'), payStudentInvoiceCash);
 router.post('/student-invoices/:id/pay-online', requireRole('super_admin'), createStudentInvoiceOrder);
 router.post('/student-invoices/:id/verify',     requireRole('super_admin'), verifyStudentInvoicePayment);
+router.delete('/student-invoices/:id',          requireRole('super_admin'), deleteStudentInvoice);
+router.post('/student-invoices/:id/undo-payment', requireRole('super_admin'), undoStudentInvoicePayment);
 
 // Admin + parent — current subscription plan & included features
 router.get('/my-subscription', requireRole('admin', 'parent'), getMySubscription);
