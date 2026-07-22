@@ -22,6 +22,9 @@ interface StudentInvoice {
     billing_month: string;
     total_amount: number;
     status: string;
+    paid_at?: string;
+    payment_method?: string;
+    razorpay_payment_id?: string;
     student?: { id: string; name: string; school?: { name: string }; parent?: { name: string; phone?: string } };
 }
 
@@ -288,6 +291,30 @@ export default function IndividualBillingPage() {
                                     <IndianRupee className="w-3.5 h-3.5" />{inv.total_amount.toFixed(2)}
                                 </span>
                                 <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold uppercase", statusCls(inv.status))}>{inv.status}</span>
+                                {/* Razorpay reference + when it was paid, for reconciliation. */}
+                                {inv.paid_at && (
+                                    <div className="min-w-[150px]">
+                                        {inv.razorpay_payment_id ? (
+                                            <button
+                                                onClick={() => navigator.clipboard?.writeText(inv.razorpay_payment_id!)}
+                                                title={t('Copy payment ID', 'கட்டண ஐடியை நகலெடு')}
+                                                className="font-mono text-[11px] text-slate-700 dark:text-slate-200 hover:text-[var(--brand)] transition-colors block truncate max-w-[170px]"
+                                            >
+                                                {inv.razorpay_payment_id}
+                                            </button>
+                                        ) : (
+                                            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize">
+                                                {inv.payment_method || t('Cash', 'ரொக்கம்')}
+                                            </span>
+                                        )}
+                                        <span className="block text-[10px] text-slate-400 dark:text-slate-500">
+                                            {new Date(inv.paid_at).toLocaleString('en-IN', {
+                                                day: '2-digit', month: 'short', year: 'numeric',
+                                                hour: '2-digit', minute: '2-digit', hour12: true,
+                                            })}
+                                        </span>
+                                    </div>
+                                )}
                                 {inv.status !== 'paid' && (
                                     <>
                                         <button

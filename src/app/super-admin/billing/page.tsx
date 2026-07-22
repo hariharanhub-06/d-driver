@@ -33,6 +33,8 @@ interface Invoice {
     line_items_snapshot?: { usage?: any; line_items?: InvoiceLineItem[]; plan_name?: string };
     status: string;
     paid_at?: string;
+    payment_method?: string;
+    razorpay_payment_id?: string;
     pdf_url?: string;
 }
 
@@ -402,6 +404,7 @@ export default function BillingPage() {
                                         t('Billing Month', 'பில்லிங் மாதம்'),
                                         t('Amount', 'தொகை'),
                                         t('Status', 'நிலை'),
+                                        t('Payment ID / Paid On', 'கட்டண ஐடி / செலுத்திய நேரம்'),
                                         t('Actions', 'செயல்கள்'),
                                     ].map(h => (
                                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-700/50">{h}</th>
@@ -415,6 +418,36 @@ export default function BillingPage() {
                                         <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{inv.billing_month}</td>
                                         <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white">₹{(inv.total_amount || 0).toLocaleString('en-IN')}</td>
                                         <td className="px-4 py-3"><span className={getStatusBadge(inv.status)}>{getStatusLabel(inv.status || 'pending')}</span></td>
+                                        {/* Razorpay payment reference + when it was paid — the value to
+                                            reconcile against the Razorpay dashboard. Cash payments have a
+                                            paid_at but no payment id. */}
+                                        <td className="px-4 py-3">
+                                            {inv.paid_at ? (
+                                                <div className="min-w-[150px]">
+                                                    {inv.razorpay_payment_id ? (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); navigator.clipboard?.writeText(inv.razorpay_payment_id!); }}
+                                                            title={t('Copy payment ID', 'கட்டண ஐடியை நகலெடு')}
+                                                            className="font-mono text-xs text-slate-900 dark:text-white hover:text-[var(--brand)] transition-colors block truncate max-w-[180px]"
+                                                        >
+                                                            {inv.razorpay_payment_id}
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 capitalize">
+                                                            {inv.payment_method || t('Cash', 'ரொக்கம்')}
+                                                        </span>
+                                                    )}
+                                                    <span className="block text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                                                        {new Date(inv.paid_at).toLocaleString('en-IN', {
+                                                            day: '2-digit', month: 'short', year: 'numeric',
+                                                            hour: '2-digit', minute: '2-digit', hour12: true,
+                                                        })}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                                            )}
+                                        </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-2">
                                                 <button onClick={(e) => { e.stopPropagation(); setViewInvoice(inv); }} title={t('View breakup', 'விவரம் காண்க')}
